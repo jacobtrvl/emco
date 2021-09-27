@@ -12,11 +12,9 @@
 ###
 
 if [ "$#" -ne 1 ] ; then
-    kubectl -n emco exec `kubectl get pods -lapp.kubernetes.io/name=etcd -n emco --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}'` -it -- etcdctl /context/ --prefix=true --keys-only=true
+    kubectl -n emco exec `kubectl get pods -lapp.kubernetes.io/name=etcd -n emco --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}'` -it -- etcdctl --user root:hihohiho get /context/ --prefix=true --keys-only=true
+elif [ "$1" == "del" ] ; then
+    kubectl -n emco exec `kubectl get pods -lapp.kubernetes.io/name=etcd -n emco --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}'` -it -- etcdctl --user root:hihohiho del /context/ --prefix=true
 else
-if [ "$1" == "del" ] ; then
-    kubectl -n emco exec `kubectl get pods -lapp.kubernetes.io/name=etcd -n emco --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}'` -it -- etcdctl del /context/ --prefix=true
-else
-    kubectl -n emco exec `kubectl get pods -lapp.kubernetes.io/name=etcd -n emco --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}'` -it -- etcdctl get $1 --prefix=true
-fi
+    kubectl -n emco exec `kubectl get pods -lapp.kubernetes.io/name=etcd -n emco --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}'` -it -- etcdctl --user root:hihohiho get $1 --prefix=true
 fi
