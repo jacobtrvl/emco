@@ -64,6 +64,10 @@ func (h updateHandler) migrateHandler(w http.ResponseWriter, r *http.Request) {
 		log.Error(":: Error migrate handler ::", log.Fields{"Error": iErr.Error(), "project": p, "compositeApp": ca, "compositeAppVer": v,
 			"targetCompositeAppVersion": tCav, "depGroup": di, "targetDigName": tDig})
 		apiErr := apierror.HandleLogicalCloudErrors(vars, iErr, lcErrors)
+		if (apiErr == apierror.APIError{}) {
+			// There are no logical cloud error(s). Check for api specific error(s)
+			apiErr = apierror.HandleErrors(vars, iErr, nil, apiErrors)
+		}
 		http.Error(w, apiErr.Message, apiErr.Status)
 		return
 	}
@@ -85,6 +89,10 @@ func (h updateHandler) updateHandler(w http.ResponseWriter, r *http.Request) {
 		log.Error(":: Error update handler ::", log.Fields{"Error": iErr.Error(), "project": p, "compositeApp": ca, "compositeAppVer": v,
 			"depGroup": di})
 		apiErr := apierror.HandleLogicalCloudErrors(vars, iErr, lcErrors)
+		if (apiErr == apierror.APIError{}) {
+			// There are no logical cloud error(s). Check for api specific error(s)
+			apiErr = apierror.HandleErrors(vars, iErr, nil, apiErrors)
+		}
 		http.Error(w, apiErr.Message, apiErr.Status)
 		return
 	}
@@ -137,6 +145,10 @@ func (h updateHandler) rollbackHandler(w http.ResponseWriter, r *http.Request) {
 		log.Error(":: Error rollback handler ::", log.Fields{"Error": iErr.Error(), "project": p, "compositeApp": ca, "compositeAppVer": v,
 			"depGroup": di, "revision": rbRev})
 		apiErr := apierror.HandleLogicalCloudErrors(vars, iErr, lcErrors)
+		if (apiErr == apierror.APIError{}) {
+			// There are no logical cloud error(s). Check for api specific error(s)
+			apiErr = apierror.HandleErrors(vars, iErr, nil, apiErrors)
+		}
 		http.Error(w, apiErr.Message, apiErr.Status)
 		return
 	}

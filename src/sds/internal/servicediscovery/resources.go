@@ -12,12 +12,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
-	"gitlab.com/project-emco/core/emco-base/src/sds/internal/utils"
 	rb "gitlab.com/project-emco/core/emco-base/src/monitor/pkg/apis/k8splugin/v1alpha1"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/appcontext"
 	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/state"
 	connector "gitlab.com/project-emco/core/emco-base/src/rsync/pkg/connector"
+	"gitlab.com/project-emco/core/emco-base/src/sds/internal/utils"
 )
 
 // serviceEntry provides the contents of the virtual proxy service
@@ -131,7 +131,7 @@ func getClusterServiceSpecs(ac appcontext.AppContext, appContextID string, rbDat
 			} else {
 				log.Info("Parent's app context is not in 'Instantiated' state",
 					log.Fields{"appContextID": appContextID})
-				return virtualService, pkgerrors.Wrap(err, "Parent's app context is not in 'Instantiated' state")
+				return virtualService, pkgerrors.New("Parent's app context is not in 'Instantiated' state")
 			}
 
 			if err != nil {

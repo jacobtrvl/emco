@@ -3,13 +3,13 @@
 
 image:
     repository: <myrepository.example.com>/app/my-custom-httptest-server
-    tag: "1.4"
+    tag: "1.1"
     pullPolicy: Always
 
 service:
     name: http-service
     type: NodePort
-    tcpPort: 30080
+    tcpPort: 30083
     nameOfPort: webPort
     annotations: {}
     labels: {}

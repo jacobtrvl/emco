@@ -31,43 +31,6 @@
 (5) Modify the helm files (values.yaml, service.yaml and deployment.yaml) accordingly in the folder examples/helm_charts/http-client/helm/http-client and examples/helm_charts/http-server/helm/http-server
     Note: The NodePort in values.yaml is the port exposed by the service running on K8s. Also update the tag of the image to be downloaded if required
 
-**Testing locally using helm commands:**
 
-(6) [This is for your testing purpose to check whether the helm chart is getting deployed successfully]. Run helm install command to deploy this app on the K8s
-```
-    cd examples/helm_charts/http-server/helm/
-    tar -czvf http-server.tgz http-server/
-    server app deployed on North cluster: helm install --kubeconfig </root/.kube/config_north> http-server.tgz http-server
-    cd examples/helm_charts/http-client/helm/
-    tar -czvf http-client.tgz http-client/
-    client app deployed on South Cluster: helm install --kubeconfig </root/.kube/config_south> http-client.tgz http-client
-```
-
-(7) To get the node IP and service ports
-```
-     North Cluster:
-     kubectl --kubeconfig </root/.kube/config_north> get nodes --namespace <installed namespace> -o jsonpath="{.items[0].status.addresses[0].address}"
-     kubectl --kubeconfig </root/.kube/config_north> get svc http-service --namespace <installed namespace> -o jsonpath="{.spec.ports[0].nodePort}"
-
-     South Cluster:
-     kubectl --kubeconfig </root/.kube/config_south> get nodes --namespace <installed namespace> -o jsonpath="{.items[0].status.addresses[0].address}"
-```
-(8)  Uninstall the client and server
-```
-    helm uninstall --kubeconfig </root/.kube/config_south> http-client.tgz
-    helm uninstall --kubeconfig </root/.kube/config_north> http-server.tgz
-```
-**Test DTC feature using the emcoctl-tests test scripts:**
-
-(9) Follow the readme instructions given under examples/single-cluster and deploy DTC feature.
-
-**Cleanup:**
-
-(10) Delete the built images from test-apps folder
-
-```
-    rm -rf test-apps/http-client/http-client 
-    rm -rf test-apps/http-server/http-server
-```
 
 

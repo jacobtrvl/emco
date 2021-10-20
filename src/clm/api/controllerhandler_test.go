@@ -13,9 +13,9 @@ import (
 	"reflect"
 	"testing"
 
+	pkgerrors "github.com/pkg/errors"
 	clmModel "gitlab.com/project-emco/core/emco-base/src/clm/pkg/model"
 	mtypes "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/module/types"
-	pkgerrors "github.com/pkg/errors"
 )
 
 func init() {
@@ -654,7 +654,7 @@ func TestControllerDeleteHandler(t *testing.T) {
 			expectedCode: http.StatusNotFound,
 			name:         "TestController",
 			ControllerClient: &mockControllerManager{
-				Err: pkgerrors.New("not found"),
+				Err: pkgerrors.New("db Remove resource not found"),
 			},
 		},
 	}

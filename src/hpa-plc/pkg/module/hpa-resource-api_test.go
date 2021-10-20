@@ -12,9 +12,9 @@ import (
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
 	orchMod "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/module"
 
+	pkgerrors "github.com/pkg/errors"
 	hpaModel "gitlab.com/project-emco/core/emco-base/src/hpa-plc/pkg/model"
 	mtypes "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/module/types"
-	pkgerrors "github.com/pkg/errors"
 )
 
 var allocatable_true = true
@@ -1359,9 +1359,9 @@ func TestDeleteResource(t *testing.T) {
 		},
 		{
 			label:         "Delete Error",
-			expectedError: "DB Error",
+			expectedError: "db Remove error",
 			mockdb: &db.MockDB{
-				Err: pkgerrors.New("DB Error"),
+				Err: pkgerrors.New("db Remove error"),
 			},
 		},
 	}

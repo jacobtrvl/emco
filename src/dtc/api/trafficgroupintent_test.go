@@ -11,11 +11,11 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
+	pkgerrors "github.com/pkg/errors"
 	"gitlab.com/project-emco/core/emco-base/src/dtc/api/mocks"
 	"gitlab.com/project-emco/core/emco-base/src/dtc/pkg/module"
-	orcmod "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/module"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
-	pkgerrors "github.com/pkg/errors"
+	orcmod "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/module"
 )
 
 func init() {
@@ -57,7 +57,7 @@ var _ = Describe("Trafficgroupintenthandler", func() {
 		}
 
 		list := []orcmod.OverrideValues{}
-		_, err = c.DeploymentIntentGroup.CreateDeploymentIntentGroup(orcmod.DeploymentIntentGroup{MetaData: orcmod.DepMetaData{Name: "test-dig", Description: "test", UserData1: "userData1", UserData2: "userData2"}, Spec: orcmod.DepSpecData{Profile: "prof1", Version: "v1", OverrideValuesObj: list, LogicalCloud: "lc1"}}, "test-project", "test-compositeapp", "v1")
+		_, _, err = c.DeploymentIntentGroup.CreateDeploymentIntentGroup(orcmod.DeploymentIntentGroup{MetaData: orcmod.DepMetaData{Name: "test-dig", Description: "test", UserData1: "userData1", UserData2: "userData2"}, Spec: orcmod.DepSpecData{Profile: "prof1", Version: "v1", OverrideValuesObj: list, LogicalCloud: "lc1"}}, "test-project", "test-compositeapp", "v1", true)
 		if err != nil {
 			fmt.Println(err)
 			return

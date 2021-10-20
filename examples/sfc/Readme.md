@@ -99,8 +99,8 @@ All scripts and files for the SFC demo are located within this directory and sub
 ```
 ./setup.sh cleanup
 ./setup.sh create
-../../bin/emcoctl/emcoctl --config emco-cfg.yaml apply -f prerequisites.yaml -v values.yaml
-../../bin/emcoctl/emcoctl --config emco-cfg.yaml apply -f sfc-logical-clouds.yaml -v values.yaml
+emcoctl --config emco-cfg.yaml apply -f prerequisites.yaml -v values.yaml
+emcoctl --config emco-cfg.yaml apply -f sfc-logical-clouds.yaml -v values.yaml
 ```
 
 These steps clean up any previous demo executions and create the emco-cfg.yaml, values.yaml
@@ -125,8 +125,8 @@ As noted above, currently the SFC networks need to be created.  In this step,app
 SFC network and then the SFC composite app.
 
 ```
-../../bin/emcoctl/emcoctl --config emco-cfg.yaml apply -f sfc-networks.yaml -v values.yaml
-../../bin/emcoctl/emcoctl --config emco-cfg.yaml apply -f sfc-ca.yaml -v values.yaml
+emcoctl --config emco-cfg.yaml apply -f sfc-networks.yaml -v values.yaml
+emcoctl --config emco-cfg.yaml apply -f sfc-ca.yaml -v values.yaml
 ```
 
 ### Deploy the SFC Client applications
@@ -134,8 +134,8 @@ SFC network and then the SFC composite app.
 Deploy the client applications as follows:
 
 ```
-../../bin/emcoctl/emcoctl --config emco-cfg.yaml apply -f sfc-left-client.yaml -v values.yaml
-../../bin/emcoctl/emcoctl --config emco-cfg.yaml apply -f sfc-right-client.yaml -v values.yaml
+emcoctl --config emco-cfg.yaml apply -f sfc-left-client.yaml -v values.yaml
+emcoctl --config emco-cfg.yaml apply -f sfc-right-client.yaml -v values.yaml
 ```
 
 ### Testing the SFC
@@ -160,12 +160,12 @@ Delete the emcoctl demo files in reverse order.  Each one typically needs to be 
 Take your time, no rush (and probably do each step twice).
 
 ```
-../../bin/emcoctl/emcoctl --config emco-cfg.yaml delete -f sfc-right-client.yaml -v values.yaml
-../../bin/emcoctl/emcoctl --config emco-cfg.yaml delete -f sfc-left-client.yaml -v values.yaml
-../../bin/emcoctl/emcoctl --config emco-cfg.yaml delete -f sfc-ca.yaml -v values.yaml
-../../bin/emcoctl/emcoctl --config emco-cfg.yaml delete -f sfc-networks.yaml -v values.yaml
-../../bin/emcoctl/emcoctl --config emco-cfg.yaml delete -f sfc-logical-clouds.yaml -v values.yaml
-../../bin/emcoctl/emcoctl --config emco-cfg.yaml delete -f prerequisites.yaml -v values.yaml
+emcoctl --config emco-cfg.yaml delete -f sfc-right-client.yaml -v values.yaml
+emcoctl --config emco-cfg.yaml delete -f sfc-left-client.yaml -v values.yaml
+emcoctl --config emco-cfg.yaml delete -f sfc-ca.yaml -v values.yaml
+emcoctl --config emco-cfg.yaml delete -f sfc-networks.yaml -v values.yaml
+emcoctl --config emco-cfg.yaml delete -f sfc-logical-clouds.yaml -v values.yaml
+emcoctl --config emco-cfg.yaml delete -f prerequisites.yaml -v values.yaml
 ```
 
 

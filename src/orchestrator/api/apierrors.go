@@ -26,6 +26,7 @@ var apiErrors = []apierror.APIError{
 	{ID: "DeploymentIntent already exists", Message: "DeploymentIntent already exists", Status: http.StatusConflict},
 	{ID: "Project already exists", Message: "Project already exists", Status: http.StatusConflict},
 	{ID: "Controller already exists", Message: "Controller already exists", Status: http.StatusConflict},
+	{ID: "The DeploymentIntentGroup is not updated", Message: "The specified DeploymentIntentGroup is not in Created status", Status: http.StatusConflict},
 }
 
 var lcErrors = []apierror.APIError{

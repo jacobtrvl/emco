@@ -11,7 +11,7 @@ spec:
   host: <node-IP>
   port: 30485
   type: "action"
-   priority: 1
+  priority: 1
 ---
 version: emco/v2
 resourceContext:

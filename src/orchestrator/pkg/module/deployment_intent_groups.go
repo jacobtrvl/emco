@@ -50,7 +50,7 @@ type OverrideValues struct {
 
 // DeploymentIntentGroupManager is an interface which exposes the DeploymentIntentGroupManager functionality
 type DeploymentIntentGroupManager interface {
-	CreateDeploymentIntentGroup(d DeploymentIntentGroup, p string, ca string, v string) (DeploymentIntentGroup, error)
+	CreateDeploymentIntentGroup(d DeploymentIntentGroup, p string, ca string, v string, failIfExists bool) (DeploymentIntentGroup, bool, error)
 	GetDeploymentIntentGroup(di string, p string, ca string, v string) (DeploymentIntentGroup, error)
 	GetDeploymentIntentGroupState(di string, p string, ca string, v string) (state.StateInfo, error)
 	DeleteDeploymentIntentGroup(di string, p string, ca string, v string) error
@@ -92,12 +92,17 @@ func NewDeploymentIntentGroupClient() *DeploymentIntentGroupClient {
 }
 
 // CreateDeploymentIntentGroup creates an entry for a given  DeploymentIntentGroup in the database. Other Input parameters for it - projectName, compositeAppName, version
-func (c *DeploymentIntentGroupClient) CreateDeploymentIntentGroup(d DeploymentIntentGroup, p string, ca string,
-	v string) (DeploymentIntentGroup, error) {
+func (c *DeploymentIntentGroupClient) CreateDeploymentIntentGroup(d DeploymentIntentGroup, p string, ca string, v string, failIfExists bool) (DeploymentIntentGroup, bool, error) {
+	digExists := false
 
+	// check if the DeploymentIntentGroup already exists.
 	res, err := c.GetDeploymentIntentGroup(d.MetaData.Name, p, ca, v)
 	if err == nil && !reflect.DeepEqual(res, DeploymentIntentGroup{}) {
-		return DeploymentIntentGroup{}, pkgerrors.New("DeploymentIntent already exists")
+		digExists = true
+	}
+
+	if digExists && failIfExists {
+		return DeploymentIntentGroup{}, digExists, pkgerrors.New("DeploymentIntent already exists")
 	}
 
 	gkey := DeploymentIntentGroupKey{
@@ -107,9 +112,34 @@ func (c *DeploymentIntentGroupClient) CreateDeploymentIntentGroup(d DeploymentIn
 		Version:      v,
 	}
 
+	if digExists {
+		// The DeploymentIntentGroup exists. Check the state of the DeploymentIntentGroup
+		// Update the DeploymentIntentGroup if the state is "Created"
+		stateInfo, err := c.GetDeploymentIntentGroupState(d.MetaData.Name, p, ca, v)
+		if err != nil {
+			return DeploymentIntentGroup{}, digExists, err
+		}
+
+		currentState, err := state.GetCurrentStateFromStateInfo(stateInfo)
+		if err != nil {
+			return DeploymentIntentGroup{}, digExists, err
+		}
+
+		if currentState == state.StateEnum.Created {
+			err := db.DBconn.Insert(c.storeName, gkey, nil, c.tagMetaData, d)
+			if err != nil {
+				return DeploymentIntentGroup{}, digExists, err
+			}
+			return d, digExists, nil
+		}
+
+		return DeploymentIntentGroup{}, digExists, pkgerrors.Errorf("The DeploymentIntentGroup is not updated. The DeploymentIntentGroup, %s, is in %s state", d.MetaData.Name, currentState)
+	}
+
+	// The DeploymentIntentGroup does not exists. Create the DeploymentIntentGroup and add the StateInfo details
 	err = db.DBconn.Insert(c.storeName, gkey, nil, c.tagMetaData, d)
 	if err != nil {
-		return DeploymentIntentGroup{}, pkgerrors.Wrap(err, "Create DB entry error")
+		return DeploymentIntentGroup{}, digExists, err
 	}
 
 	// Add the stateInfo record
@@ -123,10 +153,10 @@ func (c *DeploymentIntentGroupClient) CreateDeploymentIntentGroup(d DeploymentIn
 
 	err = db.DBconn.Insert(c.storeName, gkey, nil, c.tagState, s)
 	if err != nil {
-		return DeploymentIntentGroup{}, pkgerrors.Wrap(err, "Error updating the stateInfo of the DeploymentIntentGroup: "+d.MetaData.Name)
+		return DeploymentIntentGroup{}, digExists, pkgerrors.Wrapf(err, "Error updating the stateInfo of the DeploymentIntentGroup: %s", d.MetaData.Name)
 	}
 
-	return d, nil
+	return d, digExists, nil
 }
 
 // GetDeploymentIntentGroup returns the DeploymentIntentGroup with a given name, project, compositeApp and version of compositeApp
@@ -265,7 +295,7 @@ func (c *DeploymentIntentGroupClient) DeleteDeploymentIntentGroup(di string, p s
 		acStatus, err := state.GetAppContextStatus(ctxid)
 		if err == nil &&
 			!(acStatus.Status == appcontext.AppContextStatusEnum.Terminated || acStatus.Status == appcontext.AppContextStatusEnum.TerminateFailed) {
-			return pkgerrors.Wrap(err, "DeploymentIntentGroup has not completed terminating: "+di)
+			return pkgerrors.New("DeploymentIntentGroup has not completed terminating: " + di)
 		}
 
 		for _, id := range state.GetContextIdsFromStateInfo(s) {

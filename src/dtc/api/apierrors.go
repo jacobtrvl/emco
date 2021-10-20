@@ -13,4 +13,6 @@ var apiErrors = []apierror.APIError{
 	{ID: "Inbound server intent not found", Message: "Inbound server intent not found", Status: http.StatusNotFound},
 	{ID: "Traffic group intent not found", Message: "Traffic group intent not found", Status: http.StatusNotFound},
 	{ID: "TrafficGroupIntent already exists", Message: "TrafficGroupIntent already exists", Status: http.StatusConflict},
+	{ID: "Controller already exists", Message: "Controller already exists", Status: http.StatusConflict},
+	{ID: "Controller not found", Message: "Controller not found", Status: http.StatusNotFound},
 }

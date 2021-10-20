@@ -218,7 +218,7 @@ metadata :
 spec:
   app: http-client
 file:
-  http-server-profile.tar.gz
+  http-client-profile.tar.gz
 
 ---
 #adding http-server app profiles to the composite profile

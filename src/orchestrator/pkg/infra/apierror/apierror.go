@@ -16,13 +16,6 @@ type APIError struct {
 	Status  int
 }
 
-var apiErrors = []APIError{
-	{ID: "Error Unmarshalling bson data", Message: "Unmarshalling Error. Unexpected element in the bson data", Status: http.StatusInternalServerError},
-	{ID: "Unknown Error", Message: "Unknown Error", Status: http.StatusInternalServerError},
-	{ID: "not found", Message: "Requested resource not found.", Status: http.StatusNotFound},          // to handle the generic "resource not found" errors
-	{ID: "already exists", Message: "Requested resource already exist.", Status: http.StatusConflict}, // to handle the generic "resource already exist" errors
-}
-
 var dbErrors = []APIError{
 	{ID: "db Find error", Message: "Error finding referencing resources", Status: http.StatusInternalServerError},
 	{ID: "db Remove error", Message: "Error removing referencing resources", Status: http.StatusInternalServerError},
@@ -53,13 +46,6 @@ func HandleErrors(params map[string]string, err error, mod interface{}, apiErr [
 		}
 	}
 
-	// generic errors
-	for _, e := range apiErrors {
-		if strings.Contains(err.Error(), e.ID) {
-			return e
-		}
-	}
-
 	// Default
 	return APIError{ID: "Internal server error", Message: "The server encountered an internal error and was unable to complete your request.", Status: http.StatusInternalServerError}
 }
@@ -67,14 +53,11 @@ func HandleErrors(params map[string]string, err error, mod interface{}, apiErr [
 // HandleLogicalCloudErrors handles logical cloud errors
 // Returns APIError with the ID, message and the http status based on the error
 func HandleLogicalCloudErrors(params map[string]string, err error, lcErrors []APIError) APIError {
-	log.Error("Logical cloud error :: ", log.Fields{"Parameters": params, "Error": err})
-
 	for _, e := range lcErrors {
 		if strings.Contains(err.Error(), e.ID) {
+			log.Error("Logical cloud error :: ", log.Fields{"Parameters": params, "Error": err})
 			return e
 		}
 	}
-
-	// Default
-	return APIError{ID: "Logical cloud error", Message: "The server encountered an internal error and was unable to complete your request.", Status: http.StatusInternalServerError}
+	return APIError{}
 }

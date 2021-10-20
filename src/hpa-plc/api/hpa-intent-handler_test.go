@@ -96,7 +96,7 @@ func TestIntentCreateHandler(t *testing.T) {
 			expectedCode: http.StatusNotFound,
 			IntentClient: &mockIntentManager{
 				Items: []hpaModel.DeploymentHpaIntent{},
-				Err:   pkgerrors.New("not found"),
+				Err:   pkgerrors.New("Intent not found"),
 			},
 		},
 		{
@@ -485,7 +485,7 @@ func TestIntentUpdateHandler(t *testing.T) {
 			}`)),
 			IntentClient: &mockIntentManager{
 				Items: []hpaModel.DeploymentHpaIntent{},
-				Err:   pkgerrors.New("not found"),
+				Err:   pkgerrors.New("Intent not found"),
 			},
 		},
 	}
@@ -583,7 +583,7 @@ func TestIntentGetHandler(t *testing.T) {
 			name:         "testIntentBad",
 			IntentClient: &mockIntentManager{
 				Items: []hpaModel.DeploymentHpaIntent{},
-				Err:   pkgerrors.New("not found"),
+				Err:   pkgerrors.New("Intent not found"),
 			},
 		},
 		{
@@ -708,7 +708,7 @@ func TestIntentGetHandlerByName(t *testing.T) {
 			name:         "testIntentBad",
 			IntentClient: &mockIntentManager{
 				Items: []hpaModel.DeploymentHpaIntent{},
-				Err:   pkgerrors.New("not found"),
+				Err:   pkgerrors.New("Intent not found"),
 			},
 		},
 	}
@@ -826,7 +826,7 @@ func TestIntentGetAllHandler(t *testing.T) {
 			name:         "nonexistingIntent",
 			IntentClient: &mockIntentManager{
 				Items: []hpaModel.DeploymentHpaIntent{},
-				Err:   pkgerrors.New("not found"),
+				Err:   pkgerrors.New("Intent not found"),
 			},
 		},
 		{
@@ -908,7 +908,7 @@ func TestIntentDeleteHandler(t *testing.T) {
 						},
 					},
 				},
-				Err: pkgerrors.New("not found"),
+				Err: pkgerrors.New("db Remove resource not found"),
 			},
 		},
 		{
@@ -916,7 +916,7 @@ func TestIntentDeleteHandler(t *testing.T) {
 			expectedCode: http.StatusNotFound,
 			name:         "testIntent",
 			IntentClient: &mockIntentManager{
-				Err: pkgerrors.New("not found"),
+				Err: pkgerrors.New("db Remove resource not found"),
 			},
 		},
 		{
@@ -924,7 +924,7 @@ func TestIntentDeleteHandler(t *testing.T) {
 			expectedCode: http.StatusNotFound,
 			name:         "",
 			IntentClient: &mockIntentManager{
-				Err: pkgerrors.New("not found"),
+				Err: pkgerrors.New("db Remove resource not found"),
 			},
 		},
 	}
@@ -974,7 +974,7 @@ func TestIntentDeleteAllHandler(t *testing.T) {
 			label:        "Delete All Non-Exiting Intents",
 			expectedCode: http.StatusNotFound,
 			IntentClient: &mockIntentManager{
-				Err: pkgerrors.New("not found"),
+				Err: pkgerrors.New("db Remove resource not found"),
 			},
 		},
 	}

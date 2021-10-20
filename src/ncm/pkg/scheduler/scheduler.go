@@ -266,7 +266,7 @@ func (v *SchedulerClient) TerminateNetworkIntents(clusterProvider, cluster strin
 	}
 	switch stateVal {
 	case state.StateEnum.Approved:
-		return pkgerrors.Wrap(err, "Cluster is in an invalid state: "+cluster+" "+state.StateEnum.Approved)
+		return pkgerrors.New("Cluster is in an invalid state: " + cluster + " " + state.StateEnum.Approved)
 	case state.StateEnum.Terminated:
 		return nil
 	case state.StateEnum.TerminateStopped:
@@ -274,13 +274,13 @@ func (v *SchedulerClient) TerminateNetworkIntents(clusterProvider, cluster strin
 	case state.StateEnum.InstantiateStopped:
 		break
 	case state.StateEnum.Created:
-		return pkgerrors.Wrap(err, "Cluster network intents have not been applied: "+cluster)
+		return pkgerrors.New("Cluster network intents have not been applied: " + cluster)
 	case state.StateEnum.Applied:
 		break
 	case state.StateEnum.Instantiated:
-		return pkgerrors.Wrap(err, "Cluster is in an invalid state: "+cluster+" "+state.StateEnum.Instantiated)
+		return pkgerrors.New("Cluster is in an invalid state: " + cluster + " " + state.StateEnum.Instantiated)
 	default:
-		return pkgerrors.Wrap(err, "Cluster is in an invalid state: "+cluster+" "+stateVal)
+		return pkgerrors.New("Cluster is in an invalid state: " + cluster + " " + stateVal)
 	}
 
 	// call resource synchronizer to terminate the CRs in the cluster

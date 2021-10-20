@@ -53,7 +53,7 @@ func (h intentHandler) addIntentHandler(w http.ResponseWriter, r *http.Request) 
 	v := vars["compositeAppVersion"]
 	d := vars["deploymentIntentGroup"]
 
-	intent, addError := h.client.AddIntent(i, p, ca, v, d)
+	intent, _, addError := h.client.AddIntent(i, p, ca, v, d, true)
 	if addError != nil {
 		apiErr := apierror.HandleErrors(vars, addError, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -223,4 +223,57 @@ func (h intentHandler) deleteIntentHandler(w http.ResponseWriter, r *http.Reques
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// Update Intent in Deployment Group
+func (h intentHandler) putIntentHandler(w http.ResponseWriter, r *http.Request) {
+	var i moduleLib.Intent
+	vars := mux.Vars(r)
+	p := vars["project"]
+	ca := vars["compositeApp"]
+	v := vars["compositeAppVersion"]
+	dig := vars["deploymentIntentGroup"]
+
+	err := json.NewDecoder(r.Body).Decode(&i)
+	switch {
+	case err == io.EOF:
+		log.Error(err.Error(), log.Fields{})
+		http.Error(w, "Empty body", http.StatusBadRequest)
+		return
+
+	case err != nil:
+		log.Error(err.Error(), log.Fields{})
+		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
+		return
+	}
+
+	// Verify JSON Body
+	err, httpError := validation.ValidateJsonSchemaData(addIntentJSONFile, i)
+	if err != nil {
+		log.Error(err.Error(), log.Fields{})
+		http.Error(w, err.Error(), httpError)
+		return
+	}
+
+	intent, iExists, err := h.client.AddIntent(i, p, ca, v, dig, false)
+	if err != nil {
+		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
+		http.Error(w, apiErr.Message, apiErr.Status)
+		return
+	}
+
+	statusCode := http.StatusCreated
+	if iExists {
+		// resource does have a current representation and that representation is successfully modified
+		statusCode = http.StatusOK
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(statusCode)
+	err = json.NewEncoder(w).Encode(intent)
+	if err != nil {
+		log.Error(err.Error(), log.Fields{})
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 }

@@ -306,7 +306,7 @@ var _ = Describe("SfcProviderNetworkintenthandler", func() {
 				},
 			},
 			mockVal:   model.SfcProviderNetworkIntent{},
-			mockError: pkgerrors.New("SFC Provider Network already exists"),
+			mockError: pkgerrors.New("SFC Provider Network Intent already exists"),
 			client:    &mocks.SfcProviderNetworkIntentManager{},
 		}),
 
@@ -757,7 +757,7 @@ var _ = Describe("SfcProviderNetworkintenthandler", func() {
 		Entry("fails due to not found", testCase{
 			inputName:    "testsfcprovidernetworkintent",
 			expectedCode: http.StatusNotFound,
-			mockError:    pkgerrors.New("not found"),
+			mockError:    pkgerrors.New("SFC Provider Network Intent not found"),
 			mockVal:      model.SfcProviderNetworkIntent{},
 			client:       &mocks.SfcProviderNetworkIntentManager{},
 		}),

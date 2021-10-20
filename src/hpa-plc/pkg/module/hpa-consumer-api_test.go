@@ -743,9 +743,9 @@ func TestGetAllConsumers(t *testing.T) {
 		},
 		{
 			label:         "GetAll Error",
-			expectedError: "DB Error",
+			expectedError: "db Find error",
 			mockdb: &db.MockDB{
-				Err: pkgerrors.New("DB Error"),
+				Err: pkgerrors.New("db Find error"),
 			},
 		},
 	}
@@ -1047,9 +1047,9 @@ func TestGetConsumer(t *testing.T) {
 		},
 		{
 			label:         "Get Error",
-			expectedError: "DB Error",
+			expectedError: "db Find error",
 			mockdb: &db.MockDB{
-				Err: pkgerrors.New("DB Error"),
+				Err: pkgerrors.New("db Find error"),
 			},
 		},
 	}
@@ -1187,9 +1187,9 @@ func TestGetConsumerByName(t *testing.T) {
 		},
 		{
 			label:         "GetConsumerByName Error",
-			expectedError: "DB Error",
+			expectedError: "db Find error",
 			mockdb: &db.MockDB{
-				Err: pkgerrors.New("DB Error"),
+				Err: pkgerrors.New("db Find error"),
 			},
 		},
 	}
@@ -1312,14 +1312,14 @@ func TestDeleteConsumer(t *testing.T) {
 		},
 		{
 			label:         "Delete Error",
-			expectedError: "DB Error",
+			expectedError: "db Remove error",
 			mockdb: &db.MockDB{
-				Err: pkgerrors.New("DB Error"),
+				Err: pkgerrors.New("db Remove error"),
 			},
 		},
 		{
 			label:         "Delete Consumer",
-			expectedError: "not found",
+			expectedError: "Consumer not found",
 			name:          "consumer1",
 			mockdb: &db.MockDB{
 				Items: []map[string]map[string][]byte{
@@ -1388,6 +1388,7 @@ func TestDeleteConsumer(t *testing.T) {
 						},
 					},
 				},
+				Err: pkgerrors.New("Consumer not found"),
 			},
 		},
 	}

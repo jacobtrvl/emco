@@ -575,7 +575,7 @@ func TestClusterProviderDeleteHandler(t *testing.T) {
 			expectedCode: http.StatusNotFound,
 			name:         "testClusterProvider",
 			clusterClient: &mockClusterManager{
-				Err: pkgerrors.New("cluster provider not found"),
+				Err: pkgerrors.New("Cluster provider not found"),
 			},
 		},
 		{
@@ -884,7 +884,7 @@ func TestClusterGetHandler(t *testing.T) {
 			name:         "nonexistingcluster",
 			clusterClient: &mockClusterManager{
 				ClusterItems: []cluster.Cluster{},
-				Err:          pkgerrors.New("cluster not found"),
+				Err:          pkgerrors.New("Cluster not found"),
 			},
 		},
 		{
@@ -894,7 +894,7 @@ func TestClusterGetHandler(t *testing.T) {
 			name:         "nonexistingcluster",
 			clusterClient: &mockClusterManager{
 				ClusterItems: []cluster.Cluster{},
-				Err:          pkgerrors.New("cluster not found"),
+				Err:          pkgerrors.New("Cluster not found"),
 			},
 		},
 		{
@@ -961,7 +961,7 @@ func TestClusterGetByLabelHandler(t *testing.T) {
 			matchLabel:   "labelA",
 			clusterClient: &mockClusterManager{
 				ClusterList: []string{},
-				Err:         pkgerrors.New("cluster provider not found"),
+				Err:         pkgerrors.New("Cluster provider not found"),
 			},
 		},
 		{
@@ -1045,7 +1045,7 @@ of clusterTest
 			name:         "nonexistingcluster",
 			clusterClient: &mockClusterManager{
 				ClusterItems: []cluster.Cluster{},
-				Err:          pkgerrors.New("content not found"),
+				Err:          pkgerrors.New("Cluster not found"),
 			},
 		},
 		{
@@ -1124,7 +1124,7 @@ func TestClusterDeleteHandler(t *testing.T) {
 			expectedCode: http.StatusNotFound,
 			name:         "testCluster",
 			clusterClient: &mockClusterManager{
-				Err: pkgerrors.New("cluster not found"),
+				Err: pkgerrors.New("Cluster not found"),
 			},
 		},
 	}
@@ -1397,7 +1397,7 @@ func TestClusterLabelGetHandler(t *testing.T) {
 			name:         "nonexistingclusterlabel",
 			clusterClient: &mockClusterManager{
 				ClusterLabelItems: []cluster.ClusterLabel{},
-				Err:               pkgerrors.New("Label not found"),
+				Err:               pkgerrors.New("Cluster label not found"),
 			},
 		},
 		{
@@ -1406,7 +1406,7 @@ func TestClusterLabelGetHandler(t *testing.T) {
 			name:         "nonexistingclusterlabel",
 			clusterClient: &mockClusterManager{
 				ClusterLabelItems: []cluster.ClusterLabel{},
-				Err:               pkgerrors.New("Label not found"),
+				Err:               pkgerrors.New("Cluster label not found"),
 			},
 		},
 		{
@@ -1464,7 +1464,7 @@ func TestClusterLabelDeleteHandler(t *testing.T) {
 			expectedCode: http.StatusNotFound,
 			name:         "testClusterLabel",
 			clusterClient: &mockClusterManager{
-				Err: pkgerrors.New("cluster label not found"),
+				Err: pkgerrors.New("Cluster label not found"),
 			},
 		},
 		{
@@ -2009,7 +2009,7 @@ func TestClusterKvPairsGetHandler(t *testing.T) {
 			name:         "nonexistingclusterkvpairs",
 			clusterClient: &mockClusterManager{
 				ClusterKvPairsItems: []cluster.ClusterKvPairs{},
-				Err:                 pkgerrors.New("not found"),
+				Err:                 pkgerrors.New("Cluster key value pair not found"),
 			},
 		},
 		{
@@ -2076,7 +2076,7 @@ func TestClusterKvPairsDeleteHandler(t *testing.T) {
 			expectedCode: http.StatusNotFound,
 			name:         "testClusterKvPairs",
 			clusterClient: &mockClusterManager{
-				Err: pkgerrors.New("kv pair not found"),
+				Err: pkgerrors.New("Cluster key value pair not found"),
 			},
 		},
 		{

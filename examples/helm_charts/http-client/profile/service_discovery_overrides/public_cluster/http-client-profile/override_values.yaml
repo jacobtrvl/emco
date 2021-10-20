@@ -3,14 +3,14 @@
 
 image:
     repository: <myrepository.example.com>/app/my-custom-httptest-client-proxy
-    tag: "1.10"
+    tag: "1.1"
     pullPolicy: Always
   
 server:
-    domain: "http://http-service:30080"
+    domain: "http://http-service:30083"
 
 proxy:
-    http: "http://proxy-us.intel.com:911"
+    http: <proxy server address>
 
 service:
     type: ClusterIP

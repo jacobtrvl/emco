@@ -3,13 +3,13 @@
 
 image:
     repository: <myrepository.example.com>/app/my-public-httptest-server
-    tag: "1.4"
+    tag: "1.1"
     pullPolicy: Always
 
 service:
     name: http-service
     type: LoadBalancer
-    tcpPort: 30080
+    tcpPort: 30083
     nameOfPort: webPort
     annotations: {}
     labels: {}

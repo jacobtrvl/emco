@@ -56,7 +56,7 @@ func (h genericPlacementIntentHandler) createGenericPlacementIntentHandler(w htt
 	version := vars["compositeAppVersion"]
 	digName := vars["deploymentIntentGroup"]
 
-	gPIntent, createErr := h.client.CreateGenericPlacementIntent(g, projectName, compositeAppName, version, digName)
+	gPIntent, _, createErr := h.client.CreateGenericPlacementIntent(g, projectName, compositeAppName, version, digName, true)
 	if createErr != nil {
 		apiErr := apierror.HandleErrors(vars, createErr, g, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -172,4 +172,57 @@ func (h genericPlacementIntentHandler) deleteGenericPlacementHandler(w http.Resp
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// putGenericPlacementHandler handles the GET operations on intent
+func (h genericPlacementIntentHandler) putGenericPlacementHandler(w http.ResponseWriter, r *http.Request) {
+	var gpi moduleLib.GenericPlacementIntent
+	vars := mux.Vars(r)
+	p := vars["project"]
+	ca := vars["compositeApp"]
+	v := vars["compositeAppVersion"]
+	dig := vars["deploymentIntentGroup"]
+
+	// Verify JSON Body
+	err := json.NewDecoder(r.Body).Decode(&gpi)
+	switch {
+	case err == io.EOF:
+		log.Error(err.Error(), log.Fields{})
+		http.Error(w, "Empty body", http.StatusBadRequest)
+		return
+	case err != nil:
+		log.Error(err.Error(), log.Fields{})
+		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
+		return
+	}
+
+	err, httpError := validation.ValidateJsonSchemaData(gpiJSONFile, gpi)
+	if err != nil {
+		log.Error(err.Error(), log.Fields{})
+		http.Error(w, err.Error(), httpError)
+		return
+	}
+
+	// Update generic placement intent
+	genericPlacementIntent, gpiExists, err := h.client.CreateGenericPlacementIntent(gpi, p, ca, v, dig, false)
+	if err != nil {
+		apiErr := apierror.HandleErrors(vars, err, gpi, apiErrors)
+		http.Error(w, apiErr.Message, apiErr.Status)
+		return
+	}
+
+	statusCode := http.StatusCreated
+	if gpiExists {
+		// resource does have a current representation and that representation is successfully modified
+		statusCode = http.StatusOK
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(statusCode)
+	err = json.NewEncoder(w).Encode(genericPlacementIntent)
+	if err != nil {
+		log.Error(err.Error(), log.Fields{})
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 }

@@ -26,8 +26,7 @@ type GenIntentMetaData struct {
 
 // GenericPlacementIntentManager is an interface which exposes the GenericPlacementIntentManager functionality
 type GenericPlacementIntentManager interface {
-	CreateGenericPlacementIntent(g GenericPlacementIntent, p string, ca string,
-		v string, digName string) (GenericPlacementIntent, error)
+	CreateGenericPlacementIntent(g GenericPlacementIntent, p string, ca string, v string, digName string, failIfExists bool) (GenericPlacementIntent, bool, error)
 	GetGenericPlacementIntent(intentName string, projectName string,
 		compositeAppName string, version string, digName string) (GenericPlacementIntent, error)
 	DeleteGenericPlacementIntent(intentName string, projectName string,
@@ -69,14 +68,20 @@ func NewGenericPlacementIntentClient() *GenericPlacementIntentClient {
 	}
 }
 
-// CreateGenericPlacementIntent creates an entry for GenericPlacementIntent in the database. Other Input parameters for it - projectName, compositeAppName, version and deploymentIntentGroupName
-func (c *GenericPlacementIntentClient) CreateGenericPlacementIntent(g GenericPlacementIntent, p string, ca string,
-	v string, digName string) (GenericPlacementIntent, error) {
+// CreateGenericPlacementIntent creates an entry for GenericPlacementIntent in the database.
+// Other Input parameters for it - projectName, compositeAppName, version and deploymentIntentGroupName
+// failIfExists - indicates the request is POST=true or PUT=false
+func (c *GenericPlacementIntentClient) CreateGenericPlacementIntent(g GenericPlacementIntent, p string, ca string, v string, digName string, failIfExists bool) (GenericPlacementIntent, bool, error) {
+	gpiExists := false
 
 	// check if the genericPlacement already exists.
 	res, err := c.GetGenericPlacementIntent(g.MetaData.Name, p, ca, v, digName)
-	if res != (GenericPlacementIntent{}) {
-		return GenericPlacementIntent{}, pkgerrors.New("Intent already exists")
+	if err == nil && res != (GenericPlacementIntent{}) {
+		gpiExists = true
+	}
+
+	if gpiExists && failIfExists {
+		return GenericPlacementIntent{}, gpiExists, pkgerrors.New("Intent already exists")
 	}
 
 	gkey := GenericPlacementIntentKey{
@@ -89,10 +94,10 @@ func (c *GenericPlacementIntentClient) CreateGenericPlacementIntent(g GenericPla
 
 	err = db.DBconn.Insert(c.storeName, gkey, nil, c.tagMetaData, g)
 	if err != nil {
-		return GenericPlacementIntent{}, pkgerrors.Wrap(err, "Create DB entry error")
+		return GenericPlacementIntent{}, gpiExists, err
 	}
 
-	return g, nil
+	return g, gpiExists, nil
 }
 
 // GetGenericPlacementIntent shall take arguments - name of the intent, name of the project, name of the composite app, version of the composite app and deploymentIntentGroupName. It shall return the genericPlacementIntent if its present.

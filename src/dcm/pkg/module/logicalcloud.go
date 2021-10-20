@@ -91,7 +91,7 @@ func (v *LogicalCloudClient) Create(project string, c LogicalCloud) (LogicalClou
 	//Check if this Logical Cloud already exists
 	_, err := v.Get(project, c.MetaData.LogicalCloudName)
 	if err == nil {
-		return LogicalCloud{}, pkgerrors.Wrap(err, "Logical Cloud already exists")
+		return LogicalCloud{}, pkgerrors.New("Logical Cloud already exists")
 	}
 
 	// if Logical Cloud Level is not specified, it defaults to 1:

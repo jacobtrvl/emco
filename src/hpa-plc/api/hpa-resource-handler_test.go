@@ -13,11 +13,11 @@ import (
 	"reflect"
 	"testing"
 
+	pkgerrors "github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	hpaModel "gitlab.com/project-emco/core/emco-base/src/hpa-plc/pkg/model"
 	orchLog "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 	mtypes "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/module/types"
-	pkgerrors "github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 )
 
 func init() {
@@ -1407,7 +1407,7 @@ func TestResourceUpdateHandler(t *testing.T) {
 						},
 					},
 				},
-				Err: pkgerrors.New("not found"),
+				Err: pkgerrors.New("Resource not found"),
 			},
 		},
 		{
@@ -1559,7 +1559,7 @@ func TestResourceGetHandler(t *testing.T) {
 			name:         "nonexistingResource",
 			ResourceClient: &mockIntentManager{
 				ResourceItems: []hpaModel.HpaResourceRequirement{},
-				Err:           pkgerrors.New("not found"),
+				Err:           pkgerrors.New("Resource not found"),
 			},
 		},
 	}
@@ -1677,7 +1677,7 @@ func TestResourceGetHandlerByName(t *testing.T) {
 			name:         "nonexistingResource",
 			ResourceClient: &mockIntentManager{
 				ResourceItemsSpec: []hpaModel.HpaResourceRequirementSpec{},
-				Err:               pkgerrors.New("not found"),
+				Err:               pkgerrors.New("Resource not found"),
 			},
 		},
 		{
@@ -1686,7 +1686,7 @@ func TestResourceGetHandlerByName(t *testing.T) {
 			name:         "",
 			ResourceClient: &mockIntentManager{
 				ResourceItemsSpec: []hpaModel.HpaResourceRequirementSpec{},
-				Err:               pkgerrors.New("not found"),
+				Err:               pkgerrors.New("Resource not found"),
 			},
 		},
 	}
@@ -1807,7 +1807,7 @@ func TestResourceGetAllHandler(t *testing.T) {
 			name:         "nonexistingResource",
 			ResourceClient: &mockIntentManager{
 				ResourceItems: []hpaModel.HpaResourceRequirement{},
-				Err:           pkgerrors.New("not found"),
+				Err:           pkgerrors.New("Resource not found"),
 			},
 		},
 		{
@@ -1878,7 +1878,7 @@ func TestResourceDeleteHandler(t *testing.T) {
 			expectedCode: http.StatusNotFound,
 			name:         "testResource",
 			ResourceClient: &mockIntentManager{
-				Err: pkgerrors.New("not found"),
+				Err: pkgerrors.New("db Remove resource not found"),
 			},
 		},
 		{
@@ -1886,7 +1886,7 @@ func TestResourceDeleteHandler(t *testing.T) {
 			expectedCode: http.StatusNotFound,
 			name:         "",
 			ResourceClient: &mockIntentManager{
-				Err: pkgerrors.New("not found"),
+				Err: pkgerrors.New("db Remove resource not found"),
 			},
 		},
 	}
@@ -1943,7 +1943,7 @@ func TestResourceDeleteAllHandler(t *testing.T) {
 			label:        "Delete Non-Exiting Resource",
 			expectedCode: http.StatusNotFound,
 			ResourceClient: &mockIntentManager{
-				Err: pkgerrors.New("not found"),
+				Err: pkgerrors.New("db Remove resource not found"),
 			},
 		},
 	}

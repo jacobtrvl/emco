@@ -925,7 +925,7 @@ var _ = Describe("Sfcintenthandler", func() {
 		Entry("fails due to not found II", testCase{
 			inputName:    "testsfcclientintent",
 			expectedCode: http.StatusNotFound,
-			mockError:    pkgerrors.New("not found"),
+			mockError:    pkgerrors.New("SFC Client Intent not found"),
 			mockVal:      model.SfcClientIntent{},
 			client:       &mocks.SfcManager{},
 		}),

@@ -177,7 +177,7 @@ var _ = Describe("KeyValueHandler", func() {
 				},
 			},
 			mockVal:   module.KeyValue{},
-			mockError: pkgerrors.New("Creating DB Entry"),
+			mockError: pkgerrors.New("db Insert error"),
 			kvClient:  &mocks.KeyValueManager{},
 		}),
 	)
@@ -397,7 +397,7 @@ var _ = Describe("KeyValueHandler", func() {
 
 		Entry("fails due to some other backend error", testCase{
 			expectedCode: http.StatusInternalServerError,
-			mockError:    pkgerrors.New("backend error"),
+			mockError:    pkgerrors.New("db Find error"),
 			mockVals:     []module.KeyValue{},
 			kvClient:     &mocks.KeyValueManager{},
 		}),
@@ -439,7 +439,7 @@ var _ = Describe("KeyValueHandler", func() {
 		Entry("fails due to not found", testCase{
 			inputName:    "testkvpair",
 			expectedCode: http.StatusNotFound,
-			mockError:    pkgerrors.New("KV Pair not found"),
+			mockError:    pkgerrors.New("Key Value not found"),
 			mockVal:      module.KeyValue{},
 			kvClient:     &mocks.KeyValueManager{},
 		}),
@@ -447,7 +447,7 @@ var _ = Describe("KeyValueHandler", func() {
 		Entry("fails due to some other backend error", testCase{
 			inputName:    "testkvpair",
 			expectedCode: http.StatusInternalServerError,
-			mockError:    pkgerrors.New("backend error"),
+			mockError:    pkgerrors.New("db Find error"),
 			mockVal:      module.KeyValue{},
 			kvClient:     &mocks.KeyValueManager{},
 		}),

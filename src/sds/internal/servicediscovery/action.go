@@ -10,13 +10,13 @@ import (
 	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 
-	"gitlab.com/project-emco/core/emco-base/src/sds/internal/utils"
 	"gitlab.com/project-emco/core/emco-base/src/dtc/pkg/module"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/appcontext"
 	rsyncclient "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/grpc/notifyclient"
 	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/state"
 	readynotifypb "gitlab.com/project-emco/core/emco-base/src/rsync/pkg/grpc/readynotify"
+	"gitlab.com/project-emco/core/emco-base/src/sds/internal/utils"
 )
 
 const (
@@ -237,7 +237,7 @@ func processAlertForServiceDiscovery(stream readynotifypb.ReadyNotify_AlertClien
 			log.Info("Parent's app context is still in 'Instantiating' state", log.Fields{"appContextID": appContextID})
 		} else { // If the parent's appContext is "Terminating/Terminated/InstantiateFailed/TerminateFailed"
 			log.Error("Parent's app context is not in 'Instantiated' state", log.Fields{"appContextID": appContextID})
-			return pkgerrors.Wrap(err, "Parent's app context is not in 'Instantiated' state")
+			return pkgerrors.New("Parent's app context is not in 'Instantiated' state")
 		}
 
 		if !loadBalancerIPSet {

@@ -38,16 +38,16 @@ $ ./setup.sh create
 ```
 Register remote clusters
 ```
-$ ../../bin/emcoctl/emcoctl --config emco-cfg.yaml apply -f prerequisites.yaml -v values.yaml
+$ emcoctl --config emco-cfg.yaml apply -f prerequisites.yaml -v values.yaml
 ```
 Deploy the http app. Replace the hpa-example.yaml with other file names for other use cases (hpa-test-simple.yaml, hpa-test-advanced.yaml or hpa-test-advanced-composite.yaml)
 ```
-$ ../../bin/emcoctl/emcoctl --config emco-cfg.yaml apply -f hpa-example.yaml -v values.yaml
+$ emcoctl --config emco-cfg.yaml apply -f hpa-example.yaml -v values.yaml
 ```
 For the vFW app, the deployment will be done in two steps
 ```
-$../../bin/emcoctl/emcoctl --config emco-cfg.yaml apply -f hpa-vfw-networks.yaml -v values.yaml
-$../../bin/emcoctl/emcoctl --config emco-cfg.yaml apply -f hpa-vfw-apps.yaml -v values.yaml
+$ emcoctl --config emco-cfg.yaml apply -f hpa-vfw-networks.yaml -v values.yaml
+$ emcoctl --config emco-cfg.yaml apply -f hpa-vfw-apps.yaml -v values.yaml
 ```
 
 To demonstrate the concepts of HPA, the firewall and packetgen apps are intended to be
@@ -65,16 +65,16 @@ The deployment can be removed in the reversed order
 
 In case of the vFW app
 ```
-$../../bin/emcoctl/emcoctl --config emco-cfg.yaml delete -f hpa-vfw-apps.yaml -v values.yaml
-$../../bin/emcoctl/emcoctl --config emco-cfg.yaml delete -f hpa-vfw-networks.yaml -v values.yaml
+$ emcoctl --config emco-cfg.yaml delete -f hpa-vfw-apps.yaml -v values.yaml
+$ emcoctl --config emco-cfg.yaml delete -f hpa-vfw-networks.yaml -v values.yaml
 ```
 For the http app
 ```
-$ ../../bin/emcoctl/emcoctl --config emco-cfg.yaml delete -f hpa-example.yaml -v values.yaml
+$ emcoctl --config emco-cfg.yaml delete -f hpa-example.yaml -v values.yaml
 ```
 And then
 ```
-$ ../../bin/emcoctl/emcoctl --config emco-cfg.yaml delete -f prerequisites.yaml -v values.yaml
+$ emcoctl --config emco-cfg.yaml delete -f prerequisites.yaml -v values.yaml
 ```
 Finally,
 ```

@@ -146,6 +146,11 @@ func CompareResource(r string, qResource string) bool {
 
 // CleanupCompositeApp will delete the app context
 func CleanupCompositeApp(context appcontext.AppContext, err error, reason string, details []string) error {
+	if err == nil {
+		// create an error object to avoid wrap failures
+		err = pkgerrors.New("Composite App cleanup.")
+	}
+
 	cleanuperr := context.DeleteCompositeApp()
 	newerr := pkgerrors.Wrap(err, reason)
 	if cleanuperr != nil {

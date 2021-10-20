@@ -213,7 +213,7 @@ func TestConsumerCreateHandler(t *testing.T) {
 			}`)),
 			ConsumerClient: &mockIntentManager{
 				ConsumerItems: []hpaModel.HpaResourceConsumer{},
-				Err:           pkgerrors.New("not found"),
+				Err:           pkgerrors.New("Consumer not found"),
 			},
 		},
 		{
@@ -501,7 +501,7 @@ func TestConsumerUpdateHandler(t *testing.T) {
 			ConsumerClient: &mockIntentManager{
 				//Items that will be returned by the mocked Client
 				ConsumerItems: []hpaModel.HpaResourceConsumer{},
-				Err:           pkgerrors.New("inernal"),
+				Err:           pkgerrors.New("db Insert error"),
 			},
 		},
 		{
@@ -524,7 +524,7 @@ func TestConsumerUpdateHandler(t *testing.T) {
 			ConsumerClient: &mockIntentManager{
 				//Items that will be returned by the mocked Client
 				ConsumerItems: []hpaModel.HpaResourceConsumer{},
-				Err:           pkgerrors.New("not found"),
+				Err:           pkgerrors.New("Consumer not found"),
 			},
 		},
 		{
@@ -823,7 +823,7 @@ func TestConsumerGetAllHandler(t *testing.T) {
 			expectedCode: http.StatusNotFound,
 			ConsumerClient: &mockIntentManager{
 				ConsumerItems: []hpaModel.HpaResourceConsumer{},
-				Err:           pkgerrors.New("not found"),
+				Err:           pkgerrors.New("Consumer not found"),
 			},
 		},
 		{
@@ -894,7 +894,7 @@ func TestConsumerDeleteHandler(t *testing.T) {
 			expectedCode: http.StatusNotFound,
 			name:         "testConsumer",
 			ConsumerClient: &mockIntentManager{
-				Err: pkgerrors.New("not found"),
+				Err: pkgerrors.New("Consumer not found"),
 			},
 		},
 		{
@@ -902,7 +902,7 @@ func TestConsumerDeleteHandler(t *testing.T) {
 			expectedCode: http.StatusNotFound,
 			name:         "",
 			ConsumerClient: &mockIntentManager{
-				Err: pkgerrors.New("not found"),
+				Err: pkgerrors.New("Consumer not found"),
 			},
 		},
 	}
@@ -952,7 +952,7 @@ func TestConsumerDeleteAllHandler(t *testing.T) {
 			label:        "Delete Non-Exiting Consumer",
 			expectedCode: http.StatusNotFound,
 			ConsumerClient: &mockIntentManager{
-				Err: pkgerrors.New("not found"),
+				Err: pkgerrors.New("Consumer not found"),
 			},
 		},
 	}

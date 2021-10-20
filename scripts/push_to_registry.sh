@@ -20,7 +20,7 @@ if [ "${BUILD_CAUSE}" != "TIMERTRIGGER" ] && [ "${BUILD_CAUSE}" != "DEV_TEST" ] 
 fi
 
 if [ -z ${TAG} ]; then
-  TAG=${BRANCH}-daily-`date +"%m%d%y"`
+  TAG=${BRANCH}-daily-`date +"%Y%m%d"`
 fi
 
 if [ "${BUILD_CAUSE}" == "DEV_TEST" ]; then
@@ -31,7 +31,7 @@ if [ "${BUILD_CAUSE}" == "TIMERTRIGGER" ] ; then
   if [ -z "${CI_COMMIT_REF_NAME}" ]; then
     CI_COMMIT_REF_NAME=${BRANCH}
   fi
-  TAG=${CI_COMMIT_REF_NAME}-daily-`date +"%m%d%y"`
+  TAG=${CI_COMMIT_REF_NAME}-daily-`date +"%Y%m%d"`
 fi
 
 if [ "${BUILD_CAUSE}" == "RELEASE" ]; then

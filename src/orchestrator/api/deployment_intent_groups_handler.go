@@ -55,7 +55,7 @@ func (h deploymentIntentGroupHandler) createDeploymentIntentGroupHandler(w http.
 	compositeAppName := vars["compositeApp"]
 	version := vars["compositeAppVersion"]
 
-	dIntent, createErr := h.client.CreateDeploymentIntentGroup(d, projectName, compositeAppName, version)
+	dIntent, _, createErr := h.client.CreateDeploymentIntentGroup(d, projectName, compositeAppName, version, true)
 	if createErr != nil {
 		apiErr := apierror.HandleErrors(vars, createErr, d, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -166,4 +166,55 @@ func (h deploymentIntentGroupHandler) deleteDeploymentIntentGroupHandler(w http.
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// putDeploymentIntentGroupHandler handles the update operation of DeploymentIntentGroup
+func (h deploymentIntentGroupHandler) putDeploymentIntentGroupHandler(w http.ResponseWriter, r *http.Request) {
+	var dig moduleLib.DeploymentIntentGroup
+	vars := mux.Vars(r)
+	p := vars["project"]
+	ca := vars["compositeApp"]
+	v := vars["compositeAppVersion"]
+
+	err := json.NewDecoder(r.Body).Decode(&dig)
+	switch {
+	case err == io.EOF:
+		log.Error(err.Error(), log.Fields{})
+		http.Error(w, "Empty body", http.StatusBadRequest)
+		return
+	case err != nil:
+		log.Error(err.Error(), log.Fields{})
+		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
+		return
+	}
+
+	// Verify JSON Body
+	err, code := validation.ValidateJsonSchemaData(dpiJSONFile, dig)
+	if err != nil {
+		log.Error(err.Error(), log.Fields{})
+		http.Error(w, err.Error(), code)
+		return
+	}
+
+	deploymentIntentGroup, digExists, err := h.client.CreateDeploymentIntentGroup(dig, p, ca, v, false)
+	if err != nil {
+		apiErr := apierror.HandleErrors(vars, err, dig, apiErrors)
+		http.Error(w, apiErr.Message, apiErr.Status)
+		return
+	}
+
+	statusCode := http.StatusCreated
+	if digExists {
+		// resource does have a current representation and that representation is successfully modified
+		statusCode = http.StatusOK
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(statusCode)
+	err = json.NewEncoder(w).Encode(deploymentIntentGroup)
+	if err != nil {
+		log.Error(err.Error(), log.Fields{})
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 }

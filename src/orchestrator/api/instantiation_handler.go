@@ -53,6 +53,10 @@ func (h instantiationHandler) instantiateHandler(w http.ResponseWriter, r *http.
 	if iErr != nil {
 		log.Error(":: Error instantiate handler ::", log.Fields{"Error": iErr.Error(), "project": p, "compositeApp": ca, "compositeAppVer": v, "depGroup": di})
 		apiErr := apierror.HandleLogicalCloudErrors(vars, iErr, lcErrors)
+		if (apiErr == apierror.APIError{}) {
+			// There are no logical cloud error(s). Check for api specific error(s)
+			apiErr = apierror.HandleErrors(vars, iErr, nil, apiErrors)
+		}
 		http.Error(w, apiErr.Message, apiErr.Status)
 		return
 	}

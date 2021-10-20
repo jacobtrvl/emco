@@ -6,8 +6,8 @@ variables:
 
 before_script:
   - mkdir -p $GOPATH/src/$(dirname $REPO_NAME)
-  - ln -svf $CI_PROJECT_DIR $GOPATH/src/$REPO_NAME
-  - cd $GOPATH/src/$REPO_NAME
+  - cp -R $CI_PROJECT_DIR $GOPATH/src/$REPO_NAME
+  - cd $CI_PROJECT_DIR
 
 stages:
   - all
@@ -16,12 +16,19 @@ test:
   stage: all
   only:
     - merge_requests
+  image: golang:latest
   script:
     - make test
 
-compile-container:
+build:
   stage: all
   only:
     - merge_requests
+    - schedules
+  image: docker:19.03.12
+  services:
+    - docker:19.03.12-dind
   script:
-    - make compile-container
+    - apk update && apk --no-cache --update add build-base bash git
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - make deploy

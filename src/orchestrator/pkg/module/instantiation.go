@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	pkgerrors "github.com/pkg/errors"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/appcontext"
 	gpic "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/gpic"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
@@ -17,7 +18,6 @@ import (
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/state"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/status"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/utils/helm"
-	pkgerrors "github.com/pkg/errors"
 )
 
 // ManifestFileName is the name given to the manifest file in the profile package
@@ -665,16 +665,16 @@ func (c InstantiationClient) Stop(p string, ca string, v string, di string) erro
 		stopState = state.StateEnum.TerminateStopped
 		break
 	case state.StateEnum.Applied:
-		return pkgerrors.Wrap(err, "DeploymentIntentGroup is in an invalid state:"+di)
+		return pkgerrors.New("DeploymentIntentGroup is in an invalid state:" + di)
 		break
 	case state.StateEnum.TerminateStopped:
-		return pkgerrors.Wrap(err, "DeploymentIntentGroup termination already stopped: "+di)
+		return pkgerrors.New("DeploymentIntentGroup termination already stopped: " + di)
 	case state.StateEnum.InstantiateStopped:
-		return pkgerrors.Wrap(err, "DeploymentIntentGroup instantiation already stopped: "+di)
+		return pkgerrors.New("DeploymentIntentGroup instantiation already stopped: " + di)
 	case state.StateEnum.Created:
-		return pkgerrors.Wrap(err, "DeploymentIntentGroup have not been approved: "+di)
+		return pkgerrors.New("DeploymentIntentGroup have not been approved: " + di)
 	default:
-		return pkgerrors.Wrap(err, "DeploymentIntentGroup is in an invalid state: "+di+" "+stateVal)
+		return pkgerrors.New("DeploymentIntentGroup is in an invalid state: " + di + " " + stateVal)
 	}
 
 	currentCtxId := state.GetLastContextIdFromStateInfo(s)

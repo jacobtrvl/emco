@@ -12,9 +12,9 @@ import (
 	"encoding/json"
 	"reflect"
 
+	pkgerrors "github.com/pkg/errors"
 	gpic "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/gpic"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
-	pkgerrors "github.com/pkg/errors"
 )
 
 // AppIntent has two components - metadata, spec
@@ -40,7 +40,7 @@ type SpecData struct {
 // AppIntentManager is an interface which exposes the
 // AppIntentManager functionalities
 type AppIntentManager interface {
-	CreateAppIntent(a AppIntent, p string, ca string, v string, i string, digName string) (AppIntent, error)
+	CreateAppIntent(a AppIntent, p string, ca string, v string, i string, digName string, failIfExists bool) (AppIntent, bool, error)
 	GetAppIntent(ai string, p string, ca string, v string, i string, digName string) (AppIntent, error)
 	GetAllIntentsByApp(aN, p, ca, v, i, digName string) (SpecData, error)
 	GetAllAppIntents(p, ca, v, i, digName string) ([]AppIntent, error)
@@ -111,12 +111,18 @@ func NewAppIntentClient() *AppIntentClient {
 
 // CreateAppIntent creates an entry for AppIntent in the db.
 // Other input parameters for it - projectName, compositeAppName, version, intentName and deploymentIntentGroupName.
-func (c *AppIntentClient) CreateAppIntent(a AppIntent, p string, ca string, v string, i string, digName string) (AppIntent, error) {
+// failIfExists - indicates the request is POST=true or PUT=false
+func (c *AppIntentClient) CreateAppIntent(a AppIntent, p string, ca string, v string, i string, digName string, failIfExists bool) (AppIntent, bool, error) {
+	aiExists := false
 
 	//Check for the AppIntent already exists here.
 	res, err := c.GetAppIntent(a.MetaData.Name, p, ca, v, i, digName)
-	if !reflect.DeepEqual(res, AppIntent{}) {
-		return AppIntent{}, pkgerrors.New("AppIntent already exists")
+	if err == nil && !reflect.DeepEqual(res, AppIntent{}) {
+		aiExists = true
+	}
+
+	if aiExists && failIfExists {
+		return AppIntent{}, aiExists, pkgerrors.New("AppIntent already exists")
 	}
 
 	akey := AppIntentKey{
@@ -134,10 +140,10 @@ func (c *AppIntentClient) CreateAppIntent(a AppIntent, p string, ca string, v st
 
 	err = db.DBconn.Insert(c.storeName, akey, qkey, c.tagMetaData, a)
 	if err != nil {
-		return AppIntent{}, pkgerrors.Wrap(err, "Create DB entry error")
+		return AppIntent{}, aiExists, err
 	}
 
-	return a, nil
+	return a, aiExists, nil
 }
 
 // GetAppIntent shall take arguments - name of the app intent, name of the project, name of the composite app, version of the composite app,intent name and deploymentIntentGroupName. It shall return the AppIntent

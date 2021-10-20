@@ -177,7 +177,7 @@ var _ = Describe("ClusterHandler", func() {
 				},
 			},
 			mockVal:   module.Cluster{},
-			mockError: pkgerrors.New("Creating DB Entry"),
+			mockError: pkgerrors.New("db Insert error"),
 			clClient:  &mocks.ClusterManager{},
 		}),
 	)
@@ -397,7 +397,7 @@ var _ = Describe("ClusterHandler", func() {
 
 		Entry("fails due to some other backend error", testCase{
 			expectedCode: http.StatusInternalServerError,
-			mockError:    pkgerrors.New("backend error"),
+			mockError:    pkgerrors.New("db Find error"),
 			mockVals:     []module.Cluster{},
 			clClient:     &mocks.ClusterManager{},
 		}),
@@ -439,7 +439,7 @@ var _ = Describe("ClusterHandler", func() {
 		Entry("fails due to not found", testCase{
 			inputName:    "testcluster",
 			expectedCode: http.StatusNotFound,
-			mockError:    pkgerrors.New("Cluster Reference not found"),
+			mockError:    pkgerrors.New("Cluster reference not found"),
 			mockVal:      module.Cluster{},
 			clClient:     &mocks.ClusterManager{},
 		}),
@@ -447,7 +447,7 @@ var _ = Describe("ClusterHandler", func() {
 		Entry("fails due to some other backend error", testCase{
 			inputName:    "testcluster",
 			expectedCode: http.StatusInternalServerError,
-			mockError:    pkgerrors.New("backend error"),
+			mockError:    pkgerrors.New("db Find error"),
 			mockVal:      module.Cluster{},
 			clClient:     &mocks.ClusterManager{},
 		}),

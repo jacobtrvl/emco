@@ -334,7 +334,7 @@ var _ = Describe("SfcClientSelectorintenthandler", func() {
 				},
 			},
 			mockVal:   model.SfcClientSelectorIntent{},
-			mockError: pkgerrors.New("SFC Client Selector already exists"),
+			mockError: pkgerrors.New("SFC Client Selector Intent already exists"),
 			client:    &mocks.SfcClientSelectorIntentManager{},
 		}),
 

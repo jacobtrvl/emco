@@ -43,7 +43,7 @@ type ListOfIntents struct {
 
 // IntentManager is an interface which exposes the IntentManager functionality
 type IntentManager interface {
-	AddIntent(a Intent, p string, ca string, v string, di string) (Intent, error)
+	AddIntent(a Intent, p string, ca string, v string, di string, failIfExists bool) (Intent, bool, error)
 	GetIntent(i string, p string, ca string, v string, di string) (Intent, error)
 	GetAllIntents(p, ca, v, di string) (ListOfIntents, error)
 	GetIntentByName(i, p, ca, v, di string) (IntentSpecData, error)
@@ -88,12 +88,17 @@ func NewIntentClient() *IntentClient {
 AddIntent adds a given intent to the deployment-intent-group and stores in the db.
 Other input parameters for it - projectName, compositeAppName, version, DeploymentIntentgroupName
 */
-func (c *IntentClient) AddIntent(a Intent, p string, ca string, v string, di string) (Intent, error) {
+func (c *IntentClient) AddIntent(a Intent, p string, ca string, v string, di string, failIfExists bool) (Intent, bool, error) {
+	iExists := false
 
 	//Check for the AddIntent already exists here.
 	res, err := c.GetIntent(a.MetaData.Name, p, ca, v, di)
-	if !reflect.DeepEqual(res, Intent{}) {
-		return Intent{}, pkgerrors.New("Intent already exists")
+	if err == nil && !reflect.DeepEqual(res, Intent{}) {
+		iExists = true
+	}
+
+	if iExists && failIfExists {
+		return Intent{}, iExists, pkgerrors.New("Intent already exists")
 	}
 
 	akey := IntentKey{
@@ -106,9 +111,10 @@ func (c *IntentClient) AddIntent(a Intent, p string, ca string, v string, di str
 
 	err = db.DBconn.Insert(c.storeName, akey, nil, c.tagMetaData, a)
 	if err != nil {
-		return Intent{}, pkgerrors.Wrap(err, "Create DB entry error")
+		return Intent{}, iExists, err
 	}
-	return a, nil
+
+	return a, iExists, nil
 }
 
 /*

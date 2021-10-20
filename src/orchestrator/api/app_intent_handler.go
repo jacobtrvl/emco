@@ -45,20 +45,7 @@ func (h appIntentHandler) createAppIntentHandler(w http.ResponseWriter, r *http.
 	// Verify JSON Body
 	err, httpError := validation.ValidateJsonSchemaData(appIntentJSONFile, a)
 	if err != nil {
-		log.Error(err.Error(), log.Fields{})
-		if strings.Contains(err.Error(), "clusterProvider is required") {
-			http.Error(w, "Missing clusterProvider in an intent", httpError)
-		} else if strings.Contains(err.Error(), "cluster is required") {
-			http.Error(w, "Missing cluster or clusterLabel", httpError)
-		} else if strings.Contains(err.Error(), "Must not validate the schema (not)") {
-			http.Error(w, "Only one of cluster name or cluster label allowed", httpError)
-		} else if strings.Contains(err.Error(), "app is required") {
-			http.Error(w, "Missing app for the intent", httpError)
-		} else if strings.Contains(err.Error(), "name is required") {
-			http.Error(w, "Missing name for the intent", httpError)
-		} else {
-			http.Error(w, err.Error(), httpError)
-		}
+		handleJsonSchemaValidationError(w, err, httpError)
 		return
 	}
 
@@ -69,7 +56,7 @@ func (h appIntentHandler) createAppIntentHandler(w http.ResponseWriter, r *http.
 	intent := vars["genericPlacementIntent"]
 	digName := vars["deploymentIntentGroup"]
 
-	appIntent, createErr := h.client.CreateAppIntent(a, projectName, compositeAppName, version, intent, digName)
+	appIntent, _, createErr := h.client.CreateAppIntent(a, projectName, compositeAppName, version, intent, digName, true)
 	if createErr != nil {
 		apiErr := apierror.HandleErrors(vars, createErr, a, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -248,4 +235,83 @@ func (h appIntentHandler) deleteAppIntentHandler(w http.ResponseWriter, r *http.
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// putAppIntentHandler handles the put operation of intent
+func (h appIntentHandler) putAppIntentHandler(w http.ResponseWriter, r *http.Request) {
+	var ai moduleLib.AppIntent
+	vars := mux.Vars(r)
+	p := vars["project"]
+	ca := vars["compositeApp"]
+	v := vars["compositeAppVersion"]
+	gpi := vars["genericPlacementIntent"]
+	dig := vars["deploymentIntentGroup"]
+
+	// Verify JSON Body
+	err := json.NewDecoder(r.Body).Decode(&ai)
+	switch {
+	case err == io.EOF:
+		log.Error(err.Error(), log.Fields{})
+		http.Error(w, "Empty body", http.StatusBadRequest)
+		return
+	case err != nil:
+		log.Error(err.Error(), log.Fields{})
+		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
+		return
+	}
+
+	err, code := validation.ValidateJsonSchemaData(appIntentJSONFile, ai)
+	if err != nil {
+		handleJsonSchemaValidationError(w, err, code)
+		return
+	}
+
+	// Update App Intent
+	appIntent, aiExists, err := h.client.CreateAppIntent(ai, p, ca, v, gpi, dig, false)
+	if err != nil {
+		apiErr := apierror.HandleErrors(vars, err, ai, apiErrors)
+		http.Error(w, apiErr.Message, apiErr.Status)
+		return
+	}
+
+	statusCode := http.StatusCreated
+	if aiExists {
+		// resource does have a current representation and that representation is successfully modified
+		statusCode = http.StatusOK
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(statusCode)
+	err = json.NewEncoder(w).Encode(appIntent)
+	if err != nil {
+		log.Error(err.Error(), log.Fields{})
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+}
+
+func handleJsonSchemaValidationError(w http.ResponseWriter, err error, status int) {
+	log.Error(err.Error(), log.Fields{})
+	if strings.Contains(err.Error(), "clusterProvider is required") {
+		http.Error(w, "Missing clusterProvider in an intent", status)
+		return
+	}
+	if strings.Contains(err.Error(), "cluster is required") {
+		http.Error(w, "Missing cluster or clusterLabel", status)
+		return
+	}
+	if strings.Contains(err.Error(), "Must not validate the schema (not)") {
+		http.Error(w, "Only one of cluster name or cluster label allowed", status)
+		return
+	}
+	if strings.Contains(err.Error(), "app is required") {
+		http.Error(w, "Missing app for the intent", status)
+		return
+	}
+	if strings.Contains(err.Error(), "name is required") {
+		http.Error(w, "Missing name for the intent", status)
+		return
+	}
+	// default
+	http.Error(w, err.Error(), status)
 }

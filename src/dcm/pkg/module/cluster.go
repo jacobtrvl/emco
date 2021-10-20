@@ -369,10 +369,10 @@ func (v *ClusterClient) GetClusterConfig(project, logicalCloud, clusterReference
 		approved := false
 		for _, c := range rbstatus.CsrStatuses[0].Status.Conditions {
 			if c.Type == "Denied" {
-				return "", pkgerrors.Wrap(err, "Certificate was denied!")
+				return "", pkgerrors.New("Certificate was denied!")
 			}
 			if c.Type == "Failed" {
-				return "", pkgerrors.Wrap(err, "Certificate issue failed")
+				return "", pkgerrors.New("Certificate issue failed")
 			}
 			if c.Type == "Approved" {
 				approved = true
@@ -387,7 +387,7 @@ func (v *ClusterClient) GetClusterConfig(project, logicalCloud, clusterReference
 		if len(cert) > 0 {
 			cluster.Specification.Certificate = base64.StdEncoding.EncodeToString([]byte(cert))
 		} else {
-			return "", pkgerrors.Wrap(err, "Certificate issued was invalid")
+			return "", pkgerrors.New("Certificate issued was invalid")
 		}
 
 		// copy key to MongoDB

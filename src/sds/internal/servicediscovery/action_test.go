@@ -126,11 +126,11 @@ func createService(serviceName string) (string, error) {
 	var externalport intstr.IntOrString
 	var appServicePort corev1.ServicePort
 
-	externalport = intstr.IntOrString{IntVal: 30080}
+	externalport = intstr.IntOrString{IntVal: 30083}
 	appServicePort = corev1.ServicePort{
-		Name:       "30080",
+		Name:       "30083",
 		Protocol:   corev1.ProtocolTCP,
-		Port:       30080,
+		Port:       30083,
 		TargetPort: externalport,
 	}
 	appServicePorts = append(appServicePorts, appServicePort)
@@ -187,7 +187,7 @@ var _ = Describe("Action", func() {
 		ICI    module.InboundClientsIntent
 		ICIDBC *module.InboundClientsIntentDbClient
 
-		clusterResourceStatus = "{\"ready\":false,\"resourceCount\":0,\"serviceStatuses\":[{\"kind\":\"Service\",\"apiVersion\":\"v1\",\"metadata\":{\"name\":\"server-svc\",\"namespace\":\"default\",\"selfLink\":\"/api/v1/namespaces/default/services/http-service\",\"uid\":\"c3ea5728-c6be-469c-9e5a-32be20b31298\",\"resourceVersion\":\"38804882\",\"creationTimestamp\":\"2021-03-02T00:54:20Z\",\"labels\":{\"app.kubernetes.io/instance\":\"r1\",\"app.kubernetes.io/managed-by\":\"dccf\",\"app.kubernetes.io/name\":\"http-server\",\"app.kubernetes.io/version\":\"1.16.0\",\"emco/deployment-id\":\"5008073919127743612-http-server\",\"helm.sh/chart\":\"http-server-0.1.0\"},\"annotations\":{\"kubectl.kubernetes.io/last-applied-configuration\":\"{\\\"apiVersion\\\":\\\"v1\\\",\\\"kind\\\":\\\"Service\\\",\\\"metadata\\\":{\\\"annotations\\\":{},\\\"labels\\\":{\\\"app.kubernetes.io/instance\\\":\\\"r1\\\",\\\"app.kubernetes.io/managed-by\\\":\\\"dccf\\\",\\\"app.kubernetes.io/name\\\":\\\"http-server\\\",\\\"app.kubernetes.io/version\\\":\\\"1.16.0\\\",\\\"emco/deployment-id\\\":\\\"5008073919127743612-http-server\\\",\\\"helm.sh/chart\\\":\\\"http-server-0.1.0\\\"},\\\"name\\\":\\\"http-service\\\",\\\"namespace\\\":\\\"default\\\"},\\\"spec\\\":{\\\"ports\\\":[{\\\"name\\\":\\\"http-service-tcp\\\",\\\"nodePort\\\":30080,\\\"port\\\":30080,\\\"protocol\\\":\\\"TCP\\\",\\\"targetPort\\\":3333}],\\\"selector\\\":{\\\"app.kubernetes.io/instance\\\":\\\"r1\\\",\\\"app.kubernetes.io/managed-by\\\":\\\"dccf\\\",\\\"app.kubernetes.io/name\\\":\\\"http-server\\\"},\\\"type\\\":\\\"LoadBalancer\\\"}}\\n\"}},\"spec\":{\"ports\":[{\"name\":\"http-service-tcp\",\"protocol\":\"TCP\",\"port\":30080,\"targetPort\":3333,\"nodePort\":30080}],\"selector\":{\"app.kubernetes.io/instance\":\"r1\",\"app.kubernetes.io/managed-by\":\"dccf\",\"app.kubernetes.io/name\":\"http-server\"},\"clusterIP\":\"10.0.188.28\",\"type\":\"LoadBalancer\",\"sessionAffinity\":\"None\",\"externalTrafficPolicy\":\"Cluster\"},\"status\":{\"loadBalancer\":{\"ingress\":[{\"ip\":\"20.62.186.71\"}]}}}]}"
+		clusterResourceStatus = "{\"ready\":false,\"resourceCount\":0,\"serviceStatuses\":[{\"kind\":\"Service\",\"apiVersion\":\"v1\",\"metadata\":{\"name\":\"server-svc\",\"namespace\":\"default\",\"selfLink\":\"/api/v1/namespaces/default/services/http-service\",\"uid\":\"c3ea5728-c6be-469c-9e5a-32be20b31298\",\"resourceVersion\":\"38804882\",\"creationTimestamp\":\"2021-03-02T00:54:20Z\",\"labels\":{\"app.kubernetes.io/instance\":\"r1\",\"app.kubernetes.io/managed-by\":\"dccf\",\"app.kubernetes.io/name\":\"http-server\",\"app.kubernetes.io/version\":\"1.16.0\",\"emco/deployment-id\":\"5008073919127743612-http-server\",\"helm.sh/chart\":\"http-server-0.1.0\"},\"annotations\":{\"kubectl.kubernetes.io/last-applied-configuration\":\"{\\\"apiVersion\\\":\\\"v1\\\",\\\"kind\\\":\\\"Service\\\",\\\"metadata\\\":{\\\"annotations\\\":{},\\\"labels\\\":{\\\"app.kubernetes.io/instance\\\":\\\"r1\\\",\\\"app.kubernetes.io/managed-by\\\":\\\"dccf\\\",\\\"app.kubernetes.io/name\\\":\\\"http-server\\\",\\\"app.kubernetes.io/version\\\":\\\"1.16.0\\\",\\\"emco/deployment-id\\\":\\\"5008073919127743612-http-server\\\",\\\"helm.sh/chart\\\":\\\"http-server-0.1.0\\\"},\\\"name\\\":\\\"http-service\\\",\\\"namespace\\\":\\\"default\\\"},\\\"spec\\\":{\\\"ports\\\":[{\\\"name\\\":\\\"http-service-tcp\\\",\\\"nodePort\\\":30083,\\\"port\\\":30083,\\\"protocol\\\":\\\"TCP\\\",\\\"targetPort\\\":3333}],\\\"selector\\\":{\\\"app.kubernetes.io/instance\\\":\\\"r1\\\",\\\"app.kubernetes.io/managed-by\\\":\\\"dccf\\\",\\\"app.kubernetes.io/name\\\":\\\"http-server\\\"},\\\"type\\\":\\\"LoadBalancer\\\"}}\\n\"}},\"spec\":{\"ports\":[{\"name\":\"http-service-tcp\",\"protocol\":\"TCP\",\"port\":30083,\"targetPort\":3333,\"nodePort\":30083}],\"selector\":{\"app.kubernetes.io/instance\":\"r1\",\"app.kubernetes.io/managed-by\":\"dccf\",\"app.kubernetes.io/name\":\"http-server\"},\"clusterIP\":\"10.0.188.28\",\"type\":\"LoadBalancer\",\"sessionAffinity\":\"None\",\"externalTrafficPolicy\":\"Cluster\"},\"status\":{\"loadBalancer\":{\"ingress\":[{\"ip\":\"20.62.186.71\"}]}}}]}"
 
 		expectedOut string = `apiVersion: v1
 kind: Service
@@ -211,13 +211,13 @@ metadata:
 spec:
   clusterIP: None
   ports:
-  - name: "30080"
+  - name: "30083"
     protocol: TCP
     appprotocol: null
-    port: 30080
+    port: 30083
     targetport:
       type: 0
-      intval: 30080
+      intval: 30083
       strval: ""
     nodeport: 0
   sessionAffinity: None

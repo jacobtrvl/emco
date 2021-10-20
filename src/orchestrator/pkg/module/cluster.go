@@ -164,7 +164,7 @@ func (v *ClusterClient) CreateCluster(project, logicalCloud string, c Cluster) (
 	//Check if this Cluster reference already exists
 	_, err = v.GetCluster(project, logicalCloud, c.MetaData.ClusterReference)
 	if err == nil {
-		return Cluster{}, pkgerrors.Wrap(err, "Cluster reference already exists")
+		return Cluster{}, pkgerrors.New("Cluster reference already exists")
 	}
 
 	err = v.util.DBInsert(v.storeName, key, nil, v.tagMeta, c)

@@ -15,6 +15,7 @@ import (
 	"strconv"
 	"strings"
 
+	pkgerrors "github.com/pkg/errors"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/appcontext"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/appcontext/subresources"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/grpc/installappclient"
@@ -22,7 +23,6 @@ import (
 	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/module/controller"
 	rsync "gitlab.com/project-emco/core/emco-base/src/rsync/pkg/db"
-	pkgerrors "github.com/pkg/errors"
 	"gopkg.in/yaml.v2"
 	certificatesv1beta1 "k8s.io/api/certificates/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -74,6 +74,11 @@ type RoleRef struct {
 }
 
 func cleanupCompositeApp(context appcontext.AppContext, err error, reason string, details []string) error {
+	if err == nil {
+		// create an error object to avoid wrap failures
+		err = pkgerrors.New("Composite App cleanup.")
+	}
+
 	cleanuperr := context.DeleteCompositeApp()
 	newerr := pkgerrors.Wrap(err, reason)
 	if cleanuperr != nil {
@@ -548,8 +553,9 @@ func Instantiate(project string, logicalcloud LogicalCloud, clusterList []Cluste
 	}
 
 	if len(userPermissionList) == 0 {
-		return pkgerrors.Wrap(err, "Level-1 Logical Clouds require at least a User Permission assigned to its primary namespace")
+		return pkgerrors.New("Level-1 Logical Clouds require at least a User Permission assigned to its primary namespace")
 	}
+
 	primaryUP := false
 	for _, up := range userPermissionList {
 		if up.Specification.Namespace == logicalcloud.Specification.NameSpace {
@@ -558,11 +564,11 @@ func Instantiate(project string, logicalcloud LogicalCloud, clusterList []Cluste
 		}
 	}
 	if !primaryUP {
-		return pkgerrors.Wrap(err, "Level-1 Logical Clouds require a User Permission assigned to its primary namespace")
+		return pkgerrors.New("Level-1 Logical Clouds require a User Permission assigned to its primary namespace")
 	}
 
 	if len(quotaList) == 0 {
-		return pkgerrors.Wrap(err, "Level-1 Logical Clouds require a Quota to be associated first")
+		return pkgerrors.New("Level-1 Logical Clouds require a Quota to be associated first")
 	}
 
 	// Get resources to be added
