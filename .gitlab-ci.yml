@@ -11,3 +11,8 @@ sonarcloud-check:
       - .sonar/cache
   script:
     - sonar-scanner
+  only:
+    - merge_requests
+    - main
+    - master
+    - develop
