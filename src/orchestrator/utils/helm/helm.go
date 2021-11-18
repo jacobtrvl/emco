@@ -5,6 +5,7 @@ package helm
 
 import (
 	"bytes"
+	ejson "encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -18,6 +19,7 @@ import (
 	"helm.sh/helm/v3/pkg/cli"
 	helmOptions "helm.sh/helm/v3/pkg/cli/values"
 	"helm.sh/helm/v3/pkg/getter"
+	"helm.sh/helm/v3/pkg/release"
 	"helm.sh/helm/v3/pkg/releaseutil"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer/json"
@@ -37,6 +39,25 @@ type KubernetesResourceTemplate struct {
 	// Path to the file that contains the resource info
 	FilePath string
 }
+
+// Hook is internal container for Helm Hook Definition
+type Hook struct {
+	Hook release.Hook
+	KRT  KubernetesResourceTemplate
+}
+
+// Custom Marshal implementation to satisfy external interface
+func (h Hook) MarshalJSON() ([]byte, error) {
+	return ejson.Marshal(&struct {
+		Name     string              `json:"name"`
+		Kind     string              `json:"kind"`
+		Path     string              `json:"path"`
+		Manifest string              `json:"manifest"`
+		Events   []release.HookEvent `json:"events"`
+	}{h.Hook.Name, h.Hook.Kind, h.Hook.Path,
+		h.Hook.Manifest, h.Hook.Events})
+}
+
 
 // Template is the interface for all helm templating commands
 // Any backend implementation will implement this interface and will
@@ -88,10 +109,11 @@ func (h *TemplateClient) processValues(valueFiles []string, values []string) (ma
 
 // GenerateKubernetesArtifacts a mapping of type to fully evaluated helm template
 func (h *TemplateClient) GenerateKubernetesArtifacts(inputPath string, valueFiles []string,
-	values []string) ([]KubernetesResourceTemplate, error) {
+	values []string) ([]KubernetesResourceTemplate, []*Hook, error) {
 
 	var outputDir, chartPath, namespace, releaseName string
 	var retData []KubernetesResourceTemplate
+	var hookList []*Hook
 
 	releaseName = h.releaseName
 	namespace = h.kubeNameSpace
@@ -99,16 +121,16 @@ func (h *TemplateClient) GenerateKubernetesArtifacts(inputPath string, valueFile
 	// verify chart path exists
 	if _, err := os.Stat(inputPath); err == nil {
 		if chartPath, err = filepath.Abs(inputPath); err != nil {
-			return retData, err
+			return retData, hookList, err
 		}
 	} else {
-		return retData, err
+		return retData, hookList, err
 	}
 
 	//Create a temp directory in the system temp folder
 	outputDir, err := ioutil.TempDir("", "helm-tmpl-")
 	if err != nil {
-		return retData, pkgerrors.Wrap(err, "Got error creating temp dir")
+		return retData, hookList, pkgerrors.Wrap(err, "Got error creating temp dir")
 	}
 	logger.Info(":: The o/p dir:: ", logger.Fields{"OutPutDirectory ": outputDir})
 	if namespace == "" {
@@ -118,11 +140,11 @@ func (h *TemplateClient) GenerateKubernetesArtifacts(inputPath string, valueFile
 	// get combined values and create config
 	rawVals, err := h.processValues(valueFiles, values)
 	if err != nil {
-		return retData, err
+		return retData, hookList, err
 	}
 
 	if msgs := validation.IsDNS1123Label(releaseName); releaseName != "" && len(msgs) > 0 {
-		return retData, fmt.Errorf("release name %s is not a valid DNS label: %s", releaseName, strings.Join(msgs, ";"))
+		return retData, hookList, fmt.Errorf("release name %s is not a valid DNS label: %s", releaseName, strings.Join(msgs, ";"))
 	}
 
 	// Initialize the install client
@@ -132,16 +154,17 @@ func (h *TemplateClient) GenerateKubernetesArtifacts(inputPath string, valueFile
 	client.ReleaseName = releaseName
 	client.IncludeCRDs = true
 	client.APIVersions = []string{}
+	client.DisableHooks = true //to ensure no duplicates in case of defined pre/post install hooks
 
 	// Check chart dependencies to make sure all are present in /charts
 	chartRequested, err := loader.Load(chartPath)
 	if err != nil {
 		logger.Error("Requested helm chart is not present", logger.Fields{"Error": err.Error()})
-		return retData, err
+		return retData, hookList, err
 	}
 
 	if chartRequested.Metadata.Type != "" && chartRequested.Metadata.Type != "application" {
-		return nil, fmt.Errorf(
+		return nil, hookList, fmt.Errorf(
 			"chart %q has an unsupported type and is not installable: %q",
 			chartRequested.Metadata.Name,
 			chartRequested.Metadata.Type,
@@ -156,7 +179,7 @@ func (h *TemplateClient) GenerateKubernetesArtifacts(inputPath string, valueFile
 	release, err := client.Run(chartRequested, rawVals)
 	if err != nil {
 		logger.Error("Error in processing the helm chart", logger.Fields{"Error": err.Error()})
-		return nil, err
+		return nil, hookList, err
 	}
 	// SplitManifests returns integer-sortable so that manifests get output
 	// in the same order as the input by `BySplitManifestsOrder`.
@@ -184,11 +207,11 @@ func (h *TemplateClient) GenerateKubernetesArtifacts(inputPath string, valueFile
 		utils.EnsureDirectory(mfilePath)
 		err = ioutil.WriteFile(mfilePath, []byte(data), 0600)
 		if err != nil {
-			return retData, err
+			return retData, hookList, err
 		}
 		gvk, err := getGroupVersionKind(data)
 		if err != nil {
-			return retData, err
+			return retData, hookList, err
 		}
 		kres := KubernetesResourceTemplate{
 			GVK:      gvk,
@@ -196,7 +219,22 @@ func (h *TemplateClient) GenerateKubernetesArtifacts(inputPath string, valueFile
 		}
 		retData = append(retData, kres)
 	}
-	return retData, nil
+	// Handle Hooks
+	sort.Stable(hookByWeight(release.Hooks))
+	for i, h := range release.Hooks {
+		hFilePath := filepath.Join(outputDir, "hook-"+ fmt.Sprint(i))
+		utils.EnsureDirectory(hFilePath)
+		err = ioutil.WriteFile(hFilePath, []byte(h.Manifest), 0600)
+		if err != nil {
+			return retData, hookList, err
+		}
+		gvk, err := getGroupVersionKind(h.Manifest)
+		if err != nil {
+			return retData, hookList, err
+		}
+		hookList = append(hookList, &Hook{*h, KubernetesResourceTemplate{gvk, hFilePath}})
+	}
+	return retData, hookList, nil
 }
 
 func getGroupVersionKind(data string) (schema.GroupVersionKind, error) {
@@ -232,16 +270,16 @@ func cleanupTempFiles(fp string) error {
 }
 
 // Resolve function
-func (h *TemplateClient) Resolve(appContent []byte, appProfileContent []byte, overrideValuesOfAppStr []string, appName string) ([]KubernetesResourceTemplate, error) {
+func (h *TemplateClient) Resolve(appContent []byte, appProfileContent []byte, overrideValuesOfAppStr []string, appName string) ([]KubernetesResourceTemplate, []*Hook, error) {
 
 	var sortedTemplates []KubernetesResourceTemplate
-
+	var hookList []*Hook
 	//chartBasePath is the tmp path where the appContent(rawHelmCharts) is extracted.
 	chartBasePath, err := utils.ExtractTarBall(bytes.NewBuffer(appContent))
 	defer cleanupTempFiles(chartBasePath)
 	if err != nil {
 		logger.Error("Error while extracting appContent", logger.Fields{})
-		return sortedTemplates, pkgerrors.Wrap(err, "Error while extracting appContent")
+		return sortedTemplates, hookList, pkgerrors.Wrap(err, "Error while extracting appContent")
 	}
 	logger.Info("The chartBasePath ::", logger.Fields{"chartBasePath": chartBasePath})
 
@@ -250,28 +288,51 @@ func (h *TemplateClient) Resolve(appContent []byte, appProfileContent []byte, ov
 	defer cleanupTempFiles(prPath)
 	if err != nil {
 		logger.Error("Error while extracting Profile Content", logger.Fields{})
-		return sortedTemplates, pkgerrors.Wrap(err, "Error while extracting Profile Content")
+		return sortedTemplates, hookList, pkgerrors.Wrap(err, "Error while extracting Profile Content")
 	}
 	logger.Info("The profile path:: ", logger.Fields{"Profile Path": prPath})
 
 	prYamlClient, err := ProcessProfileYaml(prPath, h.manifestName)
 	if err != nil {
 		logger.Error("Error while processing Profile Manifest", logger.Fields{})
-		return sortedTemplates, pkgerrors.Wrap(err, "Error while processing Profile Manifest")
+		return sortedTemplates, hookList, pkgerrors.Wrap(err, "Error while processing Profile Manifest")
 	}
 	logger.Info("Got the profileYamlClient..", logger.Fields{})
 
 	err = prYamlClient.CopyConfigurationOverrides(chartBasePath)
 	if err != nil {
 		logger.Error("Error while copying configresources to chart", logger.Fields{})
-		return sortedTemplates, pkgerrors.Wrap(err, "Error while copying configresources to chart")
+		return sortedTemplates, hookList, pkgerrors.Wrap(err, "Error while copying configresources to chart")
 	}
 
 	chartPath := filepath.Join(chartBasePath, appName)
-	sortedTemplates, err = h.GenerateKubernetesArtifacts(chartPath, []string{prYamlClient.GetValues()}, overrideValuesOfAppStr)
+	sortedTemplates, hookList, err = h.GenerateKubernetesArtifacts(chartPath, []string{prYamlClient.GetValues()}, overrideValuesOfAppStr)
 	if err != nil {
 		logger.Error("Error while generating final k8s yaml", logger.Fields{})
-		return sortedTemplates, pkgerrors.Wrap(err, "Error while generating final k8s yaml")
+		return sortedTemplates, hookList, pkgerrors.Wrap(err, "Error while generating final k8s yaml")
 	}
-	return sortedTemplates, nil
+	return sortedTemplates, hookList, nil
+}
+
+func GetHooksByEvent(hs []*Hook) (map[string][]*Hook, error) {
+	resources := make(map[string][]*Hook)
+	for _, h := range hs {
+		for _, e := range h.Hook.Events {
+				resources[e.String()] = append(resources[e.String()], h)
+			}
+		}
+	return resources, nil
+}
+
+// Copied from https://github.com/helm/helm/blob/a499b4b179307c267bdf3ec49b880e3dbd2a5591/pkg/action/hooks.go#L110
+
+type hookByWeight []*release.Hook
+
+func (x hookByWeight) Len() int      { return len(x) }
+func (x hookByWeight) Swap(i, j int) { x[i], x[j] = x[j], x[i] }
+func (x hookByWeight) Less(i, j int) bool {
+	if x[i].Weight == x[j].Weight {
+		return x[i].Name < x[j].Name
+	}
+	return x[i].Weight < x[j].Weight
 }

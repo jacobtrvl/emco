@@ -515,7 +515,6 @@ func (ac *AppContext) GetAppLevelInstruction(appname, insttype string) (interfac
 	var v string
 	err = ac.rtc.RtcGetValue(s, &v)
 	if err != nil {
-		log.Error("ac.rtc.RtcGetValue(s, &v)", log.Fields{"err": err})
 		return nil, err
 	}
 	return v, nil

@@ -199,33 +199,33 @@ func findGenericPlacementIntent(p, ca, v, di string) (string, error) {
 	log.Info(":: generic-placement-intent not found ! ::", log.Fields{"Searched for GenPlmtIntent": GenericPlacementIntentName})
 	return gi, pkgerrors.New("GenericPlacementIntent not found")
 }
-
 // GetSortedTemplateForApp returns the sorted templates.
 //It takes in arguments - appName, project, compositeAppName, releaseName, compositeProfileName, array of override values
-func GetSortedTemplateForApp(appName, p, ca, v, rName, cp, namespace string, overrideValues []OverrideValues) ([]helm.KubernetesResourceTemplate, error) {
+func GetSortedTemplateForApp(appName, p, ca, v, rName, cp, namespace string, overrideValues []OverrideValues) ([]helm.KubernetesResourceTemplate, []*helm.Hook, error) {
 
 	log.Info(":: Processing App ::", log.Fields{"appName": appName})
 
 	var sortedTemplates []helm.KubernetesResourceTemplate
+	var hookList []*helm.Hook
 
 	aC, err := NewAppClient().GetAppContent(appName, p, ca, v)
 	if err != nil {
-		return sortedTemplates, pkgerrors.Wrap(err, fmt.Sprint("AppContent not found for:: ", appName))
+		return sortedTemplates, hookList, pkgerrors.Wrap(err, fmt.Sprint("AppContent not found for:: ", appName))
 	}
 	appContent, err := base64.StdEncoding.DecodeString(aC.FileContent)
 	if err != nil {
-		return sortedTemplates, pkgerrors.Wrap(err, "Fail to convert to byte array")
+		return sortedTemplates, hookList, pkgerrors.Wrap(err, "Fail to convert to byte array")
 	}
 
 	log.Info(":: Got the app content.. ::", log.Fields{"appName": appName})
 
 	appPC, err := NewAppProfileClient().GetAppProfileContentByApp(p, ca, v, cp, appName)
 	if err != nil {
-		return sortedTemplates, pkgerrors.Wrap(err, fmt.Sprintf("AppProfileContent not found for:: %s", appName))
+		return sortedTemplates, hookList, pkgerrors.Wrap(err, fmt.Sprintf("AppProfileContent not found for:: %s", appName))
 	}
 	appProfileContent, err := base64.StdEncoding.DecodeString(appPC.Profile)
 	if err != nil {
-		return sortedTemplates, pkgerrors.Wrap(err, "Fail to convert to byte array")
+		return sortedTemplates, hookList, pkgerrors.Wrap(err, "Fail to convert to byte array")
 	}
 
 	log.Info(":: Got the app Profile content .. ::", log.Fields{"appName": appName})
@@ -240,14 +240,14 @@ func GetSortedTemplateForApp(appName, p, ca, v, rName, cp, namespace string, ove
 		}
 	}
 
-	sortedTemplates, err = helm.NewTemplateClient("", namespace, rName,
+	sortedTemplates, hookList, err = helm.NewTemplateClient("", namespace, rName,
 		ManifestFileName).Resolve(appContent,
 		appProfileContent, overrideValuesOfAppStr,
 		appName)
 
 	log.Info(":: Total no. of sorted templates ::", log.Fields{"len(sortedTemplates):": len(sortedTemplates)})
 
-	return sortedTemplates, err
+	return sortedTemplates, hookList, err
 }
 
 func calculateDirPath(fp string) string {

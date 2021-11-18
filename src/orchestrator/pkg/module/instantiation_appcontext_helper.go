@@ -10,7 +10,6 @@ It contains methods for creating appContext, saving cluster and resource details
 */
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"time"
 
@@ -55,30 +54,13 @@ type appDepInstr struct {
 	AppDepMap map[string]string `json:"appdependency"`
 }
 
-// makeAppContext creates an appContext for a compositeApp and returns the output as contextForCompositeApp
-func makeAppContextForCompositeApp(p, ca, v, rName, dig string, namespace string, level string) (contextForCompositeApp, error) {
-	context := appcontext.AppContext{}
-	ctxval, err := context.InitAppContext()
-	if err != nil {
-		return contextForCompositeApp{}, pkgerrors.Wrap(err, "Error creating AppContext CompositeApp")
-	}
-	compositeHandle, err := context.CreateCompositeApp()
-	if err != nil {
-		return contextForCompositeApp{}, pkgerrors.Wrap(err, "Error creating CompositeApp handle")
-	}
-	err = context.AddCompositeAppMeta(appcontext.CompositeAppMeta{Project: p, CompositeApp: ca, Version: v, Release: rName, DeploymentIntentGroup: dig, Namespace: namespace, Level: level})
-	if err != nil {
-		return contextForCompositeApp{}, pkgerrors.Wrap(err, "Error Adding CompositeAppMeta")
-	}
-
-	m, err := context.GetCompositeAppMeta()
-
-	log.Info(":: The meta data stored in the runtime context :: ", log.Fields{"Project": m.Project, "CompositeApp": m.CompositeApp, "Version": m.Version, "Release": m.Release, "DeploymentIntentGroup": m.DeploymentIntentGroup})
-
-	cca := contextForCompositeApp{context: context, ctxval: ctxval, compositeAppHandle: compositeHandle}
-
-	return cca, nil
-
+type AppHandler struct{
+	appName string
+	namespace string
+	clusters gpic.ClusterList
+	ht []helm.KubernetesResourceTemplate
+	hk []*helm.Hook
+	dependency []AdSpecData
 }
 
 // deleteAppContext removes an appcontext
@@ -93,13 +75,15 @@ func deleteAppContext(ct appcontext.AppContext) error {
 
 // getResources shall take in the sorted templates and output the resources
 // which consists of name(name+kind) and filecontent
-func getResources(st []helm.KubernetesResourceTemplate) ([]resource, error) {
+// Returns regular resources and crd resources in separate arrays
+func getResources(st []helm.KubernetesResourceTemplate) ([]resource, []resource, error) {
 	var resources []resource
+	var crdResources []resource
 	for _, t := range st {
 		yamlStruct, err := utils.ExtractYamlParameters(t.FilePath)
 		yamlFile, err := ioutil.ReadFile(t.FilePath)
 		if err != nil {
-			return nil, pkgerrors.Wrap(err, "Failed to get the resources")
+			return nil, nil, pkgerrors.Wrap(err, "Failed to get the resources")
 		}
 		n := yamlStruct.Metadata.Name + SEPARATOR + yamlStruct.Kind
 		// This might happen when the rendered file just has some comments inside, no real k8s object.
@@ -107,66 +91,117 @@ func getResources(st []helm.KubernetesResourceTemplate) ([]resource, error) {
 			log.Info(":: Ignoring, Unable to render the template ::", log.Fields{"YAML PATH": t.FilePath})
 			continue
 		}
-
-		resources = append(resources, resource{name: n, filecontent: string(yamlFile)})
-
+		if yamlStruct.Kind == "CustomResourceDefinition" {
+			crdResources = append(crdResources, resource{name: n, filecontent: string(yamlFile)})
+		} else {
+			resources = append(resources, resource{name: n, filecontent: string(yamlFile)})
+		}
 		log.Info(":: Added resource into resource-order ::", log.Fields{"ResourceName": n})
+	}
+	return crdResources, resources, nil
+}
+
+// getHookResources returns hooks in resource format
+func getHookResources(hk []*helm.Hook) (map[string][]resource, error) {
+	resources := make(map[string][]resource)
+	r, err := helm.GetHooksByEvent(hk)
+	if err != nil {
+		return resources, err
+	}
+	for hookName, t := range r {
+		for _, res := range t {
+			yamlStruct, err := utils.ExtractYamlParameters(res.KRT.FilePath)
+			if err != nil {
+				return resources, pkgerrors.Wrap(err, "Failed to extract file path")
+			}
+			yamlFile, err := ioutil.ReadFile(res.KRT.FilePath)
+			if err != nil {
+				return resources, pkgerrors.Wrap(err, "Failed to read file")
+			}
+			n := yamlStruct.Metadata.Name + SEPARATOR + yamlStruct.Kind
+			// This might happen when the rendered file just has some comments inside, no real k8s object.
+			if n == SEPARATOR {
+				log.Info(":: Ignoring, Unable to render the template ::", log.Fields{"YAML PATH": res.KRT.FilePath})
+				continue
+			}
+			resources[hookName] = append(resources[hookName], resource{name: n, filecontent: string(yamlFile)})
+		}
 	}
 	return resources, nil
 }
 
-func addResourcesToCluster(ct appcontext.AppContext, ch interface{}, resources []resource, namespace string) error {
+func (ah *AppHandler)addResourcesToCluster(ct appcontext.AppContext, ch interface{}) ([]resource, error) {
+
+	crdResources, resources, err := getResources(ah.ht)
+	if err != nil {
+		return nil, pkgerrors.Wrapf(err, "Unable to get the resources")
+	}
 
 	var resOrderInstr struct {
 		Resorder []string `json:"resorder"`
 	}
 
-	var resDepInstr struct {
-		Resdep map[string]string `json:"resdependency"`
-	}
-	resdep := make(map[string]string)
-
 	for _, resource := range resources {
-		log.Info(":: RESOURCE ::", log.Fields{"filecontent": resource.filecontent})
-
-		// // parse filecontent and replace namespace
-		// yamlFile := K8sResource{}
-		// // unmarshalling properly so there's no doubt it's metadata/namespace:
-		// _ = yaml.Unmarshal([]byte(resource.filecontent), &yamlFile)
-		// log.Info(":: yaml ::", log.Fields{"yamlFile": yamlFile.Metadata})
-		// // string-based replace to avoid full unmarshal/marshal overhead:
-		// // TODO: document rare issues: providing yaml not in lower-case; not respecting the single-space separator
-		// resource.filecontent = strings.Replace(resource.filecontent, "namespace: "+yamlFile.Metadata.Namespace, "namespace: "+namespace, 1)
-		// //
-
 		resOrderInstr.Resorder = append(resOrderInstr.Resorder, resource.name)
-		resdep[resource.name] = "go"
 		_, err := ct.AddResource(ch, resource.name, resource.filecontent)
 		if err != nil {
-			cleanuperr := ct.DeleteCompositeApp()
-			if cleanuperr != nil {
-				log.Info(":: Error Cleaning up AppContext after add resource failure ::", log.Fields{"Resource": resource.name, "Error": cleanuperr.Error})
-			}
-			return pkgerrors.Wrapf(err, "Error adding resource ::%s to AppContext", resource.name)
+			return nil, pkgerrors.Wrapf(err, "Error adding resource ::%s to AppContext", resource.name)
 		}
-		jresOrderInstr, _ := json.Marshal(resOrderInstr)
-		resDepInstr.Resdep = resdep
-		jresDepInstr, _ := json.Marshal(resDepInstr)
-		_, err = ct.AddInstruction(ch, "resource", "order", string(jresOrderInstr))
-		_, err = ct.AddInstruction(ch, "resource", "dependency", string(jresDepInstr))
-		if err != nil {
-			cleanuperr := ct.DeleteCompositeApp()
-			if cleanuperr != nil {
-				log.Info(":: Error Cleaning up AppContext after add instruction failure ::", log.Fields{"Resource": resource.name, "Error": cleanuperr.Error})
+	}
+	// Add resource order for the cluster
+	jresOrderInstr, _ := json.Marshal(resOrderInstr)
+	_, err = ct.AddInstruction(ch, "resource", "order", string(jresOrderInstr))
+	if err != nil  {
+		return nil, pkgerrors.Wrapf(err, "Error adding instruction for resource order")
+	}
+	return crdResources, nil
+}
+
+// Add Hook resources and add an instruction
+func (ah *AppHandler)addHooksToCluster(ct appcontext.AppContext, ch interface{}, crdResources []resource) error {
+	hk, err := getHookResources(ah.hk)
+	if err != nil {
+		return err
+	}
+	// If no hooks present then return witjout adding instruction
+	if len(hk) <= 0 {
+		return nil
+	}
+	var resDepInstr struct {
+		Resdep map[string][]string `json:"resdependency"`
+	}
+	resdep := make(map[string][]string)
+
+	// Add Hooks resources and add in the dependency instruction
+	for name, t := range hk {
+		for _, res := range t {
+			_, err := ct.AddResource(ch, res.name, res.filecontent)
+			if err != nil {
+				return err
 			}
-			return pkgerrors.Wrapf(err, "Error adding instruction for resource ::%s to AppContext", resource.name)
+			resdep[name] = append(resdep[name], res.name)
 		}
+	}
+	// Add CRD Resources also
+	for _, res := range crdResources {
+		_, err := ct.AddResource(ch, res.name, res.filecontent)
+			if err != nil {
+				return err
+			}
+			resdep["crd-install"] = append(resdep["crd-install"], res.name)
+	}
+	log.Info(":: Hook resources  ::", log.Fields{"Hooks list": resdep})
+	resDepInstr.Resdep = resdep
+	jresDepInstr, _ := json.Marshal(resDepInstr)
+	_, err = ct.AddInstruction(ch, "resource", "dependency", string(jresDepInstr))
+	if err != nil {
+		return pkgerrors.Wrapf(err, "Error adding instruction for resource to AppContext")
 	}
 	return nil
 }
 
-//addClustersToAppContext method shall add cluster details save into etcd
-func addClustersToAppContextHelper(cg []gpic.ClusterGroup, ct appcontext.AppContext, appHandle interface{}, resources []resource, namespace string) error {
+//addClustersToAppContextHelper helper to add clusters
+func (ah *AppHandler)addClustersToAppContextHelper(cg []gpic.ClusterGroup, ct appcontext.AppContext, appHandle interface{}) error {
 	for _, eachGrp := range cg {
 		oc := eachGrp.Clusters
 		gn := eachGrp.GroupNumber
@@ -178,44 +213,59 @@ func addClustersToAppContextHelper(cg []gpic.ClusterGroup, ct appcontext.AppCont
 			clusterhandle, err := ct.AddCluster(appHandle, p+SEPARATOR+n)
 
 			if err != nil {
-				cleanuperr := ct.DeleteCompositeApp()
-				if cleanuperr != nil {
-					log.Info(":: Error Cleaning up AppContext after add cluster failure ::", log.Fields{"cluster-provider": p, "cluster-name": n, "GroupName": gn, "Error": cleanuperr.Error})
-				}
 				return pkgerrors.Wrapf(err, "Error adding Resources to Cluster(provider::%s, name::%s and groupName:: %s) to AppContext", p, n, gn)
 			}
 			log.Info(":: Added cluster ::", log.Fields{"Cluster ": p + SEPARATOR + n})
 
 			err = ct.AddClusterMetaGrp(clusterhandle, gn)
 			if err != nil {
-				cleanuperr := ct.DeleteCompositeApp()
-				if cleanuperr != nil {
-					log.Info(":: Error Cleaning up AppContext after add cluster failure ::", log.Fields{"cluster-provider": p, "cluster-name": n, "GroupName": gn, "Error": cleanuperr.Error})
-				}
 				return pkgerrors.Wrapf(err, "Error adding Resources to Cluster(provider::%s, name::%s and groupName:: %s) to AppContext", p, n, gn)
 			}
 			log.Info(":: Added cluster ::", log.Fields{"Cluster ": p + SEPARATOR + n, "GroupNumber ": gn})
 
-			err = addResourcesToCluster(ct, clusterhandle, resources, namespace)
+			crdResources, err := ah.addResourcesToCluster(ct, clusterhandle)
 			if err != nil {
 				return pkgerrors.Wrapf(err, "Error adding Resources to Cluster(provider::%s, name::%s and groupName:: %s) to AppContext", p, n, gn)
+			}
+			err = ah.addHooksToCluster(ct, clusterhandle, crdResources)
+			if err != nil {
+				return pkgerrors.Wrapf(err, "Error adding Hooks to Cluster(provider::%s, name::%s and groupName:: %s) to AppContext", p, n, gn)
 			}
 		}
 	}
 	return nil
 }
 
-func addClustersToAppContext(l gpic.ClusterList, ct appcontext.AppContext, appHandle interface{}, resources []resource, namespace string) error {
-	mClusters := l.MandatoryClusters
-	oClusters := l.OptionalClusters
+func (ah *AppHandler)addAppToAppContext(cxtForCApp contextForCompositeApp) error {
 
-	err := addClustersToAppContextHelper(mClusters, ct, appHandle, resources, namespace)
+	ct := cxtForCApp.context
+	appHandle, err := ct.AddApp(cxtForCApp.compositeAppHandle, ah.appName)
+	if err != nil {
+		return pkgerrors.Wrap(err, "Error adding App to AppContext")
+	}
+	if len(ah.dependency) > 0 {
+		// Add Dependency Instruction for the App
+		dependency, err := json.Marshal(ah.dependency)
+		if err != nil {
+			return pkgerrors.Wrap(err, "Error Marshalling dependency for app")
+		}
+		dh, err := ct.AddLevelValue(appHandle, "instruction/dependency", string(dependency))
+		if err != nil {
+			return pkgerrors.Wrap(err, "Error adding App dependency to AppContext")
+		}
+		log.Info(":: appDep ::", log.Fields{"dh": dh, "dep": string(dependency)})
+	}
+
+	mClusters := ah.clusters.MandatoryClusters
+	oClusters := ah.clusters.OptionalClusters
+
+	err = ah.addClustersToAppContextHelper(mClusters, ct, appHandle)
 	if err != nil {
 		return err
 	}
 	log.Info("::Added mandatory clusters to the AppContext", log.Fields{})
 
-	err = addClustersToAppContextHelper(oClusters, ct, appHandle, resources, namespace)
+	err = ah.addClustersToAppContextHelper(oClusters, ct, appHandle)
 	if err != nil {
 		return err
 	}
@@ -226,9 +276,14 @@ func addClustersToAppContext(l gpic.ClusterList, ct appcontext.AppContext, appHa
 /*
 verifyResources method is just to check if the resource handles are correctly saved.
 */
-func verifyResources(l gpic.ClusterList, ct appcontext.AppContext, resources []resource, appName string) error {
+func (ah *AppHandler)verifyResources(cxtForCApp contextForCompositeApp) error {
 
-	for _, cg := range l.OptionalClusters {
+	ct := cxtForCApp.context
+	_, resources, err := getResources(ah.ht)
+	if err != nil {
+		return pkgerrors.Wrapf(err, "Unable to get the resources")
+	}
+	for _, cg := range ah.clusters.OptionalClusters {
 		gn := cg.GroupNumber
 		oc := cg.Clusters
 		for _, eachCluster := range oc {
@@ -237,140 +292,34 @@ func verifyResources(l gpic.ClusterList, ct appcontext.AppContext, resources []r
 			cn := p + SEPARATOR + n
 
 			for _, res := range resources {
-				rh, err := ct.GetResourceHandle(appName, cn, res.name)
+				rh, err := ct.GetResourceHandle(ah.appName, cn, res.name)
 				if err != nil {
-					return pkgerrors.Wrapf(err, "Error getting resource handle for resource :: %s, app:: %s, cluster :: %s, groupName :: %s", appName, res.name, cn, gn)
+					return pkgerrors.Wrapf(err, "Error getting resource handle for resource :: %s, app:: %s, cluster :: %s, groupName :: %s", ah.appName, res.name, cn, gn)
 				}
-				log.Info(":: GetResourceHandle ::", log.Fields{"ResourceHandler": rh, "appName": appName, "Cluster": cn, "Resource": res.name})
+				log.Info(":: GetResourceHandle ::", log.Fields{"ResourceHandler": rh, "appName": ah.appName, "Cluster": cn, "Resource": res.name})
 			}
 		}
-		grpMap, err := ct.GetClusterGroupMap(appName)
+		grpMap, err := ct.GetClusterGroupMap(ah.appName)
 		if err != nil {
-			return pkgerrors.Wrapf(err, "Error getting GetGroupMap for app:: %s, groupName :: %s", appName, gn)
+			return pkgerrors.Wrapf(err, "Error getting GetGroupMap for app:: %s, groupName :: %s", ah.appName, gn)
 		}
 		log.Info(":: GetGroupMapReults ::", log.Fields{"GroupMap": grpMap})
 	}
 
-	for _, mClusters := range l.MandatoryClusters {
+	for _, mClusters := range ah.clusters.MandatoryClusters {
 		for _, mc := range mClusters.Clusters {
 			p := mc.ProviderName
 			n := mc.ClusterName
 			cn := p + SEPARATOR + n
 			for _, res := range resources {
-				rh, err := ct.GetResourceHandle(appName, cn, res.name)
+				rh, err := ct.GetResourceHandle(ah.appName, cn, res.name)
 				if err != nil {
-					return pkgerrors.Wrapf(err, "Error getting resoure handle for resource :: %s, app:: %s, cluster :: %s", appName, res.name, cn)
+					return pkgerrors.Wrapf(err, "Error getting resoure handle for resource :: %s, app:: %s, cluster :: %s", ah.appName, res.name, cn)
 				}
-				log.Info(":: GetResourceHandle ::", log.Fields{"ResourceHandler": rh, "appName": appName, "Cluster": cn, "Resource": res.name})
+				log.Info(":: GetResourceHandle ::", log.Fields{"ResourceHandler": rh, "appName": ah.appName, "Cluster": cn, "Resource": res.name})
 			}
 		}
 	}
-	return nil
-}
-
-func storeAppContextIntoRunTimeDB(allApps []App, cxtForCApp contextForCompositeApp, overrideValues []OverrideValues, dcmClusters []Cluster, p, ca, v, rName, cp, gIntent, di, namespace string) error {
-
-	context := cxtForCApp.context
-	// for recording the app order instruction
-	var appOrdInsStr appOrderInstr
-	// for recording the app dependency
-	var appDepStr appDepInstr
-	appDepStr.AppDepMap = make(map[string]string)
-
-	if !checkDependency(allApps, p, ca, v) {
-		str := fmt.Sprint("Cyclic Dependency between apps found in composite app:", ca)
-		log.Error(str, log.Fields{})
-		return pkgerrors.New(str)
-	}
-	for _, eachApp := range allApps {
-		appOrdInsStr.Apporder = append(appOrdInsStr.Apporder, eachApp.Metadata.Name)
-		appDepStr.AppDepMap[eachApp.Metadata.Name] = "go"
-
-		sortedTemplates, err := GetSortedTemplateForApp(eachApp.Metadata.Name, p, ca, v, rName, cp, namespace, overrideValues)
-
-		if err != nil {
-			log.Error("Unable to get the sorted templates for app", log.Fields{"AppName": eachApp.Metadata.Name})
-			return pkgerrors.Wrap(err, "Unable to get the sorted templates for app")
-		}
-
-		log.Info(":: Resolved all the templates ::", log.Fields{"appName": eachApp.Metadata.Name, "SortedTemplate": sortedTemplates})
-
-		resources, err := getResources(sortedTemplates)
-		if err != nil {
-			return pkgerrors.Wrapf(err, "Unable to get the resources for app :: %s", eachApp.Metadata.Name)
-		}
-
-		defer cleanTmpfiles(sortedTemplates)
-
-		specData, err := NewAppIntentClient().GetAllIntentsByApp(eachApp.Metadata.Name, p, ca, v, gIntent, di)
-		if err != nil {
-			return pkgerrors.Wrap(err, "Unable to get the intents for app")
-		}
-
-		// listOfClusters shall have both mandatoryClusters and optionalClusters where the app needs to be installed.
-		listOfClusters, err := gpic.IntentResolver(specData.Intent)
-		if err != nil {
-			return pkgerrors.Wrap(err, "Unable to get the intents resolved for app")
-		}
-
-		log.Info(":: listOfClusters ::", log.Fields{"listOfClusters": listOfClusters})
-		if listOfClusters.MandatoryClusters == nil && listOfClusters.OptionalClusters == nil {
-			log.Error("No compatible clusters have been provided to the Deployment Intent Group", log.Fields{"listOfClusters": listOfClusters})
-			return pkgerrors.New("No compatible clusters have been provided to the Deployment Intent Group")
-		}
-
-		if err := checkClusters(listOfClusters, dcmClusters); err != nil {
-			return err
-		}
-
-		//BEGIN: storing into etcd
-		// Add an app to the app context
-		apphandle, err := context.AddApp(cxtForCApp.compositeAppHandle, eachApp.Metadata.Name)
-		if err != nil {
-			return pkgerrors.Wrap(err, "Error adding App to AppContext")
-		}
-		// Read app dependency
-		appDep, err := NewAppDependencyClient().GetAllSpecAppDependency(p, ca, v,eachApp.Metadata.Name)
-		log.Info(":: appDep ::", log.Fields{"app": eachApp.Metadata.Name, "appDep": appDep})
-		if err == nil && len(appDep) > 0 {
-			// Add Dependency Instruction for the App
-			dependency, err := json.Marshal(appDep)
-			if err != nil {
-				return pkgerrors.Wrap(err, "Error Marshalling dependency for app")
-			}
-			dh, err := context.AddLevelValue(apphandle, "instruction/dependency", string(dependency))
-			if err != nil {
-				return pkgerrors.Wrap(err, "Error adding App dependency to AppContext")
-			}
-			log.Info(":: appDep ::", log.Fields{"dh": dh, "dep": string(dependency)})
-		}
-		err = addClustersToAppContext(listOfClusters, context, apphandle, resources, namespace)
-		if err != nil {
-			return pkgerrors.Wrap(err, "Error while adding cluster and resources to app")
-		}
-		err = verifyResources(listOfClusters, context, resources, eachApp.Metadata.Name)
-		if err != nil {
-			return pkgerrors.Wrap(err, "Error while verifying resources in app: ")
-		}
-	}
-	jappOrderInstr, err := json.Marshal(appOrdInsStr)
-	if err != nil {
-		return pkgerrors.Wrap(err, "Error marshalling app order instruction")
-	}
-
-	jappDepInstr, err := json.Marshal(appDepStr.AppDepMap)
-	if err != nil {
-		return pkgerrors.Wrap(err, "Error marshalling app dependency instruction")
-	}
-	_, err = context.AddInstruction(cxtForCApp.compositeAppHandle, "app", "order", string(jappOrderInstr))
-	if err != nil {
-		return pkgerrors.Wrap(err, "Error adding app dependency instruction")
-	}
-	_, err = context.AddInstruction(cxtForCApp.compositeAppHandle, "app", "dependency", string(jappDepInstr))
-	if err != nil {
-		return pkgerrors.Wrap(err, "Error adding app dependency instruction")
-	}
-	//END: storing into etcd
 	return nil
 }
 
