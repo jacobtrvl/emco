@@ -13,10 +13,10 @@ import (
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/contextdb"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
 
+	pkgerrors "github.com/pkg/errors"
 	hpaMod "gitlab.com/project-emco/core/emco-base/src/hpa-plc/pkg/module"
 	orchLog "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 	orchMod "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/module"
-	pkgerrors "github.com/pkg/errors"
 )
 
 type contextForCompositeApp struct {
@@ -36,7 +36,7 @@ func makeAppContextForCompositeApp(p, ca, v, rName, dig string, namespace string
 		return contextForCompositeApp{}, pkgerrors.Wrap(err, "Error creating CompositeApp handle")
 	}
 	compMetadata := appcontext.CompositeAppMeta{Project: p, CompositeApp: ca, Version: v, Release: rName, DeploymentIntentGroup: dig, Namespace: namespace, Level: level}
-	err = context.AddCompositeAppMeta(compMetadata)
+	err = context.AddMeta(compMetadata)
 	if err != nil {
 		return contextForCompositeApp{}, pkgerrors.Wrap(err, "Error Adding CompositeAppMeta")
 	}

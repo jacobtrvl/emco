@@ -7,12 +7,12 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	pkgerrors "github.com/pkg/errors"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/appcontext"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/contextdb"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/resourcestatus"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/state"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/status"
-	pkgerrors "github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
@@ -49,7 +49,7 @@ func createSampleVfwAppContext() (appContext, error) {
 
 	// add composite app meta structure
 	caMeta := appcontext.CompositeAppMeta{Project: "testvfw", CompositeApp: "compositevfw", Version: "v1", Release: "fw0", DeploymentIntentGroup: "vfw_deployment_intent_group", Namespace: "default", Level: "0"}
-	err = ac.AddCompositeAppMeta(caMeta)
+	err = ac.AddMeta(caMeta)
 	if err != nil {
 		return appContext{}, pkgerrors.Wrap(err, "Error making ca meta data")
 	}

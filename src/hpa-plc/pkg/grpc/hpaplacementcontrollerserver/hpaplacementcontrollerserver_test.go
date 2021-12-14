@@ -9,12 +9,12 @@ import (
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 
+	pkgerrors "github.com/pkg/errors"
 	placementcontrollerserver "gitlab.com/project-emco/core/emco-base/src/hpa-plc/pkg/grpc/hpaplacementcontrollerserver"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/appcontext"
 	placementcontrollerpb "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/grpc/placementcontroller"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/contextdb"
 	orchLog "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
-	pkgerrors "github.com/pkg/errors"
 )
 
 func TestHpaPlacementControllerServer(t *testing.T) {
@@ -45,7 +45,7 @@ func makeAppContextForCompositeApp(p, ca, v, rName, dig string, namespace string
 		return contextForCompositeApp{}, pkgerrors.Wrap(err, "Error creating CompositeApp handle")
 	}
 	compMetadata := appcontext.CompositeAppMeta{Project: p, CompositeApp: ca, Version: v, Release: rName, DeploymentIntentGroup: dig, Namespace: namespace, Level: level}
-	err = context.AddCompositeAppMeta(compMetadata)
+	err = context.AddMeta(compMetadata)
 	if err != nil {
 		return contextForCompositeApp{}, pkgerrors.Wrap(err, "Error Adding CompositeAppMeta")
 	}

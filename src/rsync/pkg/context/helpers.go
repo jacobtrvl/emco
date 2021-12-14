@@ -8,10 +8,10 @@ import (
 	"encoding/json"
 	"fmt"
 
+	pkgerrors "github.com/pkg/errors"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/appcontext"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 	. "gitlab.com/project-emco/core/emco-base/src/rsync/pkg/types"
-	pkgerrors "github.com/pkg/errors"
 )
 
 // CreateCompApp creates a AppContext for a composite app, for testing
@@ -31,7 +31,7 @@ func CreateCompApp(ca CompositeApp) (string, error) {
 		return "", pkgerrors.Wrap(err, "Error creating CompositeApp handle")
 	}
 
-	if err = context.AddCompositeAppMeta(ca.CompMetadata); err != nil {
+	if err = context.AddMeta(ca.CompMetadata); err != nil {
 		return "", pkgerrors.Wrap(err, "Error Adding CompositeAppMeta")
 	}
 	appOrder, err := json.Marshal(map[string][]string{"apporder": ca.AppOrder})
@@ -144,7 +144,7 @@ func ReadAppContext(contextID interface{}) (CompositeApp, error) {
 			var a []AppCriteria
 			// If instruction available read it
 			json.Unmarshal([]byte(dep.(string)), &a)
-			for _, crt  := range a {
+			for _, crt := range a {
 				depList[crt.App] = &Criteria{Wait: crt.Wait, OpStatus: crt.OpStatus}
 			}
 		}

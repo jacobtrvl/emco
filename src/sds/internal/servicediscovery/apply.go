@@ -7,12 +7,12 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"gitlab.com/project-emco/core/emco-base/src/sds/internal/utils"
+	pkgerrors "github.com/pkg/errors"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/appcontext"
 	rsyncclient "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/grpc/notifyclient"
 	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/state"
-	pkgerrors "github.com/pkg/errors"
+	"gitlab.com/project-emco/core/emco-base/src/sds/internal/utils"
 )
 
 // DeployServiceEntry deploys service entry related resources on clusters
@@ -182,7 +182,7 @@ func DeployServiceEntry(ac appcontext.AppContext, appContextID string, serverNam
 				return utils.CleanupCompositeApp(childContext, err, "Error getting CompositeAppMeta", []string{serviceName, childCtxVal.(string)})
 			}
 
-			err = childContext.AddCompositeAppMeta(appcontext.CompositeAppMeta{Project: m.Project, CompositeApp: compositeApp, Version: m.Version, Release: m.Release,
+			err = childContext.AddMeta(appcontext.CompositeAppMeta{Project: m.Project, CompositeApp: compositeApp, Version: m.Version, Release: m.Release,
 				DeploymentIntentGroup: m.DeploymentIntentGroup, Namespace: m.Namespace, Level: m.Level})
 			if err != nil {
 				return utils.CleanupCompositeApp(childContext, err, "Error adding CompositeAppMeta for child", []string{serviceName, childCtxVal.(string)})
@@ -191,7 +191,7 @@ func DeployServiceEntry(ac appcontext.AppContext, appContextID string, serverNam
 			childContextID := fmt.Sprintf("%v", childCtxVal)
 			m.ChildContextIDs = append(m.ChildContextIDs, childContextID)
 			// Add this child app context to Parent meta data
-			err = ac.AddCompositeAppMeta(appcontext.CompositeAppMeta{
+			err = ac.AddMeta(appcontext.CompositeAppMeta{
 				Project:               m.Project,
 				CompositeApp:          m.CompositeApp,
 				Version:               m.Version,

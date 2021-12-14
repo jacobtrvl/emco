@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"strings"
 
+	pkgerrors "github.com/pkg/errors"
 	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/rtcontext"
-	pkgerrors "github.com/pkg/errors"
 )
 
 // metaPrefix used for denoting clusterMeta level
@@ -121,8 +121,8 @@ func (ac *AppContext) CreateCompositeApp() (interface{}, error) {
 	return h, nil
 }
 
-// AddCompositeAppMeta adds the meta data associated with a composite app
-func (ac *AppContext) AddCompositeAppMeta(meta interface{}) error {
+// AddMeta adds the meta data associated with a composite app
+func (ac *AppContext) AddMeta(meta interface{}) error {
 	err := ac.rtc.RtcAddMeta(meta)
 	if err != nil {
 		return err

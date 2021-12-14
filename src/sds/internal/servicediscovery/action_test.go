@@ -16,6 +16,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
+	pkgerrors "github.com/pkg/errors"
 	"gitlab.com/project-emco/core/emco-base/src/clm/pkg/cluster"
 	"gitlab.com/project-emco/core/emco-base/src/dtc/pkg/module"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/appcontext"
@@ -25,7 +26,6 @@ import (
 	mtypes "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/module/types"
 	"gitlab.com/project-emco/core/emco-base/src/rsync/pkg/grpc/installapp"
 	"gitlab.com/project-emco/core/emco-base/src/sds/internal/servicediscovery"
-	pkgerrors "github.com/pkg/errors"
 )
 
 type contextForCompositeApp struct {
@@ -71,7 +71,7 @@ func makeAppContextForCompositeApp(p, ca, v, rName, dig string, namespace string
 		return contextForCompositeApp{}, pkgerrors.Wrap(err, "Error creating CompositeApp handle")
 	}
 	compMetadata := appcontext.CompositeAppMeta{Project: p, CompositeApp: ca, Version: v, Release: rName, DeploymentIntentGroup: dig, Namespace: namespace, Level: level}
-	err = context.AddCompositeAppMeta(compMetadata)
+	err = context.AddMeta(compMetadata)
 	if err != nil {
 		return contextForCompositeApp{}, pkgerrors.Wrap(err, "Error Adding CompositeAppMeta")
 	}

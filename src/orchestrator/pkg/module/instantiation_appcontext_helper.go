@@ -66,7 +66,7 @@ func makeAppContextForCompositeApp(p, ca, v, rName, dig string, namespace string
 	if err != nil {
 		return contextForCompositeApp{}, pkgerrors.Wrap(err, "Error creating CompositeApp handle")
 	}
-	err = context.AddCompositeAppMeta(appcontext.CompositeAppMeta{Project: p, CompositeApp: ca, Version: v, Release: rName, DeploymentIntentGroup: dig, Namespace: namespace, Level: level})
+	err = context.AddMeta(appcontext.CompositeAppMeta{Project: p, CompositeApp: ca, Version: v, Release: rName, DeploymentIntentGroup: dig, Namespace: namespace, Level: level})
 	if err != nil {
 		return contextForCompositeApp{}, pkgerrors.Wrap(err, "Error Adding CompositeAppMeta")
 	}
@@ -330,7 +330,7 @@ func storeAppContextIntoRunTimeDB(allApps []App, cxtForCApp contextForCompositeA
 			return pkgerrors.Wrap(err, "Error adding App to AppContext")
 		}
 		// Read app dependency
-		appDep, err := NewAppDependencyClient().GetAllSpecAppDependency(p, ca, v,eachApp.Metadata.Name)
+		appDep, err := NewAppDependencyClient().GetAllSpecAppDependency(p, ca, v, eachApp.Metadata.Name)
 		log.Info(":: appDep ::", log.Fields{"app": eachApp.Metadata.Name, "appDep": appDep})
 		if err == nil && len(appDep) > 0 {
 			// Add Dependency Instruction for the App
