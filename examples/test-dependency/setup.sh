@@ -43,9 +43,9 @@ function create_common_values {
     DtcPort: 30483
     NpsPort: 30485
     HostIP: $host_ip
-    APP1: http-server
-    APP2: collectd
-    APP3: operator
+    APP1: collectd
+    APP2: operator
+    APP3: nginx
     Clusters:
       - Name: cluster1
         KubeConfig: $KUBE_PATH1
@@ -59,8 +59,9 @@ function create_common_values {
       - Name: operator
         Cluster:
           - cluster1
-      - Name: http-server
+      - Name: nginx
         Cluster:
+          - cluster1
           - cluster2
 
 NET

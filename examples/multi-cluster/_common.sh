@@ -16,6 +16,8 @@ prometheus_operator_folder=../helm_charts/prometheus-operator
 operator_latest_folder=../helm_charts/operators-latest
 m3db_folder=../helm_charts/m3db
 monitor_folder=../helm_charts/monitor
+nginx_folder=../helm_charts/nginx
+kube_prometheus_stack_folder=../helm_charts/kube-prometheus-stack
 
 function create_apps {
     local output_dir=$1
@@ -38,6 +40,10 @@ function create_apps {
     tar -czf $output_dir/sink.tar.gz -C $firewall_folder/helm sink
     tar -czf $output_dir/profile.tar.gz -C $firewall_folder/profile manifest.yaml override_values.yaml
     tar -czf $output_dir/monitor.tar.gz -C $monitor_folder/helm monitor
+    tar -czf $output_dir/nginx.tar.gz -C $nginx_folder/helm .
+    tar -czf $output_dir/nginx_profile.tar.gz -C $firewall_folder/profile manifest.yaml override_values.yaml
+#    tar -czf $output_dir/kube-prometheus-stack.tar.gz -C $kube_prometheus_stack_folder/helm .
+#    tar -czf $output_dir/kube-prometheus-stack_profile.tar.gz -C $firewall_folder/profile manifest.yaml override_values.yaml
 
 }
 

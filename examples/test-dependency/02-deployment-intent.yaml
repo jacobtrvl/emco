@@ -57,8 +57,10 @@ spec:
   compositeProfile: {{ .CompositeProfile }}
   version: r1
   logicalCloud: {{ .AdminCloud }}
-  overrideValues: []
-
+  overrideValues:
+  - app: nginx
+    values:
+      "service.type": "NodePort"
 ---
 #create intent in deployment intent group
 version: emco/v2
