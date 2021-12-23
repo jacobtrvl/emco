@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"strings"
 
+	pkgerrors "github.com/pkg/errors"
 	rb "gitlab.com/project-emco/core/emco-base/src/monitor/pkg/apis/k8splugin/v1alpha1"
 	"gitlab.com/project-emco/core/emco-base/src/monitor/pkg/generated/clientset/versioned/scheme"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/appcontext"
@@ -15,7 +16,6 @@ import (
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/utils"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/resourcestatus"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/state"
-	pkgerrors "github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 )
@@ -179,6 +179,22 @@ func GetClusterResources(rbData rb.ResourceBundleStatus, qOutput string, fResour
 	}
 
 	for _, s := range rbData.StatefulSetStatuses {
+		if !keepResource(s.Name, fResources) {
+			continue
+		}
+		r := ResourceStatus{}
+		r.Name = s.Name
+		r.Gvk = (&s.TypeMeta).GroupVersionKind()
+		if qOutput == "detail" {
+			r.Detail = s
+		}
+		*resourceList = append(*resourceList, r)
+		count++
+		cnt := cnts["Present"]
+		cnts["Present"] = cnt + 1
+	}
+
+	for _, s := range rbData.CsrStatuses {
 		if !keepResource(s.Name, fResources) {
 			continue
 		}
@@ -390,6 +406,7 @@ func getListOfApps(appContextId string) []string {
 // types of status queries
 const clusterStatus = "clusterStatus"
 const deploymentIntentGroupStatus = "digStatus"
+const lcStatus = "lcStatus"
 
 // PrepareClusterStatusResult takes in a resource stateInfo object, the list of apps and the query parameters.
 // It then fills out the StatusResult structure appropriately from information in the AppContext
@@ -407,6 +424,24 @@ func PrepareClusterStatusResult(stateInfo state.StateInfo, qInstance, qType, qOu
 		}
 		if len(status.Apps) > 0 && len(status.Apps[0].Clusters) > 0 {
 			rval.Cluster = status.Apps[0].Clusters[0]
+		}
+		return rval, nil
+	}
+}
+
+// PrepareLCStatusResult takes in a resource stateInfo object for the Logical Cloud only.
+// It then fills out the StatusResult structure appropriately from information in the AppContext
+func PrepareLCStatusResult(stateInfo state.StateInfo) (LCStatusResult, error) {
+	var emptyList []string
+	status, err := prepareStatusResult(lcStatus, stateInfo, "", "", "", emptyList, emptyList, emptyList)
+	if err != nil {
+		return LCStatusResult{}, err
+	} else {
+		rval := LCStatusResult{
+			Name:        status.Name,
+			State:       status.State,
+			Status:      status.Status,
+			RsyncStatus: status.RsyncStatus,
 		}
 		return rval, nil
 	}
@@ -485,9 +520,11 @@ func prepareStatusResult(statusType string, stateInfo state.StateInfo, qInstance
 	if err != nil {
 		return StatusResult{}, pkgerrors.Wrap(err, "AppContext for status query not found")
 	}
+
 	// Get the composite app meta
 	caMeta, err := ac.GetCompositeAppMeta()
-	if statusType != clusterStatus {
+
+	if statusType != lcStatus && statusType != clusterStatus {
 		if err != nil {
 			return StatusResult{}, pkgerrors.Wrap(err, "Error getting CompositeAppMeta")
 		}

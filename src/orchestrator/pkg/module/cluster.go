@@ -1,11 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright (c) 2020 Intel Corporation
 
-// FIXME:
-// Temporarily copied from DCM as of 20201102 to continue development.
-// Updated on 20201125 to reflect code changes in DCM.
-// Need solution to cyclic dependency: emcolib?
-
 package module
 
 import (
@@ -16,7 +11,9 @@ import (
 	pkgerrors "github.com/pkg/errors"
 	rb "gitlab.com/project-emco/core/emco-base/src/monitor/pkg/apis/k8splugin/v1alpha1"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/appcontext"
+	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
 	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
+	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/state"
 	rsync "gitlab.com/project-emco/core/emco-base/src/rsync/pkg/db"
 	"gopkg.in/yaml.v2"
 )
@@ -105,17 +102,14 @@ type ClusterManager interface {
 type ClusterClient struct {
 	storeName string
 	tagMeta   string
-	util      Utility
 }
 
 // ClusterClient returns an instance of the ClusterClient
 // which implements the ClusterManager
 func NewClusterClient() *ClusterClient {
-	service := DBService{}
 	return &ClusterClient{
 		storeName: "resources",
 		tagMeta:   "data",
-		util:      service,
 	}
 }
 
@@ -128,28 +122,23 @@ func (v *ClusterClient) CreateCluster(project, logicalCloud string, c Cluster) (
 		LogicalCloudName: logicalCloud,
 		ClusterReference: c.MetaData.ClusterReference,
 	}
-
-	//Check if project exists
-	err := v.util.CheckProject(project)
-	if err != nil {
-		return Cluster{}, pkgerrors.Wrap(err, "Project not found")
-	}
-	//check if logical cloud exists
-	err = v.util.CheckLogicalCloud(project, logicalCloud)
-	if err != nil {
-		return Cluster{}, pkgerrors.Wrap(err, "Unable to find the logical cloud")
-	}
-
 	lcClient := NewLogicalCloudClient()
-	lckey := LogicalCloudKey{
-		Project:          project,
-		LogicalCloudName: logicalCloud,
+
+	s, err := lcClient.GetState(project, logicalCloud)
+	if err != nil {
+		return Cluster{}, err
 	}
-	context, _, err := lcClient.util.GetLogicalCloudContext(lcClient.storeName, lckey, lcClient.tagContext, project, logicalCloud)
-	if err == nil {
+	cid := state.GetLastContextIdFromStateInfo(s)
+
+	if cid != "" {
+		ac, err := state.GetAppContextFromId(cid)
+		if err != nil {
+			return Cluster{}, err
+		}
+
 		// since there's a context associated, if the logical cloud isn't fully Terminated then prevent
 		// clusters from being added since this is a functional scenario not currently supported
-		acStatus, err := v.util.GetAppContextStatus(context)
+		acStatus, err := GetAppContextStatus(ac)
 		if err != nil {
 			return Cluster{}, err
 		}
@@ -157,19 +146,19 @@ func (v *ClusterClient) CreateCluster(project, logicalCloud string, c Cluster) (
 		case appcontext.AppContextStatusEnum.Terminated:
 			break
 		default:
-			return Cluster{}, pkgerrors.New("Cluster References cannot be added/removed unless the Logical Cloud is fully not applied.")
+			return Cluster{}, pkgerrors.New("Cluster References cannot be added/removed unless the Logical Cloud is not instantiated")
 		}
 	}
 
-	//Check if this Cluster reference already exists
+	//Check if this Cluster Reference already exists
 	_, err = v.GetCluster(project, logicalCloud, c.MetaData.ClusterReference)
 	if err == nil {
 		return Cluster{}, pkgerrors.New("Cluster reference already exists")
 	}
 
-	err = v.util.DBInsert(v.storeName, key, nil, v.tagMeta, c)
+	err = db.DBconn.Insert(v.storeName, key, nil, v.tagMeta, c)
 	if err != nil {
-		return Cluster{}, pkgerrors.Wrap(err, "Create DB entry error")
+		return Cluster{}, pkgerrors.Wrap(err, "Creating DB Entry")
 	}
 
 	return c, nil
@@ -185,19 +174,19 @@ func (v *ClusterClient) GetCluster(project, logicalCloud, clusterReference strin
 		ClusterReference: clusterReference,
 	}
 
-	value, err := v.util.DBFind(v.storeName, key, v.tagMeta)
+	value, err := db.DBconn.Find(v.storeName, key, v.tagMeta)
 	if err != nil {
 		return Cluster{}, err
 	}
 
 	if len(value) == 0 {
-		return Cluster{}, pkgerrors.New("Cluster not found")
+		return Cluster{}, pkgerrors.New("Cluster reference not found")
 	}
 
 	//value is a byte array
 	if value != nil {
 		cl := Cluster{}
-		err = v.util.DBUnmarshal(value[0], &cl)
+		err = db.DBconn.Unmarshal(value[0], &cl)
 		if err != nil {
 			return Cluster{}, err
 		}
@@ -216,14 +205,17 @@ func (v *ClusterClient) GetAllClusters(project, logicalCloud string) ([]Cluster,
 		ClusterReference: "",
 	}
 	var resp []Cluster
-	values, err := v.util.DBFind(v.storeName, key, v.tagMeta)
+	values, err := db.DBconn.Find(v.storeName, key, v.tagMeta)
 	if err != nil {
 		return []Cluster{}, err
+	}
+	if len(values) == 0 {
+		return []Cluster{}, pkgerrors.New("No Cluster References associated")
 	}
 
 	for _, value := range values {
 		cl := Cluster{}
-		err = v.util.DBUnmarshal(value, &cl)
+		err = db.DBconn.Unmarshal(value, &cl)
 		if err != nil {
 			return []Cluster{}, err
 		}
@@ -243,52 +235,60 @@ func (v *ClusterClient) DeleteCluster(project, logicalCloud, clusterReference st
 	}
 
 	lcClient := NewLogicalCloudClient()
-	lckey := LogicalCloudKey{
-		Project:          project,
-		LogicalCloudName: logicalCloud,
-	}
-	context, _, err := lcClient.util.GetLogicalCloudContext(lcClient.storeName, lckey, lcClient.tagContext, project, logicalCloud)
+
+	s, err := lcClient.GetState(project, logicalCloud)
 	if err != nil {
+		return err
+	}
+	cid := state.GetLastContextIdFromStateInfo(s)
+
+	if cid == "" {
 		// Just go ahead and delete the reference if there is no logical cloud context yet
-		err := v.util.DBRemove(v.storeName, key)
+		err := db.DBconn.Remove(v.storeName, key)
 		if err != nil {
-			return pkgerrors.Wrap(err, "Delete Cluster Reference")
+			return pkgerrors.Wrap(err, "Failed deleting Cluster Reference")
 		}
 		return nil
 	}
 
 	// Make sure rsync status for this logical cloud is Terminated,
 	// otherwise prevent the clusters from being removed
-	acStatus, err := v.util.GetAppContextStatus(context)
+	ac, err := state.GetAppContextFromId(cid)
 	if err != nil {
 		return err
 	}
+	acStatus, err := GetAppContextStatus(ac)
+	if err != nil {
+		return pkgerrors.Wrap(err, "Error getting app context status")
+	}
 	switch acStatus.Status {
+	case appcontext.AppContextStatusEnum.Terminating:
+		log.Error("Can't remove Cluster Reference yet: the Logical Cloud is being terminated.", log.Fields{"clusterreference": clusterReference, "logicalcloud": logicalCloud})
+		return pkgerrors.New("Can't remove Cluster Reference: the Logical Cloud is being terminated.")
+	case appcontext.AppContextStatusEnum.Instantiated:
+		log.Error("Can't remove Cluster Reference: the Logical Cloud is instantiated, please terminate first.", log.Fields{"clusterreference": clusterReference, "logicalcloud": logicalCloud})
+		return pkgerrors.New("Can't remove Cluster Reference: the Logical Cloud is instantiated, please terminate first.")
+	case appcontext.AppContextStatusEnum.Instantiating:
+		log.Error("Can't remove Cluster Reference: the Logical Cloud is instantiating, please wait and then terminate.", log.Fields{"clusterreference": clusterReference, "logicalcloud": logicalCloud})
+		return pkgerrors.New("Can't remove Cluster Reference: the Logical Cloud is instantiating, please wait and then terminate.")
+	case appcontext.AppContextStatusEnum.InstantiateFailed:
+		log.Error("Can't remove Cluster Reference: the Logical Cloud has failed instantiating, for safety please terminate and try again.", log.Fields{"clusterreference": clusterReference, "logicalcloud": logicalCloud})
+		return pkgerrors.New("Can't remove Cluster Reference: the Logical Cloud has failed instantiating, for safety please terminate and try again.")
+	case appcontext.AppContextStatusEnum.TerminateFailed:
+		log.Info("The Logical Cloud has failed terminating, proceeding with the delete operation.", log.Fields{"clusterreference": clusterReference, "logicalcloud": logicalCloud})
+		// try to delete anyway since termination failed
+		fallthrough
 	case appcontext.AppContextStatusEnum.Terminated:
-		err := v.util.DBRemove(v.storeName, key)
+		err := db.DBconn.Remove(v.storeName, key)
 		if err != nil {
-			return pkgerrors.Wrap(err, "Delete Cluster Reference")
+			return pkgerrors.Wrap(err, "Error deleting Cluster Reference")
 		}
+
 		log.Info("Removed cluster reference from Logical Cloud.", log.Fields{"logicalcloud": logicalCloud})
 		return nil
-	case appcontext.AppContextStatusEnum.Terminating:
-		log.Error("Can't remove Cluster References yet, Logical Cloud is being terminated.", log.Fields{"logicalcloud": logicalCloud})
-		return pkgerrors.New("Can't remove Cluster References yet, Logical Cloud is being terminated.")
-	case appcontext.AppContextStatusEnum.Instantiated:
-		log.Error("Can't remove Cluster References, The Logical Cloud is instantiated, please terminate first.", log.Fields{"logicalcloud": logicalCloud})
-		return pkgerrors.New("Can't remove Cluster References, The Logical Cloud is instantiated, please terminate first.")
-	case appcontext.AppContextStatusEnum.Instantiating:
-		log.Error("Can't remove Cluster References, The Logical Cloud is instantiating, please wait and then terminate.", log.Fields{"logicalcloud": logicalCloud})
-		return pkgerrors.New("Can't remove Cluster References, The Logical Cloud is instantiating, please wait and then terminate.")
-	case appcontext.AppContextStatusEnum.InstantiateFailed:
-		log.Error("Can't remove Cluster References, The Logical Cloud has failed instantiating, for safety please terminate and try again.", log.Fields{"logicalcloud": logicalCloud})
-		return pkgerrors.New("Can't remove Cluster References, The Logical Cloud has failed instantiating, for safety please terminate and try again.")
-	case appcontext.AppContextStatusEnum.TerminateFailed:
-		log.Error("Can't remove Cluster References, The Logical Cloud has failed terminating, please correct the situation and try again.", log.Fields{"logicalcloud": logicalCloud})
-		return pkgerrors.New("Can't remove Cluster References, The Logical Cloud has failed terminating, please correct the situation and try again.")
 	default:
-		log.Error("Can't remove Cluster References, The Logical Cloud isn't in an expected status so not taking any action.", log.Fields{"logicalcloud": logicalCloud, "status": acStatus.Status})
-		return pkgerrors.New("Can't remove Cluster References, The Logical Cloud isn't in an expected status so not taking any action.")
+		log.Error("Failure removing Cluster Reference: the Logical Cloud isn't in an expected status so not taking any action.", log.Fields{"clusterreference": clusterReference, "logicalcloud": logicalCloud, "status": acStatus.Status})
+		return pkgerrors.New("Failure removing Cluster Reference: the Logical Cloud isn't in an expected status so not taking any action.")
 	}
 }
 
@@ -310,7 +310,7 @@ func (v *ClusterClient) UpdateCluster(project, logicalCloud, clusterReference st
 	if err != nil {
 		return Cluster{}, err
 	}
-	err = v.util.DBInsert(v.storeName, key, nil, v.tagMeta, c)
+	err = db.DBconn.Insert(v.storeName, key, nil, v.tagMeta, c)
 	if err != nil {
 		return Cluster{}, pkgerrors.Wrap(err, "Updating DB Entry")
 	}
@@ -324,29 +324,36 @@ func (v *ClusterClient) GetClusterConfig(project, logicalCloud, clusterReference
 		Project:          project,
 		LogicalCloudName: logicalCloud,
 	}
-	context, ctxVal, err := lcClient.util.GetLogicalCloudContext(lcClient.storeName, lckey, lcClient.tagContext, project, logicalCloud)
+	s, err := lcClient.GetState(project, logicalCloud)
 	if err != nil {
-		return "", pkgerrors.Wrap(err, "Error getting logical cloud context.")
+		return "", err
 	}
-	if ctxVal == "" {
+	cid := state.GetLastContextIdFromStateInfo(s)
+
+	if cid == "" {
 		return "", pkgerrors.New("Logical Cloud hasn't been instantiated yet")
+	}
+
+	ac, err := state.GetAppContextFromId(cid)
+	if err != nil {
+		return "", err
 	}
 
 	// get logical cloud resource
 	lc, err := lcClient.Get(project, logicalCloud)
 	if err != nil {
-		return "", pkgerrors.Wrap(err, "Failed getting logical cloud")
+		return "", pkgerrors.Wrap(err, "Error getting logical cloud")
 	}
 	// get user's private key
-	privateKeyData, err := v.util.DBFind(v.storeName, lckey, "privatekey")
+	privateKeyData, err := db.DBconn.Find(v.storeName, lckey, "privatekey")
 	if err != nil {
-		return "", pkgerrors.Wrap(err, "Failed getting private key from logical cloud")
+		return "", pkgerrors.Wrap(err, "Error getting private key from logical cloud")
 	}
 
 	// get cluster from dcm (need provider/name)
 	cluster, err := v.GetCluster(project, logicalCloud, clusterReference)
 	if err != nil {
-		return "", pkgerrors.Wrap(err, "Failed getting cluster")
+		return "", pkgerrors.Wrap(err, "Error getting cluster")
 	}
 
 	// before attempting to generate a kubeconfig,
@@ -358,24 +365,24 @@ func (v *ClusterClient) GetClusterConfig(project, logicalCloud, clusterReference
 		clusterName := strings.Join([]string{cluster.Specification.ClusterProvider, "+", cluster.Specification.ClusterName}, "")
 
 		// get the app context handle for the status of this cluster (which should contain the certificate inside, if already issued)
-		statusHandle, err := context.GetClusterStatusHandle("logical-cloud", clusterName)
+		statusHandle, err := ac.GetClusterStatusHandle("logical-cloud", clusterName)
 
 		if err != nil {
-			return "", pkgerrors.Wrap(err, "The cluster doesn't contain status, please check if all services are up and running.")
+			return "", pkgerrors.Wrap(err, "The cluster doesn't contain status, please check if all services are up and running")
 		}
-		statusRaw, err := context.GetValue(statusHandle)
+		statusRaw, err := ac.GetValue(statusHandle)
 		if err != nil {
-			return "", pkgerrors.Wrap(err, "An error occurred while reading the cluster status.")
+			return "", pkgerrors.Wrap(err, "An error occurred while reading the cluster status")
 		}
 
 		var rbstatus rb.ResourceBundleStatus
 		err = json.Unmarshal([]byte(statusRaw.(string)), &rbstatus)
 		if err != nil {
-			return "", pkgerrors.Wrap(err, "An error occurred while parsing the cluster status.")
+			return "", pkgerrors.Wrap(err, "An error occurred while parsing the cluster status")
 		}
 
 		if len(rbstatus.CsrStatuses) == 0 {
-			return "", pkgerrors.New("A status for the CSR hasn't been returned yet.")
+			return "", pkgerrors.New("A status for the CSR hasn't been returned yet")
 		}
 
 		// validate that we indeed obtained a certificate before persisting it in the database:
@@ -385,14 +392,14 @@ func (v *ClusterClient) GetClusterConfig(project, logicalCloud, clusterReference
 				return "", pkgerrors.New("Certificate was denied!")
 			}
 			if c.Type == "Failed" {
-				return "", pkgerrors.New("Certificate issue failed.")
+				return "", pkgerrors.New("Certificate issue failed")
 			}
 			if c.Type == "Approved" {
 				approved = true
 			}
 		}
 		if !approved {
-			return "", pkgerrors.New("The CSR hasn't been approved yet or the certificate hasn't been issued yet.")
+			return "", pkgerrors.New("The CSR hasn't been approved yet or the certificate hasn't been issued yet")
 		}
 
 		//just double-check certificate field contents aren't empty:
@@ -400,7 +407,7 @@ func (v *ClusterClient) GetClusterConfig(project, logicalCloud, clusterReference
 		if len(cert) > 0 {
 			cluster.Specification.Certificate = base64.StdEncoding.EncodeToString([]byte(cert))
 		} else {
-			return "", pkgerrors.New("Certificate issued was invalid.")
+			return "", pkgerrors.New("Certificate issued was invalid")
 		}
 
 		// copy key to MongoDB
@@ -408,11 +415,11 @@ func (v *ClusterClient) GetClusterConfig(project, logicalCloud, clusterReference
 		// UpdateCluster(project, logicalCloud, clusterReference string, c Cluster) (Cluster, error) {
 		_, err = v.UpdateCluster(project, logicalCloud, clusterReference, cluster)
 		if err != nil {
-			return "", pkgerrors.Wrap(err, "An error occurred while storing the certificate.")
+			return "", pkgerrors.Wrap(err, "An error occurred while storing the certificate")
 		}
 	} else {
 		// certificate is already in MongoDB so just hand it over to create the API response
-		log.Info("Certificate already in MongoDB, pass it to API.", log.Fields{})
+		log.Info("Certificate already in MongoDB, pass it to API", log.Fields{})
 	}
 
 	// sanity check for cluster-issued certificate
@@ -424,7 +431,7 @@ func (v *ClusterClient) GetClusterConfig(project, logicalCloud, clusterReference
 	ccc := rsync.NewCloudConfigClient()
 	cconfig, err := ccc.GetCloudConfig(cluster.Specification.ClusterProvider, cluster.Specification.ClusterName, "0", "")
 	if err != nil {
-		return "", pkgerrors.Wrap(err, "Failed fetching kubeconfig from rsync's CloudConfig")
+		return "", pkgerrors.New("Failed fetching kubeconfig from rsync's CloudConfig")
 	}
 	adminConfig, err := base64.StdEncoding.DecodeString(cconfig.Config)
 	if err != nil {
@@ -484,7 +491,7 @@ func (v *ClusterClient) GetClusterConfig(project, logicalCloud, clusterReference
 
 	yaml, err := yaml.Marshal(&kubeconfig)
 	if err != nil {
-		return "", pkgerrors.Wrap(err, "Failed marshaling user kubeconfig into yaml")
+		return "", pkgerrors.Wrap(err, "Failed marshalling user kubeconfig into yaml")
 	}
 
 	// now that we have the L1 kubeconfig for this L1 logical cloud,

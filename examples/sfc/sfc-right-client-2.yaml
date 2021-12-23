@@ -1,0 +1,79 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2021 Intel Corporation
+
+---
+#create deployment intent group
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.SfcRightClientCA}}/v1/deployment-intent-groups
+metadata :
+  name: {{.SfcRightDig2}}
+spec:
+  compositeProfile: {{.SfcClientCompositeProfile}}
+  version: r1
+  logicalCloud: {{.RightCloud2}}
+  overrideValues:
+  - app: {{.RightNginx}}
+    values:
+      "Namespace": {{.RightNamespace2}}
+
+---
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.SfcRightClientCA}}/v1/deployment-intent-groups/{{.SfcRightDig2}}/intents
+metadata :
+  name: {{.SfcRightDig}}
+spec:
+  intent:
+    genericPlacementIntent: {{.SfcClientGenericPlacementIntent}}
+    sfcclient: {{.OvnactionSfcClient}}
+
+---
+#create the generic placement intent
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.SfcRightClientCA}}/v1/deployment-intent-groups/{{.SfcRightDig2}}/generic-placement-intents
+metadata :
+  name: {{.SfcClientGenericPlacementIntent}}
+
+---
+#add the client nginx app placement intent to the generic placement intent
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.SfcRightClientCA}}/v1/deployment-intent-groups/{{.SfcRightDig2}}/generic-placement-intents/{{.SfcClientGenericPlacementIntent}}/app-intents
+metadata:
+  name: {{.RightNginxPlacementIntent}}
+spec:
+  app: {{.RightNginx}}
+  intent:
+    allOf:
+    - clusterProvider: {{.ClusterProvider}}
+      cluster: {{.Cluster1}}
+
+---
+#creating sfc client intents
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.SfcRightClientCA}}/v1/deployment-intent-groups/{{.SfcRightDig2}}/sfc-clients
+metadata :
+  name: {{.SfcRightClientIntent}}
+spec:
+  chainEnd: right
+  sfcIntent: {{.SfcIntent}}
+  compositeApp: {{.SfcCompositeApp}}
+  compositeAppVersion: v1
+  deploymentIntentGroup: {{.SfcDeploymentIntentGroup}}
+  app: {{.RightNginx}}
+  workloadResource: {{.RightNginx}}
+  resourceType: Deployment
+
+---
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.SfcRightClientCA}}/v1/deployment-intent-groups/{{.SfcRightDig2}}/approve
+
+---
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.SfcRightClientCA}}/v1/deployment-intent-groups/{{.SfcRightDig2}}/instantiate
+

@@ -13,6 +13,7 @@ import (
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/appcontext"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
 	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
+	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/state"
 	rsync "gitlab.com/project-emco/core/emco-base/src/rsync/pkg/db"
 	"gopkg.in/yaml.v2"
 )
@@ -123,15 +124,21 @@ func (v *ClusterClient) CreateCluster(project, logicalCloud string, c Cluster) (
 	}
 	lcClient := NewLogicalCloudClient()
 
-	lckey := LogicalCloudKey{
-		Project:          project,
-		LogicalCloudName: logicalCloud,
+	s, err := lcClient.GetState(project, logicalCloud)
+	if err != nil {
+		return Cluster{}, err
 	}
-	context, _, err := GetLogicalCloudContext(lcClient.storeName, lckey, lcClient.tagContext, project, logicalCloud)
-	if err == nil {
+	cid := state.GetLastContextIdFromStateInfo(s)
+
+	if cid != "" {
+		ac, err := state.GetAppContextFromId(cid)
+		if err != nil {
+			return Cluster{}, err
+		}
+
 		// since there's a context associated, if the logical cloud isn't fully Terminated then prevent
 		// clusters from being added since this is a functional scenario not currently supported
-		acStatus, err := GetAppContextStatus(context)
+		acStatus, err := GetAppContextStatus(ac)
 		if err != nil {
 			return Cluster{}, err
 		}
@@ -228,12 +235,14 @@ func (v *ClusterClient) DeleteCluster(project, logicalCloud, clusterReference st
 	}
 
 	lcClient := NewLogicalCloudClient()
-	lckey := LogicalCloudKey{
-		Project:          project,
-		LogicalCloudName: logicalCloud,
-	}
-	context, _, err := GetLogicalCloudContext(lcClient.storeName, lckey, lcClient.tagContext, project, logicalCloud)
+
+	s, err := lcClient.GetState(project, logicalCloud)
 	if err != nil {
+		return err
+	}
+	cid := state.GetLastContextIdFromStateInfo(s)
+
+	if cid == "" {
 		// Just go ahead and delete the reference if there is no logical cloud context yet
 		err := db.DBconn.Remove(v.storeName, key)
 		if err != nil {
@@ -244,7 +253,11 @@ func (v *ClusterClient) DeleteCluster(project, logicalCloud, clusterReference st
 
 	// Make sure rsync status for this logical cloud is Terminated,
 	// otherwise prevent the clusters from being removed
-	acStatus, err := GetAppContextStatus(context)
+	ac, err := state.GetAppContextFromId(cid)
+	if err != nil {
+		return err
+	}
+	acStatus, err := GetAppContextStatus(ac)
 	if err != nil {
 		return pkgerrors.Wrap(err, "Error getting app context status")
 	}
@@ -311,12 +324,19 @@ func (v *ClusterClient) GetClusterConfig(project, logicalCloud, clusterReference
 		Project:          project,
 		LogicalCloudName: logicalCloud,
 	}
-	context, ctxVal, err := GetLogicalCloudContext(lcClient.storeName, lckey, lcClient.tagContext, project, logicalCloud)
+	s, err := lcClient.GetState(project, logicalCloud)
 	if err != nil {
-		return "", pkgerrors.Wrap(err, "Error getting logical cloud context.")
+		return "", err
 	}
-	if ctxVal == "" {
+	cid := state.GetLastContextIdFromStateInfo(s)
+
+	if cid == "" {
 		return "", pkgerrors.New("Logical Cloud hasn't been instantiated yet")
+	}
+
+	ac, err := state.GetAppContextFromId(cid)
+	if err != nil {
+		return "", err
 	}
 
 	// get logical cloud resource
@@ -345,12 +365,12 @@ func (v *ClusterClient) GetClusterConfig(project, logicalCloud, clusterReference
 		clusterName := strings.Join([]string{cluster.Specification.ClusterProvider, "+", cluster.Specification.ClusterName}, "")
 
 		// get the app context handle for the status of this cluster (which should contain the certificate inside, if already issued)
-		statusHandle, err := context.GetClusterStatusHandle("logical-cloud", clusterName)
+		statusHandle, err := ac.GetClusterStatusHandle("logical-cloud", clusterName)
 
 		if err != nil {
 			return "", pkgerrors.Wrap(err, "The cluster doesn't contain status, please check if all services are up and running")
 		}
-		statusRaw, err := context.GetValue(statusHandle)
+		statusRaw, err := ac.GetValue(statusHandle)
 		if err != nil {
 			return "", pkgerrors.Wrap(err, "An error occurred while reading the cluster status")
 		}

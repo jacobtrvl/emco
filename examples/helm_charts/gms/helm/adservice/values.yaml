@@ -1,0 +1,21 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2021 Intel Corporation
+adservice:
+  ports:
+  - name: grpc
+    port: 9555
+    targetPort: 9555
+  server:
+    port: 9555
+    image:
+      repository: gcr.io/google-samples/microservices-demo/adservice
+      tag: v0.3.0
+      pullPolicy: IfNotPresent
+    resources:
+      limits:
+        cpu: 300m
+        memory: 300Mi
+      requests:
+        cpu: 200m
+        memory: 180Mi
+  type: ClusterIP

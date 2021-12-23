@@ -10,11 +10,11 @@ import (
 	"strings"
 
 	"github.com/gorilla/mux"
+	pkgerrors "github.com/pkg/errors"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/apierror"
 	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/validation"
 	moduleLib "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/module"
-	pkgerrors "github.com/pkg/errors"
 )
 
 /* Used to store backend implementation objects

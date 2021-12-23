@@ -76,8 +76,8 @@ do
         i=$[$i+1]
         continue
     fi
-    namestr=$name index=$i yq eval '.Clusters[strenv(index)].Name = strenv(namestr)' -i values.yaml
-    path=$a index=$i yq eval '.Clusters[strenv(index)].KubeConfig = strenv(path)' -i values.yaml
+    namestr=$name index=$i ./yq eval '.Clusters[strenv(index)].Name = strenv(namestr)' -i values.yaml
+    path=$a index=$i ./yq eval '.Clusters[strenv(index)].KubeConfig = strenv(path)' -i values.yaml
     i=$[$i+1]
 done
 }
@@ -122,7 +122,7 @@ function add_apps {
             i=$[$i+1]
             continue
         fi
-        namestr=$a index=$i yq eval '.Applist[strenv(index)].Name = strenv(namestr)' -i values.yaml
+        namestr=$a index=$i ./yq eval '.Applist[strenv(index)].Name = strenv(namestr)' -i values.yaml
         x="0"
         for ele in "${arr[@]}"
         do
@@ -131,7 +131,7 @@ function add_apps {
                 continue
             fi
             y=$[$x-1]
-            path=$ele index=$i inner=$y yq eval '.Applist[strenv(index)].Cluster[strenv(inner)] = strenv(path)' -i values.yaml
+            path=$ele index=$i inner=$y ./yq eval '.Applist[strenv(index)].Cluster[strenv(inner)] = strenv(path)' -i values.yaml
             x=$[$x+1]
         done
 
@@ -156,20 +156,23 @@ function usage {
 }
 
 function cleanup {
+    rm -f yq
     rm -f *.tar.gz
     rm -f values.yaml
     rm -f emco-cfg.yaml
     rm -rf $OUTPUT_DIR
 }
-#Install yq for parsing yaml files
-function install_yq {
-    if [ -x "$(command -v yq)" ]; then
-      return
-    fi
-    echo 'Installing yq'
-    VERSION=v4.12.0
-    BINARY=yq_linux_amd64
-    sudo wget https://github.com/mikefarah/yq/releases/download/${VERSION}/${BINARY} -O /usr/bin/yq && sudo chmod +x /usr/bin/yq
+
+# Install yq for parsing yaml files. It installs it locally (current folder) if it is not
+# already present. The rest of this script uses this local version (so as to not conflict
+# with other versions potentially installed on the system already.
+function install_yq_locally {
+    if [ ! -x ./yq ]; then
+        echo 'Installing yq locally'
+        VERSION=v4.12.0
+        BINARY=yq_linux_amd64
+        wget https://github.com/mikefarah/yq/releases/download/${VERSION}/${BINARY} -O yq && chmod +x yq
+fi
 }
 
 app1_name="oops"
@@ -188,7 +191,7 @@ shift $((OPTIND-1))
 
 input="hello"
 
-install_yq
+install_yq_locally
 case "$1" in
     "create" )
         if [ "${HOST_IP}" == "oops" ] ; then

@@ -1,0 +1,290 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2021 Intel Corporation
+
+---
+#creating SFC composite app entry
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps
+metadata :
+  name: {{.SfcCompositeApp}}
+spec:
+  compositeAppVersion: v1
+
+---
+#adding ngfw app to the composite app
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.SfcCompositeApp}}/v1/apps
+metadata :
+  name: {{.FnNgfw}}
+file:
+  {{.HelmAppNgfw}}
+
+---
+#adding sdewan app to the composite app
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.SfcCompositeApp}}/v1/apps
+metadata :
+  name: {{.FnSdewan}}
+file:
+  {{.HelmAppSdewan}}
+
+---
+#adding slb app to the composite app
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.SfcCompositeApp}}/v1/apps
+metadata :
+  name: {{.FnSlb}}
+file:
+  {{.HelmAppSlb}}
+
+---
+#creating sfc composite profile entry
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.SfcCompositeApp}}/v1/composite-profiles
+metadata :
+  name: {{.SfcCompositeProfile}}
+
+---
+#adding Ngfw app profiles to the composite profile
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.SfcCompositeApp}}/v1/composite-profiles/{{.SfcCompositeProfile}}/profiles
+metadata :
+  name: {{.FnNgfw}}
+spec:
+  app: {{.FnNgfw}}
+file:
+  {{.ProfileNgfw}}
+
+---
+#adding Sdewan app profiles to the composite profile
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.SfcCompositeApp}}/v1/composite-profiles/{{.SfcCompositeProfile}}/profiles
+metadata :
+  name: {{.FnSdewan}}
+spec:
+  app: {{.FnSdewan}}
+file:
+  {{.ProfileSdewan}}
+
+---
+#adding slb app profiles to the composite profile
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.SfcCompositeApp}}/v1/composite-profiles/{{.SfcCompositeProfile}}/profiles
+metadata :
+  name: {{.FnSlb}}
+spec:
+  app: {{.FnSlb}}
+file:
+  {{.ProfileSlb}}
+
+---
+#create deployment intent group
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.SfcCompositeApp}}/v1/deployment-intent-groups
+metadata :
+  name: {{.SfcDeploymentIntentGroup}}
+spec:
+  compositeProfile: {{.SfcCompositeProfile}}
+  version: r1
+  logicalCloud: {{.AdminCloud}}
+  overrideValues:
+  - app: {{.FnNgfw}}
+    values:
+      ".Values.replicaCount": '1'
+  - app: {{.FnSdewan}}
+    values:
+      ".Values.replicaCount": '1'
+  - app: {{.FnSlb}}
+    values:
+      ".Values.replicaCount": '1'
+
+---
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.SfcCompositeApp}}/v1/deployment-intent-groups/{{.SfcDeploymentIntentGroup}}/intents
+metadata :
+  name: {{.SfcDeploymentIntentGroup}}
+spec:
+  intent:
+    genericPlacementIntent: {{.SfcGenericPlacementIntent}}
+    sfc: {{.OvnactionSfcChain}}
+
+---
+#create the generic placement intent
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.SfcCompositeApp}}/v1/deployment-intent-groups/{{.SfcDeploymentIntentGroup}}/generic-placement-intents
+metadata :
+  name: {{.SfcGenericPlacementIntent}}
+
+---
+#add the ngfw app placement intent to the generic placement intent
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.SfcCompositeApp}}/v1/deployment-intent-groups/{{.SfcDeploymentIntentGroup}}/generic-placement-intents/{{.SfcGenericPlacementIntent}}/app-intents
+metadata:
+  name: {{.NgfwPlacementIntent}}
+spec:
+  app: {{.FnNgfw}}
+  intent:
+    allOf:
+    - clusterProvider: {{.ClusterProvider}}
+      cluster: {{.Cluster1}}
+---
+#add the sdewan app placement intent to the generic placement intent
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.SfcCompositeApp}}/v1/deployment-intent-groups/{{.SfcDeploymentIntentGroup}}/generic-placement-intents/{{.SfcGenericPlacementIntent}}/app-intents
+metadata:
+  name: {{.SdewanPlacementIntent}}
+spec:
+  app: {{.FnSdewan}}
+  intent:
+    allOf:
+    - clusterProvider: {{.ClusterProvider}}
+      cluster: {{.Cluster1}}
+
+---
+#add the slb app placement intent to the generic placement intent
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.SfcCompositeApp}}/v1/deployment-intent-groups/{{.SfcDeploymentIntentGroup}}/generic-placement-intents/{{.SfcGenericPlacementIntent}}/app-intents
+metadata:
+  name: {{.SlbPlacementIntent}}
+spec:
+  app: {{.FnSlb}}
+  intent:
+    allOf:
+    - clusterProvider: {{.ClusterProvider}}
+      cluster: {{.Cluster1}}
+
+---
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.SfcCompositeApp}}/v1/deployment-intent-groups/{{.SfcDeploymentIntentGroup}}/network-chains
+metadata :
+  name: {{.SfcIntent}}
+spec:
+  chainType: Routing
+  namespace: default
+
+---
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.SfcCompositeApp}}/v1/deployment-intent-groups/{{.SfcDeploymentIntentGroup}}/network-chains/{{.SfcIntent}}/links
+metadata :
+  name: {{.SfcLinkSlb}}
+spec:
+  leftNet: {{.SfcVirNet1}}
+  rightNet: {{.SfcDynNet1}}
+  app: slb
+  linkLabel: app=slb
+  workloadResource: slb
+  resourceType: Deployment
+
+---
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.SfcCompositeApp}}/v1/deployment-intent-groups/{{.SfcDeploymentIntentGroup}}/network-chains/{{.SfcIntent}}/links
+metadata :
+  name: {{.SfcLinkNgfw}}
+spec:
+  leftNet: {{.SfcDynNet1}}
+  rightNet: {{.SfcDynNet2}}
+  app: ngfw
+  linkLabel: app=ngfw
+  workloadResource: ngfw
+  resourceType: Deployment
+
+---
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.SfcCompositeApp}}/v1/deployment-intent-groups/{{.SfcDeploymentIntentGroup}}/network-chains/{{.SfcIntent}}/links
+metadata :
+  name: {{.SfcLinkSdewan}}
+spec:
+  leftNet: {{.SfcDynNet2}}
+  rightNet: {{.SfcVirNet2}}
+  app: sdewan
+  linkLabel: app=sdewan
+  workloadResource: sdewan
+  resourceType: Deployment
+
+---
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.SfcCompositeApp}}/v1/deployment-intent-groups/{{.SfcDeploymentIntentGroup}}/network-chains/{{.SfcIntent}}/client-selectors
+metadata :
+  name: leftclient2
+spec:
+  chainEnd: left
+  podSelector:
+    matchLabels:
+      sfc: head2
+  namespaceSelector:
+    matchLabels:
+      sfc: head2
+
+---
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.SfcCompositeApp}}/v1/deployment-intent-groups/{{.SfcDeploymentIntentGroup}}/network-chains/{{.SfcIntent}}/client-selectors
+metadata :
+  name: {{.SfcLeftClientSelectorIntent}}
+spec:
+  chainEnd: left
+  podSelector:
+    matchLabels:
+      sfc: head
+  namespaceSelector:
+    matchLabels:
+      sfc: head
+
+---
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.SfcCompositeApp}}/v1/deployment-intent-groups/{{.SfcDeploymentIntentGroup}}/network-chains/{{.SfcIntent}}/client-selectors
+metadata :
+  name: {{.SfcRightClientSelectorIntent}}
+spec:
+  chainEnd: right
+  podSelector:
+    matchLabels:
+      sfc: tail
+  namespaceSelector:
+    matchLabels:
+      sfc: tail
+
+---
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.SfcCompositeApp}}/v1/deployment-intent-groups/{{.SfcDeploymentIntentGroup}}/network-chains/{{.SfcIntent}}/client-selectors
+metadata :
+  name: rightclient2
+spec:
+  chainEnd: right
+  podSelector:
+    matchLabels:
+      sfc: tail2
+  namespaceSelector:
+    matchLabels:
+      sfc: tail2
+
+---
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.SfcCompositeApp}}/v1/deployment-intent-groups/{{.SfcDeploymentIntentGroup}}/approve
+
+---
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.SfcCompositeApp}}/v1/deployment-intent-groups/{{.SfcDeploymentIntentGroup}}/instantiate

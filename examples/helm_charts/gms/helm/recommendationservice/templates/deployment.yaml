@@ -1,0 +1,41 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2021 Intel Corporation
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: recommendationservice
+spec:
+  selector:
+    matchLabels:
+      app: recommendationservice
+  template:
+    metadata:
+      labels:
+        app: recommendationservice
+    spec:
+      containers:
+      - env:
+        - name: PORT
+          value: {{ .Values.recommendationservice.server.port | quote }}
+        - name: PRODUCT_CATALOG_SERVICE_ADDR
+          value: productcatalogservice:{{ .Values.recommendationservice.server.productcatalogserviceport }}
+        image: {{ .Values.recommendationservice.server.image.repository }}:{{ .Values.recommendationservice.server.image.tag | default .Chart.AppVersion }}
+        imagePullPolicy: {{ .Values.recommendationservice.server.image.pullPolicy }}
+        livenessProbe:
+          exec:
+            command:
+            - /bin/grpc_health_probe
+            - -addr=:{{ .Values.recommendationservice.server.port }}
+          periodSeconds: 5
+        name: server
+        ports:
+        - containerPort: {{ .Values.recommendationservice.server.port }}
+        readinessProbe:
+          exec:
+            command:
+            - /bin/grpc_health_probe
+            - -addr=:{{ .Values.recommendationservice.server.port }}
+          periodSeconds: 5
+        resources: {{- toYaml .Values.recommendationservice.server.resources | nindent 10 }}
+      serviceAccountName: default
+      terminationGracePeriodSeconds: 5

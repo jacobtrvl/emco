@@ -12,13 +12,13 @@ import (
 var _ = Describe("Keyvalue", func() {
 
 	var (
-		mdb    *db.MockDB
+		mdb    *db.NewMockDB
 		client *dcm.KeyValueClient
 	)
 
 	BeforeEach(func() {
 		client = dcm.NewKeyValueClient()
-		mdb = new(db.MockDB)
+		mdb = new(db.NewMockDB)
 		mdb.Err = nil
 		mdb.Items = []map[string]map[string][]byte{}
 		db.DBconn = mdb

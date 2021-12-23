@@ -1,0 +1,21 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2021 Intel Corporation
+redisCart:
+  ports:
+  - name: redis
+    port: 6379
+    targetPort: 6379
+  redis:
+    port: 6379
+    image:
+      repository: redis
+      tag: alpine
+      pullPolicy: IfNotPresent
+    resources:
+      limits:
+        cpu: 125m
+        memory: 256Mi
+      requests:
+        cpu: 70m
+        memory: 200Mi
+  type: ClusterIP

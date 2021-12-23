@@ -6,35 +6,50 @@ package context
 import (
 	"fmt"
 	"reflect"
-	"strings"
 	"sort"
+	"strings"
 	"sync"
 
+	pkgerrors "github.com/pkg/errors"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/appcontext"
 	. "gitlab.com/project-emco/core/emco-base/src/rsync/pkg/types"
-	pkgerrors "github.com/pkg/errors"
 	//"time"
 )
+
 // Match stores information about resources applied in clusters
 type Match struct {
 	// Collects all resources that are deleted
 	DeleteMatchList sync.Map
 	// Collects all resources that are applied
-	ApplyMatchList  sync.Map
+	ApplyMatchList sync.Map
 	// Collects all resources that are currently applied on the cluster
-	ResourceList    sync.Map
+	ResourceList sync.Map
+	// Resources committed
+	CommitList sync.Map
 }
+
 // MatchList to collect resources
 var MatchList Match
 
 // MockConnector mocks connector interface
 type MockConnector struct {
 	sync.Mutex
-	cid     string
 	Clients *sync.Map
+	cid     string
 }
 
-func (c *MockConnector) GetClientInternal(cluster string, level string, namespace string) (ClientProvider, error) {
+func NewProvider(id interface{}) MockConnector {
+	MatchList.DeleteMatchList = sync.Map{}
+	MatchList.ApplyMatchList = sync.Map{}
+	MatchList.ResourceList = sync.Map{}
+	MatchList.CommitList = sync.Map{}
+
+	return MockConnector{
+		cid: fmt.Sprintf("%v", id),
+	}
+}
+
+func (c *MockConnector) GetClientProviders(app, cluster, level, namespace string) (ClientProvider, error) {
 	c.Lock()
 	defer c.Unlock()
 	if c.Clients == nil {
@@ -51,23 +66,6 @@ func (c *MockConnector) GetClientInternal(cluster string, level string, namespac
 	return &n, nil
 }
 
-func (c *MockConnector) RemoveClient() {
-
-}
-func (c *MockConnector) StartClusterWatcher(cluster string) error {
-	return nil
-
-}
-func (c *MockConnector) GetStatusCR(label string) ([]byte, error) {
-	return nil, nil
-}
-func (c *MockConnector) Init(id interface{}) error {
-	c.cid = fmt.Sprintf("%v", id)
-	MatchList.DeleteMatchList = sync.Map{}
-	MatchList.ApplyMatchList = sync.Map{}
-	MatchList.ResourceList = sync.Map{}
-	return nil
-}
 // MockClient mocks client
 type MockClient struct {
 	lock           *sync.Mutex
@@ -76,15 +74,32 @@ type MockClient struct {
 	deletedCounter int
 	applyCounter   int
 }
+
+func (m *MockClient) Commit(ref interface{}) error {
+	str := fmt.Sprintf("%v", ref)
+	i, ok := MatchList.CommitList.Load(m.cluster)
+	var st string
+	if !ok {
+		st = string(str)
+	} else {
+		st = fmt.Sprintf("%v", i) + "," + string(str)
+	}
+	MatchList.CommitList.Store(m.cluster, st)
+	return nil
+}
+func (m *MockClient) Create(name string, ref interface{}, content []byte) (interface{}, error) {
+	return ref, nil
+}
+
 // Apply Collects resources applied to cluster
-func (m *MockClient) Apply(content []byte) error {
+func (m *MockClient) Apply(name string, ref interface{}, content []byte) (interface{}, error) {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 	m.applyCounter = m.applyCounter + 1
 	// Simulate delay
 	//time.Sleep(1 * time.Millisecond)
 	if len(content) <= 0 {
-		return nil
+		return ref, nil
 	}
 	i, ok := MatchList.ApplyMatchList.Load(m.cluster)
 	var str string
@@ -107,16 +122,21 @@ func (m *MockClient) Apply(content []byte) error {
 		}
 	}
 	MatchList.ResourceList.Store(m.cluster, str)
-
-	return nil
+	if ref != nil {
+		str = fmt.Sprintf("%v", ref) + "," + string(content)
+	} else {
+		str = string(content)
+	}
+	return str, nil
 }
+
 // Delete Collects resources deleted from cluster
-func (m *MockClient) Delete(content []byte) error {
+func (m *MockClient) Delete(name string, ref interface{}, content []byte) (interface{}, error) {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 	m.deletedCounter = m.deletedCounter + 1
 	if len(content) <= 0 {
-		return nil
+		return nil, nil
 	}
 	i, ok := MatchList.DeleteMatchList.Load(m.cluster)
 	var str string
@@ -131,7 +151,7 @@ func (m *MockClient) Delete(content []byte) error {
 	i, ok = MatchList.ResourceList.Load(m.cluster)
 	if !ok {
 		fmt.Println("Deleting resource not applied on cluster", m.cluster)
-		return pkgerrors.Errorf("Deleting resource not applied on cluster " + m.cluster)
+		return nil, pkgerrors.Errorf("Deleting resource not applied on cluster " + m.cluster)
 	} else {
 		// Delete it from the string
 		a := strings.Split(fmt.Sprintf("%v", i), ",")
@@ -148,12 +168,15 @@ func (m *MockClient) Delete(content []byte) error {
 		}
 		MatchList.ResourceList.Store(m.cluster, str)
 	}
-	return nil
+	if ref != nil {
+		str = fmt.Sprintf("%v", ref) + "," + string(content)
+	} else {
+		str = string(content)
+	}
+	return str, nil
 }
-func (m *MockClient) Approve(name string, sa []byte) error {
-	return nil
-}
-func (m *MockClient) Get(gvkRes []byte, namespace string) ([]byte, error) {
+
+func (m *MockClient) Get(name string, gvkRes []byte) ([]byte, error) {
 	b := []byte("test")
 	return b, nil
 }
@@ -167,8 +190,24 @@ func (m *MockClient) IsReachable() error {
 	}
 	return nil
 }
-func (m *MockClient) TagResource(res []byte, label string) ([]byte, error) {
-	return res, nil
+
+func (m *MockClient) StartClusterWatcher() error {
+	return nil
+}
+
+func (m *MockClient) ApplyStatusCR(content []byte) error {
+	return nil
+}
+
+func (m *MockClient) DeleteStatusCR(content []byte) error {
+	return nil
+}
+func (m *MockClient) ApplyConfig(config interface{}) error {
+	return nil
+}
+
+func (m *MockClient) CleanClientProvider() error {
+	return nil
 }
 
 func LoadMap(str string) map[string]string {
@@ -185,6 +224,11 @@ func LoadMap(str string) map[string]string {
 		})
 	} else if str == "resource" {
 		MatchList.ResourceList.Range(func(k, v interface{}) bool {
+			m[fmt.Sprint(k)] = v.(string)
+			return true
+		})
+	} else if str == "commit" {
+		MatchList.CommitList.Range(func(k, v interface{}) bool {
 			m[fmt.Sprint(k)] = v.(string)
 			return true
 		})

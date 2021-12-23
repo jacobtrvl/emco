@@ -14,6 +14,7 @@ import (
 	"gitlab.com/project-emco/core/emco-base/src/dcm/api/mocks"
 	"gitlab.com/project-emco/core/emco-base/src/dcm/pkg/module"
 	orch_mocks "gitlab.com/project-emco/core/emco-base/src/orchestrator/api/mocks"
+	state "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/state"
 )
 
 var _ = Describe("LogicalCloudHandler", func() {
@@ -31,6 +32,7 @@ var _ = Describe("LogicalCloudHandler", func() {
 		quotaClient  *mocks.QuotaManager
 		kvClient     *mocks.KeyValueManager
 		prClient     *orch_mocks.ProjectManager
+		stateInfo    state.StateInfo
 	}
 
 	DescribeTable("Create LogicalCloud tests",
@@ -366,7 +368,7 @@ var _ = Describe("LogicalCloudHandler", func() {
 	// 	}),
 	// )
 
-	DescribeTable("Get List LogicalCloud tests",
+	DescribeTable("List LogicalCloud tests",
 		func(t testCase) {
 			// set up client mock responses
 			t.lcClient.On("GetAll", "test-project").Return(t.mockVals, t.mockError)
@@ -571,4 +573,35 @@ var _ = Describe("LogicalCloudHandler", func() {
 	// 		},
 	// 	}),
 	// )
+
+	DescribeTable("Get State of LogicalCloud tests",
+		func(t testCase) {
+			// set up client mock responses
+			t.lcClient.On("Get", "test-project", "testlogicalcloud").Return(t.mockVal, t.mockError)
+			t.lcClient.On("GetState", "test-project", "testlogicalcloud").Return(t.stateInfo, t.mockError)
+
+			// make HTTP request
+			request := httptest.NewRequest("GET", "/v2/projects/test-project/logical-clouds/"+t.inputName+"/status", nil)
+			resp := executeRequest(request, NewRouter(t.lcClient, t.clClient, t.upClient, t.quotaClient, t.kvClient))
+
+			// Check returned code
+			Expect(resp.StatusCode).To(Equal(t.expectedCode))
+
+			// Check returned body
+			got := state.StateInfo{}
+			json.NewDecoder(resp.Body).Decode(&got)
+			Expect(got).To(Equal(t.stateInfo))
+		},
+
+		Entry("successful get", testCase{
+			inputName:    "testlogicalcloud",
+			expectedCode: http.StatusOK,
+			mockError:    nil,
+			stateInfo: state.StateInfo{
+				StatusContextId: "",
+				Actions:         nil,
+			},
+			lcClient: &mocks.LogicalCloudManager{},
+		}),
+	)
 })

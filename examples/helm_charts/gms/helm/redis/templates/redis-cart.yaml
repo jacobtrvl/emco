@@ -1,0 +1,12 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2021 Intel Corporation
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-cart
+spec:
+  type: {{ .Values.redisCart.type }}
+  selector:
+    app: redis-cart
+  ports:
+	{{- .Values.redisCart.ports | toYaml | nindent 2 -}}

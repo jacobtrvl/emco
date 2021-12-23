@@ -26,6 +26,7 @@ import (
 var cpJSONFile string = "json-schemas/metadata.json"
 var ckvJSONFile string = "json-schemas/cluster-kv.json"
 var clJSONFile string = "json-schemas/cluster-label.json"
+var copsJSONFile string = "json-schemas/cluster-gitops.json"
 
 // Used to store backend implementations objects
 // Also simplifies mocking for unit testing purposes
@@ -205,6 +206,7 @@ func (h clusterHandler) createClusterHandler(w http.ResponseWriter, r *http.Requ
 
 	jsn := bytes.NewBuffer([]byte(r.FormValue("metadata")))
 	err = json.NewDecoder(jsn).Decode(&p)
+
 	switch {
 	case err == io.EOF:
 		log.Error(":: Empty cluster POST body ::", log.Fields{"Error": err})
@@ -216,32 +218,12 @@ func (h clusterHandler) createClusterHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	err, httpError := validation.ValidateJsonSchemaData(cpJSONFile, p)
+	err, httpError := validation.ValidateJsonSchemaData(copsJSONFile, p)
 	if err != nil {
 		log.Error(":: Invalid cluster POST body ::", log.Fields{"Error": err})
 		http.Error(w, err.Error(), httpError)
 		return
 	}
-
-	//Read the file section and ignore the header
-	file, _, err := r.FormFile("file")
-	if err != nil {
-		log.Error(":: Error getting file section ::", log.Fields{"Error": err})
-		http.Error(w, "Unable to process file", http.StatusUnprocessableEntity)
-		return
-	}
-
-	defer file.Close()
-
-	//Convert the file content to base64 for storage
-	content, err := ioutil.ReadAll(file)
-	if err != nil {
-		log.Error(":: Error reading file section ::", log.Fields{"Error": err})
-		http.Error(w, "Unable to read file", http.StatusUnprocessableEntity)
-		return
-	}
-
-	q.Kubeconfig = base64.StdEncoding.EncodeToString(content)
 
 	// Name is required.
 	if p.Metadata.Name == "" {
@@ -250,20 +232,58 @@ func (h clusterHandler) createClusterHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	ret, err := h.client.CreateCluster(provider, p, q)
-	if err != nil {
-		apiErr := apierror.HandleErrors(vars, err, p, apiErrors)
-		http.Error(w, apiErr.Message, apiErr.Status)
-		return
-	}
+	// check for spec section
+	if p.Spec.Props.GitOpsType == "" {
+		//Read the file section and ignore the header
+		file, _, err := r.FormFile("file")
+		if err != nil {
+			log.Error(":: Error getting file section ::", log.Fields{"Error": err})
+			http.Error(w, "Unable to process file", http.StatusUnprocessableEntity)
+			return
+		}
 
-	//	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	err = json.NewEncoder(w).Encode(ret)
-	if err != nil {
-		log.Error(":: Error encoding create cluster response ::", log.Fields{"Error": err})
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+		defer file.Close()
+
+		//Convert the file content to base64 for storage
+		content, err := ioutil.ReadAll(file)
+		if err != nil {
+			log.Error(":: Error reading file section ::", log.Fields{"Error": err})
+			http.Error(w, "Unable to read file", http.StatusUnprocessableEntity)
+			return
+		}
+
+		q.Kubeconfig = base64.StdEncoding.EncodeToString(content)
+		ret, err := h.client.CreateCluster(provider, p, q)
+		if err != nil {
+			apiErr := apierror.HandleErrors(vars, err, p, apiErrors)
+			http.Error(w, apiErr.Message, apiErr.Status)
+			return
+		}
+
+		//	w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		err = json.NewEncoder(w).Encode(ret)
+		if err != nil {
+			log.Error(":: Error encoding create cluster response ::", log.Fields{"Error": err})
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	} else {
+		ret, err := h.client.CreateClusterGitOpsData(provider, p, false)
+		if err != nil {
+			apiErr := apierror.HandleErrors(vars, err, p, apiErrors)
+			http.Error(w, apiErr.Message, apiErr.Status)
+			return
+		}
+
+		//	w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		err = json.NewEncoder(w).Encode(ret)
+		if err != nil {
+			log.Error(":: Error encoding create cluster response ::", log.Fields{"Error": err})
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 	}
 }
 
@@ -344,6 +364,7 @@ func (h clusterHandler) getClusterHandler(w http.ResponseWriter, r *http.Request
 	}
 
 	retCluster, err := h.client.GetCluster(provider, name)
+
 	if err != nil {
 		log.Error(":: Error getting cluster ::", log.Fields{"Error": err})
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
@@ -351,48 +372,79 @@ func (h clusterHandler) getClusterHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	retKubeconfig, err := h.client.GetClusterContent(provider, name)
-	if err != nil {
-		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
-		http.Error(w, apiErr.Message, apiErr.Status)
-		return
-	}
+	// check for spec section in the response
+	if retCluster.Spec.Props.GitOpsType == "" {
+		retKubeconfig, err := h.client.GetClusterContent(provider, name)
+		if err != nil {
+			apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
+			http.Error(w, apiErr.Message, apiErr.Status)
+			return
+		}
 
-	switch accepted {
-	case "multipart/form-data":
-		mpw := multipart.NewWriter(w)
-		w.Header().Set("Content-Type", mpw.FormDataContentType())
-		w.WriteHeader(http.StatusOK)
-		pw, err := mpw.CreatePart(textproto.MIMEHeader{"Content-Type": {"application/json"}, "Content-Disposition": {"form-data; name=metadata"}})
-		if err != nil {
-			log.Error(":: Error creating metadata part of cluster response ::", log.Fields{"Error": err})
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+		switch accepted {
+		case "multipart/form-data":
+			mpw := multipart.NewWriter(w)
+			w.Header().Set("Content-Type", mpw.FormDataContentType())
+			w.WriteHeader(http.StatusOK)
+			pw, err := mpw.CreatePart(textproto.MIMEHeader{"Content-Type": {"application/json"}, "Content-Disposition": {"form-data; name=metadata"}})
+			if err != nil {
+				log.Error(":: Error creating metadata part of cluster response ::", log.Fields{"Error": err})
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			if err := json.NewEncoder(pw).Encode(retCluster); err != nil {
+				log.Error(":: Error encoding cluster response ::", log.Fields{"Error": err})
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			pw, err = mpw.CreatePart(textproto.MIMEHeader{"Content-Type": {"application/octet-stream"}, "Content-Disposition": {"form-data; name=file; filename=kubeconfig"}})
+			if err != nil {
+				log.Error(":: Error creating file part of cluster response ::", log.Fields{"Error": err})
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			kcBytes, err := base64.StdEncoding.DecodeString(retKubeconfig.Kubeconfig)
+			if err != nil {
+				log.Error(":: Error encoding file part of cluster response ::", log.Fields{"Error": err})
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			_, err = pw.Write(kcBytes)
+			if err != nil {
+				log.Error(":: Error writing multipart cluster response ::", log.Fields{"Error": err})
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+		case "application/json":
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			err = json.NewEncoder(w).Encode(retCluster)
+			if err != nil {
+				log.Error(":: Error encoding cluster response ::", log.Fields{"Error": err})
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+		case "application/octet-stream":
+			w.Header().Set("Content-Type", "application/octet-stream")
+			w.WriteHeader(http.StatusOK)
+			kcBytes, err := base64.StdEncoding.DecodeString(retKubeconfig.Kubeconfig)
+			if err != nil {
+				log.Error(":: Error encoding file part of cluster response ::", log.Fields{"Error": err})
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			_, err = w.Write(kcBytes)
+			if err != nil {
+				log.Error(":: Error writing cluster response ::", log.Fields{"Error": err})
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+		default:
+			log.Error(":: Missing Accept header for get cluster ::", log.Fields{"Error": err})
+			http.Error(w, "set Accept: multipart/form-data, application/json or application/octet-stream", http.StatusMultipleChoices)
 			return
 		}
-		if err := json.NewEncoder(pw).Encode(retCluster); err != nil {
-			log.Error(":: Error encoding cluster response ::", log.Fields{"Error": err})
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		pw, err = mpw.CreatePart(textproto.MIMEHeader{"Content-Type": {"application/octet-stream"}, "Content-Disposition": {"form-data; name=file; filename=kubeconfig"}})
-		if err != nil {
-			log.Error(":: Error creating file part of cluster response ::", log.Fields{"Error": err})
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		kcBytes, err := base64.StdEncoding.DecodeString(retKubeconfig.Kubeconfig)
-		if err != nil {
-			log.Error(":: Error encoding file part of cluster response ::", log.Fields{"Error": err})
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		_, err = pw.Write(kcBytes)
-		if err != nil {
-			log.Error(":: Error writing multipart cluster response ::", log.Fields{"Error": err})
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-	case "application/json":
+	} else {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		err = json.NewEncoder(w).Encode(retCluster)
@@ -401,26 +453,8 @@ func (h clusterHandler) getClusterHandler(w http.ResponseWriter, r *http.Request
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-	case "application/octet-stream":
-		w.Header().Set("Content-Type", "application/octet-stream")
-		w.WriteHeader(http.StatusOK)
-		kcBytes, err := base64.StdEncoding.DecodeString(retKubeconfig.Kubeconfig)
-		if err != nil {
-			log.Error(":: Error encoding file part of cluster response ::", log.Fields{"Error": err})
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		_, err = w.Write(kcBytes)
-		if err != nil {
-			log.Error(":: Error writing cluster response ::", log.Fields{"Error": err})
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-	default:
-		log.Error(":: Missing Accept header for get cluster ::", log.Fields{"Error": err})
-		http.Error(w, "set Accept: multipart/form-data, application/json or application/octet-stream", http.StatusMultipleChoices)
-		return
 	}
+
 }
 
 // Delete handles DELETE operations on a particular Cluster Name
@@ -751,6 +785,166 @@ func (h clusterHandler) deleteClusterKvPairsHandler(w http.ResponseWriter, r *ht
 	kvpair := vars["clusterKv"]
 
 	err := h.client.DeleteClusterKvPairs(provider, cluster, kvpair)
+	if err != nil {
+		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
+		http.Error(w, apiErr.Message, apiErr.Status)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// Create handles creation of the Cluster Sync Objects entry in the database
+func (h clusterHandler) createClusterSyncObjectsHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	provider := vars["clusterProvider"]
+
+	var p clusterPkg.ClusterSyncObjects
+
+	err := json.NewDecoder(r.Body).Decode(&p)
+	switch {
+	case err == io.EOF:
+		log.Error(":: Empty cluster sync object POST body ::", log.Fields{"Error": err})
+		http.Error(w, "Empty body", http.StatusBadRequest)
+		return
+	case err != nil:
+		log.Error(":: Error decoding cluster sync object POST body ::", log.Fields{"Error": err, "Body": p})
+		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
+		return
+	}
+
+	// Verify JSON Body
+	err, httpError := validation.ValidateJsonSchemaData(ckvJSONFile, p)
+	if err != nil {
+		log.Error(":: Invalid cluster sync object POST body ::", log.Fields{"Error": err})
+		http.Error(w, err.Error(), httpError)
+		return
+	}
+
+	// SyncObjectsName is required.
+	if p.Metadata.Name == "" {
+		log.Error(":: Missing cluster sync object name in POST body ::", log.Fields{"Error": err})
+		http.Error(w, "Missing cluster sync object name in POST request", http.StatusBadRequest)
+		return
+	}
+
+	ret, err := h.client.CreateClusterSyncObjects(provider, p, false)
+	if err != nil {
+		apiErr := apierror.HandleErrors(vars, err, p, apiErrors)
+		http.Error(w, apiErr.Message, apiErr.Status)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	err = json.NewEncoder(w).Encode(ret)
+	if err != nil {
+		log.Error(":: Error encoding cluster sync object ::", log.Fields{"Error": err})
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+}
+
+// putClusterSyncObjectsHandler  handles update of a ClusterSyncObjects entry in the database
+func (h clusterHandler) putClusterSyncObjectsHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	provider := vars["clusterProvider"]
+	syncobject := vars["clusterSyncObject"]
+	var p clusterPkg.ClusterSyncObjects
+
+	err := json.NewDecoder(r.Body).Decode(&p)
+	switch {
+	case err == io.EOF:
+		log.Error(":: Empty cluster sync object PUT body ::", log.Fields{"Error": err})
+		http.Error(w, "Empty body", http.StatusBadRequest)
+		return
+	case err != nil:
+		log.Error(":: Error decoding sync object PUT body ::", log.Fields{"Error": err, "Body": p})
+		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
+		return
+	}
+
+	// Verify JSON Body
+	err, httpError := validation.ValidateJsonSchemaData(ckvJSONFile, p)
+	if err != nil {
+		log.Error(":: Invalid cluster sync object POST body ::", log.Fields{"Error": err})
+		http.Error(w, err.Error(), httpError)
+		return
+	}
+
+	// SyncObjectsName is required.
+	if p.Metadata.Name == "" {
+		log.Error(":: Missing cluster sync object name in POST body ::", log.Fields{"Error": err})
+		http.Error(w, "Missing cluster sync object name in POST request", http.StatusBadRequest)
+		return
+	}
+
+	// SyncObjectsName should match in URL and body
+	if p.Metadata.Name != syncobject {
+		log.Error(":: Mismatched cluster sync object name in PUT body ::", log.Fields{"Error": err})
+		http.Error(w, "Mismatched cluster sync object name in PUT request", http.StatusBadRequest)
+		return
+	}
+
+	ret, err := h.client.CreateClusterSyncObjects(provider, p, true)
+	if err != nil {
+		apiErr := apierror.HandleErrors(vars, err, p, apiErrors)
+		http.Error(w, apiErr.Message, apiErr.Status)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	err = json.NewEncoder(w).Encode(ret)
+	if err != nil {
+		log.Error(":: Error encoding cluster sync object ::", log.Fields{"Error": err})
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+}
+
+// Get handles GET operations on a particular Cluster Sync Object
+// Returns a ClusterSyncObjects
+func (h clusterHandler) getClusterSyncObjectsHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	provider := vars["clusterProvider"]
+	syncobject := vars["clusterSyncObject"]
+	syncobjectkey := r.URL.Query().Get("key")
+
+	var ret interface{}
+	var err error
+
+	if len(syncobject) == 0 {
+		ret, err = h.client.GetAllClusterSyncObjects(provider)
+	} else if len(syncobjectkey) != 0 {
+		ret, err = h.client.GetClusterSyncObjectsValue(provider, syncobject, syncobjectkey)
+	} else {
+		ret, err = h.client.GetClusterSyncObjects(provider, syncobject)
+	}
+
+	if err != nil {
+		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
+		http.Error(w, apiErr.Message, apiErr.Status)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	err = json.NewEncoder(w).Encode(ret)
+	if err != nil {
+		log.Error(":: Error encoding cluster sync object response ::", log.Fields{"Error": err})
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+}
+
+// Delete handles DELETE operations on a particular Cluster Provider
+func (h clusterHandler) deleteClusterSyncObjectsHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	provider := vars["clusterProvider"]
+	syncobject := vars["clusterSyncObject"]
+
+	err := h.client.DeleteClusterSyncObjects(provider, syncobject)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)

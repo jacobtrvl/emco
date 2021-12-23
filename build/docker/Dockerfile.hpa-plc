@@ -15,7 +15,6 @@ COPY --chown=emco ./hpa-plc ./
 COPY --chown=emco ./config.json ./
 COPY --chown=emco ./json-schemas ./json-schemas
 
-
 USER emco
 
 ENTRYPOINT ["./hpa-plc"]

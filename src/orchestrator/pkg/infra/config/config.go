@@ -33,6 +33,8 @@ type Configuration struct {
 	KubernetesLabelName    string `json:"kubernetes-label-name"`
 	LogLevel               string `json:"log-level"`
 	MaxRetries             string `json:"max-retries"`
+	BackOff                int    `json:"db-schema-backoff"`
+	MaxBackOff             int    `json:"db-schema-max-backoff"`
 }
 
 // Config is the structure that stores the configuration
@@ -88,7 +90,9 @@ func defaultConfiguration() *Configuration {
 		ServicePort:            "9015",
 		KubernetesLabelName:    "orchestrator.io/rb-instance-id",
 		LogLevel:               "warn", // default log-level of all modules
-		MaxRetries:             "",
+		MaxRetries:             "",     // rsync
+		BackOff:                5,      // default backoff time interval for ref schema
+		MaxBackOff:             60,     // max backoff time interval for ref schema
 	}
 }
 

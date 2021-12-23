@@ -1,0 +1,12 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2021 Intel Corporation
+apiVersion: v1
+kind: Service
+metadata:
+  name: currencyservice
+spec:
+  type: {{ .Values.currencyservice.type }}
+  selector:
+    app: currencyservice
+  ports:
+	{{- .Values.currencyservice.ports | toYaml | nindent 2 -}}

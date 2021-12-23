@@ -126,6 +126,7 @@ func (r *daemonSetReconciler) UpdateStatus(cr *v1alpha1.ResourceBundleState, obj
 			Status:     ds.Status,
 		}
 		c.ObjectMeta.ManagedFields = []metav1.ManagedFieldsEntry{}
+		c.Annotations = ClearLastApplied(c.Annotations)
 		cr.Status.DaemonSetStatuses = append(cr.Status.DaemonSetStatuses, c)
 	}
 	return found, nil

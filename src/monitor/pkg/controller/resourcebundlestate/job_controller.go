@@ -127,6 +127,7 @@ func (r *jobReconciler) UpdateStatus(cr *v1alpha1.ResourceBundleState, obj runti
 			Status:     job.Status,
 		}
 		c.ObjectMeta.ManagedFields = []metav1.ManagedFieldsEntry{}
+		c.Annotations = ClearLastApplied(c.Annotations)
 		cr.Status.JobStatuses = append(cr.Status.JobStatuses, c)
 	}
 	return found, nil

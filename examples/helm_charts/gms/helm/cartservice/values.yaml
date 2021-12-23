@@ -1,0 +1,22 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2021 Intel Corporation
+cartservice:
+  ports:
+  - name: grpc
+    port: 7070
+    targetPort: 7070
+  server:
+    port: 7070
+    redisport: 6379
+    image:
+      repository: gcr.io/google-samples/microservices-demo/cartservice
+      tag: v0.3.0
+      pullPolicy: IfNotPresent
+    resources:
+      limits:
+        cpu: 300m
+        memory: 128Mi
+      requests:
+        cpu: 200m
+        memory: 64Mi
+  type: ClusterIP

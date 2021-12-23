@@ -27,15 +27,16 @@ import (
 type mockClusterManager struct {
 	// Items and err will be used to customize each test
 	// via a localized instantiation of mockClusterManager
-	ClusterProviderItems []cluster.ClusterProvider
-	ClusterItems         []cluster.Cluster
-	ClusterContentItems  []cluster.ClusterContent
-	ClusterStateInfo     []state.StateInfo
-	ClusterLabelItems    []cluster.ClusterLabel
-	ClusterKvPairsItems  []cluster.ClusterKvPairs
-	ClusterList          []string
-	ClusterWithLabels    []cluster.ClusterWithLabels
-	Err                  error
+	ClusterProviderItems    []cluster.ClusterProvider
+	ClusterItems            []cluster.Cluster
+	ClusterContentItems     []cluster.ClusterContent
+	ClusterStateInfo        []state.StateInfo
+	ClusterLabelItems       []cluster.ClusterLabel
+	ClusterKvPairsItems     []cluster.ClusterKvPairs
+	ClusterSyncObjectsItems []cluster.ClusterSyncObjects
+	ClusterList             []string
+	ClusterWithLabels       []cluster.ClusterWithLabels
+	Err                     error
 }
 
 func (m *mockClusterManager) CreateClusterProvider(inp cluster.ClusterProvider, exists bool) (cluster.ClusterProvider, error) {
@@ -195,10 +196,61 @@ func (m *mockClusterManager) DeleteClusterKvPairs(provider, clusterName, kvpair 
 	return m.Err
 }
 
+func (m *mockClusterManager) CreateClusterSyncObjects(provider string, inp cluster.ClusterSyncObjects, exists bool) (cluster.ClusterSyncObjects, error) {
+	if m.Err != nil {
+		return cluster.ClusterSyncObjects{}, m.Err
+	}
+
+	return m.ClusterSyncObjectsItems[0], nil
+}
+
+func (m *mockClusterManager) GetClusterSyncObjects(provider, syncobject string) (cluster.ClusterSyncObjects, error) {
+	if m.Err != nil {
+		return cluster.ClusterSyncObjects{}, m.Err
+	}
+
+	return m.ClusterSyncObjectsItems[0], nil
+}
+
+func (m *mockClusterManager) DeleteClusterSyncObjects(provider, syncobject string) error {
+	return m.Err
+}
+
+func (m *mockClusterManager) GetClusterSyncObjectsValue(provider, syncobject, syncobjectkey string) (interface{}, error) {
+	if m.Err != nil {
+		return nil, m.Err
+	}
+
+	for _, kvMap := range m.ClusterSyncObjectsItems[0].Spec.Kv {
+		if val, ok := kvMap[syncobjectkey]; ok {
+			return val, nil
+		}
+	}
+	return nil, m.Err
+}
+
+func (m *mockClusterManager) GetAllClusterSyncObjects(provider string) ([]cluster.ClusterSyncObjects, error) {
+	if m.Err != nil {
+		return []cluster.ClusterSyncObjects{}, m.Err
+	}
+
+	return m.ClusterSyncObjectsItems, nil
+}
+
+// test functions for gitops
+func (m *mockClusterManager) CreateClusterGitOpsData(provider string, inp cluster.Cluster, exists bool) (cluster.Cluster, error) {
+	if m.Err != nil {
+		return cluster.Cluster{}, m.Err
+	}
+
+	return m.ClusterItems[0], nil
+}
+
 func init() {
 	cpJSONFile = "../json-schemas/metadata.json"
 	ckvJSONFile = "../json-schemas/cluster-kv.json"
 	clJSONFile = "../json-schemas/cluster-label.json"
+	copsJSONFile = "../json-schemas/cluster-gitops.json"
 }
 
 func TestClusterProviderCreateHandler(t *testing.T) {
@@ -2097,6 +2149,981 @@ func TestClusterKvPairsDeleteHandler(t *testing.T) {
 			//Check returned code
 			if resp.StatusCode != testCase.expectedCode {
 				t.Fatalf("Expected %d; Got: %d", testCase.expectedCode, resp.StatusCode)
+			}
+		})
+	}
+}
+
+func TestClusterSyncObjectsCreateHandler(t *testing.T) {
+	testCases := []struct {
+		label         string
+		reader        io.Reader
+		expected      cluster.ClusterSyncObjects
+		expectedCode  int
+		clusterClient *mockClusterManager
+	}{
+		{
+			label:         "Missing Cluster Sync Objects Body Failure",
+			expectedCode:  http.StatusBadRequest,
+			clusterClient: &mockClusterManager{},
+		},
+		{
+			label:        "Create Cluster Sync Objects",
+			expectedCode: http.StatusCreated,
+			reader: bytes.NewBuffer([]byte(`{
+					"metadata": {
+						"name": "ClusterSyncObject1",
+						"description": "test cluster sync objects",
+						"userData1": "some user data 1",
+						"userData2": "some user data 2"
+					},
+					"spec": {
+						"kv": [
+							{
+								"key1": "value1"
+							},
+							{
+								"key2": "value2"
+							}
+						]
+					}
+				}`)),
+			expected: cluster.ClusterSyncObjects{
+				Metadata: types.Metadata{
+					Name:        "ClusterSyncObject1",
+					Description: "test cluster sync objects",
+					UserData1:   "some user data 1",
+					UserData2:   "some user data 2",
+				},
+				Spec: cluster.ClusterSyncObjectSpec{
+					Kv: []map[string]interface{}{
+						{
+							"key1": "value1",
+						},
+						{
+							"key2": "value2",
+						},
+					},
+				},
+			},
+			clusterClient: &mockClusterManager{
+				//Items that will be returned by the mocked Client
+				ClusterSyncObjectsItems: []cluster.ClusterSyncObjects{
+					{
+						Metadata: types.Metadata{
+							Name:        "ClusterSyncObject1",
+							Description: "test cluster sync objects",
+							UserData1:   "some user data 1",
+							UserData2:   "some user data 2",
+						},
+						Spec: cluster.ClusterSyncObjectSpec{
+							Kv: []map[string]interface{}{
+								{
+									"key1": "value1",
+								},
+								{
+									"key2": "value2",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.label, func(t *testing.T) {
+			request := httptest.NewRequest("POST", "/v2/cluster-providers/cp1/cluster-sync-objects", testCase.reader)
+			resp := executeRequest(request, NewRouter(testCase.clusterClient))
+
+			//Check returned code
+			if resp.StatusCode != testCase.expectedCode {
+				t.Fatalf("Expected %d; Got: %d", testCase.expectedCode, resp.StatusCode)
+			}
+
+			//Check returned body only if statusCreated
+			if resp.StatusCode == http.StatusCreated {
+				got := cluster.ClusterSyncObjects{}
+				json.NewDecoder(resp.Body).Decode(&got)
+
+				if reflect.DeepEqual(testCase.expected, got) == false {
+					t.Errorf("createHandler returned unexpected body: got %v;"+
+						" expected %v", got, testCase.expected)
+				}
+			}
+		})
+	}
+}
+
+func TestClusterSyncObjectsPutHandler(t *testing.T) {
+	testCases := []struct {
+		name          string
+		label         string
+		reader        io.Reader
+		expected      cluster.ClusterSyncObjects
+		expectedCode  int
+		clusterClient *mockClusterManager
+	}{
+		{
+			name:          "ClusterSyncObject1",
+			label:         "Missing Cluster Sync Object Body Failure",
+			expectedCode:  http.StatusBadRequest,
+			clusterClient: &mockClusterManager{},
+		},
+		{
+			label: "Missing Cluster Sync Object Name in Request Body",
+			name:  "ClusterSyncObject1",
+			reader: bytes.NewBuffer([]byte(`{
+					"metadata": {
+						"description": "this is a test cluster sync object",
+						"userData1": "some user data 1",
+						"userData2": "some user data 2"
+					}
+				}`)),
+			expectedCode:  http.StatusBadRequest,
+			clusterClient: &mockClusterManager{},
+		},
+		{
+			label:        "Mismatched Cluster Sync Object Name in Request",
+			name:         "ClusterSyncObject1ABC",
+			expectedCode: http.StatusBadRequest,
+			reader: bytes.NewBuffer([]byte(`{
+					"metadata": {
+						"name": "ClusterSyncObject1",
+						"description": "test cluster sync objects",
+						"userData1": "some user data 1",
+						"userData2": "some user data 2"
+					},
+					"spec": {
+						"kv": [
+							{
+								"key1": "value1"
+							},
+							{
+								"key2": "value2"
+							}
+						]
+					}
+				}`)),
+			clusterClient: &mockClusterManager{},
+		},
+		{
+			name:         "ClusterSyncObject1",
+			label:        "Update Cluster Sync Objects",
+			expectedCode: http.StatusCreated,
+			reader: bytes.NewBuffer([]byte(`{
+					"metadata": {
+						"name": "ClusterSyncObject1",
+						"description": "test cluster sync objects",
+						"userData1": "some user data 1",
+						"userData2": "some user data 2"
+					},
+					"spec": {
+						"kv": [
+							{
+								"key1": "value1"
+							},
+							{
+								"key2": "value2"
+							}
+						]
+					}
+				}`)),
+			expected: cluster.ClusterSyncObjects{
+				Metadata: types.Metadata{
+					Name:        "ClusterSyncObject1",
+					Description: "test cluster sync objects",
+					UserData1:   "some user data 1",
+					UserData2:   "some user data 2",
+				},
+				Spec: cluster.ClusterSyncObjectSpec{
+					Kv: []map[string]interface{}{
+						{
+							"key1": "value1",
+						},
+						{
+							"key2": "value2",
+						},
+					},
+				},
+			},
+			clusterClient: &mockClusterManager{
+				//Items that will be returned by the mocked Client
+				ClusterSyncObjectsItems: []cluster.ClusterSyncObjects{
+					{
+						Metadata: types.Metadata{
+							Name:        "ClusterSyncObject1",
+							Description: "test cluster sync objects",
+							UserData1:   "some user data 1",
+							UserData2:   "some user data 2",
+						},
+						Spec: cluster.ClusterSyncObjectSpec{
+							Kv: []map[string]interface{}{
+								{
+									"key1": "value1",
+								},
+								{
+									"key2": "value2",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.label, func(t *testing.T) {
+			request := httptest.NewRequest("PUT", "/v2/cluster-providers/cp1/cluster-sync-objects/"+testCase.name, testCase.reader)
+			resp := executeRequest(request, NewRouter(testCase.clusterClient))
+
+			//Check returned code
+			if resp.StatusCode != testCase.expectedCode {
+				t.Fatalf("Expected %d; Got: %d", testCase.expectedCode, resp.StatusCode)
+			}
+
+			//Check returned body only if statusCreated
+			if resp.StatusCode == http.StatusCreated {
+				got := cluster.ClusterSyncObjects{}
+				json.NewDecoder(resp.Body).Decode(&got)
+
+				if reflect.DeepEqual(testCase.expected, got) == false {
+					t.Errorf("createHandler returned unexpected body: got %v;"+
+						" expected %v", got, testCase.expected)
+				}
+			}
+		})
+	}
+}
+
+func TestClusterSyncObjectsDeleteHandler(t *testing.T) {
+
+	testCases := []struct {
+		label         string
+		name          string
+		version       string
+		expectedCode  int
+		clusterClient *mockClusterManager
+	}{
+		{
+			label:         "Delete Cluster Sync Objects",
+			expectedCode:  http.StatusNoContent,
+			name:          "testClusterSyncObjects",
+			clusterClient: &mockClusterManager{},
+		},
+		{
+			label:        "Delete Non-Existing Cluster Sync Objects",
+			expectedCode: http.StatusNotFound,
+			name:         "testClusterSyncObjects",
+			clusterClient: &mockClusterManager{
+				Err: pkgerrors.New("Cluster sync object not found"),
+			},
+		},
+		{
+			label:        "Delete Cluster Sync Objects internal error",
+			expectedCode: http.StatusInternalServerError,
+			name:         "testClusterSyncObjects",
+			clusterClient: &mockClusterManager{
+				Err: pkgerrors.New("Internal Error"),
+			},
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.label, func(t *testing.T) {
+			request := httptest.NewRequest("DELETE", "/v2/cluster-providers/cp1/cluster-sync-objects/"+testCase.name, nil)
+			resp := executeRequest(request, NewRouter(testCase.clusterClient))
+
+			//Check returned code
+			if resp.StatusCode != testCase.expectedCode {
+				t.Fatalf("Expected %d; Got: %d", testCase.expectedCode, resp.StatusCode)
+			}
+		})
+	}
+}
+
+func TestClusterSyncObjectsGetHandler(t *testing.T) {
+
+	testCases := []struct {
+		label         string
+		expected      cluster.ClusterSyncObjects
+		name, version string
+		expectedCode  int
+		clusterClient *mockClusterManager
+	}{
+		{
+			label:        "Get Cluster Sync Objects",
+			expectedCode: http.StatusOK,
+			expected: cluster.ClusterSyncObjects{
+				Metadata: types.Metadata{
+					Name:        "ClusterSyncObject2",
+					Description: "test cluster sync objects",
+					UserData1:   "some user data A",
+					UserData2:   "some user data B",
+				},
+				Spec: cluster.ClusterSyncObjectSpec{
+					Kv: []map[string]interface{}{
+						{
+							"keyA": "valueA",
+						},
+						{
+							"keyB": "valueB",
+						},
+					},
+				},
+			},
+			name: "ClusterSyncObject2",
+			clusterClient: &mockClusterManager{
+				//Items that will be returned by the mocked Client
+				ClusterSyncObjectsItems: []cluster.ClusterSyncObjects{
+					{
+						Metadata: types.Metadata{
+							Name:        "ClusterSyncObject2",
+							Description: "test cluster sync objects",
+							UserData1:   "some user data A",
+							UserData2:   "some user data B",
+						},
+						Spec: cluster.ClusterSyncObjectSpec{
+							Kv: []map[string]interface{}{
+								{
+									"keyA": "valueA",
+								},
+								{
+									"keyB": "valueB",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			label:        "Get Non-Existing Cluster Sync Objects",
+			expectedCode: http.StatusNotFound,
+			name:         "nonexistingclustersyncobjects",
+			clusterClient: &mockClusterManager{
+				ClusterSyncObjectsItems: []cluster.ClusterSyncObjects{},
+				Err:                     pkgerrors.New("Cluster sync object not found"),
+			},
+		},
+		{
+			label:        "Get Non-Existing Cluster Sync Objects - part II",
+			expectedCode: http.StatusNotFound,
+			name:         "nonexistingclustersyncobjects",
+			clusterClient: &mockClusterManager{
+				ClusterSyncObjectsItems: []cluster.ClusterSyncObjects{},
+				Err:                     pkgerrors.New("Cluster sync object not found"),
+			},
+		},
+		{
+			label:        "Get Cluster Sync Objects db error",
+			expectedCode: http.StatusInternalServerError,
+			name:         "testGetClusterSyncObjectDBError",
+			clusterClient: &mockClusterManager{
+				ClusterSyncObjectsItems: []cluster.ClusterSyncObjects{},
+				Err:                     pkgerrors.New("db Find error"),
+			},
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.label, func(t *testing.T) {
+			request := httptest.NewRequest("GET", "/v2/cluster-providers/clusterProvider1/cluster-sync-objects/"+testCase.name, nil)
+			resp := executeRequest(request, NewRouter(testCase.clusterClient))
+
+			//Check returned code
+			if resp.StatusCode != testCase.expectedCode {
+				t.Fatalf("Expected %d; Got: %d", testCase.expectedCode, resp.StatusCode)
+			}
+
+			//Check returned body only if statusOK
+			if resp.StatusCode == http.StatusOK {
+				got := cluster.ClusterSyncObjects{}
+				json.NewDecoder(resp.Body).Decode(&got)
+
+				if reflect.DeepEqual(testCase.expected, got) == false {
+					t.Errorf("listHandler returned unexpected body: got %v;"+
+						" expected %v", got, testCase.expected)
+				}
+			}
+		})
+	}
+}
+
+func TestClusterSyncObjectsGetValueHandler(t *testing.T) {
+
+	testCases := []struct {
+		label         string
+		expected      string
+		name, version string
+		key           string
+		expectedCode  int
+		clusterClient *mockClusterManager
+	}{
+		{
+			label:        "Get Cluster SyncObjects key value",
+			expectedCode: http.StatusOK,
+			expected:     "valueB",
+			name:         "ClusterSyncObject2",
+			key:          "keyB",
+			clusterClient: &mockClusterManager{
+				//Items that will be returned by the mocked Client
+				ClusterSyncObjectsItems: []cluster.ClusterSyncObjects{
+					{
+						Metadata: types.Metadata{
+							Name:        "ClusterSyncObject2",
+							Description: "test cluster sync objects",
+							UserData1:   "some user data A",
+							UserData2:   "some user data B",
+						},
+						Spec: cluster.ClusterSyncObjectSpec{
+							Kv: []map[string]interface{}{
+								{
+									"keyA": "valueA",
+								},
+								{
+									"keyB": "valueB",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			label:        "Get Non-Existing Cluster SyncObjects",
+			expectedCode: http.StatusNotFound,
+			name:         "nonexistingclustersyncobjects",
+			key:          "keyB",
+			clusterClient: &mockClusterManager{
+				ClusterSyncObjectsItems: []cluster.ClusterSyncObjects{},
+				Err:                     pkgerrors.New("Cluster sync object not found"),
+			},
+		},
+		{
+			label:        "Get Non-Existing Cluster SyncObjects",
+			expectedCode: http.StatusNotFound,
+			name:         "nonexistingclustersyncobjects",
+			key:          "keyB",
+			clusterClient: &mockClusterManager{
+				ClusterSyncObjectsItems: []cluster.ClusterSyncObjects{},
+				Err:                     pkgerrors.New("Cluster sync object not found"),
+			},
+		},
+		{
+			label:        "Get Cluster Sync Objects db error",
+			expectedCode: http.StatusInternalServerError,
+			name:         "testGetClusterSyncObjectDBError",
+			key:          "keyB",
+			clusterClient: &mockClusterManager{
+				ClusterSyncObjectsItems: []cluster.ClusterSyncObjects{},
+				Err:                     pkgerrors.New("db Find error"),
+			},
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.label, func(t *testing.T) {
+			request := httptest.NewRequest("GET", "/v2/cluster-providers/clusterProvider1/cluster-sync-objects/"+testCase.name+"?key="+testCase.key, nil)
+			resp := executeRequest(request, NewRouter(testCase.clusterClient))
+
+			//Check returned code
+			if resp.StatusCode != testCase.expectedCode {
+				t.Fatalf("Expected %d; Got: %d", testCase.expectedCode, resp.StatusCode)
+			}
+
+			//Check returned body only if statusOK
+			if resp.StatusCode == http.StatusOK {
+				var got string
+				json.NewDecoder(resp.Body).Decode(&got)
+
+				if reflect.DeepEqual(testCase.expected, got) == false {
+					t.Errorf("listHandler returned unexpected body: got %v;"+
+						" expected %v", got, testCase.expected)
+				}
+			}
+		})
+	}
+}
+
+func TestClusterSyncObjectsGetAllHandler(t *testing.T) {
+
+	testCases := []struct {
+		label         string
+		expected      []cluster.ClusterSyncObjects
+		name, version string
+		expectedCode  int
+		clusterClient *mockClusterManager
+	}{
+		{
+			label:        "Get Cluster SyncObjects",
+			expectedCode: http.StatusOK,
+			expected: []cluster.ClusterSyncObjects{
+				{
+					Metadata: types.Metadata{
+						Name:        "ClusterSyncObject1",
+						Description: "test cluster sync objects",
+						UserData1:   "some user data 1",
+						UserData2:   "some user data 2",
+					},
+					Spec: cluster.ClusterSyncObjectSpec{
+						Kv: []map[string]interface{}{
+							{
+								"key1": "value1",
+							},
+							{
+								"key2": "value2",
+							},
+						},
+					},
+				},
+				{
+					Metadata: types.Metadata{
+						Name:        "ClusterSyncObject2",
+						Description: "test cluster sync objects",
+						UserData1:   "some user data A",
+						UserData2:   "some user data B",
+					},
+					Spec: cluster.ClusterSyncObjectSpec{
+						Kv: []map[string]interface{}{
+							{
+								"keyA": "valueA",
+							},
+							{
+								"keyB": "valueB",
+							},
+						},
+					},
+				},
+			},
+			clusterClient: &mockClusterManager{
+				//Items that will be returned by the mocked Client
+				ClusterSyncObjectsItems: []cluster.ClusterSyncObjects{
+					{
+						Metadata: types.Metadata{
+							Name:        "ClusterSyncObject1",
+							Description: "test cluster sync objects",
+							UserData1:   "some user data 1",
+							UserData2:   "some user data 2",
+						},
+						Spec: cluster.ClusterSyncObjectSpec{
+							Kv: []map[string]interface{}{
+								{
+									"key1": "value1",
+								},
+								{
+									"key2": "value2",
+								},
+							},
+						},
+					},
+					{
+						Metadata: types.Metadata{
+							Name:        "ClusterSyncObject2",
+							Description: "test cluster sync objects",
+							UserData1:   "some user data A",
+							UserData2:   "some user data B",
+						},
+						Spec: cluster.ClusterSyncObjectSpec{
+							Kv: []map[string]interface{}{
+								{
+									"keyA": "valueA",
+								},
+								{
+									"keyB": "valueB",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.label, func(t *testing.T) {
+			request := httptest.NewRequest("GET", "/v2/cluster-providers/cp1/cluster-sync-objects", nil)
+			resp := executeRequest(request, NewRouter(testCase.clusterClient))
+
+			//Check returned code
+			if resp.StatusCode != testCase.expectedCode {
+				t.Fatalf("Expected %d; Got: %d", testCase.expectedCode, resp.StatusCode)
+			}
+
+			//Check returned body only if statusOK
+			if resp.StatusCode == http.StatusOK {
+				got := []cluster.ClusterSyncObjects{}
+				json.NewDecoder(resp.Body).Decode(&got)
+
+				if reflect.DeepEqual(testCase.expected, got) == false {
+					t.Errorf("listHandler returned unexpected body: got %v;"+
+						" expected %v", got, testCase.expected)
+				}
+			}
+		})
+	}
+}
+
+func TestClusterGitOpsCreateHandler(t *testing.T) {
+	testCases := []struct {
+		label         string
+		metadata      string
+		expected      cluster.Cluster
+		expectedCode  int
+		clusterClient *mockClusterManager
+	}{
+		{
+			label:         "Missing Cluster Body Failure",
+			expectedCode:  http.StatusBadRequest,
+			clusterClient: &mockClusterManager{},
+		},
+		{
+			label:        "Create Cluster",
+			expectedCode: http.StatusCreated,
+			metadata: `
+{
+ "metadata": {
+  "name": "clusterTest",
+  "description": "this is test cluster",
+  "userData1": "some cluster data abc",
+  "userData2": "some cluster data def"
+ },
+ "spec": {
+	"gitOps": {
+		"gitOpsType": "fluxv2",
+		"gitOpsReferenceObject": "GitObjectMyRepo",
+		"gitOpsResourceObject": "GitObjectMyRepo"
+	  }
+}
+}`,
+			expected: cluster.Cluster{
+				Metadata: types.Metadata{
+					Name:        "clusterTest",
+					Description: "this is test cluster",
+					UserData1:   "some cluster data abc",
+					UserData2:   "some cluster data abc",
+				},
+				Spec: cluster.GitOpsSpec{
+					Props: cluster.GitOpsProps{
+						GitOpsType:            "fluxv2",
+						GitOpsReferenceObject: "GitObjectMyRepo",
+						GitOpsResourceObject:  "GitObjectMyRepo",
+					},
+				},
+			},
+			clusterClient: &mockClusterManager{
+				//Items that will be returned by the mocked Client
+				ClusterItems: []cluster.Cluster{
+					{
+						Metadata: types.Metadata{
+							Name:        "clusterTest",
+							Description: "this is test cluster",
+							UserData1:   "some cluster data abc",
+							UserData2:   "some cluster data abc",
+						},
+						Spec: cluster.GitOpsSpec{
+							Props: cluster.GitOpsProps{
+								GitOpsType:            "fluxv2",
+								GitOpsReferenceObject: "GitObjectMyRepo",
+								GitOpsResourceObject:  "GitObjectMyRepo",
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			label:        "Missing Cluster Name in Request Body",
+			expectedCode: http.StatusBadRequest,
+			metadata: `
+{
+ "metadata": {
+  "description": "this is test cluster",
+  "userData1": "some cluster data abc",
+  "userData2": "some cluster data def"
+ },
+ "spec": {
+	"gitOps": {
+		"gitOpsType": "fluxv2",
+		"gitOpsReferenceObject": "GitObjectMyRepo",
+		"gitOpsResourceObject": "GitObjectMyRepo"
+	  }
+}
+}`,
+			clusterClient: &mockClusterManager{},
+		},
+		{
+			label:        "Cluster already exists",
+			expectedCode: http.StatusConflict,
+			metadata: `
+{
+ "metadata": {
+  "name": "alreadyExists",
+  "description": "this is test cluster",
+  "userData1": "some cluster data abc",
+  "userData2": "some cluster data def"
+ },
+ "spec": {
+	"gitOps": {
+		"gitOpsType": "fluxv2",
+		"gitOpsReferenceObject": "GitObjectMyRepo",
+		"gitOpsResourceObject": "GitObjectMyRepo"
+	  }
+}
+}`,
+			clusterClient: &mockClusterManager{
+				//Items that will be returned by the mocked Client
+				ClusterItems: []cluster.Cluster{},
+				Err:          pkgerrors.New("Cluster already exists"),
+			},
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.label, func(t *testing.T) {
+			// Create the multipart test Request body
+			body := new(bytes.Buffer)
+			multiwr := multipart.NewWriter(body)
+			multiwr.SetBoundary("------------------------f77f80a7092eb312")
+			pw, _ := multiwr.CreatePart(textproto.MIMEHeader{"Content-Type": {"application/json"}, "Content-Disposition": {"form-data; name=metadata"}})
+			pw.Write([]byte(testCase.metadata))
+			multiwr.Close()
+
+			request := httptest.NewRequest("POST", "/v2/cluster-providers/clusterProvider1/clusters", bytes.NewBuffer(body.Bytes()))
+			request.Header.Set("Content-Type", multiwr.FormDataContentType())
+			resp := executeRequest(request, NewRouter(testCase.clusterClient))
+
+			//Check returned code
+			if resp.StatusCode != testCase.expectedCode {
+				t.Fatalf("Expected %d; Got: %d", testCase.expectedCode, resp.StatusCode)
+			}
+
+			//Check returned body only if statusCreated
+			if resp.StatusCode == http.StatusCreated {
+				got := cluster.Cluster{}
+				json.NewDecoder(resp.Body).Decode(&got)
+
+				if reflect.DeepEqual(testCase.expected, got) == false {
+					t.Errorf("createHandler returned unexpected body: got %v;"+
+						" expected %v", got, testCase.expected)
+				}
+			}
+		})
+	}
+}
+func TestClusterGitOpsGetAllHandler(t *testing.T) {
+
+	testCases := []struct {
+		label         string
+		expected      []cluster.Cluster
+		name, version string
+		expectedCode  int
+		clusterClient *mockClusterManager
+	}{
+		{
+			label:        "Get Cluster GitOps Data",
+			expectedCode: http.StatusOK,
+			expected: []cluster.Cluster{
+				{
+					Metadata: types.Metadata{
+						Name:        "ClusterGitOpsData1",
+						Description: "test cluster gitOps Data",
+						UserData1:   "some user data 1",
+						UserData2:   "some user data 2",
+					},
+					Spec: cluster.GitOpsSpec{
+						Props: cluster.GitOpsProps{
+							GitOpsType:            "fluxv2",
+							GitOpsReferenceObject: "GitObjectMyRepo",
+							GitOpsResourceObject:  "GitObjectMyRepo",
+						},
+					},
+				},
+				{
+					Metadata: types.Metadata{
+						Name:        "ClusterGitOpsData2",
+						Description: "test cluster gitOps Data",
+						UserData1:   "some user data 1",
+						UserData2:   "some user data 2",
+					},
+					Spec: cluster.GitOpsSpec{
+						Props: cluster.GitOpsProps{
+							GitOpsType:            "azureArc",
+							GitOpsReferenceObject: "GitObjectMyRepo",
+							GitOpsResourceObject:  "GitObjectMyRepo",
+						},
+					},
+				},
+			},
+			clusterClient: &mockClusterManager{
+				//Items that will be returned by the mocked Client
+				ClusterItems: []cluster.Cluster{
+					{
+						Metadata: types.Metadata{
+							Name:        "ClusterGitOpsData1",
+							Description: "test cluster gitOps Data",
+							UserData1:   "some user data 1",
+							UserData2:   "some user data 2",
+						},
+						Spec: cluster.GitOpsSpec{
+							Props: cluster.GitOpsProps{
+								GitOpsType:            "fluxv2",
+								GitOpsReferenceObject: "GitObjectMyRepo",
+								GitOpsResourceObject:  "GitObjectMyRepo",
+							},
+						},
+					},
+					{
+						Metadata: types.Metadata{
+							Name:        "ClusterGitOpsData2",
+							Description: "test cluster gitOps Data",
+							UserData1:   "some user data 1",
+							UserData2:   "some user data 2",
+						},
+						Spec: cluster.GitOpsSpec{
+							Props: cluster.GitOpsProps{
+								GitOpsType:            "azureArc",
+								GitOpsReferenceObject: "GitObjectMyRepo",
+								GitOpsResourceObject:  "GitObjectMyRepo",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.label, func(t *testing.T) {
+			request := httptest.NewRequest("GET", "/v2/cluster-providers/cp1/clusters", nil)
+			resp := executeRequest(request, NewRouter(testCase.clusterClient))
+
+			//Check returned code
+			if resp.StatusCode != testCase.expectedCode {
+				t.Fatalf("Expected %d; Got: %d", testCase.expectedCode, resp.StatusCode)
+			}
+
+			//Check returned body only if statusOK
+			if resp.StatusCode == http.StatusOK {
+				got := []cluster.Cluster{}
+				json.NewDecoder(resp.Body).Decode(&got)
+
+				if reflect.DeepEqual(testCase.expected, got) == false {
+					t.Errorf("listHandler returned unexpected body: got %v;"+
+						" expected %v", got, testCase.expected)
+				}
+			}
+		})
+	}
+}
+
+func TestClusterGetGitOpsHandler(t *testing.T) {
+
+	testCases := []struct {
+		label         string
+		expected      cluster.Cluster
+		name, version string
+		accept        string
+		expectedCode  int
+		clusterClient *mockClusterManager
+	}{
+		{
+			label:        "Get Cluster with Accept: application/json",
+			accept:       "application/json",
+			expectedCode: http.StatusOK,
+			expected: cluster.Cluster{
+				Metadata: types.Metadata{
+					Name:        "testCluster",
+					Description: "testCluster description",
+					UserData1:   "some user data 1",
+					UserData2:   "some user data 2",
+				},
+				Spec: cluster.GitOpsSpec{
+					Props: cluster.GitOpsProps{
+						GitOpsType:            "fluxv2",
+						GitOpsReferenceObject: "GitObjectMyRepo",
+						GitOpsResourceObject:  "GitObjectMyRepo",
+					},
+				},
+			},
+			name: "testCluster",
+			clusterClient: &mockClusterManager{
+				//Items that will be returned by the mocked Client
+				ClusterItems: []cluster.Cluster{
+					{
+						Metadata: types.Metadata{
+							Name:        "testCluster",
+							Description: "testCluster description",
+							UserData1:   "some user data 1",
+							UserData2:   "some user data 2",
+						},
+						Spec: cluster.GitOpsSpec{
+							Props: cluster.GitOpsProps{
+								GitOpsType:            "fluxv2",
+								GitOpsReferenceObject: "GitObjectMyRepo",
+								GitOpsResourceObject:  "GitObjectMyRepo",
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			label:        "Get Non-Existing Cluster",
+			accept:       "application/json",
+			expectedCode: http.StatusNotFound,
+			name:         "nonexistingcluster",
+			clusterClient: &mockClusterManager{
+				ClusterItems: []cluster.Cluster{},
+				Err:          pkgerrors.New("Cluster not found"),
+			},
+		},
+		{
+			label:        "Get Non-Existing Cluster",
+			accept:       "application/json",
+			expectedCode: http.StatusNotFound,
+			name:         "nonexistingcluster",
+			clusterClient: &mockClusterManager{
+				ClusterItems: []cluster.Cluster{},
+				Err:          pkgerrors.New("Cluster not found"),
+			},
+		},
+		{
+			label:        "Get Cluster db error",
+			accept:       "application/json",
+			expectedCode: http.StatusInternalServerError,
+			name:         "testGetClusterDBError",
+			clusterClient: &mockClusterManager{
+				ClusterItems: []cluster.Cluster{},
+				Err:          pkgerrors.New("db Find error"),
+			},
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.label, func(t *testing.T) {
+			request := httptest.NewRequest("GET", "/v2/cluster-providers/clusterProvider1/clusters/"+testCase.name, nil)
+			if len(testCase.accept) > 0 {
+				request.Header.Set("Accept", testCase.accept)
+			}
+			resp := executeRequest(request, NewRouter(testCase.clusterClient))
+
+			//Check returned code
+			if resp.StatusCode != testCase.expectedCode {
+				t.Fatalf("Expected %d; Got: %d", testCase.expectedCode, resp.StatusCode)
+			}
+
+			//Check returned body only if statusOK
+			if resp.StatusCode == http.StatusOK {
+				got := cluster.Cluster{}
+				json.NewDecoder(resp.Body).Decode(&got)
+
+				if reflect.DeepEqual(testCase.expected, got) == false {
+					t.Errorf("listHandler returned unexpected body: got %v;"+
+						" expected %v", got, testCase.expected)
+				}
 			}
 		})
 	}

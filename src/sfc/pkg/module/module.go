@@ -25,6 +25,15 @@ type SfcIntentManager interface {
 }
 
 // SfcIntentManager is an interface exposing the SFC Intent functionality
+type SfcLinkIntentManager interface {
+	// SFC Client Selector Intent functions
+	CreateSfcLinkIntent(sfc model.SfcLinkIntent, pr, ca, caver, dig, sfcIntent string, exists bool) (model.SfcLinkIntent, error)
+	GetSfcLinkIntent(name, pr, ca, caver, dig, sfcIntent string) (model.SfcLinkIntent, error)
+	GetAllSfcLinkIntents(pr, ca, caver, dig, sfcIntent string) ([]model.SfcLinkIntent, error)
+	DeleteSfcLinkIntent(name, pr, ca, caver, dig, sfcIntent string) error
+}
+
+// SfcIntentManager is an interface exposing the SFC Intent functionality
 type SfcClientSelectorIntentManager interface {
 	// SFC Client Selector Intent functions
 	CreateSfcClientSelectorIntent(sfc model.SfcClientSelectorIntent, pr, ca, caver, dig, sfcIntent string, exists bool) (model.SfcClientSelectorIntent, error)
@@ -47,6 +56,7 @@ type SfcProviderNetworkIntentManager interface {
 // Client for using the services in the ncm
 type Client struct {
 	SfcIntent                *SfcIntentClient
+	SfcLinkIntent            *SfcLinkIntentClient
 	SfcClientSelectorIntent  *SfcClientSelectorIntentClient
 	SfcProviderNetworkIntent *SfcProviderNetworkIntentClient
 	// Add Clients for API's here
@@ -56,6 +66,7 @@ type Client struct {
 func NewClient() *Client {
 	c := &Client{}
 	c.SfcIntent = NewSfcIntentClient()
+	c.SfcLinkIntent = NewSfcLinkIntentClient()
 	c.SfcClientSelectorIntent = NewSfcClientSelectorIntentClient()
 	c.SfcProviderNetworkIntent = NewSfcProviderNetworkIntentClient()
 	// Add Client API handlers here
@@ -72,6 +83,23 @@ type SfcIntentClient struct {
 // which implements the Manager for SFC Intents
 func NewSfcIntentClient() *SfcIntentClient {
 	return &SfcIntentClient{
+		db: ClientDbInfo{
+			storeName: "resources",
+			tagMeta:   "data",
+		},
+	}
+}
+
+// SfcLinkIntentClient implements the SfcLinkIntentManager
+// It will also be used to maintain some localized state
+type SfcLinkIntentClient struct {
+	db ClientDbInfo
+}
+
+// NewSfcLinkIntentClient returns an instance of the SfcIntentClient
+// which implements the Manager for SFC Client Selector Intents
+func NewSfcLinkIntentClient() *SfcLinkIntentClient {
+	return &SfcLinkIntentClient{
 		db: ClientDbInfo{
 			storeName: "resources",
 			tagMeta:   "data",

@@ -55,9 +55,10 @@ pre-compile: clean
 	@echo "Setting up pre-requisites"
 	@for m in $(MODS); do \
 	    mkdir -p bin/$$m;  \
-	    ARGS=""; CJ="src/$$m/config.json"; JS="src/$$m/json-schemas"; \
+	    ARGS=""; CJ="src/$$m/config.json"; JS="src/$$m/json-schemas"; RS="src/$$m/ref-schemas"; \
 	    [ -f $$CJ ] && ARGS="$$ARGS $$CJ"; \
 	    [ -d $$JS ] && ARGS="$$ARGS $$JS"; \
+	    [ -d $$RS ] && ARGS="$$ARGS $$RS"; \
 	    [ -z "$$ARGS" ] || cp -r $$ARGS bin/$$m; \
 	 done
 	@echo "    Done."
@@ -98,11 +99,22 @@ deploy: check-env docker-reg build
 	@echo "    Done."
 
 test:
-	@echo "Running tests"
-	@for m in $(MODS); do \
-	    $(MAKE) -C ./src/$$m test; \
-	 done
-	@echo "    Done."
+	@TESTFAILED=""; \
+	for m in $(MODS); do \
+	  STATUS=0; \
+	  echo Running test cases for $$m; \
+	  $(MAKE) -C ./src/$$m test || STATUS=$$?; \
+	  if [ $$STATUS != 0 ]; then \
+	    echo "One or more test case(s) of $$m failed"; \
+	    TESTFAILED+="$$m,"; \
+	  else \
+            echo "Test case(s) for $$m executed successfully"; \
+      	  fi \
+	done; \
+	if [ ! -z "$$TESTFAILED" -a "$$TESTFAILED" != " " ]; then \
+	    echo "One or more test case(s) of $$TESTFAILED failed"; \
+	    exit 1; \
+	fi 
 
 tidy:
 	@echo "Cleaning up dependencies"

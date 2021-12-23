@@ -59,6 +59,7 @@ Install the app using the commands:
 ```shell
 $ cd ../../../dtc/network_policy/
 $ emcoctl --config emco-cfg-dtc.yaml apply -f emco-dtc-single-cluster.yaml
+$ emcoctl --config emco-cfg-dtc.yaml apply -f instantiate.yaml
 ```
 
 ## Verify network policy resource instantiation

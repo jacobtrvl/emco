@@ -74,11 +74,21 @@ func UpdateAppContext(intentName, appContextID string) error {
 
 			// if resource kind is neither configMap nor secret, directly update the context
 			if strings.ToLower(rs.Spec.ResourceGVK.Kind) != "configmap" && strings.ToLower(rs.Spec.ResourceGVK.Kind) != "secret" && strings.ToLower(rs.Spec.NewObject) == "true" {
-				return UpdateContextDirectly(p, ca, cv, dig, intentName, rs, ac, cz)
+				err := UpdateContextDirectly(p, ca, cv, dig, intentName, rs, ac, cz)
+				if err != nil {
+					log.Error("Error UpdateAppContext", log.Fields{"Error": err, "project": p, "CompApp": ca, "CompVer": cv, "DepIntentGrp": dig, "intentName": intentName, "resourceName": rs.Metadata.Name})
+					return pkgerrors.Wrap(err, "Error in updating context for new resource")
+				}
+				continue
 			}
 
 			if strings.ToLower(cz.Spec.PatchType) == "json" && strings.ToLower(rs.Spec.NewObject) == "false" {
-				return UpdateContextExistingResourceUsingPatchArray(p, ca, cv, dig, intentName, rs, ac, cz)
+				err := UpdateContextExistingResourceUsingPatchArray(p, ca, cv, dig, intentName, rs, ac, cz)
+				if err != nil {
+					log.Error("Error UpdateAppContext", log.Fields{"Error": err, "project": p, "CompApp": ca, "CompVer": cv, "DepIntentGrp": dig, "intentName": intentName, "resourceName": rs.Metadata.Name})
+					return pkgerrors.Wrap(err, "Error in updating context for existing resource")
+				}
+				continue
 			}
 
 			dataArr, err := module.NewCustomizationClient().GetCustomizationContent(cz.Metadata.Name, p, ca, cv, dig, intentName, rs.Metadata.Name)

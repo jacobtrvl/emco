@@ -1,0 +1,12 @@
+name: emco-new-controller
+resources:
+  - name: sfcIntent
+    parent: deploymentIntentGroup
+  - name: sfcLink
+    parent: sfcIntent
+    references:
+      - name: app
+  - name: sfcClientSelector
+    parent: sfcIntent
+  - name: sfcProviderNetwork
+    parent: sfcIntent

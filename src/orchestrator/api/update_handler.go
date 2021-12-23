@@ -6,11 +6,11 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+	pkgerrors "github.com/pkg/errors"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/apierror"
 	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/validation"
 	moduleLib "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/module"
-	pkgerrors "github.com/pkg/errors"
 )
 
 var migrateJSONFile string = "json-schemas/migrate.json"

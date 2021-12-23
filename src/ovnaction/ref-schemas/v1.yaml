@@ -1,8 +1,0 @@
-  - name: netControllerIntent
-    parent: deploymentIntentGroup
-  - name: workloadIntent
-    parent: netControllerIntent
-    references:
-      - name: app
-  - name: interfaceIntent
-    parent: workloadIntent

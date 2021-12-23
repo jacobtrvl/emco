@@ -301,7 +301,6 @@ func (rtc *RunTimeContext) RtcGetValue(handle interface{}, value interface{}) er
 
 	err := contextdb.Db.Get(str, value)
 	if err != nil {
-		logutils.Error("contextdb str", logutils.Fields{"str": str})
 		return pkgerrors.Errorf("Error getting run time context value: %s", err.Error())
 	}
 

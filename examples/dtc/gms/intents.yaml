@@ -1,0 +1,247 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2020-2021 Intel Corporation
+
+#create deployment intent group
+version: emco/v2
+resourceContext:
+  anchor: projects/{{ .ProjectName }}/composite-apps/{{ .CompositeApp }}/{{ .CompositeAppVersion }}/deployment-intent-groups
+metadata :
+  name: {{ .DeploymentIntentGroup }}
+  description: "description"
+spec:
+  compositeProfile: {{ .CompositeProfile }} 
+  version: r1
+  logicalCloud: {{ .AdminCloud }}
+  overrideValues: []
+
+---
+#create intent in deployment intent group
+version: emco/v2
+resourceContext:
+  anchor: projects/{{ .ProjectName }}/composite-apps/{{ .CompositeApp }}/{{ .CompositeAppVersion }}/deployment-intent-groups/{{ .DeploymentIntentGroup }}/intents
+metadata :
+  name: {{ .DeploymentIntent }}
+spec:
+  intent:
+    genericPlacementIntent: {{ .GenericPlacementIntent }}
+    dtc: {{ .DtcIntent }}
+
+---
+#create the generic placement intent
+version: emco/v2
+resourceContext:
+  anchor: projects/{{ .ProjectName }}/composite-apps/{{ .CompositeApp }}/{{ .CompositeAppVersion }}/deployment-intent-groups/{{ .DeploymentIntentGroup }}/generic-placement-intents
+metadata :
+  name: {{ .GenericPlacementIntent }}
+
+{{- range $index, $app := .AppsInCluster1 }}
+---
+#add the app placement intent to the generic placement intent for cluster1
+version: emco/v2
+resourceContext:
+  anchor: projects/{{ $.ProjectName }}/composite-apps/{{ $.CompositeApp }}/{{ $.CompositeAppVersion }}/deployment-intent-groups/{{ $.DeploymentIntentGroup }}/generic-placement-intents/{{ $.GenericPlacementIntent }}/app-intents
+metadata:
+  name: {{ $app }}-placement-intent
+spec:
+  app: {{ $app }}
+  intent:
+    allOf:
+    - clusterProvider: {{ $.ClusterProvider }}
+      clusterLabel: {{ $.Cluster1Label }}
+{{- end }}
+
+{{- range $index, $app := .AppsInCluster2 }}
+---
+#add the app placement intent to the generic placement intent for cluster2
+version: emco/v2
+resourceContext:
+  anchor: projects/{{ $.ProjectName }}/composite-apps/{{ $.CompositeApp }}/{{ $.CompositeAppVersion }}/deployment-intent-groups/{{ $.DeploymentIntentGroup }}/generic-placement-intents/{{ $.GenericPlacementIntent }}/app-intents
+metadata:
+  name: {{ $app }}-placement-intent
+spec:
+  app: {{ $app }}
+  intent:
+    allOf:
+    - clusterProvider: {{ $.ClusterProvider }}
+      clusterLabel: {{ $.Cluster2Label }}
+{{- end }}
+---
+#add the traffic group intent
+version: emco/v2
+resourceContext:
+  anchor: projects/{{ .ProjectName }}/composite-apps/{{ .CompositeApp }}/{{ .CompositeAppVersion }}/deployment-intent-groups/{{ .DeploymentIntentGroup }}/traffic-group-intents
+metadata:
+  name: {{ .DtcIntent }}
+
+---
+#add the server intent
+version: emco/v2
+resourceContext:
+  anchor: projects/{{ .ProjectName }}/composite-apps/{{ .CompositeApp }}/{{ .CompositeAppVersion }}/deployment-intent-groups/{{ .DeploymentIntentGroup }}/traffic-group-intents/{{ .DtcIntent }}/inbound-intents
+metadata:
+  name: {{ .DtcProductcatalogServerIntent }}
+spec:
+  app: productcatalogservice
+  appLabel: app=productcatalogservice
+  serviceName: productcatalogservice
+  port: 3550
+  protocol: TCP
+  serviceMesh: istio
+
+---
+#add the client intent
+version: emco/v2
+resourceContext:
+  anchor: projects/{{ .ProjectName }}/composite-apps/{{ .CompositeApp }}/{{ .CompositeAppVersion }}/deployment-intent-groups/{{ .DeploymentIntentGroup }}/traffic-group-intents/{{ .DtcIntent }}/inbound-intents/{{ .DtcProductcatalogServerIntent }}/clients
+metadata:
+  name: client1
+spec:
+  app: frontend
+  appLabel: app=frontend
+  serviceName: frontend
+  namespaces: []
+  cidrs: []
+---
+#add the client intent
+version: emco/v2
+resourceContext:
+  anchor: projects/{{ .ProjectName }}/composite-apps/{{ .CompositeApp }}/{{ .CompositeAppVersion }}/deployment-intent-groups/{{ .DeploymentIntentGroup }}/traffic-group-intents/{{ .DtcIntent }}/inbound-intents/{{ .DtcProductcatalogServerIntent }}/clients
+metadata:
+  name: client2
+spec:
+  app: checkoutservice
+  appLabel: app=checkoutservice
+  serviceName: checkoutservice
+  namespaces: []
+  cidrs: []
+---
+#add the client intent
+version: emco/v2
+resourceContext:
+  anchor: projects/{{ .ProjectName }}/composite-apps/{{ .CompositeApp }}/{{ .CompositeAppVersion }}/deployment-intent-groups/{{ .DeploymentIntentGroup }}/traffic-group-intents/{{ .DtcIntent }}/inbound-intents/{{ .DtcProductcatalogServerIntent }}/clients
+metadata:
+  name: client3
+spec:
+  app: recommendationservice
+  appLabel: app=recommendationservice
+  serviceName: recommendationservice
+  namespaces: []
+  cidrs: []
+---
+#add the server intent
+version: emco/v2
+resourceContext:
+  anchor: projects/{{ .ProjectName }}/composite-apps/{{ .CompositeApp }}/{{ .CompositeAppVersion }}/deployment-intent-groups/{{ .DeploymentIntentGroup }}/traffic-group-intents/{{ .DtcIntent }}/inbound-intents
+metadata:
+  name: {{ .DtcCartserviceServerIntent }}
+spec:
+  app: cartservice
+  appLabel: app=cartservice
+  serviceName: cartservice
+  port: 7070
+  protocol: TCP
+  serviceMesh: istio
+
+---
+#add the client intent
+version: emco/v2
+resourceContext:
+  anchor: projects/{{ .ProjectName }}/composite-apps/{{ .CompositeApp }}/{{ .CompositeAppVersion }}/deployment-intent-groups/{{ .DeploymentIntentGroup }}/traffic-group-intents/{{ .DtcIntent }}/inbound-intents/{{ .DtcCartserviceServerIntent }}/clients
+metadata:
+  name: client1
+spec:
+  app: frontend
+  appLabel: app=frontend
+  serviceName: frontend
+  namespaces: []
+  cidrs: []
+---
+#add the client intent
+version: emco/v2
+resourceContext:
+  anchor: projects/{{ .ProjectName }}/composite-apps/{{ .CompositeApp }}/{{ .CompositeAppVersion }}/deployment-intent-groups/{{ .DeploymentIntentGroup }}/traffic-group-intents/{{ .DtcIntent }}/inbound-intents/{{ .DtcCartserviceServerIntent }}/clients
+metadata:
+  name: client2
+spec:
+  app: checkoutservice
+  appLabel: app=checkoutservice
+  serviceName: checkoutservice
+  namespaces: []
+  cidrs: []
+
+---
+#add the server intent
+version: emco/v2
+resourceContext:
+  anchor: projects/{{ .ProjectName }}/composite-apps/{{ .CompositeApp }}/{{ .CompositeAppVersion }}/deployment-intent-groups/{{ .DeploymentIntentGroup }}/traffic-group-intents/{{ .DtcIntent }}/inbound-intents
+metadata:
+  name: {{ .DtcRediscartServerIntent }}
+spec:
+  app: redis
+  appLabel: app=redis-cart
+  serviceName: redis-cart
+  port: 6379
+  protocol: TCP
+  serviceMesh: istio
+
+---
+#add the client intent
+version: emco/v2
+resourceContext:
+  anchor: projects/{{ .ProjectName }}/composite-apps/{{ .CompositeApp }}/{{ .CompositeAppVersion }}/deployment-intent-groups/{{ .DeploymentIntentGroup }}/traffic-group-intents/{{ .DtcIntent }}/inbound-intents/{{ .DtcRediscartServerIntent }}/clients
+metadata:
+  name: client1
+spec:
+  app: cartservice
+  appLabel: app=cartservice
+  serviceName: cartservice
+  namespaces: []
+  cidrs: []
+---
+#add the server intent
+version: emco/v2
+resourceContext:
+  anchor: projects/{{ .ProjectName }}/composite-apps/{{ .CompositeApp }}/{{ .CompositeAppVersion }}/deployment-intent-groups/{{ .DeploymentIntentGroup }}/traffic-group-intents/{{ .DtcIntent }}/inbound-intents
+metadata:
+  name: {{ .DtcShippingServerIntent }}
+spec:
+  app: shippingservice
+  appLabel: app=shippingservice
+  serviceName: shippingservice
+  port: 50051
+  protocol: TCP
+  serviceMesh: istio
+
+---
+#add the client intent
+version: emco/v2
+resourceContext:
+  anchor: projects/{{ .ProjectName }}/composite-apps/{{ .CompositeApp }}/{{ .CompositeAppVersion }}/deployment-intent-groups/{{ .DeploymentIntentGroup }}/traffic-group-intents/{{ .DtcIntent }}/inbound-intents/{{ .DtcShippingServerIntent }}/clients
+metadata:
+  name: client1
+spec:
+  app: checkoutservice
+  appLabel: app=checkoutservice
+  serviceName: checkoutservice
+  namespaces: []
+  cidrs: []
+
+---
+#add the client intent
+version: emco/v2
+resourceContext:
+  anchor: projects/{{ .ProjectName }}/composite-apps/{{ .CompositeApp }}/{{ .CompositeAppVersion }}/deployment-intent-groups/{{ .DeploymentIntentGroup }}/traffic-group-intents/{{ .DtcIntent }}/inbound-intents/{{ .DtcShippingServerIntent }}/clients
+metadata:
+  name: client2
+spec:
+  app: frontend
+  appLabel: app=frontend
+  serviceName: frontend
+  namespaces: []
+  cidrs: []
+
+---
+#Approve
+version: emco/v2
+resourceContext:
+  anchor: projects/{{ .ProjectName }}/composite-apps/{{ .CompositeApp }}/{{ .CompositeAppVersion }}/deployment-intent-groups/{{ .DeploymentIntentGroup }}/approve

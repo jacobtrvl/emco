@@ -5,6 +5,7 @@ package db
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"reflect"
 	"sort"
@@ -12,9 +13,9 @@ import (
 
 	"golang.org/x/net/context"
 
+	"github.com/tidwall/gjson"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/config"
 	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
-	"github.com/tidwall/gjson"
 
 	pkgerrors "github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson"
@@ -77,9 +78,6 @@ var cursorClose = func(ctx context.Context, cursor *mongo.Cursor) error {
 // If a database with that name exists, it will be returned
 func NewMongoStore(name string, store *mongo.Database) (Store, error) {
 	if store == nil {
-		// First read the database referential schema an ensure it's valid
-		ReadRefSchema()
-
 		ip := "mongodb://" + config.GetConfiguration().DatabaseIP + ":27017"
 		clientOptions := options.Client()
 		clientOptions.ApplyURI(ip)
@@ -102,9 +100,14 @@ func NewMongoStore(name string, store *mongo.Database) (Store, error) {
 		store = mongoClient.Database(name)
 	}
 
-	return &MongoStore{
+	// make the MongoStore struct hear and then call schema stuff here
+	mongoStore := &MongoStore{
 		db: store,
-	}, nil
+	}
+
+	go mongoStore.ReadRefSchema()
+
+	return mongoStore, nil
 }
 
 // HealthCheck verifies if the database is up and running
@@ -123,13 +126,13 @@ func (m *MongoStore) HealthCheck() error {
 func (m *MongoStore) findReferencedBys(c MongoCollection, key Key) (int64, error) {
 
 	// Create the key tag value for this resource (i.e. resource identifier)
-	s, err := m.createKeyIdField(key)
+	keyId, err := m.createKeyIdField(key)
 	if err != nil {
 		return 0, err
 	}
 
 	// set up the filter to search for this resource in references arrays in other documents
-	filter, err := m.findRefByFilter(s, key)
+	filter, err := m.findRefByFilter(keyId, key)
 	if err != nil {
 		return 0, err
 	}
@@ -280,19 +283,24 @@ func (m *MongoStore) verifyReferences(coll string, key Key, keyId string, data i
 	// make a references slice to store keys of any references found
 	refs := make([]ReferenceEntry, 0)
 
+	schemaLock.Lock()
+
 	// Check if this item is present in the referential schema
-	// If it is not, transparently return no error
-	name, ok := keyToName[keyId]
+	name, ok := refKeyMap[keyId]
 	if !ok {
+		schemaLock.Unlock()
 		log.Info("Resource key ID is not present in referential schema", log.Fields{"keyId": keyId})
 		return refs, pkgerrors.Errorf("Resource key ID is not present in referential schema. KeyID: %s, Key: %T %v", keyId, key, key)
 	}
 
-	resEntry, ok := refMap[name]
+	resEntry, ok := refSchemaMap[name]
 	if !ok {
+		schemaLock.Unlock()
 		log.Info("Resource is not present in referential schema", log.Fields{"name": name})
 		return refs, pkgerrors.Errorf("Resource is not present in referential schema. Name: %s, KeyID: %s, Key: %T %v", name, keyId, key, key)
 	}
+
+	schemaLock.Unlock()
 
 	// make a map[string]string copy of the key
 	var rKey map[string]string
@@ -338,7 +346,7 @@ func (m *MongoStore) verifyReferences(coll string, key Key, keyId string, data i
 	// Collect the list of referenced resources
 	for _, r := range resEntry.references {
 		keys := make([]Key, 0)
-		refKey := refMap[r.Name].keyMap
+		refKey := refSchemaMap[r.Name].keyMap
 
 		switch r.Type {
 		case "map":
@@ -404,7 +412,7 @@ func (m *MongoStore) verifyReferences(coll string, key Key, keyId string, data i
 		default:
 			// prepare a filter key (items to not fill out if found in the "spec" object)
 			var filterKey map[string]struct{}
-			if cResEntry, ok := refMap[r.CommonKey]; ok {
+			if cResEntry, ok := refSchemaMap[r.CommonKey]; ok {
 				filterKey = cResEntry.keyMap
 			} else {
 				filterKey = make(map[string]struct{})
@@ -435,7 +443,7 @@ func (m *MongoStore) verifyReferences(coll string, key Key, keyId string, data i
 		}
 
 		for _, k := range keys {
-			ref := ReferenceEntry{Key: k, KeyId: refMap[r.Name].keyId}
+			ref := ReferenceEntry{Key: k, KeyId: refSchemaMap[r.Name].keyId}
 			refs = append(refs, ref)
 		}
 	}
@@ -546,11 +554,11 @@ func (m *MongoStore) findFilterWithKey(key Key) (primitive.M, error) {
 		if v == "" {
 			if _, ok := bsonMapFinal["keyId"]; !ok {
 				// add type of key to filter
-				s, err := m.createKeyIdField(key)
+				keyId, err := m.createKeyIdField(key)
 				if err != nil {
 					return primitive.M{}, err
 				}
-				bsonMapFinal["keyId"] = s
+				bsonMapFinal["keyId"] = keyId
 			}
 		} else {
 			bsonMapFinal[k] = v
@@ -603,12 +611,8 @@ func (m *MongoStore) createKeyIdField(key interface{}) (string, error) {
 		keys = append(keys, k)
 	}
 	sort.Strings(keys)
-	s := "{"
-	for _, k := range keys {
-		s = s + k + ","
-	}
-	s = s + "}"
-	return s, nil
+
+	return fmt.Sprintf("{%s}", strings.Join(keys, ",")), nil
 }
 
 // Insert is used to insert/add element to a document
@@ -631,7 +635,7 @@ func (m *MongoStore) Insert(coll string, key Key, query interface{}, tag string,
 	}
 
 	// Create and add keyId tag
-	s, err := m.createKeyIdField(key)
+	keyId, err := m.createKeyIdField(key)
 	if err != nil {
 		return pkgerrors.Wrapf(err, "db Insert error: Error creating KeyID with key %T %v", key, key)
 	}
@@ -640,7 +644,7 @@ func (m *MongoStore) Insert(coll string, key Key, query interface{}, tag string,
 	refs := make([]ReferenceEntry, 0)
 
 	if tag == "data" {
-		refs, err = m.verifyReferences(coll, key, s, data)
+		refs, err = m.verifyReferences(coll, key, keyId, data)
 		if err != nil {
 			if strings.Contains(err.Error(), "Parent resource not found") {
 				// these errors should be handled separately, not as an internal server error
@@ -653,7 +657,7 @@ func (m *MongoStore) Insert(coll string, key Key, query interface{}, tag string,
 
 			}
 
-			return pkgerrors.Wrapf(err, "db Insert error: Error verifying the references. Collection: %s, Key: %T %v, KeyID: %s", coll, key, key, s)
+			return pkgerrors.Wrapf(err, "db Insert error: Error verifying the references. Collection: %s, Key: %T %v, KeyID: %s", coll, key, key, keyId)
 		}
 
 		_, err = decodeBytes(
@@ -663,7 +667,7 @@ func (m *MongoStore) Insert(coll string, key Key, query interface{}, tag string,
 				bson.D{
 					{"$set", bson.D{
 						{tag, data},
-						{"keyId", s},
+						{"keyId", keyId},
 						{"references", refs},
 					}},
 				},
@@ -676,7 +680,7 @@ func (m *MongoStore) Insert(coll string, key Key, query interface{}, tag string,
 				bson.D{
 					{"$set", bson.D{
 						{tag, data},
-						{"keyId", s},
+						{"keyId", keyId},
 					}},
 				},
 				options.FindOneAndUpdate().SetUpsert(true).SetReturnDocument(options.After)))

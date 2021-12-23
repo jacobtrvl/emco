@@ -1,0 +1,12 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2021 Intel Corporation
+apiVersion: v1
+kind: Service
+metadata:
+  name: productcatalogservice
+spec:
+  type: {{ .Values.productcatalogservice.type }}
+  selector:
+    app: productcatalogservice
+  ports:
+	{{- .Values.productcatalogservice.ports | toYaml | nindent 2 -}}

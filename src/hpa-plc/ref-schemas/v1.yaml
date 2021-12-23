@@ -1,8 +1,0 @@
-  - name: hpaIntent
-    parent: deploymentIntentGroup
-    references:
-      - name: app
-  - name: hpaConsumer
-    parent: hpaIntent
-  - name: hpaResource
-    parent: hpaConsumer

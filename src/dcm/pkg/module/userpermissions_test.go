@@ -12,13 +12,13 @@ import (
 var _ = Describe("Userpermissions", func() {
 
 	var (
-		mdb    *db.MockDB
+		mdb    *db.NewMockDB
 		client *dcm.UserPermissionClient
 	)
 
 	BeforeEach(func() {
 		client = dcm.NewUserPermissionClient()
-		mdb = new(db.MockDB)
+		mdb = new(db.NewMockDB)
 		mdb.Err = nil
 		mdb.Items = []map[string]map[string][]byte{}
 		db.DBconn = mdb

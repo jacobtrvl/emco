@@ -32,6 +32,8 @@ metadata:
   name: {{.LeftCloud}}
 spec:
   namespace: {{.LeftNamespace}}
+  labels:
+    sfc: head
   user:
     userName: left-user
     type: certificate
@@ -112,6 +114,8 @@ metadata:
   name: {{.RightCloud}}
 spec:
   namespace: {{.RightNamespace}}
+  labels:
+    sfc: tail
   user:
     userName: right-user
     type: certificate
@@ -183,6 +187,171 @@ spec:
   loadbalancerIp: "0.0.0.0"
 
 ---
+#create left logical cloud without admin permissions
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/logical-clouds
+metadata:
+  name: {{.LeftCloud2}}
+spec:
+  namespace: {{.LeftNamespace2}}
+  labels:
+    sfc: head2
+    other: testlabel
+  user:
+    userName: left-user2
+    type: certificate
+
+---
+#create cluster quotas
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/logical-clouds/{{.LeftCloud2}}/cluster-quotas
+metadata:
+    name: left-quota2
+spec:
+    requests.ephemeral-storage: '500'
+    limits.ephemeral-storage: '500'
+    persistentvolumeclaims: '500'
+    pods: '500'
+    configmaps: '1000'
+    replicationcontrollers: '500'
+    resourcequotas: '500'
+    services: '500'
+    services.loadbalancers: '500'
+    services.nodeports: '500'
+    secrets: '500'
+    count/replicationcontrollers: '500'
+    count/deployments.apps: '500'
+    count/replicasets.apps: '500'
+    count/statefulsets.apps: '500'
+    count/jobs.batch: '500'
+    count/cronjobs.batch: '500'
+    count/deployments.extensions: '500'
+
+---
+#create right logical cloud without admin permissions
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/logical-clouds/{{.LeftCloud2}}/user-permissions
+metadata:
+  name: left-permission2
+spec:
+    namespace: {{.LeftNamespace2}}
+    apiGroups:
+    - ""
+    - "apps"
+    - "k8splugin.io"
+    resources:
+    - secrets
+    - pods
+    - configmaps
+    - services
+    - deployments
+    - resourcebundlestates
+    verbs:
+    - get
+    - watch
+    - list
+    - create
+    - delete
+
+
+---
+#add cluster reference to logical cloud
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/logical-clouds/{{.LeftCloud2}}/cluster-references
+metadata:
+  name: lc-cl-left
+spec:
+  clusterProvider: {{.ClusterProvider}}
+  cluster: {{.Cluster1}}
+  loadbalancerIp: "0.0.0.0"
+
+---
+#create right logical cloud without admin permissions
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/logical-clouds
+metadata:
+  name: {{.RightCloud2}}
+spec:
+  namespace: {{.RightNamespace2}}
+  labels:
+    other: testlabel
+    sfc: tail2
+  user:
+    userName: right-user2
+    type: certificate
+
+---
+#create right logical cloud without admin permissions
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/logical-clouds/{{.RightCloud2}}/user-permissions
+metadata:
+  name: right-permission2
+spec:
+    namespace: {{.RightNamespace2}}
+    apiGroups:
+    - ""
+    - "apps"
+    - "k8splugin.io"
+    resources:
+    - secrets
+    - pods
+    - configmaps
+    - services
+    - deployments
+    - resourcebundlestates
+    verbs:
+    - get
+    - watch
+    - list
+    - create
+    - delete
+
+---
+#create cluster quotas
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/logical-clouds/{{.RightCloud2}}/cluster-quotas
+metadata:
+    name: right-quota2
+spec:
+    requests.ephemeral-storage: '500'
+    limits.ephemeral-storage: '500'
+    persistentvolumeclaims: '500'
+    pods: '500'
+    configmaps: '1000'
+    replicationcontrollers: '500'
+    resourcequotas: '500'
+    services: '500'
+    services.loadbalancers: '500'
+    services.nodeports: '500'
+    secrets: '500'
+    count/replicationcontrollers: '500'
+    count/deployments.apps: '500'
+    count/replicasets.apps: '500'
+    count/statefulsets.apps: '500'
+    count/jobs.batch: '500'
+    count/cronjobs.batch: '500'
+    count/deployments.extensions: '500'
+
+---
+#add cluster reference to logical cloud
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/logical-clouds/{{.RightCloud2}}/cluster-references
+metadata:
+  name: lc-cl-right
+spec:
+  clusterProvider: {{.ClusterProvider}}
+  cluster: {{.Cluster1}}
+  loadbalancerIp: "0.0.0.0"
+
+---
 #instantiate SFC logical cloud
 version: emco/v2
 resourceContext:
@@ -199,4 +368,16 @@ resourceContext:
 version: emco/v2
 resourceContext:
   anchor: projects/{{.ProjectName}}/logical-clouds/{{.RightCloud}}/instantiate
+
+---
+#instantiate left logical cloud 2
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/logical-clouds/{{.LeftCloud2}}/instantiate
+
+---
+#instantiate right logical cloud 2
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/logical-clouds/{{.RightCloud2}}/instantiate
 

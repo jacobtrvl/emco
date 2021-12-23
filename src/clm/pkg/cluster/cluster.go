@@ -7,13 +7,13 @@ import (
 	"strings"
 	"time"
 
+	pkgerrors "github.com/pkg/errors"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/appcontext"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
 	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 	mtypes "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/module/types"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/state"
 	rsync "gitlab.com/project-emco/core/emco-base/src/rsync/pkg/db"
-	pkgerrors "github.com/pkg/errors"
 
 	clmController "gitlab.com/project-emco/core/emco-base/src/clm/pkg/controller"
 	clmcontrollerpb "gitlab.com/project-emco/core/emco-base/src/clm/pkg/grpc/controller-eventchannel"
@@ -34,6 +34,7 @@ type ClusterProvider struct {
 
 type Cluster struct {
 	Metadata mtypes.Metadata `json:"metadata"`
+	Spec     GitOpsSpec      `json:"spec,omitempty"`
 }
 
 type ClusterWithLabels struct {
@@ -55,6 +56,25 @@ type ClusterKvPairs struct {
 }
 
 type ClusterKvSpec struct {
+	Kv []map[string]interface{} `json:"kv"`
+}
+
+type GitOpsSpec struct {
+	Props GitOpsProps `json:"gitOps"`
+}
+
+type GitOpsProps struct {
+	GitOpsType            string `json:"gitOpsType"`
+	GitOpsReferenceObject string `json:"gitOpsReferenceObject"`
+	GitOpsResourceObject  string `json:"gitOpsResourceObject"`
+}
+
+type ClusterSyncObjects struct {
+	Metadata mtypes.Metadata       `json:"metadata"`
+	Spec     ClusterSyncObjectSpec `json:"spec"`
+}
+
+type ClusterSyncObjectSpec struct {
 	Kv []map[string]interface{} `json:"kv"`
 }
 
@@ -89,6 +109,12 @@ type ClusterKvPairsKey struct {
 	ClusterKvPairsName  string `json:"clusterKv"`
 }
 
+// ClusterSyncObjectKey is the key structure that is used in the database
+type ClusterSyncObjectsKey struct {
+	ClusterProviderName    string `json:"clusterProvider"`
+	ClusterSyncObjectsName string `json:"clusterSyncObject"`
+}
+
 const SEPARATOR = "+"
 const CONTEXT_CLUSTER_APP = "network-intents"
 const CONTEXT_CLUSTER_RESOURCE = "network-intents"
@@ -116,6 +142,12 @@ type ClusterManager interface {
 	GetClusterKvPairsValue(provider, cluster, kvpair, kvkey string) (interface{}, error)
 	GetAllClusterKvPairs(provider, cluster string) ([]ClusterKvPairs, error)
 	DeleteClusterKvPairs(provider, cluster, kvpair string) error
+	CreateClusterSyncObjects(provider string, pr ClusterSyncObjects, exists bool) (ClusterSyncObjects, error)
+	GetClusterSyncObjects(provider, syncobject string) (ClusterSyncObjects, error)
+	GetClusterSyncObjectsValue(provider, syncobject, syncobjectkey string) (interface{}, error)
+	GetAllClusterSyncObjects(provider string) ([]ClusterSyncObjects, error)
+	DeleteClusterSyncObjects(provider, syncobject string) error
+	CreateClusterGitOpsData(provider string, pr Cluster, exists bool) (Cluster, error)
 }
 
 // ClusterClient implements the Manager
@@ -745,4 +777,153 @@ func (v *ClusterClient) DeleteClusterKvPairs(provider, cluster, kvpair string) e
 
 	err := db.DBconn.Remove(v.db.storeName, key)
 	return err
+}
+
+// CreateClusterSyncObjects - Create a New Cluster sync objects document
+func (v *ClusterClient) CreateClusterSyncObjects(provider string, p ClusterSyncObjects, exists bool) (ClusterSyncObjects, error) {
+	key := ClusterSyncObjectsKey{
+		ClusterProviderName:    provider,
+		ClusterSyncObjectsName: p.Metadata.Name,
+	}
+
+	//Check if this ClusterSyncObjects already exists
+	_, err := v.GetClusterSyncObjects(provider, p.Metadata.Name)
+	if err == nil && !exists {
+		return ClusterSyncObjects{}, pkgerrors.New("Cluster Sync Objects already exists")
+	}
+
+	err = db.DBconn.Insert(v.db.storeName, key, nil, v.db.tagMeta, p)
+	if err != nil {
+		return ClusterSyncObjects{}, pkgerrors.Wrap(err, "Creating DB Entry")
+	}
+
+	return p, nil
+}
+
+// GetClusterSyncObjects returns the Cluster Sync objects for corresponding provider and sync object name
+func (v *ClusterClient) GetClusterSyncObjects(provider, syncobject string) (ClusterSyncObjects, error) {
+	//Construct key and tag to select entry
+	key := ClusterSyncObjectsKey{
+		ClusterProviderName:    provider,
+		ClusterSyncObjectsName: syncobject,
+	}
+
+	value, err := db.DBconn.Find(v.db.storeName, key, v.db.tagMeta)
+	if err != nil {
+		return ClusterSyncObjects{}, err
+	} else if len(value) == 0 {
+		return ClusterSyncObjects{}, pkgerrors.New("Cluster sync object not found")
+	}
+
+	//value is a byte array
+	if value != nil {
+		ckvp := ClusterSyncObjects{}
+		err = db.DBconn.Unmarshal(value[0], &ckvp)
+		if err != nil {
+			return ClusterSyncObjects{}, err
+		}
+		return ckvp, nil
+	}
+
+	return ClusterSyncObjects{}, pkgerrors.New("Unknown Error")
+}
+
+// DeleteClusterSyncObjects the  ClusterSyncObjects from database
+func (v *ClusterClient) DeleteClusterSyncObjects(provider, syncobject string) error {
+	//Construct key and tag to select entry
+	key := ClusterSyncObjectsKey{
+		ClusterProviderName:    provider,
+		ClusterSyncObjectsName: syncobject,
+	}
+
+	err := db.DBconn.Remove(v.db.storeName, key)
+	return err
+}
+
+// GetClusterSyncObjectsValue returns the value of the key from the corresponding provider and Sync Object name
+func (v *ClusterClient) GetClusterSyncObjectsValue(provider, syncobject, syncobjectkey string) (interface{}, error) {
+	//Construct key and tag to select entry
+	key := ClusterSyncObjectsKey{
+		ClusterProviderName:    provider,
+		ClusterSyncObjectsName: syncobject,
+	}
+
+	value, err := db.DBconn.Find(v.db.storeName, key, v.db.tagMeta)
+	if err != nil {
+		return ClusterSyncObjects{}, err
+	} else if len(value) == 0 {
+		return Cluster{}, pkgerrors.New("Cluster sync object not found")
+	}
+
+	//value is a byte array
+	if value != nil {
+		ckvp := ClusterSyncObjects{}
+		err = db.DBconn.Unmarshal(value[0], &ckvp)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, kvmap := range ckvp.Spec.Kv {
+			if val, ok := kvmap[syncobjectkey]; ok {
+				return struct {
+					Value interface{} `json:"value"`
+				}{Value: val}, nil
+			}
+		}
+		return nil, pkgerrors.New("Cluster Sync Object key value not found")
+	}
+
+	return nil, pkgerrors.New("Unknown Error")
+}
+
+// GetAllClusterSyncObjects returns the Cluster Sync Objects for corresponding provider
+func (v *ClusterClient) GetAllClusterSyncObjects(provider string) ([]ClusterSyncObjects, error) {
+	//Construct key and tag to select the entry
+	key := ClusterSyncObjectsKey{
+		ClusterProviderName:    provider,
+		ClusterSyncObjectsName: "",
+	}
+
+	// // Verify Cluster Provider exists
+	_, err := v.GetClusterProvider(provider)
+	if err != nil {
+		return []ClusterSyncObjects{}, err
+	}
+
+	values, err := db.DBconn.Find(v.db.storeName, key, v.db.tagMeta)
+	if err != nil {
+		return []ClusterSyncObjects{}, err
+	}
+
+	resp := make([]ClusterSyncObjects, 0)
+	for _, value := range values {
+		cp := ClusterSyncObjects{}
+		err = db.DBconn.Unmarshal(value, &cp)
+		if err != nil {
+			return []ClusterSyncObjects{}, err
+		}
+		resp = append(resp, cp)
+	}
+
+	return resp, nil
+}
+
+func (v *ClusterClient) CreateClusterGitOpsData(provider string, pr Cluster, exists bool) (Cluster, error) {
+
+	//Construct key and tag to select the entry
+	key := ClusterKey{
+		ClusterProviderName: provider,
+		ClusterName:         pr.Metadata.Name,
+	}
+	//Check if this ClusterKvPairs already exists
+	_, err := v.GetCluster(provider, pr.Metadata.Name)
+	if err == nil && !exists {
+		return Cluster{}, pkgerrors.New("Cluster already exists")
+	}
+	err = db.DBconn.Insert(v.db.storeName, key, nil, v.db.tagMeta, pr)
+	if err != nil {
+		return Cluster{}, pkgerrors.Wrap(err, "Creating DB Entry")
+	}
+
+	return pr, nil
 }

@@ -1,4 +1,0 @@
-  - name: providerNetwork
-    parent: cluster
-  - name: network
-    parent: cluster

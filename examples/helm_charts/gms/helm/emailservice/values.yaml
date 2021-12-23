@@ -1,0 +1,21 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2021 Intel Corporation
+emailservice:
+  ports:
+  - name: grpc
+    port: 5000
+    targetPort: 8080
+  server:
+    port: 8080
+    image:
+      repository: gcr.io/google-samples/microservices-demo/emailservice
+      tag: v0.3.0
+      pullPolicy: IfNotPresent
+    resources:
+      limits:
+        cpu: 200m
+        memory: 128Mi
+      requests:
+        cpu: 100m
+        memory: 64Mi
+  type: ClusterIP

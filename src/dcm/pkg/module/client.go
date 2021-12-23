@@ -14,8 +14,10 @@ import (
 	"google.golang.org/grpc"
 
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/appcontext"
+	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
 	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/rpc"
+	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/state"
 	readynotifypb "gitlab.com/project-emco/core/emco-base/src/rsync/pkg/grpc/readynotify"
 )
 
@@ -97,9 +99,12 @@ func InvokeReadyNotify(appContextID string) error {
 }
 
 func processAlert(client readynotifypb.ReadyNotifyClient, stream readynotifypb.ReadyNotify_AlertClient) {
+	var ac appcontext.AppContext
 	var appContextID string
-	var lcc *LogicalCloudClient
 	var dcc *ClusterClient
+	var lcmeta appcontext.CompositeAppMeta
+	var project string
+	var logicalCloud string
 
 	allCertsReady := false
 	for !allCertsReady {
@@ -122,13 +127,19 @@ func processAlert(client readynotifypb.ReadyNotifyClient, stream readynotifypb.R
 	// if this point is reached, it means all clusters' certificates have been issued,
 	// so it's time for DCM to build all the L1 kubeconfigs and store them in CloudConfig
 
-	// Get the actual Logical Cloud via the known AppContext ID
-	lcc = NewLogicalCloudClient() // in logicalcloud.go
-	project, logicalCloud, err := GetLogicalCloudFromContext(lcc.storeName, appContextID)
+	// get logical cloud using context logicalcloud meta:
+	_, err := ac.LoadAppContext(appContextID)
+	if err != nil {
+		log.Error("[ReadyNotify gRPC] Error getting Logical Cloud using AppContext ID", log.Fields{"err": err})
+		return
+	}
+	lcmeta, err = ac.GetCompositeAppMeta()
 	if err != nil {
 		log.Error("[ReadyNotify gRPC] Couldn't get Logical Cloud using AppContext ID", log.Fields{"err": err})
 		return
 	}
+	project = lcmeta.Project
+	logicalCloud = lcmeta.LogicalCloud
 	log.Info("[ReadyNotify gRPC] Project and Logical Cloud obtained", log.Fields{"project": project, "logicalCloud": logicalCloud})
 
 	// Get all clusters of the Logical Cloud
@@ -150,7 +161,47 @@ func processAlert(client readynotifypb.ReadyNotifyClient, stream readynotifypb.R
 	}
 	log.Info("[ReadyNotify gRPC] All CloudConfigs for Logical Cloud have been created", log.Fields{"project": project, "logicalCloud": logicalCloud})
 
+	if err != nil {
+		return // error already logged
+	}
+
 	_ = unsubscribe(client, appContextID)
+}
+
+// Updates the State of an existing logical cloud, adding to the timestamped history of States
+func addState(lcc *LogicalCloudClient, project, logicalCloud, cid, newState string) error {
+	s, err := lcc.GetState(project, logicalCloud)
+	if err != nil {
+		log.Error("LogicalCloud has no state info: ", log.Fields{"logicalCloud": logicalCloud})
+		return err
+	}
+	lckey := LogicalCloudKey{
+		Project:          project,
+		LogicalCloudName: logicalCloud,
+	}
+	lastRevision, err := state.GetLatestRevisionFromStateInfo(s)
+	if err != nil {
+		log.Error("Latest revision not found", log.Fields{})
+		return err
+	}
+	// TODO: make atomic
+	newRevision := lastRevision + 1
+
+	a := state.ActionEntry{
+		State:     newState,
+		ContextId: cid,
+		TimeStamp: time.Now(),
+		Revision:  newRevision,
+	}
+	s.StatusContextId = cid
+	s.Actions = append(s.Actions, a)
+
+	err = db.DBconn.Insert(lcc.storeName, lckey, nil, lcc.tagState, s)
+	if err != nil {
+		log.Error("Error updating the state info of the LogicalCloud: ", log.Fields{"logicalCloud": logicalCloud})
+		return err
+	}
+	return nil
 }
 
 func subscribe(client readynotifypb.ReadyNotifyClient, appContextID string) {

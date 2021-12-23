@@ -1,0 +1,36 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2021 Intel Corporation
+external:
+  ports:
+  - name: http
+    port: 80
+    targetPort: 8080
+  type: LoadBalancer
+frontend:
+  ports:
+  - name: http
+    port: 80
+    targetPort: 8080
+  server:
+    port: 8080
+    productcatalogserviceport: 3550
+    shippingserviceiport: 50051
+    paymentserviceiport: 50051
+    emailserviceiport: 5000
+    currencyserviceport: 7000
+    cartserviceport: 7070
+    recommendationserviceport: 8080
+    checkoutserviceport: 5050
+    adserviceport: 9555
+    image:
+      repository: gcr.io/google-samples/microservices-demo/frontend
+      tag: v0.3.0
+      pullPolicy: IfNotPresent
+    resources:
+      limits:
+        cpu: 200m
+        memory: 128Mi
+      requests:
+        cpu: 100m
+        memory: 64Mi
+  type: ClusterIP

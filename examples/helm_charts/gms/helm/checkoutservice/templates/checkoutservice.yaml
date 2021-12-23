@@ -1,0 +1,12 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2021 Intel Corporation
+apiVersion: v1
+kind: Service
+metadata:
+  name: checkoutservice
+spec:
+  type: {{ .Values.checkoutservice.type }}
+  selector:
+    app: checkoutservice
+  ports:
+	{{- .Values.checkoutservice.ports | toYaml | nindent 2 -}}

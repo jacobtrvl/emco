@@ -144,6 +144,7 @@ func (r *deploymentReconciler) UpdateStatus(cr *v1alpha1.ResourceBundleState, ob
 			Status:     dm.Status,
 		}
 		c.ObjectMeta.ManagedFields = []metav1.ManagedFieldsEntry{}
+		c.Annotations = ClearLastApplied(c.Annotations)
 		cr.Status.DeploymentStatuses = append(cr.Status.DeploymentStatuses, c)
 	}
 	return found, nil

@@ -34,6 +34,8 @@ import (
 //    b) variation 2:  One SFC Intent
 //    c) variation 3:  Two SFC Intents
 
+const deployment1 = "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: td\nspec:\n  replicas: 1\n  selector:\n    matchLabels:\n      t: abc\n  template:\n    metadata:\n      labels:\n        t: abc\n    spec:\n      containers:\n      - name: nginx\n        image: t:1.2\n"
+
 var TestCA1 catypes.CompositeApp = catypes.CompositeApp{
 	CompMetadata: appcontext.CompositeAppMeta{
 		Project:               "testp",
@@ -52,17 +54,17 @@ var TestCA1 catypes.CompositeApp = catypes.CompositeApp{
 				"provider1+cluster1": &catypes.Cluster{
 					Name: "provider1+cluster1",
 					Resources: map[string]*catypes.AppResource{
-						"r1": &catypes.AppResource{Name: "r1", Data: "a1c1r1"},
-						"r2": &catypes.AppResource{Name: "r2", Data: "a1c1r2"},
+						"r1": &catypes.AppResource{Name: "r1+Deployment", Data: deployment1},
+						"r2": &catypes.AppResource{Name: "r2+Deployment", Data: deployment1},
 					},
 					ResOrder: []string{"r1", "r2"}},
 				"provider1+cluster2": &catypes.Cluster{
 					Name: "provider1+cluster2",
 					Resources: map[string]*catypes.AppResource{
-						"r3": &catypes.AppResource{Name: "r3", Data: "a1c2r3"},
-						"r4": &catypes.AppResource{Name: "r4", Data: "a1c2r4"},
+						"r1": &catypes.AppResource{Name: "r1+Deployment", Data: deployment1},
+						"r2": &catypes.AppResource{Name: "r2+Deployment", Data: deployment1},
 					},
-					ResOrder: []string{"r3", "r4"}}},
+					ResOrder: []string{"r1", "r2"}}},
 		},
 		"a2": &catypes.App{
 			Name: "a2",
@@ -70,16 +72,17 @@ var TestCA1 catypes.CompositeApp = catypes.CompositeApp{
 				"provider1+cluster1": &catypes.Cluster{
 					Name: "provider1+cluster1",
 					Resources: map[string]*catypes.AppResource{
-						"r1": &catypes.AppResource{Name: "r3", Data: "a2c1r1"},
-						"r2": &catypes.AppResource{Name: "r4", Data: "a2c1r2"},
+						"r3": &catypes.AppResource{Name: "r3+Deployment", Data: deployment1},
+						"r4": &catypes.AppResource{Name: "r4+Deployment", Data: deployment1},
+						"r5": &catypes.AppResource{Name: "r5+Deployment", Data: deployment1},
 					},
-					ResOrder: []string{"r3", "r4"}},
+					ResOrder: []string{"r3", "r4", "r5"}},
 				"provider1+cluster2": &catypes.Cluster{
 					Name: "provider1+cluster2",
 					Resources: map[string]*catypes.AppResource{
-						"r3": &catypes.AppResource{Name: "r3", Data: "a2c2r3"},
-						"r4": &catypes.AppResource{Name: "r4", Data: "a2c2r4"},
-						"r5": &catypes.AppResource{Name: "r4", Data: "a2c2r5"},
+						"r3": &catypes.AppResource{Name: "r3+Deployment", Data: deployment1},
+						"r4": &catypes.AppResource{Name: "r4+Deployment", Data: deployment1},
+						"r5": &catypes.AppResource{Name: "r5+Deployment", Data: deployment1},
 					},
 					ResOrder: []string{"r3", "r4", "r5"}}},
 		},
@@ -89,10 +92,10 @@ var TestCA1 catypes.CompositeApp = catypes.CompositeApp{
 				"provider1+cluster2": &catypes.Cluster{
 					Name: "provider1+cluster2",
 					Resources: map[string]*catypes.AppResource{
-						"r6": &catypes.AppResource{Name: "r3", Data: "a3c2r6"},
-						"r7": &catypes.AppResource{Name: "r4", Data: "a3c2r7"},
+						"r6": &catypes.AppResource{Name: "r6+Deployment", Data: deployment1},
+						"r7": &catypes.AppResource{Name: "r7+Deployment", Data: deployment1},
 					},
-					ResOrder: []string{"r3", "r4"}}},
+					ResOrder: []string{"r6", "r7"}}},
 		},
 	},
 }
@@ -115,12 +118,16 @@ var _ = Describe("SFCAction", func() {
 
 		sfcIntent                     model.SfcIntent
 		sfcIntent2                    model.SfcIntent
+		sfcLinkIntent1                model.SfcLinkIntent
+		sfcLinkIntent2                model.SfcLinkIntent
+		sfcLinkIntent3                model.SfcLinkIntent
 		sfcLeftClientSelectorIntent   model.SfcClientSelectorIntent
 		sfcRightClientSelectorIntent  model.SfcClientSelectorIntent
 		sfcLeftProviderNetworkIntent  model.SfcProviderNetworkIntent
 		sfcRightProviderNetworkIntent model.SfcProviderNetworkIntent
 		sfcClient                     *module.SfcIntentClient
 		sfcClientSelectorClient       *module.SfcClientSelectorIntentClient
+		sfcLinkIntentClient           *module.SfcLinkIntentClient
 		sfcProviderNetworkClient      *module.SfcProviderNetworkIntentClient
 
 		resultingCA catypes.CompositeApp
@@ -176,9 +183,35 @@ var _ = Describe("SFCAction", func() {
 				Name: "sfcIntentName",
 			},
 			Spec: model.SfcIntentSpec{
-				ChainType:    model.RoutingChainType,
-				NetworkChain: "net=left-virtual,app=a1,net=dyn1,app=a2,net=right-virtual",
-				Namespace:    "chainspace",
+				ChainType: model.RoutingChainType,
+				Namespace: "chainspace",
+			},
+		}
+		sfcLinkIntentClient = module.NewSfcLinkIntentClient()
+		sfcLinkIntent1 = model.SfcLinkIntent{
+			Metadata: model.Metadata{
+				Name: "sfcLinkIntent1",
+			},
+			Spec: model.SfcLinkIntentSpec{
+				LeftNet:          "left-virtual",
+				RightNet:         "dyn1",
+				LinkLabel:        "app=a1",
+				AppName:          "a1",
+				WorkloadResource: "r1",
+				ResourceType:     "Deployment",
+			},
+		}
+		sfcLinkIntent2 = model.SfcLinkIntent{
+			Metadata: model.Metadata{
+				Name: "sfcLinkIntent2",
+			},
+			Spec: model.SfcLinkIntentSpec{
+				LeftNet:          "dyn1",
+				RightNet:         "right-virtual",
+				LinkLabel:        "app=a2",
+				AppName:          "a2",
+				WorkloadResource: "r3",
+				ResourceType:     "Deployment",
 			},
 		}
 		sfcIntent2 = model.SfcIntent{
@@ -186,9 +219,21 @@ var _ = Describe("SFCAction", func() {
 				Name: "sfcIntentName2",
 			},
 			Spec: model.SfcIntentSpec{
-				ChainType:    model.RoutingChainType,
-				NetworkChain: "net=left-virtual,app=a3,net=right-virtual",
-				Namespace:    "chainspace",
+				ChainType: model.RoutingChainType,
+				Namespace: "chainspace",
+			},
+		}
+		sfcLinkIntent3 = model.SfcLinkIntent{
+			Metadata: model.Metadata{
+				Name: "sfcLinkIntent3",
+			},
+			Spec: model.SfcLinkIntentSpec{
+				LeftNet:          "left-virtual",
+				RightNet:         "right-virtual",
+				LinkLabel:        "app=a3",
+				AppName:          "a3",
+				WorkloadResource: "r6",
+				ResourceType:     "Deployment",
 			},
 		}
 
@@ -259,6 +304,10 @@ var _ = Describe("SFCAction", func() {
 		Expect(err).To(BeNil())
 		_, err = (*sfcClient).CreateSfcIntent(sfcIntent, "testp", "chainCA", "v1", "dig1", false)
 		Expect(err).To(BeNil())
+		_, err = (*sfcLinkIntentClient).CreateSfcLinkIntent(sfcLinkIntent1, "testp", "chainCA", "v1", "dig1", "sfcIntentName", false)
+		Expect(err).To(BeNil())
+		_, err = (*sfcLinkIntentClient).CreateSfcLinkIntent(sfcLinkIntent2, "testp", "chainCA", "v1", "dig1", "sfcIntentName", false)
+		Expect(err).To(BeNil())
 		_, err = (*sfcClientSelectorClient).CreateSfcClientSelectorIntent(sfcLeftClientSelectorIntent, "testp", "chainCA", "v1", "dig1", "sfcIntentName", false)
 		Expect(err).To(BeNil())
 		_, err = (*sfcClientSelectorClient).CreateSfcClientSelectorIntent(sfcRightClientSelectorIntent, "testp", "chainCA", "v1", "dig1", "sfcIntentName", false)
@@ -269,56 +318,56 @@ var _ = Describe("SFCAction", func() {
 		Expect(err).To(BeNil())
 	})
 
-	It("Missing Both Client Selector intents", func() {
+	It("No Client Selector intents", func() {
 		err := (*sfcClientSelectorClient).DeleteSfcClientSelectorIntent("sfcLeftClientSelectorIntentName", "testp", "chainCA", "v1", "dig1", "sfcIntentName")
 		Expect(err).To(BeNil())
 		err = (*sfcClientSelectorClient).DeleteSfcClientSelectorIntent("sfcRightClientSelectorIntentName", "testp", "chainCA", "v1", "dig1", "sfcIntentName")
 		Expect(err).To(BeNil())
 
 		err = action.UpdateAppContext("dig1", contextIdCA1)
-		Expect(strings.Contains(err.Error(), "Missing left and right client selector intents")).To(Equal(true))
+		Expect(err).To(BeNil())
 	})
 
-	It("Missing Left Client Selector intent", func() {
+	It("No Left Client Selector intent", func() {
 		err := (*sfcClientSelectorClient).DeleteSfcClientSelectorIntent("sfcLeftClientSelectorIntentName", "testp", "chainCA", "v1", "dig1", "sfcIntentName")
 		Expect(err).To(BeNil())
 
 		err = action.UpdateAppContext("dig1", contextIdCA1)
-		Expect(strings.Contains(err.Error(), "Missing left client selector intent")).To(Equal(true))
+		Expect(err).To(BeNil())
 	})
 
-	It("Missing Right Client Selector intent", func() {
+	It("No Right Client Selector intent", func() {
 		err := (*sfcClientSelectorClient).DeleteSfcClientSelectorIntent("sfcRightClientSelectorIntentName", "testp", "chainCA", "v1", "dig1", "sfcIntentName")
 		Expect(err).To(BeNil())
 
 		err = action.UpdateAppContext("dig1", contextIdCA1)
-		Expect(strings.Contains(err.Error(), "Missing right client selector intent")).To(Equal(true))
+		Expect(err).To(BeNil())
 	})
 
-	It("Missing Both Provider Network intents", func() {
+	It("No Both Provider Network intents", func() {
 		err := (*sfcProviderNetworkClient).DeleteSfcProviderNetworkIntent("sfcLeftProviderNetworkIntentName", "testp", "chainCA", "v1", "dig1", "sfcIntentName")
 		Expect(err).To(BeNil())
 		err = (*sfcProviderNetworkClient).DeleteSfcProviderNetworkIntent("sfcRightProviderNetworkIntentName", "testp", "chainCA", "v1", "dig1", "sfcIntentName")
 		Expect(err).To(BeNil())
 
 		err = action.UpdateAppContext("dig1", contextIdCA1)
-		Expect(strings.Contains(err.Error(), "Missing left and right provider network intent")).To(Equal(true))
+		Expect(err).To(BeNil())
 	})
 
-	It("Missing Left Provider Network intent", func() {
+	It("No Left Provider Network intent", func() {
 		err := (*sfcProviderNetworkClient).DeleteSfcProviderNetworkIntent("sfcLeftProviderNetworkIntentName", "testp", "chainCA", "v1", "dig1", "sfcIntentName")
 		Expect(err).To(BeNil())
 
 		err = action.UpdateAppContext("dig1", contextIdCA1)
-		Expect(strings.Contains(err.Error(), "Missing left provider network intent")).To(Equal(true))
+		Expect(err).To(BeNil())
 	})
 
-	It("Missing Right Provider Network intent", func() {
+	It("No Right Provider Network intent", func() {
 		err := (*sfcProviderNetworkClient).DeleteSfcProviderNetworkIntent("sfcRightProviderNetworkIntentName", "testp", "chainCA", "v1", "dig1", "sfcIntentName")
 		Expect(err).To(BeNil())
 
 		err = action.UpdateAppContext("dig1", contextIdCA1)
-		Expect(strings.Contains(err.Error(), "Missing right provider network intent")).To(Equal(true))
+		Expect(err).To(BeNil())
 	})
 
 	It("Successful Apply SFC to an App Context", func() {
@@ -349,6 +398,8 @@ var _ = Describe("SFCAction", func() {
 	It("Successful Apply two SFCs to an App Context", func() {
 		// set up second SFC
 		_, err := (*sfcClient).CreateSfcIntent(sfcIntent2, "testp", "chainCA", "v1", "dig1", false)
+		Expect(err).To(BeNil())
+		_, err = (*sfcLinkIntentClient).CreateSfcLinkIntent(sfcLinkIntent3, "testp", "chainCA", "v1", "dig1", "sfcIntentName2", false)
 		Expect(err).To(BeNil())
 		_, err = (*sfcClientSelectorClient).CreateSfcClientSelectorIntent(sfcLeftClientSelectorIntent, "testp", "chainCA", "v1", "dig1", "sfcIntentName2", false)
 		Expect(err).To(BeNil())

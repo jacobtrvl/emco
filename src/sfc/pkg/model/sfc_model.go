@@ -30,9 +30,8 @@ type SfcIntent struct {
 
 // SfcIntentSpec contains the specification of a network chain
 type SfcIntentSpec struct {
-	ChainType    string `json:"chainType"`
-	NetworkChain string `json:"networkChain"`
-	Namespace    string `json:"namespace"`
+	ChainType string `json:"chainType"`
+	Namespace string `json:"namespace"`
 }
 
 // RouteSpec contains the routing specificaiton of a network chain
@@ -72,6 +71,32 @@ const ChainingKind = "NetworkChaining"
 // Chain constants
 const LeftChainEnd = "left"
 const RightChainEnd = "right"
+
+// SfcLinkIntent defines the high level structure of a network chain document
+type SfcLinkIntent struct {
+	Metadata Metadata          `json:"metadata" yaml:"metadata"`
+	Spec     SfcLinkIntentSpec `json:"spec" yaml:"spec"`
+}
+
+// SfcLinkIntentSpec contains the specification of a network chain
+type SfcLinkIntentSpec struct {
+	LeftNet          string `json:"leftNet"`
+	RightNet         string `json:"rightNet"`
+	LinkLabel        string `json:"linkLabel"`
+	AppName          string `json:"app"`
+	WorkloadResource string `json:"workloadResource"`
+	ResourceType     string `json:"resourceType"`
+}
+
+// SfcLinkIntentKey is the key structure that is used in the database
+type SfcLinkIntentKey struct {
+	Project             string `json:"project"`
+	CompositeApp        string `json:"compositeApp"`
+	CompositeAppVersion string `json:"compositeAppVersion"`
+	DigName             string `json:"deploymentIntentGroup"`
+	SfcIntent           string `json:"sfcIntent"`
+	SfcLinkIntent       string `json:"sfcLink"`
+}
 
 // SfcClientSelectorIntent defines the high level structure of a network chain document
 type SfcClientSelectorIntent struct {

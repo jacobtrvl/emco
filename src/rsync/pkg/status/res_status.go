@@ -5,12 +5,21 @@ package status
 
 import (
 	"encoding/json"
+
+	yaml "github.com/ghodss/yaml"
 	rb "gitlab.com/project-emco/core/emco-base/src/monitor/pkg/apis/k8splugin/v1alpha1"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/appcontext"
 	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 	"gitlab.com/project-emco/core/emco-base/src/rsync/pkg/depend"
 	"gitlab.com/project-emco/core/emco-base/src/rsync/pkg/grpc/readynotifyserver"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+
+	"gitlab.com/project-emco/core/emco-base/src/rsync/pkg/internal/utils"
+	"gitlab.com/project-emco/core/emco-base/src/rsync/pkg/types"
 )
+
+var PreInstallHookLabel string = "emco/preinstallHook"
 
 // Update status for the App ready on a cluster and check if app ready on all clusters
 func HandleResourcesStatus(acID, app, cluster string, rbData *rb.ResourceBundleState) {
@@ -19,20 +28,18 @@ func HandleResourcesStatus(acID, app, cluster string, rbData *rb.ResourceBundleS
 	var ac appcontext.AppContext
 	_, err := ac.LoadAppContext(acID)
 	if err != nil {
-		log.Info("::App context not found::", log.Fields{"acID": acID, "app": app, "cluster": cluster, "err": err})
+		log.Error("::App context not found::", log.Fields{"acID": acID, "app": app, "cluster": cluster, "err": err})
 		return
 	}
-
 	// Produce yaml representation of the status
 	vjson, err := json.Marshal(rbData.Status)
 	if err != nil {
-		log.Info("::Error marshalling status information::", log.Fields{"acID": acID, "app": app, "cluster": cluster, "err": err})
+		log.Error("::Error marshalling status information::", log.Fields{"acID": acID, "app": app, "cluster": cluster, "err": err})
 		return
 	}
-
 	chandle, err := ac.GetClusterHandle(app, cluster)
 	if err != nil {
-		log.Info("::Error getting cluster handle::", log.Fields{"acID": acID, "app": app, "cluster": cluster, "err": err})
+		log.Error("::Error getting cluster handle::", log.Fields{"acID": acID, "app": app, "cluster": cluster, "err": err})
 		return
 	}
 	// Get the handle for the context/app/cluster status object
@@ -45,10 +52,10 @@ func HandleResourcesStatus(acID, app, cluster string, rbData *rb.ResourceBundleS
 		ac.UpdateStatusValue(handle, string(vjson))
 	}
 
-	if CheckAppReadyStatus(acID, app, cluster, rbData) {
-		// Inform Rsync dependency management
-		go depend.ResourcesReady(acID, app, cluster)
-	}
+	UpdateAppReadyStatus(acID, app, cluster, rbData)
+
+	// Inform Rsync dependency management of the update
+	go depend.ResourcesReady(acID, app, cluster)
 
 	// Send notification to the subscribers
 	err = readynotifyserver.SendAppContextNotification(acID)
@@ -57,121 +64,227 @@ func HandleResourcesStatus(acID, app, cluster string, rbData *rb.ResourceBundleS
 	}
 }
 
-// Check if all the resources are ready on a cluster
-func IsAppReady(rbData *rb.ResourceBundleState) bool {
-
+func updateResourcesStatus(acID, app, cluster string, rbData *rb.ResourceBundleState) bool {
+	var Ready bool = true
+	// Default is ready status
+	// In case of Hook resoureces if Pod and Job it is success status
+	var statusType types.ResourceStatusType = types.ReadyStatus
+	acUtils, err := utils.NewAppContextReference(acID)
+	if err != nil {
+		return false
+	}
 	readyChecker := NewReadyChecker(PausedAsReady(true), CheckJobs(true))
 	var avail bool = false
 	for _, s := range rbData.Status.ServiceStatuses {
+		name := s.Name + "+" + "Service"
+		b := readyChecker.ServiceReady(&s)
 		avail = true
-		if !readyChecker.ServiceReady(&s) {
-			return false
+		// If not ready set flag to false
+		if !b {
+			Ready = false
 		}
+		acUtils.SetResourceReadyStatus(app, cluster, name, string(types.ReadyStatus), b)
 	}
-
 	for _, d := range rbData.Status.DeploymentStatuses {
 		avail = true
-		if !readyChecker.DeploymentReady(&d) {
-			return false
+		name := d.Name + "+" + "Deployment"
+		b := readyChecker.DeploymentReady(&d)
+		// If not ready set flag to false
+		if !b {
+			Ready = false
 		}
+		acUtils.SetResourceReadyStatus(app, cluster, name, string(statusType), b)
 	}
-
 	for _, d := range rbData.Status.DaemonSetStatuses {
 		avail = true
-		if !readyChecker.DaemonSetReady(&d) {
-			return false
+		name := d.Name + "+" + "Daemon"
+		b := readyChecker.DaemonSetReady(&d)
+		// If not ready set flag to false
+		if !b {
+			Ready = false
 		}
+		acUtils.SetResourceReadyStatus(app, cluster, name, string(statusType), b)
 	}
-
-	for _, j := range rbData.Status.JobStatuses {
-		avail = true
-		if !readyChecker.JobReady(&j) {
-			return false
-		}
-	}
-
 	for _, s := range rbData.Status.StatefulSetStatuses {
 		avail = true
-		if !readyChecker.StatefulSetReady(&s) {
-			return false
+		name := s.Name + "+" + "StatefulSet"
+		b := readyChecker.StatefulSetReady(&s)
+		// If not ready set flag to false
+		if !b {
+			Ready = false
 		}
+		acUtils.SetResourceReadyStatus(app, cluster, name, string(types.ReadyStatus), b)
 	}
-	for _, p := range rbData.Status.PodStatuses {
-		avail = true
-		if !readyChecker.PodReady(&p) {
-			return false
+	for _, j := range rbData.Status.JobStatuses {
+		name := j.Name + "+" + "Job"
+		// Check if the Job is a Hook
+		annoMap := j.GetAnnotations()
+		_, ok := annoMap["helm.sh/hook"]
+		if ok {
+			// Hooks are checked for Success Status
+			acUtils.SetResourceReadyStatus(app, cluster, name, string(types.SuccessStatus), readyChecker.JobSuccess(&j))
+			// No need to consider hook resources for ready status
+			continue
 		}
+		avail = true
+		b := readyChecker.JobReady(&j)
+		// If not ready set flag to false
+		if !b {
+			Ready = false
+		}
+		acUtils.SetResourceReadyStatus(app, cluster, name, string(types.ReadyStatus), b)
+	}
+
+	for _, p := range rbData.Status.PodStatuses {
+		name := p.Name + "+" + "Pod"
+
+		// Check if the Pod is a Hook
+		annoMap := p.GetAnnotations()
+		_, ok := annoMap["helm.sh/hook"]
+		if ok {
+			// Hooks are checked for Success Status
+			acUtils.SetResourceReadyStatus(app, cluster, name, string(types.SuccessStatus), readyChecker.PodSuccess(&p))
+			// No need to consider hook resources for ready status
+			continue
+		}
+		// Check if Pod is associated with a Job, if so skip that Pod
+		// That Pod will never go in ready state
+		labels := p.GetLabels()
+		_, job := labels["job-name"]
+		if job {
+			acUtils.SetResourceReadyStatus(app, cluster, name, string(types.SuccessStatus), readyChecker.PodSuccess(&p))
+			continue
+		}
+		avail = true
+		// If not ready set flag to false
+		b := readyChecker.PodReady(&p)
+		if !b {
+			Ready = false
+		}
+		acUtils.SetResourceReadyStatus(app, cluster, name, string(statusType), b)
 	}
 	if !avail {
-		log.Info("No resources found in monitor CR", log.Fields{"rbData": rbData})
 		return false
 	}
 
-	return true
+	return Ready
 
 }
+func UpdateAppReadyStatus(acID, app string, cluster string, rbData *rb.ResourceBundleState) bool {
 
-func CheckAppReadyStatus(acID, app string, cluster string, rbData *rb.ResourceBundleState) bool {
-
-	ac := appcontext.AppContext{}
-	_, err := ac.LoadAppContext(acID)
+	// Check if hook label is present
+	labels := rbData.GetLabels()
+	// Status tracking is also used for per install hooks
+	// At the time of preinstall hook installation cluster
+	// ready status should not be updated
+	_, hookCR := labels[PreInstallHookLabel]
+	acUtils, err := utils.NewAppContextReference(acID)
 	if err != nil {
+		return false
+	}
+	if hookCR {
+		// If hookCR label, no need to update the ready status
+		// Main resources not installed yet
+		return updateResourcesStatus(acID, app, cluster, rbData)
+	}
+	//  Update AppContext to flase
+	// If the application is not ready stop processing
+	if !updateResourcesStatus(acID, app, cluster, rbData) {
+		acUtils.SetClusterResourcesReady(app, cluster, false)
 		return false
 	}
 	// If Application is ready on the cluster, Update AppContext
-	// If the application is not ready stop processing
-	if !IsAppReady(rbData) {
-		setClusterResourcesReady(ac, app, cluster, false)
-		return false
-	}
-	log.Info("ClusterResourcesReady App is ready on cluster", log.Fields{"acID": acID, "app": app, "cluster": cluster})
-
-	setClusterResourcesReady(ac, app, cluster, true)
-
-	// Check if all the clusters are ready
-	cl, err := ac.GetClusterNames(app)
-	if err != nil {
-		return false
-	}
-	for _, cn := range cl {
-		if !getClusterResourcesReady(ac, app, cn) {
-			// Some cluster is not ready
-			return false
-		}
-	}
+	acUtils.SetClusterResourcesReady(app, cluster, true)
+	log.Info(" UpdateAppReadyStatus:: App is ready on cluster", log.Fields{"acID": acID, "app": app, "cluster": cluster})
 	return true
 }
 
-// setClusterResourceReady sets the cluster ready status
-func setClusterResourcesReady(ac appcontext.AppContext, app, cluster string, value bool) error {
+// GetStatusCR returns a status monitoring customer resource
+func GetStatusCR(label string, extraLabel string) ([]byte, error) {
 
-	ch, err := ac.GetClusterHandle(app, cluster)
+	var statusCr rb.ResourceBundleState
+
+	statusCr.TypeMeta.APIVersion = "k8splugin.io/v1alpha1"
+	statusCr.TypeMeta.Kind = "ResourceBundleState"
+	statusCr.SetName(label)
+
+	labels := make(map[string]string)
+	labels["emco/deployment-id"] = label
+	if len(extraLabel) > 0 {
+		labels[extraLabel] = "true"
+	}
+	statusCr.SetLabels(labels)
+
+	labelSelector, err := metav1.ParseToLabelSelector("emco/deployment-id = " + label)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	rsh, _ := ac.GetLevelHandle(ch, "resourcesready")
-	// If resource ready handle was not found, then create it
-	if rsh == nil {
-		ac.AddLevelValue(ch, "resourcesready", value)
-	} else {
-		ac.UpdateStatusValue(rsh, value)
+	statusCr.Spec.Selector = labelSelector
+
+	// Marshaling to json then convert to yaml works better than marshaling to yaml
+	// The 'apiVersion' attribute was marshaling to 'apiversion'
+	j, err := json.Marshal(&statusCr)
+	if err != nil {
+		return nil, err
 	}
-	return nil
+	y, err := yaml.JSONToYAML(j)
+	if err != nil {
+		return nil, err
+	}
+
+	return y, nil
 }
 
-// getClusterResourceReady gets the cluster ready status
-func getClusterResourcesReady(ac appcontext.AppContext, app, cluster string) bool {
-	ch, err := ac.GetClusterHandle(app, cluster)
+//TagResource with label
+func TagResource(res []byte, label string) ([]byte, error) {
+
+	//Decode the yaml to create a runtime.Object
+	unstruct := &unstructured.Unstructured{}
+	//Ignore the returned obj as we expect the data in unstruct
+	_, err := utils.DecodeYAMLData(string(res), unstruct)
 	if err != nil {
-		return false
+		return nil, err
 	}
-	rsh, _ := ac.GetLevelHandle(ch, "resourcesready")
-	if rsh != nil {
-		status, err := ac.GetValue(rsh)
-		if err != nil {
-			return false
-		}
-		return status.(bool)
+	//Add the tracking label to all resources created here
+	labels := unstruct.GetLabels()
+	//Check if labels exist for this object
+	if labels == nil {
+		labels = map[string]string{}
 	}
-	return false
+	//labels[config.GetConfiguration().KubernetesLabelName] = client.GetInstanceID()
+	labels["emco/deployment-id"] = label
+	unstruct.SetLabels(labels)
+
+	// This checks if the resource we are creating has a podSpec in it
+	// Eg: Deployment, StatefulSet, Job etc..
+	// If a PodSpec is found, the label will be added to it too.
+	//connector.TagPodsIfPresent(unstruct, client.GetInstanceID())
+	TagPodsIfPresent(unstruct, label)
+	b, err := unstruct.MarshalJSON()
+	if err != nil {
+		return nil, err
+	}
+	return b, nil
+}
+
+// TagPodsIfPresent finds the TemplateSpec from any workload
+// object that contains it and changes the spec to include the tag label
+func TagPodsIfPresent(unstruct *unstructured.Unstructured, tag string) {
+	_, found, err := unstructured.NestedMap(unstruct.Object, "spec", "template")
+	if err != nil || !found {
+		return
+	}
+	// extract spec template labels
+	labels, found, err := unstructured.NestedMap(unstruct.Object, "spec", "template", "metadata", "labels")
+	if err != nil {
+		log.Error("TagPodsIfPresent: Error reading the NestMap for template", log.Fields{"unstruct": unstruct, "err": err})
+		return
+	}
+	if labels == nil || !found {
+		labels = make(map[string]interface{})
+	}
+	labels["emco/deployment-id"] = tag
+	if err := unstructured.SetNestedMap(unstruct.Object, labels, "spec", "template", "metadata", "labels"); err != nil {
+		log.Error("Error tagging template with emco label", log.Fields{"err": err})
+	}
 }

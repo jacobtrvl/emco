@@ -49,6 +49,15 @@ type ClusterStatusResult struct {
 	Cluster       ClusterStatus          `json:"cluster,omitempty,inline"`
 }
 
+type LCStatusResult struct {
+	Name          string                 `json:"name,omitempty,inline"`
+	State         state.StateInfo        `json:"states,omitempty,inline"`
+	Status        appcontext.StatusValue `json:"status,omitempty,inline"`
+	RsyncStatus   map[string]int         `json:"rsyncStatus,omitempty,inline"`
+	ClusterStatus map[string]int         `json:"clusterStatus,omitempty,inline"`
+	LogicalCloud  LogicalCloudStatus     `json:"logicalCloud,omitempty,inline"`
+}
+
 type StatusResult struct {
 	Name            string                 `json:"name,omitempty,inline"`
 	State           state.StateInfo        `json:"states,omitempty,inline"`
@@ -69,6 +78,11 @@ type ClusterStatus struct {
 	Cluster         string           `json:"cluster,omitempty"`
 	ReadyStatus     string           `json:"readyStatus,omitempty"`
 	Resources       []ResourceStatus `json:"resources,omitempty"`
+}
+
+type LogicalCloudStatus struct {
+	Project      string `json:"project,omitempty"`
+	LogicalCloud string `json:"logicalCloud,omitempty"`
 }
 
 type ResourceStatus struct {

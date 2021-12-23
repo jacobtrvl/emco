@@ -9,10 +9,12 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+	pkgerrors "github.com/pkg/errors"
 	dcm "gitlab.com/project-emco/core/emco-base/src/dcm/pkg/module"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/apierror"
 	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 	orch "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/module"
+	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/status"
 )
 
 // logicalCloudHandler is used to store backend implementations objects
@@ -288,16 +290,80 @@ func (h logicalCloudHandler) stopHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	// Stop the instantiation
+	// Attempt to stop instantiating/terminating
 	err = dcm.Stop(project, lc)
 	if err != nil {
-		log.Error(err.Error(), log.Fields{})
-		if err.Error() == "Logical Clouds can't be stopped" {
-			http.Error(w, err.Error(), http.StatusNotImplemented)
-			return
-		}
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
+		http.Error(w, apiErr.Message, apiErr.Status)
+		return
 	}
 
 	w.WriteHeader(http.StatusOK)
+}
+
+func (h logicalCloudHandler) statusHandler(w http.ResponseWriter, r *http.Request) {
+
+	vars := mux.Vars(r)
+	p := vars["project"]
+	lc := vars["logicalCloud"]
+
+	var err error
+	var status interface{}
+
+	status, err = _status(h, p, lc)
+	if err != nil {
+		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
+		log.Error(apiErr.Message, log.Fields{})
+		http.Error(w, apiErr.Message, apiErr.Status)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	err = json.NewEncoder(w).Encode(status)
+	if err != nil {
+		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
+		log.Error(apiErr.Message, log.Fields{})
+		http.Error(w, apiErr.Message, apiErr.Status)
+		return
+	}
+}
+
+// LogicalCloudStatus is the structure used to return general status results
+// for the Logical Cloud
+type LogicalCloudStatus struct {
+	Project               string `json:"project,omitempty"`
+	LogicalCloudName      string `json:"project,omitempty"`
+	status.LCStatusResult `json:",inline"`
+}
+
+/*
+status takes in the handler, projectName and logicalCloudName.
+This method is responsible for obtaining the status of
+the logical cloud, which is made available in the appcontext.
+*/
+func _status(h logicalCloudHandler, p string, lc string) (LogicalCloudStatus, error) {
+
+	_, err := h.client.Get(p, lc)
+	if err != nil {
+		return LogicalCloudStatus{}, pkgerrors.Wrap(err, "Logical Cloud not found")
+	}
+
+	lcState, err := h.client.GetState(p, lc)
+	if err != nil {
+		return LogicalCloudStatus{}, pkgerrors.Wrap(err, "Logical Cloud state not found")
+	}
+
+	statusResponse, err := status.PrepareLCStatusResult(lcState)
+	if err != nil {
+		return LogicalCloudStatus{}, err
+	}
+	statusResponse.Name = lc
+	lcStatus := LogicalCloudStatus{
+		Project:          p,
+		LogicalCloudName: lc,
+		LCStatusResult:   statusResponse,
+	}
+
+	return lcStatus, nil
 }

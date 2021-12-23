@@ -23,7 +23,7 @@ metadata :
    userData2: test2
 spec:
   host: <node-IP>
-  port: 31595
+  port: 30441
 
 ---
 version: emco/v2
@@ -36,7 +36,7 @@ metadata :
     userData2: test2
 spec:
   host: <node-IP>
-  port: 31708
+  port: 30483
   type: "action"
   priority: 1
 ---
@@ -299,6 +299,7 @@ spec:
   serviceName: http-service
   port: 3333
   protocol: TCP
+  serviceMesh: none
 
 ---
 #add the client intent
@@ -321,9 +322,3 @@ spec:
 version: emco/v2
 resourceContext:
   anchor: projects/proj1/composite-apps/collection-composite-app/v1/deployment-intent-groups/collection-deployment-intent-group/approve
-
----
-#Instantiate
-version: emco/v2
-resourceContext:
-  anchor: projects/proj1/composite-apps/collection-composite-app/v1/deployment-intent-groups/collection-deployment-intent-group/instantiate

@@ -1,0 +1,38 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2021 Intel Corporation
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: currencyservice
+spec:
+  selector:
+    matchLabels:
+      app: currencyservice
+  template:
+    metadata:
+      labels:
+        app: currencyservice
+    spec:
+      containers:
+      - env:
+        - name: PORT
+          value: {{ .Values.currencyservice.server.port | quote }}
+        image: {{ .Values.currencyservice.server.image.repository }}:{{ .Values.currencyservice.server.image.tag | default .Chart.AppVersion }}
+        imagePullPolicy: {{ .Values.currencyservice.server.image.pullPolicy }}
+        livenessProbe:
+          exec:
+            command:
+            - /bin/grpc_health_probe
+            - -addr=:{{ .Values.currencyservice.server.port }}
+        name: server
+        ports:
+        - containerPort: {{ .Values.currencyservice.server.port }}
+          name: grpc
+        readinessProbe:
+          exec:
+            command:
+            - /bin/grpc_health_probe
+            - -addr=:{{ .Values.currencyservice.server.port }}
+        resources: {{- toYaml .Values.currencyservice.server.resources | nindent 10 }}
+      serviceAccountName: default
+      terminationGracePeriodSeconds: 5

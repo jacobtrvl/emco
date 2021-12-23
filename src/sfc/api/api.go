@@ -21,6 +21,11 @@ type sfcIntentHandler struct {
 	// We will set this variable with a mock interface for testing
 	client module.SfcIntentManager
 }
+type sfcLinkIntentHandler struct {
+	// Interface that implements SFC intent operations
+	// We will set this variable with a mock interface for testing
+	client module.SfcLinkIntentManager
+}
 type sfcClientSelectorIntentHandler struct {
 	// Interface that implements SFC intent operations
 	// We will set this variable with a mock interface for testing
@@ -74,6 +79,8 @@ func NewRouter(testClient interface{}) *mux.Router {
 
 	const sfcIntentsURL = "/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/network-chains"
 	const sfcIntentsGetURL = sfcIntentsURL + "/{sfcIntent}"
+	const sfcLinkIntentsURL = sfcIntentsGetURL + "/links"
+	const sfcLinkIntentsGetURL = sfcLinkIntentsURL + "/{sfcLink}"
 	const sfcClientSelectorIntentsURL = sfcIntentsGetURL + "/client-selectors"
 	const sfcClientSelectorIntentsGetURL = sfcClientSelectorIntentsURL + "/{sfcClientSelector}"
 	const sfcProviderNetworkIntentsURL = sfcIntentsGetURL + "/provider-networks"
@@ -87,6 +94,15 @@ func NewRouter(testClient interface{}) *mux.Router {
 	router.HandleFunc(sfcIntentsGetURL, sfcHandler.putSfcHandler).Methods("PUT")
 	router.HandleFunc(sfcIntentsGetURL, sfcHandler.getSfcHandler).Methods("GET")
 	router.HandleFunc(sfcIntentsGetURL, sfcHandler.deleteSfcHandler).Methods("DELETE")
+
+	sfcLinkHandler := sfcLinkIntentHandler{
+		client: setClient(moduleClient.SfcLinkIntent, testClient).(module.SfcLinkIntentManager),
+	}
+	router.HandleFunc(sfcLinkIntentsURL, sfcLinkHandler.createLinkHandler).Methods("POST")
+	router.HandleFunc(sfcLinkIntentsURL, sfcLinkHandler.getLinkHandler).Methods("GET")
+	router.HandleFunc(sfcLinkIntentsGetURL, sfcLinkHandler.putLinkHandler).Methods("PUT")
+	router.HandleFunc(sfcLinkIntentsGetURL, sfcLinkHandler.getLinkHandler).Methods("GET")
+	router.HandleFunc(sfcLinkIntentsGetURL, sfcLinkHandler.deleteLinkHandler).Methods("DELETE")
 
 	sfcClientSelectorHandler := sfcClientSelectorIntentHandler{
 		client: setClient(moduleClient.SfcClientSelectorIntent, testClient).(module.SfcClientSelectorIntentManager),

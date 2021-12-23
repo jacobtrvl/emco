@@ -110,6 +110,7 @@ func (r *podReconciler) UpdateStatus(cr *v1alpha1.ResourceBundleState, obj runti
 			Spec:       pod.Spec,
 		}
 		ps.ObjectMeta.ManagedFields = []metav1.ManagedFieldsEntry{}
+		ps.Annotations = ClearLastApplied(ps.Annotations)
 		cr.Status.PodStatuses = append(cr.Status.PodStatuses, ps)
 	}
 	return found, nil

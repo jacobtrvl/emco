@@ -10,11 +10,11 @@ import (
 	"os"
 	"strings"
 	"sync"
-	types "gitlab.com/project-emco/core/emco-base/src/rsync/pkg/types"
+	//types "gitlab.com/project-emco/core/emco-base/src/rsync/pkg/types"
+	pkgerrors "github.com/pkg/errors"
 	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 	kubeclient "gitlab.com/project-emco/core/emco-base/src/rsync/pkg/client"
 	"gitlab.com/project-emco/core/emco-base/src/rsync/pkg/db"
-	pkgerrors "github.com/pkg/errors"
 )
 
 // IsTestKubeClient .. global variable used during unit-tests to check whether a fake kube client object has to be instantiated
@@ -39,7 +39,7 @@ func (c *Connection) Init(id interface{}) error {
 
 // GetKubeConfig uses the connectivity client to get the kubeconfig based on the name
 // of the clustername.
-func GetKubeConfig(clustername string, level string, namespace string) ([]byte, error) {
+var GetKubeConfig = func(clustername string, level string, namespace string) ([]byte, error) {
 	if !strings.Contains(clustername, "+") {
 		return nil, pkgerrors.New("Not a valid cluster name")
 	}
@@ -117,6 +117,6 @@ func (c *Connection) RemoveClient() {
 	}
 }
 
-func (c *Connection) GetClientInternal(cluster string, level string, namespace string) (types.ClientProvider, error) {
-	return c.GetClient(cluster, level, namespace)
-}
+// func (c *Connection) GetClientInternal(cluster string, level string, namespace string) (types.ClientProvider, error) {
+// 	return c.GetClient(cluster, level, namespace)
+// }

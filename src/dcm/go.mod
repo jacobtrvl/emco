@@ -7,11 +7,11 @@ require (
 	github.com/gorilla/mux v1.7.3
 	github.com/onsi/ginkgo v1.15.0
 	github.com/onsi/gomega v1.10.5
+	github.com/pkg/errors v0.9.1
+	github.com/stretchr/testify v1.7.0
 	gitlab.com/project-emco/core/emco-base/src/monitor v0.0.0-00010101000000-000000000000
 	gitlab.com/project-emco/core/emco-base/src/orchestrator v0.0.0-00010101000000-000000000000
 	gitlab.com/project-emco/core/emco-base/src/rsync v0.0.0-00010101000000-000000000000
-	github.com/pkg/errors v0.9.1
-	github.com/stretchr/testify v1.7.0
 	google.golang.org/grpc v1.28.0
 	gopkg.in/yaml.v2 v2.3.0
 	k8s.io/api v0.20.2

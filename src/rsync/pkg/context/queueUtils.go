@@ -7,10 +7,10 @@ import (
 	"encoding/json"
 	"fmt"
 
+	pkgerrors "github.com/pkg/errors"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/appcontext"
 	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 	types "gitlab.com/project-emco/core/emco-base/src/rsync/pkg/types"
-	pkgerrors "github.com/pkg/errors"
 )
 
 type AppContextQueueUtils struct {

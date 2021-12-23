@@ -1,0 +1,37 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2021 Intel Corporation
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shippingservice
+spec:
+  selector:
+    matchLabels:
+      app: shippingservice
+  template:
+    metadata:
+      labels:
+        app: shippingservice
+    spec:
+      containers:
+      - env:
+        - name: PORT
+          value: {{ .Values.shippingservice.server.port | quote }}
+        image: {{ .Values.shippingservice.server.image.repository }}:{{ .Values.shippingservice.server.image.tag | default .Chart.AppVersion }}
+        imagePullPolicy: {{ .Values.shippingservice.server.image.pullPolicy }}
+        livenessProbe:
+          exec:
+            command:
+            - /bin/grpc_health_probe
+            - -addr=:{{ .Values.shippingservice.server.port }}
+        name: server
+        ports:
+        - containerPort: {{ .Values.shippingservice.server.port }}
+        readinessProbe:
+          exec:
+            command:
+            - /bin/grpc_health_probe
+            - -addr=:{{ .Values.shippingservice.server.port }}
+          periodSeconds: 5
+        resources: {{- toYaml .Values.shippingservice.server.resources | nindent 10 }}
+      serviceAccountName: default

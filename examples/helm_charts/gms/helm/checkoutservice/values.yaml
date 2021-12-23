@@ -1,0 +1,27 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2021 Intel Corporation
+checkoutservice:
+  ports:
+  - name: grpc
+    port: 5050
+    targetPort: 5050
+  server:
+    port: 5050
+    productcatalogserviceport: 3550
+    shippingserviceiport: 50051
+    paymentserviceiport: 50051
+    emailserviceiport: 5000
+    currencyserviceport: 7000
+    cartserviceport: 7070
+    image:
+      repository: gcr.io/google-samples/microservices-demo/checkoutservice
+      tag: v0.3.0
+      pullPolicy: IfNotPresent
+    resources:
+      limits:
+        cpu: 200m
+        memory: 128Mi
+      requests:
+        cpu: 100m
+        memory: 64Mi
+  type: ClusterIP

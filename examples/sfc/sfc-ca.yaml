@@ -176,7 +176,48 @@ metadata :
 spec:
   chainType: Routing
   namespace: default
-  networkChain: "net=virtual-net1,app=slb,net=dync-net1,app=ngfw,net=dync-net2,app=sdewan,net=virtual-net2"
+
+---
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.SfcCompositeApp}}/v1/deployment-intent-groups/{{.SfcDeploymentIntentGroup}}/network-chains/{{.SfcIntent}}/links
+metadata :
+  name: {{.SfcLinkSlb}}
+spec:
+  leftNet: {{.SfcVirNet1}}
+  rightNet: {{.SfcDynNet1}}
+  app: slb
+  linkLabel: app=slb
+  workloadResource: slb
+  resourceType: Deployment
+
+---
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.SfcCompositeApp}}/v1/deployment-intent-groups/{{.SfcDeploymentIntentGroup}}/network-chains/{{.SfcIntent}}/links
+metadata :
+  name: {{.SfcLinkNgfw}}
+spec:
+  leftNet: {{.SfcDynNet1}}
+  rightNet: {{.SfcDynNet2}}
+  app: ngfw
+  linkLabel: app=ngfw
+  workloadResource: ngfw
+  resourceType: Deployment
+
+---
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.SfcCompositeApp}}/v1/deployment-intent-groups/{{.SfcDeploymentIntentGroup}}/network-chains/{{.SfcIntent}}/links
+metadata :
+  name: {{.SfcLinkSdewan}}
+spec:
+  leftNet: {{.SfcDynNet2}}
+  rightNet: {{.SfcVirNet2}}
+  app: sdewan
+  linkLabel: app=sdewan
+  workloadResource: sdewan
+  resourceType: Deployment
 
 ---
 version: emco/v2

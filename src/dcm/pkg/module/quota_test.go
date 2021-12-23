@@ -12,13 +12,13 @@ import (
 var _ = Describe("Quota", func() {
 
 	var (
-		mdb    *db.MockDB
+		mdb    *db.NewMockDB
 		client *dcm.QuotaClient
 	)
 
 	BeforeEach(func() {
 		client = dcm.NewQuotaClient()
-		mdb = new(db.MockDB)
+		mdb = new(db.NewMockDB)
 		mdb.Err = nil
 		mdb.Items = []map[string]map[string][]byte{}
 		db.DBconn = mdb

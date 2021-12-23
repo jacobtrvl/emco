@@ -1,0 +1,48 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2021 Intel Corporation
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: loadgenerator
+spec:
+  replicas: {{ .Values.loadgenerator.replicas }}
+  selector:
+    matchLabels:
+      app: loadgenerator
+  template:
+    metadata:
+      labels:
+        app: loadgenerator
+      annotations:
+        sidecar.istio.io/rewriteAppHTTPProbers: "true"
+    spec:
+      containers:
+      - env:
+        - name: FRONTEND_ADDR
+          value: frontend:80
+        - name: USERS
+          value: "10"
+        image: {{ .Values.loadgenerator.main.image.repository }}:{{ .Values.loadgenerator.main.image.tag | default .Chart.AppVersion }}
+        imagePullPolicy: {{ .Values.loadgenerator.main.image.pullPolicy }}
+        name: main
+        resources: {{- toYaml .Values.loadgenerator.main.resources | nindent 10 }}
+      initContainers:
+      - command:
+        - /bin/sh
+        - -exc
+        - |
+          echo "Init container pinging frontend: ${FRONTEND_ADDR}..."
+          STATUSCODE=$(wget --server-response http://${FRONTEND_ADDR} 2>&1 | awk '/^  HTTP/{print $2}')
+          if test $STATUSCODE -ne 200; then
+              echo "Error: Could not reach frontend - Status code: ${STATUSCODE}"
+              exit 1
+          fi
+        env:
+        - name: FRONTEND_ADDR
+          value: frontend:80
+        image: busybox:latest
+        imagePullPolicy: {{ .Values.loadgenerator.main.image.busybox.pullPolicy }}
+        name: frontend-check
+      restartPolicy: Always
+      serviceAccountName: default
+      terminationGracePeriodSeconds: 5

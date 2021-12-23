@@ -123,6 +123,7 @@ func (r *secretReconciler) UpdateStatus(cr *v1alpha1.ResourceBundleState, obj ru
 			ObjectMeta: sec.ObjectMeta,
 		}
 		c.ObjectMeta.ManagedFields = []metav1.ManagedFieldsEntry{}
+		c.Annotations = ClearLastApplied(c.Annotations)
 		cr.Status.SecretStatuses = append(cr.Status.SecretStatuses, c)
 	}
 	return found, nil

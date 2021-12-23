@@ -156,15 +156,6 @@ func UpdateAppContext(intentName, appContextId string) error {
 			servers[index].ClusterData[ci].GwInternalPort = uint32(port)
 			servers[index].ClusterData[ci].ClusterName = c
 			servers[index].ClusterData[ci].Reslist = make([]map[string][]byte, 0)
-			err = createServerResources(is, c, servers, namespace, index, ci, ips)
-			if err != nil {
-				log.Error("Error creating server resources", log.Fields{
-					"error":    err,
-					"svc name": is.Spec.ServiceName,
-				})
-				return pkgerrors.Wrapf(err,
-					"Error creating server resources")
-			}
 		}
 		ics, err := module.NewClientsInboundIntentClient().GetClientsInboundIntents(project,
 			compositeapp,
@@ -198,6 +189,39 @@ func UpdateAppContext(intentName, appContextId string) error {
 			lc := len(clusters)
 			servers[index].Clients[i].ClusterData = make([]clusterData, lc)
 			for cci, c := range clusters {
+				done := false
+				// check if the server and client are on the same cluster
+				for _, scd := range servers[index].ClusterData {
+					if scd.ClusterName  == c {
+						servers[index].Clients[i].ClusterData[cci].ClusterName = c
+						servers[index].Clients[i].ClusterData[cci].Reslist = make([]map[string][]byte, 0)
+						done = true
+						break
+					}
+				}
+
+				if done {
+					continue
+				}
+				// check if the client side resources are alreay created for this cluster
+				done = false
+				for j:=0; j<i; j++ {
+					for _, cd := range servers[index].Clients[j].ClusterData {
+						if cd.ClusterName  == c {
+							servers[index].Clients[i].ClusterData[cci].ClusterName = c
+							servers[index].Clients[i].ClusterData[cci].Reslist = make([]map[string][]byte, 0)
+							done = true
+							break
+						}
+					}
+					if done {
+						break
+					}
+				}
+				if done {
+					continue
+				}
+
 				servers[index].Clients[i].ClusterData[cci].ClusterName = c
 				servers[index].Clients[i].ClusterData[cci].Reslist = make([]map[string][]byte, 0)
 				err = createClientResources(is, c, servers , namespace, index, i, cci, ips)
@@ -210,12 +234,42 @@ func UpdateAppContext(intentName, appContextId string) error {
 				}
 			}
 		}
+		// check if the server and clients are on the same cluster
+		for ci, scd := range servers[index].ClusterData {
+			create := false
+			for _, cli := range servers[index].Clients {
+				for _, ccd := range cli.ClusterData {
+					if scd.ClusterName != ccd.ClusterName {
+						create = true
+						break
+					}
+				}
+				if create {
+					break
+				}
+			}
+			if !create {
+				continue
+			}
+			err = createServerResources(is, scd.ClusterName, servers, namespace, index, ci, ips)
+			if err != nil {
+				log.Error("Error creating server resources", log.Fields{
+					"error":    err,
+					"svc name": is.Spec.ServiceName,
+				})
+				return pkgerrors.Wrapf(err,
+					"Error creating server resources")
+			}
+		}
 		index = index + 1
 
 	}
 	for _, s := range servers {
 		// Add server resources
 		for _, cd := range s.ClusterData {
+			if len(cd.Reslist) <= 0 {
+				continue
+			}
 			for _, r := range cd.Reslist {
 				err = addClusterResource(ac, s.AppName,cd.ClusterName, r)
 				if err != nil {
@@ -230,6 +284,9 @@ func UpdateAppContext(intentName, appContextId string) error {
 		for ci, cc := range s.Clients {
 			//Add client resources
 			for _, clu := range s.Clients[ci].ClusterData {
+				if len(clu.Reslist) <= 0 {
+					continue
+				}
 				for _, r := range clu.Reslist {
 					err = addClusterResource(ac, cc.ClientName, clu.ClusterName, r)
 					if err != nil {
@@ -353,7 +410,7 @@ func createServerResources(is module.InboundServerIntent, c string, servers []se
 	servers[index].ClusterData[ci].Reslist = append(servers[index].ClusterData[ci].Reslist, res)
 
 	svcname := is.Spec.ServiceName+"-se-server-dr"
-	res, err = createDestinationRule(svcname, host, namespace)
+	res, err = createDestinationRule(svcname, host, "istio-system")
 	if err != nil {
 		log.Error("Error creating Destination Rule", log.Fields{
 			"error":        err,

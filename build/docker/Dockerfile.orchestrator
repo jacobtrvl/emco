@@ -14,6 +14,7 @@ RUN chown emco:emco . -R
 COPY --chown=emco ./orchestrator ./
 COPY --chown=emco ./config.json ./
 COPY --chown=emco ./json-schemas ./json-schemas
+COPY --chown=emco ./ref-schemas ./ref-schemas
 
 USER emco
 

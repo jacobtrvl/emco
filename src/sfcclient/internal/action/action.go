@@ -8,13 +8,15 @@ import (
 	"strings"
 
 	jyaml "github.com/ghodss/yaml"
+	pkgerrors "github.com/pkg/errors"
+	dcm "gitlab.com/project-emco/core/emco-base/src/dcm/pkg/module"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/appcontext"
 	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
+	orch "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/module"
 	cacontext "gitlab.com/project-emco/core/emco-base/src/rsync/pkg/context"
 	catypes "gitlab.com/project-emco/core/emco-base/src/rsync/pkg/types"
 	sfc "gitlab.com/project-emco/core/emco-base/src/sfc/pkg/module"
 	sfcclient "gitlab.com/project-emco/core/emco-base/src/sfcclient/pkg/module"
-	pkgerrors "github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
 )
@@ -65,6 +67,40 @@ func chainClusters(apps []string, ac catypes.CompositeApp) map[string]struct{} {
 	return clusters
 }
 
+func getDigLabels(pr, ca, caver, dig string) (map[string]string, error) {
+	labels := make(map[string]string)
+
+	d, err := orch.NewDeploymentIntentGroupClient().GetDeploymentIntentGroup(dig, pr, ca, caver)
+	if err != nil {
+		log.Error("Error find DeploymentIntentGroup ", log.Fields{"DeploymentIntentGroup: ": dig})
+		return labels, err
+	}
+
+	lc, err := dcm.NewLogicalCloudClient().Get(pr, d.Spec.LogicalCloud)
+	if err != nil {
+		log.Error("Error find Logical Cloud for DeploymentIntentGroup ", log.Fields{"DeploymentIntentGroup: ": dig, "Logicalcloud": d.Spec.LogicalCloud})
+		return labels, err
+	}
+
+	for k, v := range lc.Specification.Labels {
+		labels[k] = v
+	}
+	return labels, nil
+}
+
+func matchesDigLabels(intentLabels, digLabels map[string]string) bool {
+	if len(intentLabels) == 0 {
+		return false
+	}
+
+	for k, v := range intentLabels {
+		if dv, ok := digLabels[k]; !ok || v != dv {
+			return false
+		}
+	}
+	return true
+}
+
 // UpdateAppContext applies the supplied intent against the given AppContext ID
 // The SFC Client controller will handle all SFC Client intents that are found for the
 // Deployment Intent Group of the appContext
@@ -90,6 +126,12 @@ func UpdateAppContext(intentName, appContextId string) error {
 	ca := appContext.CompMetadata.CompositeApp
 	caver := appContext.CompMetadata.Version
 	dig := appContext.CompMetadata.DeploymentIntentGroup
+	//ns := appContext.CompMetadata.Namespace
+
+	digLabels, err := getDigLabels(pr, ca, caver, dig)
+	if err != nil {
+		return pkgerrors.Wrapf(err, "Error getting logical namespace labels for SFC Client Deployment Intent Group: %v", dig)
+	}
 
 	// Look up all SFC Client Intents
 	sfcClientIntents, err := sfcclient.NewSfcClient().GetAllSfcClientIntents(pr, ca, caver, dig)
@@ -119,18 +161,22 @@ func UpdateAppContext(intentName, appContextId string) error {
 			return pkgerrors.Errorf("No SFC Client Selector Intents found for %v by end: %v", sfcClientInt.Spec.ChainName, sfcClientInt.Spec.ChainEnd)
 		}
 
+		// Identify the SFC Client Selector intent that matches this Dig - by matching the namespace labels
+		// on this Dig's Logical Cloud with the namespace labels in the SFC Client Selector Intents.
+		// Copy Pod Selector labels in the SFC Client Selector intent for application to the
+		// identified resource Pod template further below.
 		labels := make(map[string]string)
-		for i, sfcClientSelectorIntent := range sfcClientSelectorIntents {
-			if i > 0 {
-				// only handle one intent (for now)
-				log.Warn("More than one SFC Client Selector Intent was found for chain end.",
-					log.Fields{"Chain": sfcClientInt.Spec.ChainName, "End": sfcClientInt.Spec.ChainEnd})
+		for _, sfcClientSelectorIntent := range sfcClientSelectorIntents {
+			if matchesDigLabels(sfcClientSelectorIntent.Spec.NamespaceSelector.MatchLabels, digLabels) {
+				for k, v := range sfcClientSelectorIntent.Spec.PodSelector.MatchLabels {
+					labels[k] = v
+				}
+				// break out, only need to get labels for the first identified SFC Client Selector intent
 				break
 			}
-			// copy the labels (necessary?)
-			for k, v := range sfcClientSelectorIntent.Spec.PodSelector.MatchLabels {
-				labels[k] = v
-			}
+		}
+		if len(labels) == 0 {
+			return pkgerrors.Errorf("No matching SFC Client Selector Intents found for %v by end: %v", sfcClientInt.Spec.ChainName, sfcClientInt.Spec.ChainEnd)
 		}
 
 		// Get all clusters for the current App from the AppContext

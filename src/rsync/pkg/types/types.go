@@ -41,6 +41,16 @@ const (
 	OpApply RsyncOperation = iota
 	OpDelete
 	OpRead
+	OpCreate
+)
+
+// ResourceStatusType defines types of resource statuses
+type ResourceStatusType string
+
+// ResourceStatusType
+const (
+	ReadyStatus   ResourceStatusType = "resready"
+	SuccessStatus ResourceStatusType = "ressuccess"
 )
 
 func (d RsyncOperation) String() string {
@@ -175,9 +185,10 @@ type AppResource struct {
 
 // Cluster is a cluster within an App
 type Cluster struct {
-	Name      string                  `json:"name,omitempty"`
-	ResOrder  []string                `json:"reorder,omitempty"`
-	Resources map[string]*AppResource `json:"resources,omitempty"`
+	Name       string                  `json:"name,omitempty"`
+	ResOrder   []string                `json:"reorder,omitempty"`
+	Resources  map[string]*AppResource `json:"resources,omitempty"`
+	Dependency map[string][]string     `json:"resdependency,omitempty"`
 	// Needed to suport updates
 	Skip bool `json:"bool,omitempty"`
 }
@@ -191,23 +202,37 @@ type App struct {
 	Skip bool `json:"bool,omitempty"`
 }
 
-// ClientProvider is interface for client
-type ClientProvider interface {
-	Apply(content []byte) error
-	Delete(content []byte) error
-	Get(gvkRes []byte, namespace string) ([]byte, error)
-	Approve(name string, sa []byte) error
+// ResourceProvider is interface for working with the resources
+type ResourceProvider interface {
+	Create(name string, ref interface{}, content []byte) (interface{}, error)
+	Apply(name string, ref interface{}, content []byte) (interface{}, error)
+	Delete(name string, ref interface{}, content []byte) (interface{}, error)
+	Get(name string, gvkRes []byte) ([]byte, error)
+	Commit(ref interface{}) error
 	IsReachable() error
-	TagResource([]byte, string) ([]byte, error)
 }
 
-// Connector is interface for connection to Cluster
+type StatusProvider interface {
+	StartClusterWatcher() error
+	ApplyStatusCR(content []byte) error
+	DeleteStatusCR(content []byte) error
+}
+
+type ReferenceProvider interface {
+	ApplyConfig(config interface{}) error
+}
+
+// Client Provider provides functionality to interface with the cluster
+type ClientProvider interface {
+	ResourceProvider
+	StatusProvider
+	ReferenceProvider
+	CleanClientProvider() error
+}
+
+// Connection is interface for connection
 type Connector interface {
-	Init(id interface{}) error
-	GetClientInternal(cluster string, level string, namespace string) (ClientProvider, error)
-	RemoveClient()
-	StartClusterWatcher(cluster string) error
-	GetStatusCR(label string) ([]byte, error)
+	GetClientProviders(app, cluster, level, namespace string) (ClientProvider, error)
 }
 
 // AppContextQueueElement element in per AppContext Queue

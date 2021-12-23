@@ -4,17 +4,14 @@
 package context_test
 
 import (
-//"fmt"
-	"reflect"
 	"testing"
 	"time"
 
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/appcontext"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/contextdb"
 	. "gitlab.com/project-emco/core/emco-base/src/rsync/pkg/context"
+	"gitlab.com/project-emco/core/emco-base/src/rsync/pkg/internal/utils"
 	. "gitlab.com/project-emco/core/emco-base/src/rsync/pkg/types"
-	//. "github.com/onsi/ginkgo"
-	//. "github.com/onsi/gomega"
 )
 
 func init() {
@@ -53,6 +50,7 @@ var TestCA CompositeApp = CompositeApp{
 	},
 	},
 }
+
 func TestInstantiateTerminate(t *testing.T) {
 	var edb *contextdb.MockConDb
 	edb = new(contextdb.MockConDb)
@@ -60,8 +58,7 @@ func TestInstantiateTerminate(t *testing.T) {
 	contextdb.Db = edb
 
 	cid, _ := CreateCompApp(TestCA)
-	con := MockConnector{}
-	con.Init(cid)
+	con := NewProvider(cid)
 
 	testCases := []struct {
 		label          string
@@ -154,7 +151,7 @@ func TestUpdate(t *testing.T) {
 			},
 		},
 		{
-			expectedApply:  map[string]string{"provider1+cluster1": "a1c1r1,a1c1r2,a1c1r1Updated,a1c1r3,a2c1r3,a2c1r4", "provider1+cluster2":"a2c2r3,a2c2r4"},
+			expectedApply:  map[string]string{"provider1+cluster1": "a1c1r1,a1c1r2,a1c1r1Updated,a1c1r3,a2c1r3,a2c1r4", "provider1+cluster2": "a2c2r3,a2c2r4"},
 			expectedDelete: map[string]string{"provider1+cluster1": "a1c1r2"},
 			expectedError:  nil,
 			label:          "Update with add new app",
@@ -186,23 +183,22 @@ func TestUpdate(t *testing.T) {
 						},
 						ResOrder: []string{"r1", "r3"}}},
 				},
-				"a2": &App{
-					Name: "a2",
-					Clusters: map[string]*Cluster{"provider1+cluster1": &Cluster{
-						Name: "provider1+cluster1",
-						Resources: map[string]*AppResource{"r3": &AppResource{Name: "r3", Data: "a2c1r3"},
-							"r4": &AppResource{Name: "r4", Data: "a2c1r4"},
-						},
-						ResOrder: []string{"r3", "r4"}},
-						"provider1+cluster2": &Cluster{
-							Name: "provider1+cluster2",
-							Resources: map[string]*AppResource{"r3": &AppResource{Name: "r3", Data: "a2c2r3"},
-								"r4": &AppResource{Name: "r4", Data: "a2c2r4"},
+					"a2": &App{
+						Name: "a2",
+						Clusters: map[string]*Cluster{"provider1+cluster1": &Cluster{
+							Name: "provider1+cluster1",
+							Resources: map[string]*AppResource{"r3": &AppResource{Name: "r3", Data: "a2c1r3"},
+								"r4": &AppResource{Name: "r4", Data: "a2c1r4"},
 							},
-							ResOrder: []string{"r3", "r4"}}},
+							ResOrder: []string{"r3", "r4"}},
+							"provider1+cluster2": &Cluster{
+								Name: "provider1+cluster2",
+								Resources: map[string]*AppResource{"r3": &AppResource{Name: "r3", Data: "a2c2r3"},
+									"r4": &AppResource{Name: "r4", Data: "a2c2r4"},
+								},
+								ResOrder: []string{"r3", "r4"}}},
+					},
 				},
-				},
-
 			},
 		},
 	}
@@ -211,8 +207,8 @@ func TestUpdate(t *testing.T) {
 		t.Run(testCase.label, func(t *testing.T) {
 			cid, _ := CreateCompApp(testCase.original)
 			ucid, _ := CreateCompApp(testCase.updated)
-			con := MockConnector{}
-			con.Init(cid)
+			con := NewProvider(cid)
+
 			_ = HandleAppContext(cid, nil, InstantiateEvent, &con)
 			_ = HandleAppContext(cid, ucid, UpdateEvent, &con)
 			time.Sleep(2 * time.Second)
@@ -258,36 +254,35 @@ func TestRollbackUpdate(t *testing.T) {
 				},
 				ResOrder: []string{"r1", "r3"}}},
 		},
-		"a2": &App{
-			Name: "a2",
-			Clusters: map[string]*Cluster{"provider1+cluster1": &Cluster{
-				Name: "provider1+cluster1",
-				Resources: map[string]*AppResource{"r3": &AppResource{Name: "r3", Data: "a2c1r3"},
-					"r4": &AppResource{Name: "r4", Data: "a2c1r4"},
-				},
-				ResOrder: []string{"r3", "r4"}},
-				"provider1+cluster2": &Cluster{
-					Name: "provider1+cluster2",
-					Resources: map[string]*AppResource{"r3": &AppResource{Name: "r3", Data: "a2c2r3"},
-						"r4": &AppResource{Name: "r4", Data: "a2c2r4"},
+			"a2": &App{
+				Name: "a2",
+				Clusters: map[string]*Cluster{"provider1+cluster1": &Cluster{
+					Name: "provider1+cluster1",
+					Resources: map[string]*AppResource{"r3": &AppResource{Name: "r3", Data: "a2c1r3"},
+						"r4": &AppResource{Name: "r4", Data: "a2c1r4"},
 					},
-					ResOrder: []string{"r3", "r4"}}},
+					ResOrder: []string{"r3", "r4"}},
+					"provider1+cluster2": &Cluster{
+						Name: "provider1+cluster2",
+						Resources: map[string]*AppResource{"r3": &AppResource{Name: "r3", Data: "a2c2r3"},
+							"r4": &AppResource{Name: "r4", Data: "a2c2r4"},
+						},
+						ResOrder: []string{"r3", "r4"}}},
+			},
 		},
-	},
-
 	}
 
 	testCases := []struct {
-		label          string
-		expectedOriginalResources  map[string]string
+		label                     string
+		expectedOriginalResources map[string]string
 		expectedUpdatedResources  map[string]string
-		expectedError  error
+		expectedError             error
 	}{
 		{
-			expectedOriginalResources:  map[string]string{"provider1+cluster1": "a1c1r1,a1c1r2", "provider1+cluster2":""},
-			expectedUpdatedResources:  map[string]string{"provider1+cluster1": "a1c1r1,a1c1r3,a2c1r3,a2c1r4", "provider1+cluster2":"a2c2r3,a2c2r4"},
-			expectedError:  nil,
-			label:          "Test Update with rollback",
+			expectedOriginalResources: map[string]string{"provider1+cluster1": "a1c1r1,a1c1r2", "provider1+cluster2": ""},
+			expectedUpdatedResources:  map[string]string{"provider1+cluster1": "a1c1r1,a1c1r3,a2c1r3,a2c1r4", "provider1+cluster2": "a2c2r3,a2c2r4"},
+			expectedError:             nil,
+			label:                     "Test Update with rollback",
 		},
 	}
 
@@ -295,8 +290,8 @@ func TestRollbackUpdate(t *testing.T) {
 		t.Run(testCase.label, func(t *testing.T) {
 			cid, _ := CreateCompApp(original)
 			ucid, _ := CreateCompApp(updated)
-			con := MockConnector{}
-			con.Init(cid)
+			con := NewProvider(cid)
+
 			_ = HandleAppContext(cid, nil, InstantiateEvent, &con)
 			// UPDATE
 			_ = HandleAppContext(cid, ucid, UpdateEvent, &con)
@@ -322,12 +317,10 @@ func TestRollbackUpdate(t *testing.T) {
 	}
 }
 
-
 func TestStop(t *testing.T) {
 
 	cid, _ := CreateCompApp(TestCA)
-	con := MockConnector{}
-	con.Init(cid)
+	con := NewProvider(cid)
 
 	testCases := []struct {
 		label          string
@@ -365,23 +358,22 @@ func TestStop(t *testing.T) {
 func TestInstantiateRestart(t *testing.T) {
 
 	cid, _ := CreateCompApp(TestCA)
-    con := MockConnector{}
-	con.Init(cid)
+	con := NewProvider(cid)
 
 	testCases := []struct {
-		label          string
-		expectedApply  map[string]string
+		label         string
+		expectedApply map[string]string
 		//expectedDelete map[string]string
-		Status         string
-		expectedError  error
-		event          RsyncEvent
+		Status        string
+		expectedError error
+		event         RsyncEvent
 	}{
 		{
-			expectedApply:  map[string]string{"provider1+cluster1": "a1c1r1,a1c1r2,a2c1r3,a2c1r4", "provider1+cluster2": "a2c2r3,a2c2r4"},
+			expectedApply: map[string]string{"provider1+cluster1": "a1c1r1,a1c1r2,a2c1r3,a2c1r4", "provider1+cluster2": "a2c2r3,a2c2r4"},
 			//expectedDelete: map[string]string{},
-			expectedError:  nil,
-			label:          "Instantiate Resources after restart",
-			event:          InstantiateEvent,
+			expectedError: nil,
+			label:         "Instantiate Resources after restart",
+			event:         InstantiateEvent,
 		},
 	}
 	for _, testCase := range testCases {
@@ -398,21 +390,24 @@ func TestInstantiateRestart(t *testing.T) {
 }
 
 func TestGetAllActiveContext(t *testing.T) {
+	var edb *contextdb.MockConDb
+	edb = new(contextdb.MockConDb)
+	edb.Err = nil
+	contextdb.Db = edb
 	cid, _ := CreateCompApp(TestCA)
-    con := MockConnector{}
-	con.Init(cid)
+	_ = NewProvider(cid)
 
 	testCases := []struct {
-		label          string
-		event          RsyncEvent
-		expectedArray  []string
-		expectedError  error
+		label         string
+		event         RsyncEvent
+		expectedArray []string
+		expectedError error
 	}{
 		{
-			label:          "Get all active contexts",
-			event:          InstantiateEvent,
-			expectedArray:  []string{cid},
-			expectedError:  nil,
+			label:         "Get all active contexts",
+			event:         InstantiateEvent,
+			expectedArray: []string{cid},
+			expectedError: nil,
 		},
 	}
 	for _, testCase := range testCases {
@@ -421,8 +416,17 @@ func TestGetAllActiveContext(t *testing.T) {
 			_ = c.EnqueueToAppContext(cid, nil, testCase.event)
 			UpdateAppContextFlag(cid, StopFlagKey, true)
 			cids, _ := GetAllActiveContext()
-			if !reflect.DeepEqual(testCase.expectedArray, cids) {
-				t.Error("Apply resources doesn't match")
+			time.Sleep(1 * time.Second)
+			if len(testCase.expectedArray) == len(cids) {
+				for i, v := range testCase.expectedArray {
+					if v == cids[i] {
+						continue
+					} else {
+						t.Error("Mismatch in elements", v, cids[i])
+					}
+				}
+			} else {
+				t.Error("Mismatch in length of AllActiveContext", len(testCase.expectedArray), len(cids), cids)
 			}
 		})
 	}
@@ -431,8 +435,7 @@ func TestGetAllActiveContext(t *testing.T) {
 func TestTerminateWithInstantiate(t *testing.T) {
 
 	cid, _ := CreateCompApp(TestCA)
-	con := MockConnector{}
-	con.Init(cid)
+	con := NewProvider(cid)
 
 	testCases := []struct {
 		label          string
@@ -471,24 +474,24 @@ func TestAppDependency(t *testing.T) {
 	var ca CompositeApp = CompositeApp{
 		CompMetadata: appcontext.CompositeAppMeta{Project: "proj1", CompositeApp: "ca1", Version: "v1", Release: "r1",
 			DeploymentIntentGroup: "dig1", Namespace: "default", Level: "0"},
-		AppOrder: []string{"a1", "a2",},
+		AppOrder: []string{"a1", "a2"},
 		Apps: map[string]*App{"a1": {
 			Name: "a1",
 			Clusters: map[string]*Cluster{"provider1+cluster1": {
-				Name: "provider1+cluster1",
-				Resources: map[string]*AppResource{"r1": {Name: "r1", Data: "a1c1r1"},},
-				ResOrder: []string{"r1"}}},
+				Name:      "provider1+cluster1",
+				Resources: map[string]*AppResource{"r1": {Name: "r1", Data: "a1c1r1"}},
+				ResOrder:  []string{"r1"}}},
 			Dependency: map[string]*Criteria{"a2": {OpStatus: "Deployed", Wait: 1}},
 		}, "a2": {
 			Name: "a2",
 			Clusters: map[string]*Cluster{"provider1+cluster1": {
-				Name: "provider1+cluster1",
-				Resources: map[string]*AppResource{"r3": {Name: "r3", Data: "a2c1r3"},},
-				ResOrder: []string{"r3",}},
+				Name:      "provider1+cluster1",
+				Resources: map[string]*AppResource{"r3": {Name: "r3", Data: "a2c1r3"}},
+				ResOrder:  []string{"r3"}},
 				"provider1+cluster2": {
-					Name: "provider1+cluster2",
+					Name:      "provider1+cluster2",
 					Resources: map[string]*AppResource{"r3": {Name: "r3", Data: "a2c2r3"}},
-					ResOrder: []string{"r3"}}},
+					ResOrder:  []string{"r3"}}},
 		},
 		},
 	}
@@ -498,26 +501,95 @@ func TestAppDependency(t *testing.T) {
 	contextdb.Db = edb
 
 	cid, _ := CreateCompApp(ca)
-	con := MockConnector{}
-	con.Init(cid)
+	con := NewProvider(cid)
 
 	testCases := []struct {
-		label          string
-		expectedResources  map[string]string
-		Status         string
-		expectedError  error
-		event          RsyncEvent
+		label             string
+		expectedResources map[string]string
+		Status            string
+		expectedError     error
+		event             RsyncEvent
 	}{
 		{
-			expectedResources:  map[string]string{"provider1+cluster1": "a2c1r3,a1c1r1", "provider1+cluster2": "a2c2r3"},
-			expectedError:  nil,
-			label:          "Instantiate Resources",
-			event:          InstantiateEvent,
+			expectedResources: map[string]string{"provider1+cluster1": "a2c1r3,a1c1r1", "provider1+cluster2": "a2c2r3"},
+			expectedError:     nil,
+			label:             "Instantiate Resources",
+			event:             InstantiateEvent,
 		},
 	}
 	for _, testCase := range testCases {
 		t.Run(testCase.label, func(t *testing.T) {
-				_ = HandleAppContext(cid, nil, testCase.event, &con)
+			_ = HandleAppContext(cid, nil, testCase.event, &con)
+			time.Sleep(5 * time.Second)
+			if !CompareMaps(testCase.expectedResources, LoadMap("resource")) {
+				t.Error("Apply resources doesn't match", LoadMap("resource"), testCase.expectedResources)
+			}
+		})
+	}
+}
+
+func setSuccessForAllHooks(cid string, ca CompositeApp) {
+	acUtils, _ := utils.NewAppContextReference(cid)
+	for _, a := range ca.Apps {
+		for _, c := range a.Clusters {
+			for _, d := range c.Dependency {
+				for _, r := range d {
+					acUtils.SetResourceReadyStatus(a.Name, c.Name, r, string(SuccessStatus), true)
+				}
+			}
+		}
+	}
+}
+
+func TestHooks(t *testing.T) {
+	var edb *contextdb.MockConDb
+
+	var ca CompositeApp = CompositeApp{
+		CompMetadata: appcontext.CompositeAppMeta{Project: "proj1", CompositeApp: "ca1", Version: "v1", Release: "r1",
+			DeploymentIntentGroup: "dig1", Namespace: "default", Level: "0"},
+		AppOrder: []string{"a1"},
+		Apps: map[string]*App{"a1": {
+			Name: "a1",
+			Clusters: map[string]*Cluster{
+				"provider1+cluster1": {
+					Name:       "provider1+cluster1",
+					Resources:  map[string]*AppResource{"r1+Job": {Name: "r1+Job", Data: "a1c1r1"}, "r2+ConfigMap": {Name: "r2+ConfigMap", Data: "a1c1r2"}, "r3+Pod": {Name: "r3+Pod", Data: "a1c1r3"}},
+					Dependency: map[string][]string{"pre-install": {"r1+Job"}, "post-install": {"r2+ConfigMap"}},
+					ResOrder:   []string{"r3+Pod"}},
+				"provider1+cluster2": {
+					Name:       "provider1+cluster2",
+					Resources:  map[string]*AppResource{"r1+Job": {Name: "r1+Job", Data: "a1c2r1"}, "r2+ConfigMap": {Name: "r2+ConfigMap", Data: "a1c2r2"}, "r3+Pod": {Name: "r3+Pod", Data: "a1c2r3"}},
+					Dependency: map[string][]string{"pre-install": {"r1+Job"}, "post-install": {"r2+ConfigMap"}},
+					ResOrder:   []string{"r3+Pod"}}},
+		},
+		},
+	}
+
+	edb = new(contextdb.MockConDb)
+	edb.Err = nil
+	contextdb.Db = edb
+
+	cid, _ := CreateCompApp(ca)
+	con := NewProvider(cid)
+
+	testCases := []struct {
+		label             string
+		expectedResources map[string]string
+		Status            string
+		expectedError     error
+		event             RsyncEvent
+	}{
+		{
+			expectedResources: map[string]string{"provider1+cluster1": "a1c1r1,a1c1r3,a1c1r2", "provider1+cluster2": "a1c2r1,a1c2r3,a1c2r2"},
+			expectedError:     nil,
+			label:             "Instantiate Resources",
+			event:             InstantiateEvent,
+		},
+	}
+	for _, testCase := range testCases {
+		t.Run(testCase.label, func(t *testing.T) {
+			_ = HandleAppContext(cid, nil, testCase.event, &con)
+			setSuccessForAllHooks(cid, ca)
 			time.Sleep(5 * time.Second)
 			if !CompareMaps(testCase.expectedResources, LoadMap("resource")) {
 				t.Error("Apply resources doesn't match", LoadMap("resource"), testCase.expectedResources)

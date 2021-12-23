@@ -1,0 +1,41 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2021 Intel Corporation
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: adservice
+spec:
+  selector:
+    matchLabels:
+      app: adservice
+  template:
+    metadata:
+      labels:
+        app: adservice
+    spec:
+      containers:
+      - env:
+        - name: PORT
+          value: {{ .Values.adservice.server.port | quote }}
+        image: {{ .Values.adservice.server.image.repository }}:{{ .Values.adservice.server.image.tag | default .Chart.AppVersion }}
+        imagePullPolicy: {{ .Values.adservice.server.image.pullPolicy }}
+        livenessProbe:
+          exec:
+            command:
+            - /bin/grpc_health_probe
+            - -addr=:{{ .Values.adservice.server.port }}
+          initialDelaySeconds: 20
+          periodSeconds: 15
+        name: server
+        ports:
+        - containerPort: {{ .Values.adservice.server.port }}
+        readinessProbe:
+          exec:
+            command:
+            - /bin/grpc_health_probe
+            - -addr=:{{ .Values.adservice.server.port }}
+          initialDelaySeconds: 20
+          periodSeconds: 15
+        resources: {{- toYaml .Values.adservice.server.resources | nindent 10 }}
+      serviceAccountName: default
+      terminationGracePeriodSeconds: 5 

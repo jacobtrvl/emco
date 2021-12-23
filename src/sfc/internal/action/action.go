@@ -5,52 +5,52 @@ package action
 
 import (
 	"encoding/json"
+	"fmt"
 	"strings"
 
 	nodus "github.com/akraino-edge-stack/icn-nodus/pkg/apis/k8s/v1alpha1"
 	"github.com/ghodss/yaml"
+	pkgerrors "github.com/pkg/errors"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/appcontext"
+	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 	cacontext "gitlab.com/project-emco/core/emco-base/src/rsync/pkg/context"
 	catypes "gitlab.com/project-emco/core/emco-base/src/rsync/pkg/types"
 	"gitlab.com/project-emco/core/emco-base/src/sfc/pkg/model"
 	sfc "gitlab.com/project-emco/core/emco-base/src/sfc/pkg/module"
-	pkgerrors "github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/kubernetes/scheme"
 )
 
-// getChainApps will return the list of applications that are present in
-// the provided string which follows the format of the NetworkChain field.
-// "net=virutal-net1,app=slb,dync-net1,app=ngfw,dync-net2,app=sdewan,net=virutal-net2"
-func getChainApps(networkChain string) ([]string, error) {
-	netsAndApps := strings.Split(networkChain, ",")
-	apps := make([]string, 0)
-	for _, netOrApp := range netsAndApps {
-		elem := strings.Split(netOrApp, "=")
-		if len(elem) != 2 {
-			return []string{}, pkgerrors.Errorf("Invalid network chain format: %v", networkChain)
-		}
-		if elem[0] == "app" {
-			apps = append(apps, elem[1])
-		}
+type sfcLinks []model.SfcLinkIntent
+
+// getChainApps will return the list of apps that are required to support
+// the SFC intent.  Return as a map so that duplicates are eliminated.
+func getChainApps(links []model.SfcLinkIntent) map[string]struct{} {
+	apps := make(map[string]struct{}, 0)
+	for _, link := range links {
+		apps[link.Spec.AppName] = struct{}{}
 	}
-	return apps, nil
+	return apps
 }
 
 // chainClusters returns the list of clusters to which the Network Chain needs to be
 // deployed.  To qualify, a cluster must be present for each app in the apps list.
-func chainClusters(apps []string, ac catypes.CompositeApp) map[string]struct{} {
+func chainClusters(apps map[string]struct{}, ac catypes.CompositeApp) map[string]struct{} {
 	clusters := make(map[string]struct{}, 0)
-	for i, a := range apps {
+	first := true
+	for a, _ := range apps {
 		// an app in the chain is not in the AppContext, so the clusters list is empty
 		if _, ok := ac.Apps[a]; !ok {
 			return make(map[string]struct{}, 0)
 		}
 
 		// for first app, the list of that apps clusters in the AppContext is the starting cluster list
-		if i == 0 {
+		if first {
 			for k, _ := range ac.Apps[a].Clusters {
 				clusters[k] = struct{}{}
 			}
+			first = false
 		} else {
 			// for the rest of the apps, whittle down the clusters list to find the
 			// common intersection for all apps in the chain
@@ -62,6 +62,92 @@ func chainClusters(apps []string, ac catypes.CompositeApp) map[string]struct{} {
 		}
 	}
 	return clusters
+}
+
+// handleSfcLinkIntents - queries all links associated with the sfcIntent and
+//   returns the list of link intents
+//   returns the network chain string defined by the set of links
+//   returns the list of apps that are used in the chain (as a map - since the same app may be present in >1 link)
+func handleSfcLinkIntents(pr, ca, caver, dig, sfcIntentName string) ([]model.SfcLinkIntent, string, map[string]struct{}, error) {
+	apps := make(map[string]struct{}, 0) // returned as the list of apps in the chain
+
+	// Lookup all SFC Link Intents
+	sfcLinkIntents, err := sfc.NewSfcLinkIntentClient().GetAllSfcLinkIntents(pr, ca, caver, dig, sfcIntentName)
+	if err != nil {
+		return []model.SfcLinkIntent{}, "", apps, pkgerrors.Wrapf(err, "Error getting SFC Link intents for SFC Intent: %v", sfcIntentName)
+	}
+
+	leftMap := make(map[string]string)
+	rightNets := make(map[string]struct{})
+	rightMap := make(map[string]string)
+
+	// initialize the maps
+	for _, link := range sfcLinkIntents {
+		apps[link.Spec.AppName] = struct{}{}
+
+		if _, ok := leftMap[link.Spec.LeftNet]; ok {
+			log.Error("Duplicate left networks in SFC Link Intents", log.Fields{
+				"sfc intent":      sfcIntentName,
+				"sfc link intent": link,
+			})
+			return []model.SfcLinkIntent{}, "", apps, pkgerrors.Errorf("Duplicate Left Network in SFC Link Intent: %v", link)
+		}
+		leftMap[link.Spec.LeftNet] = link.Spec.LinkLabel
+
+		if _, ok := rightNets[link.Spec.RightNet]; ok {
+			log.Error("Duplicate right networks in SFC Link Intents", log.Fields{
+				"sfc intent":      sfcIntentName,
+				"sfc link intent": link,
+			})
+			return []model.SfcLinkIntent{}, "", apps, pkgerrors.Errorf("Duplicate Right Network in SFC Link Intent: %v", link)
+		}
+		rightNets[link.Spec.RightNet] = struct{}{}
+
+		if _, ok := rightMap[link.Spec.LinkLabel]; ok {
+			log.Error("Duplicate link label in SFC Link Intents", log.Fields{
+				"sfc intent":      sfcIntentName,
+				"sfc link intent": link,
+			})
+			return []model.SfcLinkIntent{}, "", apps, pkgerrors.Errorf("Duplicate Link Labelin SFC Link Intent: %v", link)
+		}
+		rightMap[link.Spec.LinkLabel] = link.Spec.RightNet
+	}
+
+	// find the leftmost link
+	var leftNet = ""
+	for net, _ := range leftMap {
+		if _, ok := rightNets[net]; !ok {
+			if len(leftNet) > 0 {
+				log.Error("Multiple leftmost networks in SFC Link Intents", log.Fields{"sfc intent": sfcIntentName})
+				return []model.SfcLinkIntent{}, "", apps, pkgerrors.Errorf("Multiple leftmost Networks in SFC Link Intents")
+			}
+			leftNet = net
+		}
+	}
+
+	if len(leftNet) == 0 {
+		log.Error("No SFC Link Intents", log.Fields{"sfc intent": sfcIntentName})
+		return []model.SfcLinkIntent{}, "", apps, pkgerrors.Errorf("No SFC Link Intents")
+	}
+
+	// construct the network chain
+	chain := "net=" + leftNet
+	cnt := 1
+	for true {
+		label, ok := leftMap[leftNet]
+		if !ok {
+			break
+		}
+		chain = chain + "," + label + ",net=" + rightMap[label]
+		leftNet = rightMap[label]
+		cnt += 2
+	}
+	if len(sfcLinkIntents)*2+1 != cnt {
+		log.Error("Invalid set of SFC link intents", log.Fields{"sfc intent": sfcIntentName})
+		return []model.SfcLinkIntent{}, "", apps, pkgerrors.Errorf("Invalid set of SFC link intents")
+	}
+
+	return sfcLinkIntents, chain, apps, nil
 }
 
 // Action applies the supplied intent against the given AppContext ID
@@ -111,71 +197,71 @@ func UpdateAppContext(intentName, appContextId string) error {
 			return pkgerrors.Wrapf(err, "Error getting SFC Provider Network intents for SFC Intent: %v", sfcInt.Metadata.Name)
 		}
 
-		// Start preparing the networkchainings CR structure
-		// REVISIT - for now, the code will expect 1 occurrence of a client selector and provider network on each side of the
-		// chain.  The first occurrence found will be used.  Extras will be ignored.
-		// Revisit this code once the chaining CR behavior is verified complete.
-		var leftRoutingNetwork nodus.RoutingNetwork
-		var rightRoutingNetwork nodus.RoutingNetwork
-
-		leftClient := false
-		rightClient := false
-		for _, sfcClientSelectorInt := range sfcClientSelectorIntents {
-			if sfcClientSelectorInt.Spec.ChainEnd == model.LeftChainEnd && !leftClient {
-				leftRoutingNetwork.PodSelector = sfcClientSelectorInt.Spec.PodSelector
-				leftRoutingNetwork.NamespaceSelector = sfcClientSelectorInt.Spec.NamespaceSelector
-				leftClient = true
-			} else if sfcClientSelectorInt.Spec.ChainEnd == model.RightChainEnd && !rightClient {
-				rightRoutingNetwork.PodSelector = sfcClientSelectorInt.Spec.PodSelector
-				rightRoutingNetwork.NamespaceSelector = sfcClientSelectorInt.Spec.NamespaceSelector
-				rightClient = true
-			}
-			if leftClient && rightClient {
-				break
-			}
-		}
-		if !leftClient && !rightClient {
-			return pkgerrors.New("Missing left and right client selector intents")
-		}
-		if !leftClient {
-			return pkgerrors.New("Missing left client selector intent")
-		}
-		if !rightClient {
-			return pkgerrors.New("Missing right client selector intent")
-		}
-
-		leftNet := false
-		rightNet := false
-		for _, sfcProviderNetInt := range sfcProviderNetworkIntents {
-			if sfcProviderNetInt.Spec.ChainEnd == model.LeftChainEnd && !leftNet {
-				leftRoutingNetwork.NetworkName = sfcProviderNetInt.Spec.NetworkName
-				leftRoutingNetwork.GatewayIP = sfcProviderNetInt.Spec.GatewayIp
-				leftRoutingNetwork.Subnet = sfcProviderNetInt.Spec.Subnet
-				leftNet = true
-			} else if sfcProviderNetInt.Spec.ChainEnd == model.RightChainEnd && !rightNet {
-				rightRoutingNetwork.NetworkName = sfcProviderNetInt.Spec.NetworkName
-				rightRoutingNetwork.GatewayIP = sfcProviderNetInt.Spec.GatewayIp
-				rightRoutingNetwork.Subnet = sfcProviderNetInt.Spec.Subnet
-				rightNet = true
-			}
-			if leftNet && rightNet {
-				break
-			}
-		}
-		if !leftNet && !rightNet {
-			return pkgerrors.New("Missing left and right provider network intents")
-		}
-		if !leftNet {
-			return pkgerrors.New("Missing left provider network intent")
-		}
-		if !rightNet {
-			return pkgerrors.New("Missing right provider network intent")
-		}
-
+		// Prepare the networkchainings CR
 		leftNetwork := make([]nodus.RoutingNetwork, 0)
 		rightNetwork := make([]nodus.RoutingNetwork, 0)
-		leftNetwork = append(leftNetwork, leftRoutingNetwork)
-		rightNetwork = append(rightNetwork, rightRoutingNetwork)
+
+		for _, sfcClientSelectorInt := range sfcClientSelectorIntents {
+			var entry nodus.RoutingNetwork
+			entry.PodSelector = sfcClientSelectorInt.Spec.PodSelector
+			entry.NamespaceSelector = sfcClientSelectorInt.Spec.NamespaceSelector
+			if sfcClientSelectorInt.Spec.ChainEnd == model.LeftChainEnd {
+				leftNetwork = append(leftNetwork, entry)
+			} else if sfcClientSelectorInt.Spec.ChainEnd == model.RightChainEnd {
+				rightNetwork = append(rightNetwork, entry)
+			}
+		}
+
+		leftIndex := 0
+		rightIndex := 0
+		for _, sfcProviderNetInt := range sfcProviderNetworkIntents {
+			if sfcProviderNetInt.Spec.ChainEnd == model.LeftChainEnd {
+				if leftIndex < len(leftNetwork) {
+					leftNetwork[leftIndex].NetworkName = sfcProviderNetInt.Spec.NetworkName
+					leftNetwork[leftIndex].GatewayIP = sfcProviderNetInt.Spec.GatewayIp
+					leftNetwork[leftIndex].Subnet = sfcProviderNetInt.Spec.Subnet
+					leftIndex++
+				} else {
+					var entry nodus.RoutingNetwork
+					entry.NetworkName = sfcProviderNetInt.Spec.NetworkName
+					entry.GatewayIP = sfcProviderNetInt.Spec.GatewayIp
+					entry.Subnet = sfcProviderNetInt.Spec.Subnet
+					leftNetwork = append(leftNetwork, entry)
+				}
+			} else if sfcProviderNetInt.Spec.ChainEnd == model.RightChainEnd {
+				if rightIndex < len(rightNetwork) {
+					rightNetwork[rightIndex].NetworkName = sfcProviderNetInt.Spec.NetworkName
+					rightNetwork[rightIndex].GatewayIP = sfcProviderNetInt.Spec.GatewayIp
+					rightNetwork[rightIndex].Subnet = sfcProviderNetInt.Spec.Subnet
+					rightIndex++
+				} else {
+					var entry nodus.RoutingNetwork
+					entry.NetworkName = sfcProviderNetInt.Spec.NetworkName
+					entry.GatewayIP = sfcProviderNetInt.Spec.GatewayIp
+					entry.Subnet = sfcProviderNetInt.Spec.Subnet
+					rightNetwork = append(rightNetwork, entry)
+				}
+			}
+		}
+
+		if len(leftNetwork) == 0 && len(rightNetwork) == 0 {
+			return pkgerrors.Errorf("provider network or client selector intents were not provided for SFC: %v", sfcInt.Metadata.Name)
+		}
+		if len(leftNetwork) == 0 {
+			return pkgerrors.Errorf("provider network or client selector intents were not provided for left end of SFC: %v", sfcInt.Metadata.Name)
+		}
+		if len(rightNetwork) == 0 {
+			return pkgerrors.Errorf("provider network or client selector intents were not provided for right end of SFC: %v", sfcInt.Metadata.Name)
+		}
+
+		sfcLinkIntents, networkChain, chainApps, err := handleSfcLinkIntents(pr, ca, caver, dig, sfcInt.Metadata.Name)
+		if err != nil {
+			return err
+		}
+
+		log.Info("NetworkChain", log.Fields{"networkChain": networkChain})
+		fmt.Println("NetworkChain: " + networkChain)
+
 		chain := nodus.NetworkChaining{
 			TypeMeta: metav1.TypeMeta{
 				APIVersion: model.ChainingAPIVersion,
@@ -188,7 +274,7 @@ func UpdateAppContext(intentName, appContextId string) error {
 				ChainType: sfcInt.Spec.ChainType,
 				RoutingSpec: nodus.RouteSpec{
 					Namespace:    sfcInt.Spec.Namespace,
-					NetworkChain: sfcInt.Spec.NetworkChain,
+					NetworkChain: networkChain,
 					LeftNetwork:  leftNetwork,
 					RightNetwork: rightNetwork,
 				},
@@ -199,17 +285,10 @@ func UpdateAppContext(intentName, appContextId string) error {
 			return pkgerrors.Wrapf(err, "Failed to marshal NetworkChaining CR: %v", sfcInt.Metadata.Name)
 		}
 
-		// Get the list of apps in the network chain
-		// Assumption: the 'app=appname' elements in the network chain are assumed to be app names in the AppContext
-		chainApps, err := getChainApps(sfcInt.Spec.NetworkChain)
-		if err != nil {
-			return err
-		}
-
 		// Get the clusters which should get the NetworkChaining resource
 		clusters := chainClusters(chainApps, appContext)
 		if len(clusters) == 0 {
-			return pkgerrors.Errorf("There are no clusters with all the apps for the Network Chain: %v", sfcInt.Spec.NetworkChain)
+			return pkgerrors.Errorf("There are no clusters with all the apps for the Network Chain: %v", networkChain)
 		}
 
 		// Add the network intents chaining app to the AppContext
@@ -269,6 +348,86 @@ func UpdateAppContext(intentName, appContextId string) error {
 			_, err = ac.AddInstruction(clusterhandle, appcontext.ResourceLevel, appcontext.OrderInstruction, string(jresord))
 			if err != nil {
 				return pkgerrors.Wrapf(err, "Error adding Network Chain to resource order instruction: %v", sfcInt.Metadata.Name)
+			}
+		}
+
+		for c, _ := range clusters {
+			for _, link := range sfcLinkIntents {
+
+				rh, err := ac.GetResourceHandle(link.Spec.AppName, c,
+					strings.Join([]string{link.Spec.WorkloadResource,
+						link.Spec.ResourceType}, "+"))
+				if err != nil {
+					log.Error("App Context resource handle not found", log.Fields{
+						"project":                 pr,
+						"composite app":           ca,
+						"composite app version":   caver,
+						"deployment intent group": dig,
+						"sfc intent":              sfcInt.Metadata.Name,
+						"sfc client":              link.Metadata.Name,
+						"app":                     link.Spec.AppName,
+						"resource":                link.Spec.WorkloadResource,
+						"resource type":           link.Spec.ResourceType,
+					})
+					return pkgerrors.Wrapf(err, "Error getting resource handle [%v] for SFC client [%v] from cluster [%v]",
+						strings.Join([]string{link.Spec.WorkloadResource,
+							link.Spec.ResourceType}, "+"),
+						link.Metadata.Name, c)
+				}
+				r, err := ac.GetValue(rh)
+				if err != nil {
+					log.Error("Error retrieving resource from App Context", log.Fields{
+						"error":           err,
+						"resource handle": rh,
+					})
+					return pkgerrors.Wrapf(err, "Error getting resource value [%v] for SFC client [%v] from cluster [%v]",
+						strings.Join([]string{link.Spec.WorkloadResource,
+							link.Spec.ResourceType}, "+"),
+						link.Metadata.Name, c)
+				}
+
+				// Unmarshal resource to K8S object
+				robj, err := runtime.Decode(scheme.Codecs.UniversalDeserializer(), []byte(r.(string)))
+				if err != nil {
+					return pkgerrors.Wrapf(err, "Error decoding resource: %v", link.Spec.WorkloadResource)
+				}
+
+				// add labels to resource
+				addLabelToPodTemplates(robj, link.Spec.LinkLabel)
+
+				// Marshal object back to yaml format (via json - seems to eliminate most clutter)
+				j, err := json.Marshal(robj)
+				if err != nil {
+					log.Error("Error marshalling resource to JSON", log.Fields{
+						"error": err,
+					})
+					return pkgerrors.Wrapf(err,
+						"Error marshalling to JSON resource value [%v] for SFC link resource labelling [%v] from cluster [%v]",
+						strings.Join([]string{link.Spec.WorkloadResource,
+							link.Spec.ResourceType}, "+"),
+						link.Metadata.Name,
+						c)
+				}
+				y, err := yaml.JSONToYAML(j)
+				if err != nil {
+					log.Error("Error marshalling resource to YAML", log.Fields{
+						"error": err,
+					})
+					return pkgerrors.Wrapf(err,
+						"Error marshalling to YAML resource value [%v] for SFC client [%v] from cluster [%v]",
+						strings.Join([]string{link.Spec.WorkloadResource,
+							link.Spec.ResourceType}, "+"),
+						link.Metadata.Name, c)
+				}
+
+				// Update resource in AppContext
+				err = ac.UpdateResourceValue(rh, string(y))
+				if err != nil {
+					log.Error("Network updating app context resource handle", log.Fields{
+						"error":           err,
+						"resource handle": rh,
+					})
+				}
 			}
 		}
 	}

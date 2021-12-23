@@ -1,6 +1,0 @@
-  - name: sfcClientIntent
-    parent: deploymentIntentGroup
-    references:
-      - name: sfcIntent
-      - name: app
-        commonKey: compositeAppVersion

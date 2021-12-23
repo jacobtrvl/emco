@@ -109,6 +109,7 @@ func (r *serviceReconciler) UpdateStatus(cr *v1alpha1.ResourceBundleState, obj r
 			Spec:       service.Spec,
 		}
 		svc.ObjectMeta.ManagedFields = []metav1.ManagedFieldsEntry{}
+		svc.Annotations = ClearLastApplied(svc.Annotations)
 		cr.Status.ServiceStatuses = append(cr.Status.ServiceStatuses, svc)
 	}
 	return found, nil

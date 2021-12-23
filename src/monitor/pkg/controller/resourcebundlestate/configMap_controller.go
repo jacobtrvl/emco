@@ -124,6 +124,7 @@ func (r *configMapReconciler) UpdateStatus(cr *v1alpha1.ResourceBundleState, obj
 			ObjectMeta: cm.ObjectMeta,
 		}
 		c.ObjectMeta.ManagedFields = []metav1.ManagedFieldsEntry{}
+		c.Annotations = ClearLastApplied(c.Annotations)
 		cr.Status.ConfigMapStatuses = append(cr.Status.ConfigMapStatuses, c)
 	}
 

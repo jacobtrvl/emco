@@ -1,0 +1,37 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2021 Intel Corporation
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: productcatalogservice
+spec:
+  selector:
+    matchLabels:
+      app: productcatalogservice
+  template:
+    metadata:
+      labels:
+        app: productcatalogservice
+    spec:
+      containers:
+      - env:
+        - name: PORT 
+          value: {{ .Values.productcatalogservice.server.port | quote }}
+        image: {{ .Values.productcatalogservice.server.image.repository }}:{{ .Values.productcatalogservice.server.image.tag | default .Chart.AppVersion }}
+        imagePullPolicy: {{ .Values.productcatalogservice.server.image.pullPolicy }}
+        livenessProbe:
+          exec:
+            command:
+            - /bin/grpc_health_probe
+            - -addr=:{{ .Values.productcatalogservice.server.port }}
+        name: server
+        ports:
+        - containerPort: {{ .Values.productcatalogservice.server.port }}
+        readinessProbe:
+          exec:
+            command:
+            - /bin/grpc_health_probe
+            - -addr=:{{ .Values.productcatalogservice.server.port }}
+        resources: {{- toYaml .Values.productcatalogservice.server.resources | nindent 10 }}
+      serviceAccountName: default
+      terminationGracePeriodSeconds: 5 

@@ -1,0 +1,18 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2021 Intel Corporation
+loadgenerator:
+  main:
+    image:
+      repository: gcr.io/google-samples/microservices-demo/loadgenerator
+      tag: v0.3.0
+      pullPolicy: IfNotPresent
+      busybox: 
+        pullPolicy: IfNotPresent
+    resources:
+      limits:
+        cpu: 500m
+        memory: 512Mi
+      requests:
+        cpu: 300m
+        memory: 256Mi
+  replicas: 1

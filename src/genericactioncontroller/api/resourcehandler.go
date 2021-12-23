@@ -66,7 +66,7 @@ func (h resourceHandler) createResourceHandler(w http.ResponseWriter, r *http.Re
 	}
 
 	// if newobject is true, and its neither a configmap nor a secret and then contentFile should be there, or else throw exception
-	// if the newobject is false or kind is configmap or secret, there should not be any file.
+	// if the newobject is false the contentfile if any is ignored
 	if strings.ToLower(br.Spec.NewObject) == "true" && strings.ToLower(br.Spec.ResourceGVK.Kind) != "configmap" && strings.ToLower(br.Spec.ResourceGVK.Kind) != "secret" {
 		file, _, err := r.FormFile("file")
 
@@ -85,16 +85,6 @@ func (h resourceHandler) createResourceHandler(w http.ResponseWriter, r *http.Re
 			return
 		}
 		brc.FileContent = base64.StdEncoding.EncodeToString(content)
-
-	} else if strings.ToLower(br.Spec.NewObject) == "false" || br.Spec.ResourceGVK.Kind == "configmap" || br.Spec.ResourceGVK.Kind == "secret" {
-		file, _, err := r.FormFile("file")
-
-		if err == nil {
-			log.Error(":: File upload unneccessary in case of configmap or secret ::", log.Fields{"file": file})
-			http.Error(w, "File upload unneccessary in case of configmap or secret", http.StatusUnprocessableEntity)
-			file.Close()
-			return
-		}
 
 	}
 

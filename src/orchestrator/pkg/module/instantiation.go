@@ -199,33 +199,33 @@ func findGenericPlacementIntent(p, ca, v, di string) (string, error) {
 	log.Info(":: generic-placement-intent not found ! ::", log.Fields{"Searched for GenPlmtIntent": GenericPlacementIntentName})
 	return gi, pkgerrors.New("GenericPlacementIntent not found")
 }
-
 // GetSortedTemplateForApp returns the sorted templates.
 //It takes in arguments - appName, project, compositeAppName, releaseName, compositeProfileName, array of override values
-func GetSortedTemplateForApp(appName, p, ca, v, rName, cp, namespace string, overrideValues []OverrideValues) ([]helm.KubernetesResourceTemplate, error) {
+func GetSortedTemplateForApp(appName, p, ca, v, rName, cp, namespace string, overrideValues []OverrideValues) ([]helm.KubernetesResourceTemplate, []*helm.Hook, error) {
 
 	log.Info(":: Processing App ::", log.Fields{"appName": appName})
 
 	var sortedTemplates []helm.KubernetesResourceTemplate
+	var hookList []*helm.Hook
 
 	aC, err := NewAppClient().GetAppContent(appName, p, ca, v)
 	if err != nil {
-		return sortedTemplates, pkgerrors.Wrap(err, fmt.Sprint("AppContent not found for:: ", appName))
+		return sortedTemplates, hookList, pkgerrors.Wrap(err, fmt.Sprint("AppContent not found for:: ", appName))
 	}
 	appContent, err := base64.StdEncoding.DecodeString(aC.FileContent)
 	if err != nil {
-		return sortedTemplates, pkgerrors.Wrap(err, "Fail to convert to byte array")
+		return sortedTemplates, hookList, pkgerrors.Wrap(err, "Fail to convert to byte array")
 	}
 
 	log.Info(":: Got the app content.. ::", log.Fields{"appName": appName})
 
 	appPC, err := NewAppProfileClient().GetAppProfileContentByApp(p, ca, v, cp, appName)
 	if err != nil {
-		return sortedTemplates, pkgerrors.Wrap(err, fmt.Sprintf("AppProfileContent not found for:: %s", appName))
+		return sortedTemplates, hookList, pkgerrors.Wrap(err, fmt.Sprintf("AppProfileContent not found for:: %s", appName))
 	}
 	appProfileContent, err := base64.StdEncoding.DecodeString(appPC.Profile)
 	if err != nil {
-		return sortedTemplates, pkgerrors.Wrap(err, "Fail to convert to byte array")
+		return sortedTemplates, hookList, pkgerrors.Wrap(err, "Fail to convert to byte array")
 	}
 
 	log.Info(":: Got the app Profile content .. ::", log.Fields{"appName": appName})
@@ -240,14 +240,14 @@ func GetSortedTemplateForApp(appName, p, ca, v, rName, cp, namespace string, ove
 		}
 	}
 
-	sortedTemplates, err = helm.NewTemplateClient("", namespace, rName,
+	sortedTemplates, hookList, err = helm.NewTemplateClient("", namespace, rName,
 		ManifestFileName).Resolve(appContent,
 		appProfileContent, overrideValuesOfAppStr,
 		appName)
 
 	log.Info(":: Total no. of sorted templates ::", log.Fields{"len(sortedTemplates):": len(sortedTemplates)})
 
-	return sortedTemplates, err
+	return sortedTemplates, hookList, err
 }
 
 func calculateDirPath(fp string) string {
@@ -283,23 +283,24 @@ func validateLogicalCloud(p string, lc string, dcmCloudClient *LogicalCloudClien
 	}
 	log.Info(":: logicalCloud ::", log.Fields{"logicalCloud": logicalCloud})
 
-	lckey := LogicalCloudKey{
-		Project:          p,
-		LogicalCloudName: lc,
-	}
-	ac, cid, err := dcmCloudClient.util.GetLogicalCloudContext(dcmCloudClient.storeName, lckey, dcmCloudClient.tagContext, p, lc)
+	// Check if there was a previous context for this logical cloud
+	s, err := dcmCloudClient.GetState(p, lc)
 	if err != nil {
-		log.Error("Error reading Logical Cloud context", log.Fields{"error": err.Error()})
-		return pkgerrors.Wrap(err, "Error reading Logical Cloud context")
+		return err
 	}
+	cid := state.GetLastContextIdFromStateInfo(s)
 	if cid == "" {
 		log.Error("The Logical Cloud has never been instantiated", log.Fields{"cid": cid})
 		return pkgerrors.New("The Logical Cloud has never been instantiated")
 	}
+	ac, err := state.GetAppContextFromId(cid)
+	if err != nil {
+		return err
+	}
 
 	// make sure rsync status for this logical cloud is Instantiated (instantiated),
 	// otherwise the cloud isn't ready to receive the application being instantiated
-	acStatus, err := dcmCloudClient.util.GetAppContextStatus(ac)
+	acStatus, err := GetAppContextStatus(ac)
 	if err != nil {
 		return err
 	}

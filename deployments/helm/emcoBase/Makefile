@@ -26,21 +26,7 @@ BUNDLE := emco
 
 .PHONY: $(EXCLUDES) $(HELM_CHARTS) $(ADDITIONAL_BUNDLES) $(PARENT_CHART)
 
-all: ref-schema $(COMMON_CHARTS_DIR) $(HELM_CHARTS) $(ADDITIONAL_BUNDLES) $(PARENT_CHART)
-
-ref-schema:
-	@echo "\n[$@]"
-	@mkdir -p emco-db/resources/config
-	@echo "resources:" >  emco-db/resources/config/emco-db-ref-schema.yaml
-	@for i in $(HELM_CHARTS); do \
-	   case $$i in \
-	      "gac") d="genericactioncontroller";; \
-	      *) d=$$i;; \
-	   esac; \
-	   if [ -f ../../../src/$$d/ref-schemas/*.yaml ]; then\
-	     cat  ../../../src/$$d/ref-schemas/*.yaml >> emco-db/resources/config/emco-db-ref-schema.yaml; \
-	   fi; \
-	  done
+all: $(COMMON_CHARTS_DIR) $(HELM_CHARTS) $(ADDITIONAL_BUNDLES) $(PARENT_CHART)
 
 $(PARENT_CHART):
 	@echo "\n[$@]"

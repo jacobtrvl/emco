@@ -42,7 +42,7 @@ func isValidClusterToApplyByName(cProvider, acName, gcName, cMode string) (bool,
 	}
 	acName = strings.Split(acName, SEPARATOR)[1]
 	for _, cn := range clusterNamesList {
-		if cn.Metadata.Name == acName && cn.Metadata.Name == gcName && cMode == "allow" {
+		if cn.Metadata.Name == acName && acName == gcName && cMode == "allow" {
 			return true, nil
 		}
 	}

@@ -113,6 +113,7 @@ func TestGenerateKubernetesArtifacts(t *testing.T) {
 		valueFiles      []string
 		values          []string
 		expectedHashMap map[string]string
+		expectedHookMap map[string]string
 		expectedError   string
 	}{
 		{
@@ -125,6 +126,10 @@ func TestGenerateKubernetesArtifacts(t *testing.T) {
 				"/tmp/helm-tmpl-766285534/manifest-0": "fcc1083ace82b633e3a0a687d50f532c07e1212b7a42b2c178b65e5768fffcfe",
 				"/tmp/helm-tmpl-490085794/manifest-2": "eefeac6ff5430a16a32ae3974857cbe5ff516a1a68566e5edcddd410d60397c0",
 				"/tmp/helm-tmpl-522092734/manifest-1": "b88aa963ee3afb9676e9930519d7caa103df1251da48a9351ab4ac0c5730d2af",
+			},
+			expectedHookMap: map[string]string{
+				"hook-0.yaml": "c862a1ab9b7c6855b373ade36caf14fd146a8cd9e7f7d05eb89dc34f16809525",
+				"hook-1.yaml": "eb621fe73aca155cb90b40ed4f9c495ab919cab362ebc297702956bcf901fc62",
 			},
 			expectedError: "",
 		},
@@ -183,7 +188,7 @@ func TestGenerateKubernetesArtifacts(t *testing.T) {
 		}
 		t.Run(testCase.label, func(t *testing.T) {
 			tc := NewTemplateClient("1.12.3", "testnamespace", "testreleasename", "manifest.yaml")
-			out, err := tc.GenerateKubernetesArtifacts(testCase.chartPath, testCase.valueFiles,
+			out, hooks, err := tc.GenerateKubernetesArtifacts(testCase.chartPath, testCase.valueFiles,
 				testCase.values)
 			if err != nil {
 				if testCase.expectedError == "" {
@@ -194,6 +199,32 @@ func TestGenerateKubernetesArtifacts(t *testing.T) {
 				}
 			} else {
 				exists := false
+				// If hooks present match
+				for _, hk := range hooks {
+					f := hk.KRT.FilePath
+					data, err := ioutil.ReadFile(f)
+					if err != nil {
+						t.Errorf("Unable to read file %s", f)
+					}
+					h.Write(data)
+					gotHash := fmt.Sprintf("%x", h.Sum(nil))
+					last := hk.Hook.Path[strings.LastIndex(hk.Hook.Path, "/")+1:]
+					fmt.Println(hk.Hook.Path, last, gotHash)
+					h.Reset()
+					expectedHash := ""
+					found := false
+					for k1, v1 := range testCase.expectedHookMap {
+						// Split filename and use digits after last -
+						if k1 ==  last {
+							expectedHash = v1
+							found = true
+							break
+						}
+					}
+					if found && gotHash != expectedHash {
+						t.Fatalf("Got unexpected hash %s for %s", gotHash, f)
+					}
+				}
 				//Compute the hash of returned data and compare
 				for _, v := range out {
 					f := v.FilePath

@@ -5,10 +5,12 @@ package module
 
 import (
 	"encoding/json"
+	"time"
 
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/appcontext"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
 	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
+	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/state"
 
 	pkgerrors "github.com/pkg/errors"
 )
@@ -29,9 +31,10 @@ type MetaDataList struct {
 
 // Spec contains the parameters needed for spec
 type Spec struct {
-	NameSpace string   `json:"namespace"`
-	Level     string   `json:"level"`
-	User      UserData `json:"user"`
+	NameSpace string            `json:"namespace"`
+	Labels    map[string]string `json:"labels"`
+	Level     string            `json:"level"`
+	User      UserData          `json:"user"`
 }
 
 // UserData contains the parameters needed for user
@@ -46,17 +49,13 @@ type LogicalCloudKey struct {
 	LogicalCloudName string `json:"logicalCloud"`
 }
 
-// AppContextKey is an alternative key to access logical clouds
-type AppContextKey struct {
-	LCContext string `json:"logicalCloudContext"`
-}
-
 // LogicalCloudManager is an interface that exposes the connection
 // functionality
 type LogicalCloudManager interface {
 	Create(project string, c LogicalCloud) (LogicalCloud, error)
 	Get(project, name string) (LogicalCloud, error)
 	GetAll(project string) ([]LogicalCloud, error)
+	GetState(p string, lc string) (state.StateInfo, error)
 	Delete(project, name string) error
 	Update(project, name string, c LogicalCloud) (LogicalCloud, error)
 }
@@ -64,18 +63,18 @@ type LogicalCloudManager interface {
 // LogicalCloudClient implements the LogicalCloudManager
 // It will also be used to maintain some localized state
 type LogicalCloudClient struct {
-	storeName  string
-	tagMeta    string
-	tagContext string
+	storeName string
+	tagMeta   string
+	tagState  string
 }
 
 // LogicalCloudClient returns an instance of the LogicalCloudClient
 // which implements the LogicalCloudManager
 func NewLogicalCloudClient() *LogicalCloudClient {
 	return &LogicalCloudClient{
-		storeName:  "resources",
-		tagMeta:    "data",
-		tagContext: "logicalCloudContext",
+		storeName: "resources",
+		tagMeta:   "data",
+		tagState:  "stateInfo",
 	}
 }
 
@@ -102,6 +101,20 @@ func (v *LogicalCloudClient) Create(project string, c LogicalCloud) (LogicalClou
 	err = db.DBconn.Insert(v.storeName, key, nil, v.tagMeta, c)
 	if err != nil {
 		return LogicalCloud{}, pkgerrors.Wrap(err, "Creating DB Entry")
+	}
+
+	// Add the state info record (initial state)
+	s := state.StateInfo{}
+	a := state.ActionEntry{
+		State:     state.StateEnum.Created,
+		ContextId: "",
+		TimeStamp: time.Now(),
+	}
+	s.Actions = append(s.Actions, a)
+
+	err = db.DBconn.Insert(v.storeName, key, nil, v.tagState, s)
+	if err != nil {
+		return LogicalCloud{}, pkgerrors.Wrap(err, "Error updating the state info of the LogicalCloud: "+c.MetaData.LogicalCloudName)
 	}
 
 	return c, nil
@@ -164,6 +177,35 @@ func (v *LogicalCloudClient) GetAll(project string) ([]LogicalCloud, error) {
 	return resp, nil
 }
 
+// GetState returns the LogicalCloud StateInfo with a given logical cloud name and project
+func (v *LogicalCloudClient) GetState(p string, lc string) (state.StateInfo, error) {
+
+	key := LogicalCloudKey{
+		Project:          p,
+		LogicalCloudName: lc,
+	}
+
+	result, err := db.DBconn.Find(v.storeName, key, v.tagState)
+	if err != nil {
+		return state.StateInfo{}, err
+	}
+
+	if len(result) == 0 {
+		return state.StateInfo{}, pkgerrors.New("LogicalCloud StateInfo not found")
+	}
+
+	if result != nil {
+		s := state.StateInfo{}
+		err = db.DBconn.Unmarshal(result[0], &s)
+		if err != nil {
+			return state.StateInfo{}, err
+		}
+		return s, nil
+	}
+
+	return state.StateInfo{}, pkgerrors.New("Unknown Error")
+}
+
 // Delete the Logical Cloud entry from database
 func (v *LogicalCloudClient) Delete(project, logicalCloudName string) error {
 
@@ -178,9 +220,15 @@ func (v *LogicalCloudClient) Delete(project, logicalCloudName string) error {
 		return err
 	}
 
-	context, _, err := GetLogicalCloudContext(v.storeName, key, v.tagContext, project, logicalCloudName)
-	// If there's no context for Logical Cloud, just go ahead and delete it now
+	// Check if there was a previous context for this logical cloud
+	s, err := v.GetState(project, logicalCloudName)
 	if err != nil {
+		return err
+	}
+	cid := state.GetLastContextIdFromStateInfo(s)
+
+	// If there's no context for Logical Cloud, just go ahead and delete it now
+	if cid == "" {
 		err = db.DBconn.Remove(v.storeName, key)
 		if err != nil {
 			return pkgerrors.Wrap(err, "Error when deleting Logical Cloud (scenario with no context)")
@@ -188,9 +236,14 @@ func (v *LogicalCloudClient) Delete(project, logicalCloudName string) error {
 		return nil
 	}
 
+	ac, err := state.GetAppContextFromId(cid)
+	if err != nil {
+		return err
+	}
+
 	// Make sure rsync status for this logical cloud is Terminated,
-	// otherwise we can't remove appcontext yet
-	acStatus, err := GetAppContextStatus(context)
+	// otherwise we can't re-instantiate logical cloud yet
+	acStatus, err := GetAppContextStatus(ac)
 	if err != nil {
 		return err
 	}
@@ -213,7 +266,7 @@ func (v *LogicalCloudClient) Delete(project, logicalCloudName string) error {
 		fallthrough
 	case appcontext.AppContextStatusEnum.Terminated:
 		// remove the appcontext
-		err := context.DeleteCompositeApp()
+		err := ac.DeleteCompositeApp()
 		if err != nil {
 			log.Error("Error deleting AppContext CompositeApp Logical Cloud", log.Fields{"logicalcloud": logicalCloudName})
 			return pkgerrors.Wrap(err, "Error deleting AppContext CompositeApp Logical Cloud")
@@ -253,68 +306,6 @@ func (v *LogicalCloudClient) Update(project, logicalCloudName string, c LogicalC
 		return LogicalCloud{}, pkgerrors.Wrap(err, "Updating DB Entry")
 	}
 	return c, nil
-}
-
-// GetLogicalCloudContext returns the AppContext for corresponding provider and name
-func GetLogicalCloudContext(storeName string, key db.Key, meta string, project string, name string) (appcontext.AppContext, string, error) {
-
-	value, err := db.DBconn.Find(storeName, key, meta)
-	if err != nil {
-		return appcontext.AppContext{}, "", err
-	}
-
-	if len(value) == 0 {
-		return appcontext.AppContext{}, "", pkgerrors.New("Logical Cloud AppContext not found")
-	}
-
-	//value is a [][]byte
-	if value != nil {
-		ctxVal := string(value[0])
-		var lcc appcontext.AppContext
-		_, err = lcc.LoadAppContext(ctxVal)
-		if err != nil {
-			return appcontext.AppContext{}, "", pkgerrors.Wrap(err, "Reinitializing Logical Cloud AppContext")
-		}
-		return lcc, ctxVal, nil
-	}
-
-	return appcontext.AppContext{}, "", pkgerrors.New("Unknown Error")
-}
-
-// GetLogicalCloudFromContext returns the pair (project, logical cloud name) for a given AppContext
-func GetLogicalCloudFromContext(storeName string, appContextID string) (string, string, error) {
-	key := AppContextKey{
-		LCContext: appContextID,
-	}
-	log.Info("GetLogicalCloudFromContext", log.Fields{"appContextID": appContextID})
-
-	values, err := db.DBconn.Find(storeName, key, "logicalCloud")
-	if err != nil {
-		log.Error("Couldn't fetch logical cloud", log.Fields{"err": err})
-		return "", "", err
-	}
-
-	if len(values) == 0 {
-		return "", "", pkgerrors.New("Logical Cloud not found")
-	}
-
-	logicalCloudName := string(values[0])
-	log.Info("", log.Fields{"logicalCloudName": logicalCloudName})
-
-	values, err = db.DBconn.Find(storeName, key, "project")
-	if err != nil {
-		log.Error("Couldn't fetch project", log.Fields{"err": err})
-		return "", "", err
-	}
-
-	if len(values) == 0 {
-		return "", "", pkgerrors.New("Project not found")
-	}
-
-	project := string(values[0])
-	log.Info("", log.Fields{"project": project})
-
-	return project, logicalCloudName, nil
 }
 
 // GetAppContextStatus returns the Status for a particular AppContext

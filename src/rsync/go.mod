@@ -7,10 +7,9 @@ require (
 	github.com/golang/mock v1.5.0
 	github.com/golang/protobuf v1.4.2
 	github.com/jonboulle/clockwork v0.1.0
+	github.com/pkg/errors v0.9.1
 	gitlab.com/project-emco/core/emco-base/src/monitor v0.0.0-00010101000000-000000000000
 	gitlab.com/project-emco/core/emco-base/src/orchestrator v0.0.0-00010101000000-000000000000
-	github.com/pkg/errors v0.9.1
-	github.com/sirupsen/logrus v1.7.0
 	golang.org/x/net v0.0.0-20200707034311-ab3426394381
 	golang.org/x/sync v0.0.0-20201207232520-09787c993a3a
 	google.golang.org/grpc v1.28.0

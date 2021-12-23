@@ -2,18 +2,18 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: right-nginx
-  namespace: sfc-tail
+  namespace: {{ .Values.Namespace }}
   labels:
-    sfc: tail
+    app: tail
 spec:
   replicas: 3
   selector:
     matchLabels:
-      sfc: tail
+      app: tail
   template:
     metadata:
       labels:
-        test: two
+        app: tail
     spec:
       containers:
       - name: nginx

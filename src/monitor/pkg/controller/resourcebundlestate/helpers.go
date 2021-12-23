@@ -5,13 +5,14 @@ package resourcebundlestate
 
 import (
 	"context"
+	"log"
+
 	pkgerrors "github.com/pkg/errors"
 	"gitlab.com/project-emco/core/emco-base/src/monitor/pkg/apis/k8splugin/v1alpha1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"log"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -26,7 +27,6 @@ func checkLabel(labels map[string]string) bool {
 
 	_, ok := labels["emco/deployment-id"]
 	if !ok {
-		log.Printf("Pod does not have label. Filter it.")
 		return false
 	}
 	return true
@@ -37,7 +37,6 @@ func returnLabel(labels map[string]string) map[string]string {
 
 	l, ok := labels["emco/deployment-id"]
 	if !ok {
-		log.Printf("Pod does not have label. Filter it.")
 		return nil
 	}
 	return map[string]string{
@@ -159,4 +158,12 @@ func DeleteFromAllCRs(r ResourceProvider, namespacedName types.NamespacedName) e
 		return DeleteFromSingleCR(r, &cr, namespacedName.Name)
 	}
 	return nil
+}
+
+func ClearLastApplied(annotations map[string]string) (map[string]string) {
+	_, ok := annotations["kubectl.kubernetes.io/last-applied-configuration"]
+	if ok {
+		annotations["kubectl.kubernetes.io/last-applied-configuration"] = ""
+	}
+	return annotations
 }

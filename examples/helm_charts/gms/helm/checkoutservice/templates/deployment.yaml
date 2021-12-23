@@ -1,0 +1,48 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2021 Intel Corporation
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: checkoutservice
+spec:
+  selector:
+    matchLabels:
+      app: checkoutservice
+  template:
+    metadata:
+      labels:
+        app: checkoutservice
+    spec:
+      containers:
+      - env:
+        - name: PORT
+          value: {{ .Values.checkoutservice.server.port | quote }}
+        - name: PRODUCT_CATALOG_SERVICE_ADDR
+          value: productcatalogservice:{{ .Values.checkoutservice.server.productcatalogserviceport }}
+        - name: SHIPPING_SERVICE_ADDR
+          value: shippingservice:{{ .Values.checkoutservice.server.shippingserviceiport }}
+        - name: PAYMENT_SERVICE_ADDR
+          value: paymentservice:{{ .Values.checkoutservice.server.paymentserviceiport }}
+        - name: EMAIL_SERVICE_ADDR
+          value: emailservice:{{ .Values.checkoutservice.server.emailserviceiport }}
+        - name: CURRENCY_SERVICE_ADDR
+          value: currencyservice:{{ .Values.checkoutservice.server.currencyserviceport }}
+        - name: CART_SERVICE_ADDR
+          value: cartservice:{{ .Values.checkoutservice.server.cartserviceport }}
+        image: {{ .Values.checkoutservice.server.image.repository }}:{{ .Values.checkoutservice.server.image.tag | default .Chart.AppVersion }}
+        imagePullPolicy: {{ .Values.checkoutservice.server.image.pullPolicy }}
+        livenessProbe:
+          exec:
+            command:
+            - /bin/grpc_health_probe
+            - -addr=:{{ .Values.checkoutservice.server.port }}
+        name: server
+        ports:
+        - containerPort: {{ .Values.checkoutservice.server.port }}
+        readinessProbe:
+          exec:
+            command:
+            - /bin/grpc_health_probe
+            - -addr=:{{ .Values.checkoutservice.server.port }}
+        resources: {{- toYaml .Values.checkoutservice.server.resources | nindent 10 }}
+      serviceAccountName: default

@@ -1,7 +1,0 @@
-  - name: clusterProvider
-  - name: cluster
-    parent: clusterProvider
-  - name: clusterLabel
-    parent: cluster
-  - name: clusterKv
-    parent: cluster

@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"strings"
 
+	pkgerrors "github.com/pkg/errors"
 	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/rtcontext"
-	pkgerrors "github.com/pkg/errors"
 )
 
 // metaPrefix used for denoting clusterMeta level
@@ -83,9 +83,9 @@ var ClusterReadyStatusEnum = &clusterStatuses{
 	Retrying:  "Retrying",
 }
 
-// CompositeAppMeta consists of projectName, CompositeAppName,
-// CompositeAppVersion, ReleaseName. This shall be used for
-// instantiation of a compositeApp
+// CompositeAppMeta contains all the possible attributes an
+// appcontext /meta handle of a Composite App or Logical Cloud, may have.
+// Note: only some of these fields will be used in each for each of the types above:
 type CompositeAppMeta struct {
 	Project               string   `json:"Project"`
 	CompositeApp          string   `json:"CompositeApp"`
@@ -95,6 +95,7 @@ type CompositeAppMeta struct {
 	Namespace             string   `json:"Namespace"`
 	Level                 string   `json:"Level"`
 	ChildContextIDs       []string `json:"ChildContextIDs"`
+	LogicalCloud          string   `json:"LogicalCloud"`
 }
 
 // Init app context
@@ -514,7 +515,6 @@ func (ac *AppContext) GetAppLevelInstruction(appname, insttype string) (interfac
 	var v string
 	err = ac.rtc.RtcGetValue(s, &v)
 	if err != nil {
-		log.Error("ac.rtc.RtcGetValue(s, &v)", log.Fields{"err": err})
 		return nil, err
 	}
 	return v, nil
@@ -673,6 +673,7 @@ func (ac *AppContext) GetCompositeAppMeta() (CompositeAppMeta, error) {
 			childCtxs = append(childCtxs, v.(string))
 		}
 	}
+	lc := fmt.Sprintf("%v", datamap["LogicalCloud"])
 
-	return CompositeAppMeta{Project: p, CompositeApp: ca, Version: v, Release: rn, DeploymentIntentGroup: dig, Namespace: namespace, Level: level, ChildContextIDs: childCtxs}, nil
+	return CompositeAppMeta{Project: p, CompositeApp: ca, Version: v, Release: rn, DeploymentIntentGroup: dig, Namespace: namespace, Level: level, ChildContextIDs: childCtxs, LogicalCloud: lc}, nil
 }

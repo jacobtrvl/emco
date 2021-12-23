@@ -14,10 +14,20 @@ function create {
     # make the SFC helm charts and profiles
     mkdir -p output
     tar -czf output/ngfw.tar.gz -C chainCA/helm ngfw
-    tar -czf output/sdewan.tar.gz -C chainCA/helm sdewan
-    tar -czf output/slb.tar.gz -C chainCA/helm slb
     tar -czf output/nets.tar.gz -C chainCA/helm nets
     tar -czf output/profile.tar.gz -C chainCA manifest.yaml override_values.yaml
+
+    if [ "$1" == "npn"  ] ; then
+        cp -r chainCA/helm/slb-npn /tmp/slb
+        tar -czf output/slb.tar.gz -C /tmp slb
+	rm -r /tmp/slb
+        cp -r chainCA/helm/sdewan-npn /tmp/sdewan
+        tar -czf output/sdewan.tar.gz -C /tmp sdewan
+	rm -r /tmp/sdewan
+    else
+        tar -czf output/sdewan.tar.gz -C chainCA/helm sdewan
+        tar -czf output/slb.tar.gz -C chainCA/helm slb
+    fi
 
     tar -czf output/left-nginx.tar.gz -C clientCA/helm left-nginx
     tar -czf output/right-nginx.tar.gz -C clientCA/helm right-nginx
@@ -34,18 +44,33 @@ function create {
     RightNamespace: sfc-tail
     LeftLabel: head
     RightLabel: tail
+    LeftCloud2: left2
+    RightCloud2: right2
+    LeftNamespace2: sfc-head-two
+    RightNamespace2: sfc-tail-two
+    LeftLabel2: head2
+    RightLabel2: tail2
 
     # virtual network names
-    SfcDynNet1: dync-net1
+    SfcDynNet1: dynamic-net1
     NgfwDynNet1If: net2
     SlbDynNet1If: net4
-    SfcDynNet2: dync-net2
+    SfcDynNet2: dynamic-net2
     NgfwDynNet2If: net3
     SdewanDynNet2If: net3
     SfcVirNet1: virtual-net1
     SlbVirNet1If: net2
     SfcVirNet2: virtual-net2
     SdewanVirNet2If: net2
+
+    # chain links
+    SfcLinkVnet1: linkVnet1
+    SfcLinkVnet2: linkVnet2
+    SfcLinkDnet1: linkDnet1
+    SfcLinkDnet2: linkDnet2
+    SfcLinkSlb: linkSlb
+    SfcLinkNgfw: linkNgfw
+    SfcLinkSdewan: linkSdewan
 
     # provider network names
     SfcLeftPNet: left-pnetwork
@@ -122,7 +147,9 @@ function create {
 
     # Deployment intent group for the SFC chain
     SfcLeftDig: sfc-left-dig
+    SfcLeftDig2: sfc-left-dig-2
     SfcRightDig: sfc-right-dig
+    SfcRightDig2: sfc-right-dig-2
     SfcClientGenericPlacementIntent: sfc-client-generic-placement
     LeftNginxPlacementIntent: sfc-left-nginx-placement
     RightNginxPlacementIntent: sfc-right-nginx-placement
@@ -142,18 +169,21 @@ cat << NET > emco-cfg.yaml
   orchestrator:
     host: $HOST_IP
     port: 30415
+    statusPort: 30416
   clm:
     host: $HOST_IP
     port: 30461
   ncm:
     host: $HOST_IP
     port: 30431
+    statusPort: 30482
   ovnaction:
     host: $HOST_IP
     port: 30471
   dcm:
     host: $HOST_IP
     port: 30477
+    statusPort: 30478
   gac:
     host: $HOST_IP
     port: 30491
@@ -191,7 +221,7 @@ case "$1" in
         if [ "${HOST_IP}" == "oops" ] || [ "${KUBE_PATH}" == "oops" ] ; then
             echo -e "ERROR - HOST_IP & KUBE_PATH environment variable needs to be set"
         else
-            create
+            create $2
         fi
         ;;
     "cleanup" )

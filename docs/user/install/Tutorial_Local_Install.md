@@ -63,6 +63,8 @@ adac112eb251        emco-ncm:latest                                    "./ncm"  
 0b471301a944        emco-clm:latest                                    "./clm"                  17 seconds ago      Up 11 seconds       0.0.0.0:9061->9061/tcp             docker_clm_1
 dcb74a0358c4        emco-orch:latest                                   "./orchestrator"         17 seconds ago      Up 15 seconds       0.0.0.0:9015->9015/tcp             docker_orchestrator_1
 a01b783eed1e        emco-gac:latest                                    "./genericactioncont…"   17 seconds ago      Up 14 seconds       0.0.0.0:9020->9020/tcp             docker_genericactioncontroller_1
+94b0d90db108        emco-sds                                           "./sds"                  17 seconds ago      Up 15 seconds       0.0.0.0:9039->9039/tcp             docker_sds_1
+83406076892c        emco-nps                                           "./nps"                  17 seconds ago      Up 15 seconds       0.0.0.0:9038->9038/tcp             docker_nps_1
 3cfb3f0e9a5c        <docker repo>/emco/mongo:4.4.1   "docker-entrypoint.s…"   20 seconds ago      Up 17 seconds       0.0.0.0:27017->27017/tcp           docker_mongo_1
 f190d3e37912        <docker repo>/emco/etcd:3        "/entrypoint.sh etcd"    20 seconds ago      Up 18 seconds       0.0.0.0:2379-2380->2379-2380/tcp   docker_etcd_1
 
@@ -103,7 +105,7 @@ test@R90H99AZ:~/EMCO/kud/tests$ tar -czf prometheus-operator_profile.tar.gz -C .
     port: 9020
   dtc:
     host: localhost
-    port: 9048
+    port: 9018
 
 ```
 

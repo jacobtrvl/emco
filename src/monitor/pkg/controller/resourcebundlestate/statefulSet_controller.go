@@ -127,6 +127,7 @@ func (r *statefulSetReconciler) UpdateStatus(cr *v1alpha1.ResourceBundleState, o
 			Status:     ss.Status,
 		}
 		c.ObjectMeta.ManagedFields = []metav1.ManagedFieldsEntry{}
+		c.Annotations = ClearLastApplied(c.Annotations)
 		cr.Status.StatefulSetStatuses = append(cr.Status.StatefulSetStatuses, c)
 	}
 	return found, nil

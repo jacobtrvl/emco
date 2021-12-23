@@ -99,9 +99,6 @@ spec:
           - mountPath: {{ .Values.workingDir }}/config.json
             name: {{ include "common.name" .}}
             subPath: config.json
-          - mountPath: {{ .Values.workingDir }}/ref-schemas/emco-db-ref-schema.yaml
-            name: "{{ include "common.name" .}}-ref-schema"
-            subPath: emco-db-ref-schema.yaml
         resources:
 {{ include "common.resources" .  }}
         {{- if .Values.nodeSelector }}
@@ -119,9 +116,6 @@ spec:
       - name : {{ include "common.name" . }}
         configMap:
           name: {{ include "common.fullname" . }}
-      - name : "{{ include "common.name" . }}-ref-schema"
-        configMap:
-          name: emco-db-ref-schema
       imagePullSecrets:
       - name: "{{ include "common.namespace" . }}-docker-registry-key"
 {{- end -}}

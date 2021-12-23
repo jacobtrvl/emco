@@ -33,9 +33,6 @@
     },
     "spec": {
       "type": "object",
-      "required": [
-        "networkChain"
-      ],
       "properties": {
         "chainType": {
           "type": "string",
@@ -49,11 +46,6 @@
           "maxLength": 63,
           "pattern": "^[a-z0-9-]+$",
           "default": "default"
-        },
-        "networkChain": {
-          "type": "string",
-          "maxLength": 4096,
-	  "pattern": "^((([a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\\/))?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]=)(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9],))*((([a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\\/))?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]=)(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]))$"
         }
       }
     }

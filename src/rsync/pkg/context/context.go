@@ -8,12 +8,13 @@ import (
 	"fmt"
 	"strconv"
 	"sync"
+	"time"
 
-	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/appcontext"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/config"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 	"gitlab.com/project-emco/core/emco-base/src/rsync/pkg/connector"
 	"gitlab.com/project-emco/core/emco-base/src/rsync/pkg/depend"
+	"gitlab.com/project-emco/core/emco-base/src/rsync/pkg/internal/utils"
 	. "gitlab.com/project-emco/core/emco-base/src/rsync/pkg/types"
 )
 
@@ -25,17 +26,15 @@ type Context struct {
 	// AppContext ID
 	acID string
 	// AppContext handle
-	ac appcontext.AppContext
+	acRef utils.AppContextReference
 	// Status AppContext ID
 	statusAcID string
 	// Status AppContext handle
-	sc appcontext.AppContext
+	scRef utils.AppContextReference
 	// Connector interface
 	con Connector
 	// Function to cancel running threads on terminate
 	cancel context.CancelFunc
-	// APP and Res Dependency
-	dependency []ResourceDependency
 	// Max Retries for cluster reachability
 	maxRetry int
 	// wait time (seconds) between trying again for cluster reachability
@@ -44,6 +43,9 @@ type Context struct {
 	ca CompositeApp
 	// To manage dependency
 	dm *depend.DependManager
+	// Keep track for scheduled monitor CR delete functions
+	// Key for the map is app+cluster
+	timerList map[string]*time.Timer
 }
 
 // AppContextData struct
@@ -90,13 +92,11 @@ func HandleAppContext(a interface{}, ucid interface{}, e RsyncEvent, con Connect
 // EnqueueToAppContext adds the event to the appContext Queue
 func (c *Context) EnqueueToAppContext(a interface{}, ucid interface{}, e RsyncEvent) error {
 	acID := fmt.Sprintf("%v", a)
-	ac := appcontext.AppContext{}
-	_, err := ac.LoadAppContext(acID)
+	acUtils, err := utils.NewAppContextReference(acID)
 	if err != nil {
-		logutils.Error("", logutils.Fields{"err": err})
 		return err
 	}
-	qUtils := AppContextQueueUtils{ac: ac}
+	qUtils := AppContextQueueUtils{ac: acUtils.GetAppContextHandle()}
 	var elem AppContextQueueElement
 	// Store UpdateID
 	if ucid != nil {
@@ -144,6 +144,8 @@ func CreateAppContextData(key string) (bool, *Context) {
 		appContextData.Data[key] = &Context{}
 		appContextData.Data[key].Lock = &sync.Mutex{}
 		appContextData.Data[key].Running = false
+		// Initialize timer Map for the lifetime of the appContext
+		appContextData.Data[key].timerList = make(map[string]*time.Timer)
 		// Created appContext data (return true)
 		return true, appContextData.Data[key]
 	}
@@ -187,31 +189,27 @@ type CompositeAppContext struct {
 // InstantiateComApp Instantiatep Aps in Composite App
 func (instca *CompositeAppContext) InstantiateComApp(cid interface{}) error {
 	instca.cid = cid
-	con := connector.Connection{}
-	con.Init(instca.cid)
+	con := connector.NewProvider(instca.cid)
 	return HandleAppContext(instca.cid, nil, InstantiateEvent, &con)
 }
 
 // TerminateComApp Terminates Apps in Composite App
 func (instca *CompositeAppContext) TerminateComApp(cid interface{}) error {
 	instca.cid = cid
-	con := connector.Connection{}
-	con.Init(instca.cid)
+	con := connector.NewProvider(instca.cid)
 	return HandleAppContext(instca.cid, nil, TerminateEvent, &con)
 }
 
 // UpdateComApp Updates Apps in Composite App
 func (instca *CompositeAppContext) UpdateComApp(cid interface{}, ucid interface{}) error {
 	instca.cid = cid
-	con := connector.Connection{}
-	con.Init(instca.cid)
+	con := connector.NewProvider(instca.cid)
 	return HandleAppContext(instca.cid, ucid, UpdateEvent, &con)
 }
 
 // ReadComApp Reads resources in AppContext
 func (instca *CompositeAppContext) ReadComApp(cid interface{}) error {
 	instca.cid = cid
-	con := connector.Connection{}
-	con.Init(instca.cid)
+	con := connector.NewProvider(instca.cid)
 	return HandleAppContext(instca.cid, nil, ReadEvent, &con)
 }

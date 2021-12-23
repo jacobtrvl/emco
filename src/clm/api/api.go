@@ -74,6 +74,12 @@ func NewRouter(testClient interface{}) *mux.Router {
 	router.HandleFunc("/cluster-providers/{clusterProvider}/clusters/{cluster}/kv-pairs/{clusterKv}", clusterHandler.getClusterKvPairsHandler).Methods("GET")
 	router.HandleFunc("/cluster-providers/{clusterProvider}/clusters/{cluster}/kv-pairs/{clusterKv}", clusterHandler.getClusterKvPairsHandler).Queries("key", "{key}")
 	router.HandleFunc("/cluster-providers/{clusterProvider}/clusters/{cluster}/kv-pairs/{clusterKv}", clusterHandler.deleteClusterKvPairsHandler).Methods("DELETE")
+	router.HandleFunc("/cluster-providers/{clusterProvider}/cluster-sync-objects", clusterHandler.createClusterSyncObjectsHandler).Methods("POST")
+	router.HandleFunc("/cluster-providers/{clusterProvider}/cluster-sync-objects", clusterHandler.getClusterSyncObjectsHandler).Methods("GET")
+	router.HandleFunc("/cluster-providers/{clusterProvider}/cluster-sync-objects/{clusterSyncObject}", clusterHandler.getClusterSyncObjectsHandler).Methods("GET")
+	router.HandleFunc("/cluster-providers/{clusterProvider}/cluster-sync-objects/{clusterSyncObject}", clusterHandler.getClusterSyncObjectsHandler).Queries("key", "{key}")
+	router.HandleFunc("/cluster-providers/{clusterProvider}/cluster-sync-objects/{clusterSyncObject}", clusterHandler.deleteClusterSyncObjectsHandler).Methods("DELETE")
+	router.HandleFunc("/cluster-providers/{clusterProvider}/cluster-sync-objects/{clusterSyncObject}", clusterHandler.putClusterSyncObjectsHandler).Methods("PUT")
 
 	controlHandler := controllerHandler{
 		client: setClient(moduleController.Controller, testClient).(controller.ControllerManager),

@@ -1,0 +1,36 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2021 Intel Corporation
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis-cart
+spec:
+  selector:
+    matchLabels:
+      app: redis-cart
+  template:
+    metadata:
+      labels:
+        app: redis-cart
+    spec:
+      containers:
+      - image: {{ .Values.redisCart.redis.image.repository }}:{{ .Values.redisCart.redis.image.tag }}
+        imagePullPolicy: {{ .Values.redisCart.redis.image.pullPolicy }}
+        livenessProbe:
+          periodSeconds: 5
+          tcpSocket:
+            port: {{ .Values.redisCart.redis.port }}
+        name: redis
+        ports:
+        - containerPort: {{ .Values.redisCart.redis.port }}
+        readinessProbe:
+          periodSeconds: 5
+          tcpSocket:
+            port: {{ .Values.redisCart.redis.port }}
+        resources: {{- toYaml .Values.redisCart.redis.resources | nindent 10 }}
+        volumeMounts:
+        - mountPath: /data
+          name: redis-data
+      volumes:
+      - emptyDir: {}
+        name: redis-data

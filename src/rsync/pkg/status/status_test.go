@@ -8,9 +8,10 @@ import (
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/appcontext"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/contextdb"
 	"gitlab.com/project-emco/core/emco-base/src/rsync/pkg/context"
-	utils "gitlab.com/project-emco/core/emco-base/src/rsync/pkg/internal"
 	"gitlab.com/project-emco/core/emco-base/src/rsync/pkg/status"
+	"gitlab.com/project-emco/core/emco-base/src/rsync/pkg/internal/utils"
 	. "gitlab.com/project-emco/core/emco-base/src/rsync/pkg/types"
+	
 	"k8s.io/api/core/v1"
 )
 
@@ -77,7 +78,7 @@ func TestAppReadyOnAllClusters(t *testing.T) {
 		t.Run(testCase.label, func(t *testing.T) {
 			data.Status.DaemonSetStatuses[0].Status.UpdatedNumberScheduled = testCase.updatedNumberScheduled
 			data.Status.PodStatuses[0].Status.Conditions[1].Status = testCase.podReady
-			val := status.CheckAppReadyStatus(cid, "collectd", "provider1+cluster1", data)
+			val := status.UpdateAppReadyStatus(cid, "collectd", "provider1+cluster1", data)
 			if val != testCase.expectedValue {
 				t.Fatalf("TestAppReadyOnAllClusters Failed")
 			}

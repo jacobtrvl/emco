@@ -17,6 +17,7 @@ limitations under the License.
 package status
 
 import (
+	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -125,7 +126,7 @@ func (c *ReadyChecker) VolumeReady(v *corev1.PersistentVolumeClaim) bool {
 	return true
 }
 
-func (c *ReadyChecker) DeploymentReady( dep *appsv1.Deployment) bool {
+func (c *ReadyChecker) DeploymentReady(dep *appsv1.Deployment) bool {
 	// If paused deployment will never be ready
 	if dep.Spec.Paused {
 		return c.pausedAsReady
@@ -204,3 +205,42 @@ func (c *ReadyChecker) StatefulSetReady(sts *appsv1.StatefulSet) bool {
 	return true
 }
 
+// These methods are mainly for hook implementations.
+//
+// For most kinds, the checks to see if the resource is marked as Added or Modified
+// by the Kubernetes event stream is enough. For some kinds, more is required:
+//
+// - Jobs: A job is marked "Ready" when it has successfully completed. This is
+//   ascertained by watching the Status fields in a job's output.
+// - Pods: A pod is marked "Ready" when it has successfully completed. This is
+//   ascertained by watching the status.phase field in a pod's output.
+//
+func (c *ReadyChecker) PodSuccess(pod *corev1.Pod) bool {
+
+	switch pod.Status.Phase {
+	case corev1.PodSucceeded:
+		logutils.Info("Pod succeeded::", logutils.Fields{"Pod Name": pod.Name})
+		return true
+	case corev1.PodFailed:
+		return true
+	case corev1.PodPending:
+		logutils.Info("Pod running::", logutils.Fields{"Pod Name": pod.Name})
+	case corev1.PodRunning:
+		logutils.Info("Pod is Running::", logutils.Fields{"Pod Name": pod.Name})
+	}
+
+	return false
+}
+
+func (c *ReadyChecker) JobSuccess(job *batchv1.Job) bool {
+
+	for _, c := range job.Status.Conditions {
+		if c.Type == batchv1.JobComplete && c.Status == "True" {
+			return true
+		} else if c.Type == batchv1.JobFailed && c.Status == "True" {
+			return true
+		}
+	}
+	logutils.Info("Job Status:", logutils.Fields{"Jobs active": job.Status.Active, "Jobs failed": job.Status.Failed, "Jobs Succeded": job.Status.Succeeded})
+	return false
+}

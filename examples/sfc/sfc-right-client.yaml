@@ -55,7 +55,7 @@ spec:
   overrideValues:
   - app: {{.RightNginx}}
     values:
-      ".Values.Namespace": "{{.RightNamespace}}"
+      "Namespace": "{{.RightNamespace}}"
 
 ---
 version: emco/v2

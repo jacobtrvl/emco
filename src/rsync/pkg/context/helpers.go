@@ -8,10 +8,10 @@ import (
 	"encoding/json"
 	"fmt"
 
+	pkgerrors "github.com/pkg/errors"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/appcontext"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 	. "gitlab.com/project-emco/core/emco-base/src/rsync/pkg/types"
-	pkgerrors "github.com/pkg/errors"
 )
 
 // CreateCompApp creates a AppContext for a composite app, for testing
@@ -73,6 +73,11 @@ func CreateCompApp(ca CompositeApp) (string, error) {
 			if err != nil {
 				return "", pkgerrors.Wrap(err, "Error Adding resorder")
 			}
+			resdependency, err := json.Marshal(map[string]map[string][]string{"resdependency": cluster.Dependency})
+			_, err = context.AddInstruction(c, "resource", "dependency", string(resdependency))
+			if err != nil {
+				return "", pkgerrors.Wrap(err, "Error Adding resdependency")
+			}
 			for _, res := range cluster.Resources {
 				_, err = context.AddResource(c, res.Name, res.Data)
 				if err != nil {
@@ -121,22 +126,38 @@ func ReadAppContext(contextID interface{}) (CompositeApp, error) {
 			cluster := clusterNames[k]
 			resorder, err := ac.GetResourceInstruction(app, cluster, "order")
 			if err != nil {
-				logutils.Info("Resorder not found for cluster ", logutils.Fields{"cluster": cluster})
+				logutils.Error("Resorder not found for cluster ", logutils.Fields{"cluster": cluster})
 				// In Status AppContext some clusters may not have resorder
 				// Only used to collect status
 				continue
 			}
 			var aov map[string][]string
 			json.Unmarshal([]byte(resorder.(string)), &aov)
-			//var resList []AppResource
 			resList := make(map[string]*AppResource)
 			for _, res := range aov["resorder"] {
 				r := &AppResource{Name: res}
-				//resList = append(resList, r)
 				resList[res] = r
 			}
 			clusterList[cluster] = &Cluster{Name: cluster, Resources: resList, ResOrder: aov["resorder"]}
-			//clusterList = append(clusterList, Cluster{Name: cluster, Resources: resList, ResOrder: aov["resorder"]})
+			resdependency, err := ac.GetResourceInstruction(app, cluster, "dependency")
+			if err != nil {
+				// Not all applications have dependency
+				continue
+			}
+			var dov map[string]map[string][]string
+			err = json.Unmarshal([]byte(resdependency.(string)), &dov)
+			if err != nil {
+				logutils.Error("Res dependency Marshalling error, ignoring ", logutils.Fields{"cluster": cluster, "dependency": resdependency.(string)})
+				continue
+			}
+			for _, lt := range dov["resdependency"] {
+				for _, res := range lt {
+					r := &AppResource{Name: res}
+					//resList = append(resList, r)
+					resList[res] = r
+				}
+			}
+			clusterList[cluster] = &Cluster{Name: cluster, Resources: resList, ResOrder: aov["resorder"], Dependency: dov["resdependency"]}
 		}
 		dep, err := ac.GetAppLevelInstruction(app, "dependency")
 		depList := make(map[string]*Criteria)
@@ -144,7 +165,7 @@ func ReadAppContext(contextID interface{}) (CompositeApp, error) {
 			var a []AppCriteria
 			// If instruction available read it
 			json.Unmarshal([]byte(dep.(string)), &a)
-			for _, crt  := range a {
+			for _, crt := range a {
 				depList[crt.App] = &Criteria{Wait: crt.Wait, OpStatus: crt.OpStatus}
 			}
 		}

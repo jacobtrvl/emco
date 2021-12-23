@@ -1,0 +1,42 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2021 Intel Corporation
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cartservice
+spec:
+  selector:
+    matchLabels:
+      app: cartservice
+  template:
+    metadata:
+      labels:
+        app: cartservice
+    spec:
+      containers:
+      - env:
+        - name: REDIS_ADDR
+          value: redis-cart:{{ .Values.cartservice.server.redisport }}
+        image: {{ .Values.cartservice.server.image.repository }}:{{ .Values.cartservice.server.image.tag | default .Chart.AppVersion }}
+        imagePullPolicy: {{ .Values.cartservice.server.image.pullPolicy }}
+        livenessProbe:
+          exec:
+            command:
+            - /bin/grpc_health_probe
+            - -addr=:{{ .Values.cartservice.server.port }}
+            - -rpc-timeout=5s
+          initialDelaySeconds: 15
+          periodSeconds: 10
+        name: server
+        ports:
+        - containerPort: {{ .Values.cartservice.server.port }}
+        readinessProbe:
+          exec:
+            command:
+            - /bin/grpc_health_probe
+            - -addr=:{{ .Values.cartservice.server.port }}
+            - -rpc-timeout=5s
+          initialDelaySeconds: 15
+        resources: {{- toYaml .Values.cartservice.server.resources | nindent 10 }}
+      serviceAccountName: default
+      terminationGracePeriodSeconds: 5

@@ -1,0 +1,37 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2021 Intel Corporation
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: paymentservice
+spec:
+  selector:
+    matchLabels:
+      app: paymentservice
+  template:
+    metadata:
+      labels:
+        app: paymentservice
+    spec:
+      containers:
+      - env:
+        - name: PORT
+          value: {{ .Values.paymentservice.server.port | quote }}
+        image: {{ .Values.paymentservice.server.image.repository }}:{{ .Values.paymentservice.server.image.tag | default .Chart.AppVersion }}
+        imagePullPolicy: {{ .Values.paymentservice.server.image.pullPolicy }}
+        livenessProbe:
+          exec:
+            command:
+            - /bin/grpc_health_probe
+            - -addr=:{{ .Values.paymentservice.server.port }}
+        name: server
+        ports:
+        - containerPort: {{ .Values.paymentservice.server.port }}
+        readinessProbe:
+          exec:
+            command:
+            - /bin/grpc_health_probe
+            - -addr=:{{ .Values.paymentservice.server.port }}
+        resources: {{- toYaml .Values.paymentservice.server.resources | nindent 10 }}
+      serviceAccountName: default
+      terminationGracePeriodSeconds: 5

@@ -1,0 +1,12 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2021 Intel Corporation
+apiVersion: v1
+kind: Service
+metadata:
+  name: adservice
+spec:
+  type: {{ .Values.adservice.type }}
+  selector:
+    app: adservice
+  ports:
+	{{- .Values.adservice.ports | toYaml | nindent 2 -}}

@@ -162,6 +162,7 @@ func (r *reconciler) updateServices(rbstate *v1alpha1.ResourceBundleState,
 			Spec:       svc.Spec,
 		}
 		resStatus.ObjectMeta.ManagedFields = []metav1.ManagedFieldsEntry{}
+		resStatus.Annotations = ClearLastApplied(resStatus.Annotations)
 		rbstate.Status.ServiceStatuses = append(rbstate.Status.ServiceStatuses, resStatus)
 	}
 
@@ -189,6 +190,7 @@ func (r *reconciler) updatePods(rbstate *v1alpha1.ResourceBundleState,
 			Spec:       pod.Spec,
 		}
 		resStatus.ObjectMeta.ManagedFields = []metav1.ManagedFieldsEntry{}
+		resStatus.Annotations = ClearLastApplied(resStatus.Annotations)
 		rbstate.Status.PodStatuses = append(rbstate.Status.PodStatuses, resStatus)
 	}
 	return nil
@@ -213,6 +215,7 @@ func (r *reconciler) updateConfigMaps(rbstate *v1alpha1.ResourceBundleState,
 			ObjectMeta: cm.ObjectMeta,
 		}
 		resStatus.ObjectMeta.ManagedFields = []metav1.ManagedFieldsEntry{}
+		resStatus.Annotations = ClearLastApplied(resStatus.Annotations)
 		rbstate.Status.ConfigMapStatuses = append(rbstate.Status.ConfigMapStatuses, resStatus)
 	}
 
@@ -240,6 +243,7 @@ func (r *reconciler) updateDeployments(rbstate *v1alpha1.ResourceBundleState,
 			Spec:       dep.Spec,
 		}
 		resStatus.ObjectMeta.ManagedFields = []metav1.ManagedFieldsEntry{}
+		resStatus.Annotations = ClearLastApplied(resStatus.Annotations)
 		rbstate.Status.DeploymentStatuses = append(rbstate.Status.DeploymentStatuses, resStatus)
 	}
 
@@ -265,6 +269,7 @@ func (r *reconciler) updateSecrets(rbstate *v1alpha1.ResourceBundleState,
 			ObjectMeta: sec.ObjectMeta,
 		}
 		resStatus.ObjectMeta.ManagedFields = []metav1.ManagedFieldsEntry{}
+		resStatus.Annotations = ClearLastApplied(resStatus.Annotations)
 		rbstate.Status.SecretStatuses = append(rbstate.Status.SecretStatuses, resStatus)
 	}
 
@@ -292,6 +297,7 @@ func (r *reconciler) updateDaemonSets(rbstate *v1alpha1.ResourceBundleState,
 			Status:     ds.Status,
 		}
 		resStatus.ObjectMeta.ManagedFields = []metav1.ManagedFieldsEntry{}
+		resStatus.Annotations = ClearLastApplied(resStatus.Annotations)
 		rbstate.Status.DaemonSetStatuses = append(rbstate.Status.DaemonSetStatuses, resStatus)
 	}
 
@@ -318,6 +324,7 @@ func (r *reconciler) updateIngresses(rbstate *v1alpha1.ResourceBundleState,
 			Status:     ing.Status,
 		}
 		resStatus.ObjectMeta.ManagedFields = []metav1.ManagedFieldsEntry{}
+		resStatus.Annotations = ClearLastApplied(resStatus.Annotations)
 		rbstate.Status.IngressStatuses = append(rbstate.Status.IngressStatuses, resStatus)
 	}
 
@@ -345,6 +352,7 @@ func (r *reconciler) updateJobs(rbstate *v1alpha1.ResourceBundleState,
 			Spec:       job.Spec,
 		}
 		resStatus.ObjectMeta.ManagedFields = []metav1.ManagedFieldsEntry{}
+		resStatus.Annotations = ClearLastApplied(resStatus.Annotations)
 		rbstate.Status.JobStatuses = append(rbstate.Status.JobStatuses, resStatus)
 	}
 
@@ -372,6 +380,7 @@ func (r *reconciler) updateStatefulSets(rbstate *v1alpha1.ResourceBundleState,
 			Spec:       sfs.Spec,
 		}
 		resStatus.ObjectMeta.ManagedFields = []metav1.ManagedFieldsEntry{}
+		resStatus.Annotations = ClearLastApplied(resStatus.Annotations)
 		rbstate.Status.StatefulSetStatuses = append(rbstate.Status.StatefulSetStatuses, resStatus)
 	}
 
@@ -398,6 +407,7 @@ func (r *reconciler) updateCsrs(rbstate *v1alpha1.ResourceBundleState,
 			Status:     csr.Status,
 		}
 		resStatus.ObjectMeta.ManagedFields = []metav1.ManagedFieldsEntry{}
+		resStatus.Annotations = ClearLastApplied(resStatus.Annotations)
 		rbstate.Status.CsrStatuses = append(rbstate.Status.CsrStatuses, resStatus)
 	}
 	return nil

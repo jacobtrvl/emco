@@ -2,18 +2,18 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: left-nginx
-  namespace: sfc-head
+  namespace: {{ .Values.Namespace }}
   labels:
-    sfc: head
+    app: head
 spec:
   replicas: 3
   selector:
     matchLabels:
-      sfc: head
+      app: head
   template:
     metadata:
       labels:
-        test: one
+        app: head
     spec:
       containers:
       - name: nginx
