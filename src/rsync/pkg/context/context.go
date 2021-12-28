@@ -220,7 +220,7 @@ func (instca *CompositeAppContext) TerminateComApp(cid interface{}) error {
 func (instca *CompositeAppContext) UpdateComApp(cid interface{}, ucid interface{}) error {
 	instca.cid = cid
 	con := connector.NewProvider(instca.cid)
-	return HandleAppContext(instca.cid, ucid, UpdateEvent, &con)
+	return HandleAppContext(ucid, instca.cid, UpdateEvent, &con)
 }
 
 // ReadComApp Reads resources in AppContext

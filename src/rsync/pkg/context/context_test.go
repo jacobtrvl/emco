@@ -207,7 +207,7 @@ func TestUpdate(t *testing.T) {
 			con := NewProvider(cid)
 
 			_ = HandleAppContext(cid, nil, InstantiateEvent, &con)
-			_ = HandleAppContext(cid, ucid, UpdateEvent, &con)
+			_ = HandleAppContext(ucid, cid, UpdateEvent, &con)
 			time.Sleep(2 * time.Second)
 
 			if !CompareMaps(testCase.expectedApply, LoadMap("apply")) {
@@ -291,21 +291,21 @@ func TestRollbackUpdate(t *testing.T) {
 
 			_ = HandleAppContext(cid, nil, InstantiateEvent, &con)
 			// UPDATE
-			_ = HandleAppContext(cid, ucid, UpdateEvent, &con)
+			_ = HandleAppContext(ucid, cid, UpdateEvent, &con)
 			//Update before previous is completed is not supported
 			time.Sleep(1 * time.Second)
 			if !CompareMaps(testCase.expectedUpdatedResources, LoadMap("resource")) {
 				t.Error("Resources doesn't match", LoadMap("resource"))
 			}
 			// ROLLBACK 1
-			_ = HandleAppContext(ucid, cid, UpdateEvent, &con)
+			_ = HandleAppContext(cid, ucid, UpdateEvent, &con)
 			//Update before previous is completed is not supported
 			time.Sleep(1 * time.Second)
 			if !CompareMaps(testCase.expectedOriginalResources, LoadMap("resource")) {
 				t.Error("Resources doesn't match", LoadMap("resource"))
 			}
 			// ROLLBACK 2
-			_ = HandleAppContext(cid, ucid, UpdateEvent, &con)
+			_ = HandleAppContext(ucid, cid, UpdateEvent, &con)
 			time.Sleep(1 * time.Second)
 			if !CompareMaps(testCase.expectedUpdatedResources, LoadMap("resource")) {
 				t.Error("Resources doesn't match", LoadMap("resource"))

@@ -250,21 +250,21 @@ func (c *Context) appContextRoutine() {
 			case ReadEvent:
 				op = OpRead
 			case UpdateEvent:
-				// Update AppContext to decide what needs update
-				if err := c.updateDeletePhase(ele); err != nil {
-					break
-				}
-				op = OpDelete
-				// Enqueue Modify Phase for the AppContext that is being updated to
-				go HandleAppContext(ele.UCID, c.acID, UpdateModifyEvent, c.con)
-			case UpdateModifyEvent:
-				// In Modify Phase find out resources that need to be modified and
+				// In Instantiate Phase find out resources that need to be modified and
 				// set skip to be true for those that match
 				// This is done to avoid applying resources that have no differences
 				if err := c.updateModifyPhase(ele); err != nil {
 					break
 				}
 				op = OpApply
+				// Enqueue Modify Phase for the AppContext that is being updated to
+				go HandleAppContext(ele.UCID, c.acID, UpdateDeleteEvent, c.con)
+			case UpdateDeleteEvent:
+				// Update AppContext to decide what needs update
+				if err := c.updateDeletePhase(ele); err != nil {
+					break
+				}
+				op = OpDelete
 			case AddChildContextEvent:
 				log.Error("Not Implemented", log.Fields{"event": e})
 				if err := c.UpdateQStatus(index, "Skip"); err != nil {
@@ -612,7 +612,7 @@ func (c *Context) runCluster(ctx context.Context, op RsyncOperation, e RsyncEven
 		c.StopDeleteStatusCRTimer(key)
 		timer := ScheduleDeleteStatusTracker(c.statusAcID, app, cluster, level, namespace, c.con)
 		c.UpdateDeleteStatusCRTimer(key, timer)
-	case UpdateEvent, UpdateModifyEvent:
+	case UpdateEvent, UpdateDeleteEvent:
 		// Update and Rollback hooks are not supported at this time
 		var rl []string
 		// Find resources to handle based on skip bit

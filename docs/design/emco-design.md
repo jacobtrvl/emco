@@ -122,7 +122,7 @@ The Distributed Application Scheduler supports operations on a deployment intent
 - status: (may be invoked at any step) provides information on the status of the deployment intent group.
 - terminate: terminates the application resources of an instantiated application from all of the clusters to which it was deployed.  The terminate operation will cause the instantiate operation to complete (i.e. fail), before the termination operation is performed.
 - stop: In some cases, if the remote cluster is intermittently unreachable, the Resource Synchronizer will continue retrying an instantiate or terminate operation. The stop operation can be used to force the retry operation to stop, and the instantiate or terminate  operation will complete (with a failed status). In the case of terminate, this allows the deployment intent group resource to be deleted via the API, since deletion is prevented until a deployment intent group resource has reached a completed terminate operation status.
-Refer to [EMCO Resource Lifecycle Operations](https://github.com/otcshare/EMCO/tree/main/docs/design/Resource_Lifecycle_and_Status.md) for more details.
+  Refer to [EMCO Resource Lifecycle Operations](https://github.com/otcshare/EMCO/tree/main/docs/design/Resource_Lifecycle_and_Status.md) for more details.
 
 #### Placement and Action Controllers in EMCO
 This section illustrates some key aspects of the EMCO controller architecture.  Depending on the needs of a composite application, intents that handle specific operations for application resources (e.g. addition, modification, etc.) can be created via the APIs provided by the corresponding controller API.  The following diagram shows the sequence of interactions to register controllers with EMCO.
@@ -307,10 +307,9 @@ Stop Event is different from other events. It is not a gRPC call. This event is 
 
 The orchestrator creates a new AppContext which includes all the desired resources after update/migrate. Rsync update gRPC is called with two AppContexts. The first is the Initial AppContext which must be in the instantiated state. The second is the Update AppContext. The Update happens in two phases.
 
-The first phase is the deletion phase. The difference between the two AppContexts is captured. All resources that are not in the Update AppContext are marked for deletion (by setting skip=false). After that, terminate is invoked for the AppContext. All resources marked with skip=false are deleted including apps, clusters, and individual resources. At this stage nothing is deleted if the number of Initial and Update AppContext apps, clusters, and resources match.
+The first phase is the Instantiation phase. This event takes two AppContexts: The first is the Update AppContext and the seconds is the Initial AppContext. The difference between the two AppContexts is captured. All resources that need to be modified are marked with skip=false. All new apps, clusters that are added will be marked as skip=false. A byte level comparison between the resources in the two AppContexts is made. If differences are found, then that resource is applied.
 
-At the end of the deletion phase a new event called UpdateModifyEvent is enqueued in the AppContext Queue. This is an internal event which is treated the same as other events. This event also takes two AppContexts: The first is the Update AppContext and the seconds is the Initial AppContext. This division ensures that any new event that comes for the Update AppContext will also be honored in the order received. Again, a difference between the two AppContexts is captured. All resources that need to be modified are marked with skip=false. All new apps, clusters that are added will be marked as skip=false. A byte level comparison between the resources in the two AppContexts is made. If differences are found, then that resource is applied.
-Instantiate is called for the Update AppContext. All resources marked skip=false will be modified or installed. This ensures any new apps, clusters, resources or modified resources are applied to the clusters.
+At the end of the Instantiation phase a new event called UpdateDeleteEvent is enqueued in the AppContext Queue. This is an internal event which is treated the same as other events. This event also takes two AppContexts: The first is the Initial AppContext and the seconds is the Update AppContext. This division ensures that any new event that comes for the Update AppContext will also be honored in the order received. Again, a difference between the two AppContexts is captured. All resources marked with skip=false are deleted including apps, clusters, and individual resources. At this stage nothing is deleted if the number of Initial and Update AppContext apps, clusters, and resources match.
 
 Update also waits for the clusters to be ready just like other operations.
 
@@ -333,8 +332,8 @@ If it finds an active AppContextID, it creates the AppContextData and starts the
 | ----------------- | ------------------------------------------------------------------------------------------------------------------------ | ------------- | ------------- | ----------------- |
 | InstantiateEvent  | Created, Terminated, TerminationFailed, Instantiated, Instantiating, InstantiationFailed, Update, Updating, UpdateFailed | Instantiated  | Instantiating | InstantiateFailed |
 | TerminateEvent    | Terminating, TerminationFailed, Instantiated, Instantiating, InstantiationFailed, Updated, Updating, UpdateFailed        | Terminated    | Terminating   | TerminationFailed |
-| UpdateEvent       | Instantiated,                                                                                                            | Updated       | Updating      | UpdateFailed      |
-| UpdateModifyEvent | Created, Updated                                                                                                        | Instantiated  | Instantiating | InstantiateFailed |
+| UpdateEvent       | Created, Updated                                                                                                         | Updated       | Updating      | UpdateFailed      |
+| UpdateDeleteEvent | Instantiated                                                                                                             | Instantiated  | Instantiating | InstantiateFailed |
 
 
 ### Status Monitoring and Queries in EMCO
@@ -343,3 +342,4 @@ When a resource like a Deployment Intent Group is instantiated, status informati
 ![EMCO](images/emco-status-monitoring.png)
 
 _Figure 9 - Status Monitoring and Query Sequence_
+

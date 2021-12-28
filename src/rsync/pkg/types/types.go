@@ -30,7 +30,7 @@ const (
 	AddChildContextEvent RsyncEvent = "AddChildContext"
 	UpdateEvent          RsyncEvent = "Update"
 	// This is an internal event
-	UpdateModifyEvent RsyncEvent = "UpdateModify"
+	UpdateDeleteEvent RsyncEvent = "UpdateDelete"
 )
 
 // RsyncOperation is operation Rsync handles
@@ -97,18 +97,18 @@ var StateChanges = map[RsyncEvent]StateChange{
 	},
 	UpdateEvent: StateChange{
 		SState: []appcontext.StatusValue{
-			appcontext.AppContextStatusEnum.Instantiated},
-		DState:   appcontext.AppContextStatusEnum.Updated,
-		CState:   appcontext.AppContextStatusEnum.Updating,
-		ErrState: appcontext.AppContextStatusEnum.UpdateFailed,
-	},
-	UpdateModifyEvent: StateChange{
-		SState: []appcontext.StatusValue{
 			appcontext.AppContextStatusEnum.Created,
 			appcontext.AppContextStatusEnum.Updated},
 		DState:   appcontext.AppContextStatusEnum.Instantiated,
 		CState:   appcontext.AppContextStatusEnum.Instantiating,
 		ErrState: appcontext.AppContextStatusEnum.InstantiateFailed,
+	},
+	UpdateDeleteEvent: StateChange{
+		SState: []appcontext.StatusValue{
+			appcontext.AppContextStatusEnum.Instantiated},
+		DState:   appcontext.AppContextStatusEnum.Updated,
+		CState:   appcontext.AppContextStatusEnum.Updating,
+		ErrState: appcontext.AppContextStatusEnum.UpdateFailed,
 	},
 	ReadEvent: StateChange{
 		SState: []appcontext.StatusValue{
