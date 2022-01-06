@@ -1,4 +1,4 @@
-image: golang:latest
+image: golang:1.17.7
 
 variables:
   REPO_NAME: gitlab.com/project-emco/core/emco-base
@@ -16,7 +16,7 @@ test:
   stage: all
   only:
     - merge_requests
-  image: golang:1.14.15
+  image: golang:1.17.7
   script:
     - make test
 

@@ -47,12 +47,14 @@ BUILD_BASE_IMAGE_VERSION=:1.1
 SERVICE_BASE_IMAGE_NAME=alpine
 SERVICE_BASE_IMAGE_VERSION=:3.12
 ```
+TODO: correct the above
 
-By default, `emco-service-build-base` is built from `golang:1.14.1-alpine`, with the `make` utility added.
+By default, `emco-service-build-base` is built from the containerized Alpine variant of Go (such as `golang:1.17.7-alpine` at the time of writing), with the `make` utility added.
 
 You may want to review and possibly update the base image names and versions.
 
 Note: The build base image should be based on a Linux distribution that uses `apt` for package management, such as Alpine, Debian or Ubuntu. It should also provide Go language version 1.14.
+TODO: correct the above
 
 ### Populate the EMCODOCKERREPO registry
 
@@ -64,9 +66,11 @@ The base images and versions that have been validated are as below:
   3.	mongo:4.4.1
   4.	etcd:3
 
+TODO: correct the above
 ### Create the build base image in the EMCODOCKERREPO registry
 
 EMCO does not assume that the base build image, such as `golang:1.14.1-alpine`, has the necessary utilities such as `make`.
+TODO: correct the above
 
 Run the following to create the final build container image and populate that
 in the `EMCODOCKERREPO` registry.

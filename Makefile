@@ -29,6 +29,8 @@ ifeq ($(BUILD_CAUSE), RELEASE)
  endif
 endif
 
+export GO_VERSION := $(shell cat $(CONFIG) | grep 'GO_VERSION' | cut -d'=' -f2)
+
 docker-reg:
 	@echo "Setting up docker Registry with base image"
 export BUILD_BASE_IMAGE_NAME := $(shell cat $(CONFIG) | grep 'BUILD_BASE_IMAGE_NAME' | cut -d'=' -f2)
