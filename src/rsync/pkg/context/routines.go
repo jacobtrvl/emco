@@ -20,37 +20,37 @@ import (
 )
 
 // Check status of AppContext against the event to see if it is valid
-func (c *Context) checkStateChange(e RsyncEvent) (StateChange, error) {
+func (c *Context) checkStateChange(e RsyncEvent) (StateChange, bool, error) {
 	var supported bool = false
 	var err error
 	var dState, cState appcontext.AppContextStatus
 	var event StateChange
 
+	event, ok := StateChanges[e]
+	if !ok {
+		return StateChange{}, false, pkgerrors.Errorf("Invalid Event %s:", e)
+	}
 	// Check Stop flag return error no processing desired
 	sFlag, err := c.acRef.GetAppContextFlag(StopFlagKey)
 	if err != nil {
-		return StateChange{}, pkgerrors.Errorf("AppContext Error: %s:", err)
+		return event, false, pkgerrors.Errorf("AppContext Error: %s:", err)
 	}
 	if sFlag {
-		return StateChange{}, pkgerrors.Errorf("Stop flag set for context: %s", c.acID)
+		return event, false, pkgerrors.Errorf("Stop flag set for context: %s", c.acID)
 	}
 	// Check PendingTerminate Flag
 	tFlag, err := c.acRef.GetAppContextFlag(PendingTerminateFlagKey)
 	if err != nil {
-		return StateChange{}, pkgerrors.Errorf("AppContext Error: %s:", err)
+		return event, false, pkgerrors.Errorf("AppContext Error: %s:", err)
 	}
 
 	if tFlag && e != TerminateEvent {
-		return StateChange{}, pkgerrors.Errorf("Terminate Flag is set, Ignoring event: %s:", e)
+		return event, false, pkgerrors.Errorf("Terminate Flag is set, Ignoring event: %s:", e)
 	}
 	// Update the desired state of the AppContext based on this event
-	event, ok := StateChanges[e]
-	if !ok {
-		return StateChange{}, pkgerrors.Errorf("Invalid Event %s:", e)
-	}
 	state, err := c.acRef.GetAppContextStatus(CurrentStateKey)
 	if err != nil {
-		return StateChange{}, err
+		return event, false, err
 	}
 	for _, s := range event.SState {
 		if s == state.Status {
@@ -59,7 +59,12 @@ func (c *Context) checkStateChange(e RsyncEvent) (StateChange, error) {
 		}
 	}
 	if !supported {
-		return StateChange{}, pkgerrors.Errorf("Invalid Source state %s for the Event %s:", state, e)
+		//Exception to state machine, if event is terminate and the current state is already
+		// terminated, don't change the status to TerminateFailed
+		if e == TerminateEvent && state.Status == appcontext.AppContextStatusEnum.Terminated {
+			return event, false, pkgerrors.Errorf("Invalid Source state %s for the Event %s:", state, e)
+		}
+		return event, true, pkgerrors.Errorf("Invalid Source state %s for the Event %s:", state, e)
 	} else {
 		dState.Status = event.DState
 		cState.Status = event.CState
@@ -67,19 +72,18 @@ func (c *Context) checkStateChange(e RsyncEvent) (StateChange, error) {
 	// Event is supported. Update Desired state and current state
 	err = c.acRef.UpdateAppContextStatus(DesiredStateKey, dState)
 	if err != nil {
-		return StateChange{}, err
+		return event, false, err
 	}
 	err = c.acRef.UpdateAppContextStatus(CurrentStateKey, cState)
 	if err != nil {
-		return StateChange{}, err
+		return event, false, err
 	}
 	err = c.acRef.UpdateAppContextStatus(StatusKey, cState)
 	if err != nil {
-		return StateChange{}, err
+		return event, false, err
 	}
-	return event, nil
+	return event, true, nil
 }
-
 // UpdateQStatus updates status of an element in the queue
 func (c *Context) UpdateQStatus(index int, status string) error {
 	qUtils := &AppContextQueueUtils{ac: c.acRef.GetAppContextHandle()}
@@ -216,22 +220,24 @@ func (c *Context) appContextRoutine() {
 		if index >= 0 {
 			c.Lock.Unlock()
 			e := ele.Event
-			state, err := c.checkStateChange(e)
+			state, skip, err := c.checkStateChange(e)
 			// Event is not valid event for the current state of AppContext
 			if err != nil {
 				log.Error("State Change Error", log.Fields{"error": err})
 				if err := c.UpdateQStatus(index, "Skip"); err != nil {
 					break
 				}
-				// Update status with error
-				err = c.acRef.UpdateAppContextStatus(StatusKey, appcontext.AppContextStatus{Status: state.ErrState})
-				if err != nil {
-					break
-				}
-				// Update Current status with error
-				err = c.acRef.UpdateAppContextStatus(CurrentStateKey, appcontext.AppContextStatus{Status: state.ErrState})
-				if err != nil {
-					break
+				if !skip {
+					// Update status with error
+					err = c.acRef.UpdateAppContextStatus(StatusKey, appcontext.AppContextStatus{Status: state.ErrState})
+					if err != nil {
+						break
+					}
+					// Update Current status with error
+					err = c.acRef.UpdateAppContextStatus(CurrentStateKey, appcontext.AppContextStatus{Status: state.ErrState})
+					if err != nil {
+						break
+					}
 				}
 				// Continue to process more events
 				continue
