@@ -5,9 +5,10 @@ require (
 	github.com/gorilla/handlers v1.3.0
 	github.com/gorilla/mux v1.7.3
 	github.com/k8snetworkplumbingwg/network-attachment-definition-client v1.1.0
+	github.com/pkg/errors v0.9.1
 	gitlab.com/project-emco/core/emco-base/src/clm v0.0.0-00010101000000-000000000000
 	gitlab.com/project-emco/core/emco-base/src/orchestrator v0.0.0-00010101000000-000000000000
-	github.com/pkg/errors v0.9.1
+	google.golang.org/grpc v1.28.0
 	gopkg.in/yaml.v2 v2.3.0
 	k8s.io/apimachinery v0.20.2
 )
