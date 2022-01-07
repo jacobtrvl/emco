@@ -583,7 +583,6 @@ func (ac *AppContext) AddLevelValue(handle interface{}, level string, value inte
 	if err != nil {
 		return nil, err
 	}
-	log.Info(":: Added handle ::", log.Fields{"Handle": h})
 
 	return h, nil
 }

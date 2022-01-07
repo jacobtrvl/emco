@@ -29,10 +29,10 @@ const monitorLabel = "emco/deployment-id"
 
 // HandleStatusUpdate for an application in a cluster
 func HandleStatusUpdate(clusterId string, id string, v *v1alpha1.ResourceBundleState) {
-	log.Info("K8s HandleStatusUpdate", log.Fields{"id": id, "cluster": clusterId})
+	// log.Info("K8s HandleStatusUpdate", log.Fields{"id": id, "cluster": clusterId})
 	// Get the contextId from the label (id)
 	result := strings.SplitN(id, "-", 2)
-	log.Info("::HandleStatusUpdate::", log.Fields{"id": id, "cluster": clusterId})
+	// log.Info("::HandleStatusUpdate::", log.Fields{"id": id, "cluster": clusterId})
 	if result[0] == "" {
 		log.Error("::label is missing an appcontext identifier::", log.Fields{"id": id, "cluster": clusterId})
 		return
@@ -46,7 +46,7 @@ func HandleStatusUpdate(clusterId string, id string, v *v1alpha1.ResourceBundleS
 		log.Error("::label is missing an app identifier::", log.Fields{"id": id, "cluster": clusterId})
 		return
 	}
-	log.Info("K8s HandleStatusUpdate", log.Fields{"id": id, "cluster": clusterId, "app": result[1]})
+	// log.Info("K8s HandleStatusUpdate", log.Fields{"id": id, "cluster": clusterId, "app": result[1]})
 	// Notify Resource tracking
 	status.HandleResourcesStatus(result[0], result[1], clusterId, v)
 }

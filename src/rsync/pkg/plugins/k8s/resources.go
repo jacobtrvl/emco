@@ -22,7 +22,7 @@ func (p *K8sProvider) Create(name string, ref interface{}, content []byte) (inte
 		return nil, err
 	}
 	if err := p.client.Create(b); err != nil {
-		if apierrors.IsAlreadyExists(err) {
+		if apierrors.IsAlreadyExists(err) || strings.Contains(err.Error(), "already exists") {
 			log.Warn("Resource is already present, Skipping", log.Fields{"error": err, "resource": name})
 			return nil, nil
 		} else {

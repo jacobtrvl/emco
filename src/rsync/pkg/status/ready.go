@@ -17,12 +17,12 @@ limitations under the License.
 package status
 
 import (
-	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
+//	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"log"
+//	"log"
 )
 
 // ReadyCheckerOption is a function that configures a ReadyChecker.
@@ -70,18 +70,18 @@ func (c *ReadyChecker) PodReady(pod *corev1.Pod) bool {
 			return true
 		}
 	}
-	log.Printf("Pod is not ready: %s/%s", pod.GetNamespace(), pod.GetName())
+	//log.Printf("Pod is not ready: %s/%s", pod.GetNamespace(), pod.GetName())
 	return false
 }
 
 func (c *ReadyChecker) JobReady(job *batchv1.Job) bool {
 	if c.checkJobs {
 		if job.Status.Failed > *job.Spec.BackoffLimit {
-			log.Printf("Job is failed: %s/%s", job.GetNamespace(), job.GetName())
+			// log.Printf("Job is failed: %s/%s", job.GetNamespace(), job.GetName())
 			return false
 		}
 		if job.Status.Succeeded < *job.Spec.Completions {
-			log.Printf("Job is not completed: %s/%s", job.GetNamespace(), job.GetName())
+			// log.Printf("Job is not completed: %s/%s", job.GetNamespace(), job.GetName())
 			return false
 		}
 		return true
@@ -97,7 +97,7 @@ func (c *ReadyChecker) ServiceReady(s *corev1.Service) bool {
 
 	// Ensure that the service cluster IP is not empty
 	if s.Spec.ClusterIP == "" {
-		log.Printf("Service does not have cluster IP address: %s/%s", s.GetNamespace(), s.GetName())
+		// log.Printf("Service does not have cluster IP address: %s/%s", s.GetNamespace(), s.GetName())
 		return false
 	}
 
@@ -105,12 +105,12 @@ func (c *ReadyChecker) ServiceReady(s *corev1.Service) bool {
 	if s.Spec.Type == corev1.ServiceTypeLoadBalancer {
 		// do not wait when at least 1 external IP is set
 		if len(s.Spec.ExternalIPs) > 0 {
-			log.Printf("Service %s/%s has external IP addresses (%v), marking as ready", s.GetNamespace(), s.GetName(), s.Spec.ExternalIPs)
+			// log.Printf("Service %s/%s has external IP addresses (%v), marking as ready", s.GetNamespace(), s.GetName(), s.Spec.ExternalIPs)
 			return true
 		}
 
 		if s.Status.LoadBalancer.Ingress == nil {
-			log.Printf("Service does not have load balancer ingress IP address: %s/%s", s.GetNamespace(), s.GetName())
+			// log.Printf("Service does not have load balancer ingress IP address: %s/%s", s.GetNamespace(), s.GetName())
 			return false
 		}
 	}
@@ -120,7 +120,7 @@ func (c *ReadyChecker) ServiceReady(s *corev1.Service) bool {
 
 func (c *ReadyChecker) VolumeReady(v *corev1.PersistentVolumeClaim) bool {
 	if v.Status.Phase != corev1.ClaimBound {
-		log.Printf("PersistentVolumeClaim is not bound: %s/%s", v.GetNamespace(), v.GetName())
+		// log.Printf("PersistentVolumeClaim is not bound: %s/%s", v.GetNamespace(), v.GetName())
 		return false
 	}
 	return true
@@ -133,7 +133,7 @@ func (c *ReadyChecker) DeploymentReady(dep *appsv1.Deployment) bool {
 	}
 	expectedReady := *dep.Spec.Replicas - MaxUnavailable(*dep)
 	if !(dep.Status.ReadyReplicas >= expectedReady) {
-		log.Printf("Deployment is not ready: %s/%s. %d out of %d expected pods are ready", dep.Namespace, dep.Name, dep.Status.ReadyReplicas, expectedReady)
+		// log.Printf("Deployment is not ready: %s/%s. %d out of %d expected pods are ready", dep.Namespace, dep.Name, dep.Status.ReadyReplicas, expectedReady)
 		return false
 	}
 	return true
@@ -147,7 +147,7 @@ func (c *ReadyChecker) DaemonSetReady(ds *appsv1.DaemonSet) bool {
 
 	// Make sure all the updated pods have been scheduled
 	if ds.Status.UpdatedNumberScheduled != ds.Status.DesiredNumberScheduled {
-		log.Printf("DaemonSet is not ready: %s/%s. %d out of %d expected pods have been scheduled", ds.Namespace, ds.Name, ds.Status.UpdatedNumberScheduled, ds.Status.DesiredNumberScheduled)
+		// log.Printf("DaemonSet is not ready: %s/%s. %d out of %d expected pods have been scheduled", ds.Namespace, ds.Name, ds.Status.UpdatedNumberScheduled, ds.Status.DesiredNumberScheduled)
 		return false
 	}
 	maxUnavailable, err := intstr.GetValueFromIntOrPercent(ds.Spec.UpdateStrategy.RollingUpdate.MaxUnavailable, int(ds.Status.DesiredNumberScheduled), true)
@@ -160,7 +160,7 @@ func (c *ReadyChecker) DaemonSetReady(ds *appsv1.DaemonSet) bool {
 
 	expectedReady := int(ds.Status.DesiredNumberScheduled) - maxUnavailable
 	if !(int(ds.Status.NumberReady) >= expectedReady) {
-		log.Printf("DaemonSet is not ready: %s/%s. %d out of %d expected pods are ready", ds.Namespace, ds.Name, ds.Status.NumberReady, expectedReady)
+		// log.Printf("DaemonSet is not ready: %s/%s. %d out of %d expected pods are ready", ds.Namespace, ds.Name, ds.Status.NumberReady, expectedReady)
 		return false
 	}
 	return true
@@ -194,12 +194,12 @@ func (c *ReadyChecker) StatefulSetReady(sts *appsv1.StatefulSet) bool {
 
 	// Make sure all the updated pods have been scheduled
 	if int(sts.Status.UpdatedReplicas) != expectedReplicas {
-		log.Printf("StatefulSet is not ready: %s/%s. %d out of %d expected pods have been scheduled", sts.Namespace, sts.Name, sts.Status.UpdatedReplicas, expectedReplicas)
+		// log.Printf("StatefulSet is not ready: %s/%s. %d out of %d expected pods have been scheduled", sts.Namespace, sts.Name, sts.Status.UpdatedReplicas, expectedReplicas)
 		return false
 	}
 
 	if int(sts.Status.ReadyReplicas) != replicas {
-		log.Printf("StatefulSet is not ready: %s/%s. %d out of %d expected pods are ready", sts.Namespace, sts.Name, sts.Status.ReadyReplicas, replicas)
+		// log.Printf("StatefulSet is not ready: %s/%s. %d out of %d expected pods are ready", sts.Namespace, sts.Name, sts.Status.ReadyReplicas, replicas)
 		return false
 	}
 	return true
@@ -219,14 +219,14 @@ func (c *ReadyChecker) PodSuccess(pod *corev1.Pod) bool {
 
 	switch pod.Status.Phase {
 	case corev1.PodSucceeded:
-		logutils.Info("Pod succeeded::", logutils.Fields{"Pod Name": pod.Name})
+		// logutils.Info("Pod succeeded::", logutils.Fields{"Pod Name": pod.Name})
 		return true
 	case corev1.PodFailed:
 		return true
 	case corev1.PodPending:
-		logutils.Info("Pod running::", logutils.Fields{"Pod Name": pod.Name})
+		// logutils.Info("Pod running::", logutils.Fields{"Pod Name": pod.Name})
 	case corev1.PodRunning:
-		logutils.Info("Pod is Running::", logutils.Fields{"Pod Name": pod.Name})
+		// logutils.Info("Pod is Running::", logutils.Fields{"Pod Name": pod.Name})
 	}
 
 	return false
@@ -241,6 +241,6 @@ func (c *ReadyChecker) JobSuccess(job *batchv1.Job) bool {
 			return true
 		}
 	}
-	logutils.Info("Job Status:", logutils.Fields{"Jobs active": job.Status.Active, "Jobs failed": job.Status.Failed, "Jobs Succeded": job.Status.Succeeded})
+	// logutils.Info("Job Status:", logutils.Fields{"Jobs active": job.Status.Active, "Jobs failed": job.Status.Failed, "Jobs Succeded": job.Status.Succeeded})
 	return false
 }

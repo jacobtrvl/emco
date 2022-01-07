@@ -591,26 +591,32 @@ func (c *Context) runCluster(ctx context.Context, op RsyncOperation, e RsyncEven
 			log.Info("Done Deleting pre-delete Hooks", log.Fields{"App": app, "cluster": cluster, "hooks": c.ca.Apps[app].Clusters[cluster].Dependency["pre-delete"]})
 		}
 		// Delete main resources without wait
+		log.Info("Deleting main resources", log.Fields{"App": app, "cluster": cluster, "resources": c.ca.Apps[app].Clusters[cluster].ResOrder})
 		_, err = r.handleResources(ctx, op, c.ca.Apps[app].Clusters[cluster].ResOrder)
 		if err != nil {
 			return err
 		}
 		// Apply Postdelete hooks with wait
 		if len (c.ca.Apps[app].Clusters[cluster].Dependency["post-delete"]) > 0 {
-			log.Info("Deleting post-delete Hooks", log.Fields{"App": app, "cluster": cluster, "hooks": c.ca.Apps[app].Clusters[cluster].Dependency["post-delete"]})
+			log.Info("Apply post-delete Hooks", log.Fields{"App": app, "cluster": cluster, "hooks": c.ca.Apps[app].Clusters[cluster].Dependency["post-delete"]})
 			_, err = r.handleResourcesWithWait(ctx, OpApply, c.ca.Apps[app].Clusters[cluster].Dependency["post-delete"])
 			if err != nil {
 				return err
 			}
-			log.Info("Done Deleting post-delete Hooks", log.Fields{"App": app, "cluster": cluster, "hooks": c.ca.Apps[app].Clusters[cluster].Dependency["post-delete"]})
+			log.Info("Done Applying post-delete Hooks", log.Fields{"App": app, "cluster": cluster, "hooks": c.ca.Apps[app].Clusters[cluster].Dependency["post-delete"]})
 		}
 		var rl []string
 		// Delete all hook resources also
 		// Ignore errors - There can be errors if the hook resources are not applied
 		// like rollback hooks and test hooks
-		for _, d := range c.ca.Apps[app].Clusters[cluster].Dependency {
-			rl = append(rl, d...)
+		for dType, d := range c.ca.Apps[app].Clusters[cluster].Dependency {
+			// Based on the discussions in Helm handling of CRD's
+			// https://helm.sh/docs/chart_best_practices/custom_resource_definitions/
+			if dType != "crd-install" {
+				rl = append(rl, d...)
+			}
 		}
+		log.Info("Deleting hook resources", log.Fields{"App": app, "cluster": cluster, "resources": rl})
 		// Ignore errors
 		_, _ = r.handleResources(ctx, op, rl)
 
