@@ -2,18 +2,18 @@ module gitlab.com/project-emco/core/emco-base/src/hpa-plc
 
 require (
 	github.com/gorilla/handlers v1.3.0
-	github.com/gorilla/mux v1.7.3
-	github.com/onsi/ginkgo v1.12.0
-	github.com/onsi/gomega v1.9.0
+	github.com/gorilla/mux v1.8.0
+	github.com/onsi/ginkgo v1.14.0
+	github.com/onsi/gomega v1.10.1
+	github.com/pkg/errors v0.9.1
+	github.com/sirupsen/logrus v1.8.1
 	gitlab.com/project-emco/core/emco-base/src/clm v0.0.0-00010101000000-000000000000
 	gitlab.com/project-emco/core/emco-base/src/orchestrator v0.0.0-00010101000000-000000000000
 	gitlab.com/project-emco/core/emco-base/src/rsync v0.0.0-00010101000000-000000000000
-	github.com/pkg/errors v0.9.1
-	github.com/sirupsen/logrus v1.7.0
-	golang.org/x/net v0.0.0-20200707034311-ab3426394381
-	google.golang.org/grpc v1.28.0
+	golang.org/x/net v0.0.0-20211209124913-491a49abca63
+	google.golang.org/grpc v1.40.0
 	k8s.io/api v0.20.2
-	k8s.io/apimachinery v0.20.2
+	k8s.io/apimachinery v0.23.1
 	k8s.io/client-go v12.0.0+incompatible
 )
 
@@ -27,6 +27,7 @@ replace (
 	gitlab.com/project-emco/core/emco-base/src/orchestrator => ../orchestrator
 	gitlab.com/project-emco/core/emco-base/src/rsync => ../rsync
 	go.etcd.io/etcd => go.etcd.io/etcd v0.5.0-alpha.5.0.20200819165624-17cef6e3e9d5 // 17cef6e3e9d5 is the SHA for git tag v3.4.12
+	google.golang.org/grpc => google.golang.org/grpc v1.28.0
 	k8s.io/api => k8s.io/api v0.19.4
 	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.19.4
 	k8s.io/apimachinery => k8s.io/apimachinery v0.19.4

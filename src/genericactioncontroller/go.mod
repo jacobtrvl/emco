@@ -4,12 +4,12 @@ require (
 	github.com/emicklei/go-restful v2.10.0+incompatible // indirect
 	github.com/evanphx/json-patch v4.9.0+incompatible
 	github.com/gorilla/handlers v1.3.0
-	github.com/gorilla/mux v1.7.3
+	github.com/gorilla/mux v1.8.0
+	github.com/pkg/errors v0.9.1
 	gitlab.com/project-emco/core/emco-base/src/clm v0.0.0-00010101000000-000000000000
 	gitlab.com/project-emco/core/emco-base/src/orchestrator v0.0.0-00010101000000-000000000000
-	github.com/pkg/errors v0.9.1
-	google.golang.org/grpc v1.28.0
-	gopkg.in/yaml.v2 v2.3.0
+	google.golang.org/grpc v1.40.0
+	gopkg.in/yaml.v2 v2.4.0
 	sigs.k8s.io/yaml v1.2.0
 )
 
@@ -25,6 +25,7 @@ replace (
 	gitlab.com/project-emco/core/emco-base/src/ovnaction => ../ovnaction
 	gitlab.com/project-emco/core/emco-base/src/rsync => ../rsync
 	go.etcd.io/etcd => go.etcd.io/etcd v0.5.0-alpha.5.0.20200819165624-17cef6e3e9d5 // 17cef6e3e9d5 is the SHA for git tag v3.4.12
+	google.golang.org/grpc => google.golang.org/grpc v1.28.0
 	helm.sh/helm/v3 => helm.sh/helm/v3 v3.5.3
 	k8s.io/api => k8s.io/api v0.19.4
 	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.19.4
