@@ -6,8 +6,8 @@ package module
 import (
 	"encoding/json"
 
-	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
 	pkgerrors "github.com/pkg/errors"
+	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
 )
 
 // Customization consists of metadata and Spec
@@ -22,6 +22,7 @@ type CustomizeSpec struct {
 	ClusterInfo     ClusterInfo              `json:"clusterInfo"`
 	PatchType       string                   `json:"patchType,omitempty"`
 	PatchJSON       []map[string]interface{} `json:"patchJson,omitempty"`
+	SpecFile        []SpecFile               `json:"specFile,omitempty"`
 }
 
 // ClusterInfo consists of scope, Clusterprovider, ClusterName, ClusterLabel and Mode
@@ -31,6 +32,11 @@ type ClusterInfo struct {
 	ClusterName     string `json:"cluster"`
 	ClusterLabel    string `json:"clusterLabel"`
 	Mode            string `json:"mode"`
+}
+
+type SpecFile struct {
+	ConfigFile string `json:"configFile"`
+	ConfigKey  string `json:"configKey"`
 }
 
 // SpecFileContent contains the array of file contents

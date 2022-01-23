@@ -86,7 +86,7 @@ Example of network policy YAML definition
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: MyNetworkPolicy
+  name: my-network-policy
   namespace: default
 spec:
   podSelector: {}

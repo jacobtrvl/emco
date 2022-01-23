@@ -65,13 +65,16 @@ func (h resourceHandler) createResourceHandler(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	// if newobject is true, and its neither a configmap nor a secret and then contentFile should be there, or else throw exception
-	// if the newobject is false the contentfile if any is ignored
-	if strings.ToLower(br.Spec.NewObject) == "true" && strings.ToLower(br.Spec.ResourceGVK.Kind) != "configmap" && strings.ToLower(br.Spec.ResourceGVK.Kind) != "secret" {
+	if strings.ToLower(br.Spec.NewObject) == "true" {
+		objectKind := strings.ToLower(br.Spec.ResourceGVK.Kind)
 		file, _, err := r.FormFile("file")
-
-		if err != nil {
-			log.Error(":: Unable to process file, check if file is present ::", log.Fields{"Error": err})
+		// A file is mandatory for k8s objects except configmap and secrets
+		if err != nil &&
+			objectKind != "configmap" &&
+			objectKind != "secret" {
+			log.Error("Unable to process file, check if file is present.",
+				log.Fields{
+					"Error": err})
 			http.Error(w, "Unable to process file", http.StatusUnprocessableEntity)
 			return
 		}
@@ -80,7 +83,9 @@ func (h resourceHandler) createResourceHandler(w http.ResponseWriter, r *http.Re
 		//Convert the file content to base64 for storage
 		content, err := ioutil.ReadAll(file)
 		if err != nil {
-			log.Error(":: File read failed ::", log.Fields{"Error": err})
+			log.Error("Failed to read the file",
+				log.Fields{
+					"Error": err})
 			http.Error(w, "Unable to read file", http.StatusUnprocessableEntity)
 			return
 		}
