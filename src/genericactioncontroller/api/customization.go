@@ -149,11 +149,6 @@ func (h customizationHandler) createOrUpdateCustomization(w http.ResponseWriter,
 		return
 	}
 
-	methodPost := false
-	if r.Method == http.MethodPost {
-		methodPost = true
-	}
-
 	// validate customization specific prerequisites
 	if err := validateCustomization(customization); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -185,6 +180,12 @@ func (h customizationHandler) createOrUpdateCustomization(w http.ResponseWriter,
 	}
 
 	vars := _cVars(mux.Vars(r))
+
+	methodPost := false
+	if r.Method == http.MethodPost {
+		methodPost = true
+	}
+
 	c, cExists, err := h.client.CreateCustomization(customization, customizationContent,
 		vars.project, vars.compositeApp, vars.version, vars.deploymentIntentGroup, vars.intent, vars.resource,
 		methodPost)

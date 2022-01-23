@@ -10,7 +10,7 @@ import (
 
 	"github.com/pkg/errors"
 	"gitlab.com/project-emco/core/emco-base/src/genericactioncontroller/pkg/module"
-	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
+	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 	yamlV2 "gopkg.in/yaml.v2"
 	"k8s.io/apimachinery/pkg/util/validation"
 )
@@ -41,8 +41,8 @@ func (o *updateOptions) createConfigMap() error {
 
 	value, err := yamlV2.Marshal(configMap)
 	if err != nil {
-		log.Error("Failed to serialize the configMap object into a yaml document",
-			log.Fields{
+		logutils.Error("Failed to serialize the configMap object into a yaml document",
+			logutils.Fields{
 				"ConfigMap": configMap,
 				"Error ":    err.Error()})
 		return err
@@ -50,6 +50,11 @@ func (o *updateOptions) createConfigMap() error {
 
 	if strings.ToLower(o.customization.Spec.PatchType) == "json" &&
 		len(o.customization.Spec.PatchJSON) > 0 {
+		// validate the JSON patch value before applying
+		if err := o.validateJSONPatchValue(); err != nil {
+			return err
+		}
+
 		// apply the JSON patch associated with the ConfigMap customization
 		modifiedPatch, err := applyPatch(o.customization.Spec.PatchJSON, value)
 		if err != nil {
@@ -72,18 +77,19 @@ func newConfigMap(template, name string) (*ConfigMap, error) {
 		// set the base struct from the associated template file
 		value, err := base64.StdEncoding.DecodeString(template)
 		if err != nil {
-			log.Error("Failed to decode the configMap template content",
-				log.Fields{
+			logutils.Error("Failed to decode the configMap template content",
+				logutils.Fields{
 					"Error": err.Error()})
 			return &ConfigMap{}, err
 		}
 
 		if len(value) > 0 {
 			configMap := ConfigMap{}
+			configMap.Data = map[string]string{} // initialize to avoid nil value
 			err = yamlV2.Unmarshal(value, &configMap)
 			if err != nil {
-				log.Error("Failed to unmarshal the configMap template content",
-					log.Fields{
+				logutils.Error("Failed to unmarshal the configMap template content",
+					logutils.Fields{
 						"Error": err.Error()})
 				return &ConfigMap{}, err
 			}

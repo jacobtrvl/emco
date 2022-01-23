@@ -7,7 +7,7 @@ import (
 	"encoding/json"
 	"reflect"
 
-	pkgerrors "github.com/pkg/errors"
+	"github.com/pkg/errors"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
 )
 
@@ -114,7 +114,7 @@ func (rc *ResourceClient) CreateResource(res Resource, content ResourceContent,
 
 	if rExists &&
 		failIfExists {
-		return Resource{}, rExists, pkgerrors.New("Resource already exists")
+		return Resource{}, rExists, errors.New("Resource already exists")
 	}
 
 	if err = db.DBconn.Insert(rc.db.storeName, key, nil, rc.db.tagMeta, res); err != nil {
@@ -148,7 +148,7 @@ func (rc *ResourceClient) GetResource(resource, project, compositeApp, composite
 	}
 
 	if len(value) == 0 {
-		return Resource{}, pkgerrors.New("Resource not found")
+		return Resource{}, errors.New("Resource not found")
 	}
 
 	if value != nil {
@@ -159,7 +159,7 @@ func (rc *ResourceClient) GetResource(resource, project, compositeApp, composite
 		return r, nil
 	}
 
-	return Resource{}, pkgerrors.New("Unknown Error")
+	return Resource{}, errors.New("Unknown Error")
 }
 
 // GetAllResources shall return all the resources for the intent

@@ -1,5 +1,0 @@
-{
-  "op": "replace",
-  "path": "/spec/podSelector/matchLabels/role",
-  "value": "database"
-}

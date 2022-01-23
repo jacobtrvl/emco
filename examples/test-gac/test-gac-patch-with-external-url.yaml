@@ -1,0 +1,120 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2022 Intel Corporation
+
+# create configmap
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.CompositeAppGac}}/v1/deployment-intent-groups/{{.DeploymentIntent}}/generic-k8s-intents/{{.GacIntent}}/resources
+metadata:
+  name: cm-istio
+spec:
+  app: {{.App1}}
+  newObject: "true"
+  resourceGVK:
+    apiVersion: v1
+    kind: ConfigMap
+    name: cm-istio
+file:
+  configmap-istio.yaml
+
+---
+# add customization for cm-istio
+# add more data configurations to cm-istio using the JSON patch 
+# retrieve JSON patch value from an external URL
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.CompositeAppGac}}/v1/deployment-intent-groups/{{.DeploymentIntent}}/generic-k8s-intents/{{.GacIntent}}/resources/cm-istio/customizations
+metadata:
+  name: cm-istio-customization
+spec:
+  clusterSpecific: "false"
+  clusterInfo:
+    scope: label
+    clusterProvider: {{.ClusterProvider}}
+    cluster: {{.Cluster}}
+    clusterLabel: {{.ClusterLabel}}
+    mode: allow
+  patchType: "json"
+  patchJson: [
+    # get the value from the external service call
+    # in this example, clm kvpair query endpoint
+    {
+	    "op": "add",
+	    "path": "/data/istioingressgatewayaddress",
+	    "value": "$(http://192.168.121.29:30461/v2/cluster-providers/provider1/clusters/cluster1/kv-pairs/istioingressgatewaykvpairs?key=istioingressgatewayaddress)$" 
+	  },
+    # get the value from the external service call
+    # in this example, clm kvpair query endpoint
+    # replace the placeholders, `{clusterProvider}` `{cluster}`, with the customization values, `clusterInfo.clusterProvider` `clusterInfo.cluster` at runtime
+    {
+	    "op": "add",
+	    "path": "/data/istioingressgatewayport",
+	    "value": "$(http://192.168.121.29:30461/v2/cluster-providers/{clusterProvider}/clusters/{cluster}/kv-pairs/istioingressgatewaykvpairs?key=istioingressgatewayport)$"  
+	  },
+    {
+      "op": "add",
+      "path": "/data/dns",
+      "value": "https://example.dns.com"
+    }
+	]
+files:
+  - info.json # data key will be `info.json`
+
+---
+# create secret
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.CompositeAppGac}}/v1/deployment-intent-groups/{{.DeploymentIntent}}/generic-k8s-intents/{{.GacIntent}}/resources
+metadata:
+  name: secret-db
+spec:
+  app: {{.App1}}
+  newObject: "true"
+  resourceGVK:
+    apiVersion: v1
+    kind: Secret
+    name: secret-db
+file:
+  secret-db.yaml
+
+---
+# add customization for secret-db
+# add more data configurations to secret-db using the JSON patch 
+# retrieve JSON patch value from an external URL
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.CompositeAppGac}}/v1/deployment-intent-groups/{{.DeploymentIntent}}/generic-k8s-intents/{{.GacIntent}}/resources/secret-db/customizations
+metadata:
+  name: secret-db-customization
+spec:
+  clusterSpecific: "false"
+  clusterInfo:
+    scope: label
+    clusterProvider: {{.ClusterProvider}}
+    cluster: {{.Cluster}}
+    clusterLabel: {{.ClusterLabel}}
+    mode: allow
+  patchType: "json"
+  patchJson: [
+    # get the value from the external service call
+    # in this example, clm kvpair query endpoint
+    {
+	    "op": "add",
+	    "path": "/data/user",
+	    "value": "$(http://192.168.121.29:30461/v2/cluster-providers/provider1/clusters/cluster1/kv-pairs/databaseauthorizationkvpairs?key=user)$" 
+	  },
+    # get the value from the external service call
+    # in this example, clm kvpair query endpoint
+    # replace the placeholders, `{clusterProvider}` `{cluster}`, with the customization values, `clusterInfo.clusterProvider` `clusterInfo.cluster` at runtime
+    {
+	    "op": "add",
+	    "path": "/data/password",
+	    "value": "$(http://192.168.121.29:30461/v2/cluster-providers/{clusterProvider}/clusters/{cluster}/kv-pairs/databaseauthorizationkvpairs?key=password)$"  
+	  }
+	]
+  secretOptions:
+    dataKeyOptions:
+      - fileName: data-userexpiration.yaml
+        keyName: expiration
+files:
+  - data-userexpiration.yaml # data key will be `expiration`

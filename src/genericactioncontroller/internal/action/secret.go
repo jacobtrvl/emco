@@ -10,7 +10,7 @@ import (
 
 	"github.com/pkg/errors"
 	"gitlab.com/project-emco/core/emco-base/src/genericactioncontroller/pkg/module"
-	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
+	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 	yamlV2 "gopkg.in/yaml.v2"
 	"k8s.io/apimachinery/pkg/util/validation"
 )
@@ -42,8 +42,8 @@ func (o *updateOptions) createSecret() error {
 
 	value, err := yamlV2.Marshal(secret)
 	if err != nil {
-		log.Error("Failed to serialize the secret object into a YAML document",
-			log.Fields{
+		logutils.Error("Failed to serialize the secret object into a YAML document",
+			logutils.Fields{
 				"Secret": secret,
 				"Error ": err.Error()})
 		return err
@@ -51,6 +51,11 @@ func (o *updateOptions) createSecret() error {
 
 	if strings.ToLower(o.customization.Spec.PatchType) == "json" &&
 		len(o.customization.Spec.PatchJSON) > 0 {
+		// validate the JSON patch value before applying
+		if err := o.validateJSONPatchValue(); err != nil {
+			return err
+		}
+
 		// apply the JSON patch associated with the Secret customization
 		modifiedPatch, err := applyPatch(o.customization.Spec.PatchJSON, value)
 		if err != nil {
@@ -73,19 +78,20 @@ func newSecret(template, name string) (*Secret, error) {
 		// set the base struct from the associated template file
 		value, err := base64.StdEncoding.DecodeString(template)
 		if err != nil {
-			log.Error("Failed to decode the secret template content",
-				log.Fields{
+			logutils.Error("Failed to decode the secret template content",
+				logutils.Fields{
 					"Error": err.Error()})
 			return &Secret{}, err
 		}
 
 		if len(value) > 0 {
 			secret := Secret{}
+			secret.Data = map[string]string{} // initialize to avoid nil value
 			// if the Secret template is available, then it should be YAML
 			err = yamlV2.Unmarshal(value, &secret)
 			if err != nil {
-				log.Error("Failed to unmarshal the secret template content",
-					log.Fields{
+				logutils.Error("Failed to unmarshal the secret template content",
+					logutils.Fields{
 						"Error": err.Error()})
 				return &Secret{}, err
 			}
