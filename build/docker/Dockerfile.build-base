@@ -16,10 +16,11 @@ RUN apk update \
     &&  apk add --no-cache make
 RUN apk add curl
 RUN apk add --no-cache ca-certificates git
-ARG HELM_VERSION="v3.5.1"
-RUN curl -fssL -o  helm-${HELM_VERSION}-linux-amd64.tar.gz https://get.helm.sh/helm-${HELM_VERSION}-linux-amd64.tar.gz
-RUN tar -zxvf helm-${HELM_VERSION}-linux-amd64.tar.gz
-RUN mv linux-amd64/helm /usr/local/bin/helm
+# TODO Restore later
+# ARG HELM_VERSION="v3.5.1"
+# RUN curl -fssL -o  helm-${HELM_VERSION}-linux-amd64.tar.gz https://get.helm.sh/helm-${HELM_VERSION}-linux-amd64.tar.gz
+# RUN tar -zxvf helm-${HELM_VERSION}-linux-amd64.tar.gz
+# RUN mv linux-amd64/helm /usr/local/bin/helm
 
 #   github.com/containerd/containerd@v1.4.3 \
 #   github.com/containerd/containerd@v1.4.9 \
@@ -35,8 +36,18 @@ RUN mv linux-amd64/helm /usr/local/bin/helm
 ## Causes problems with github.com/deislabs/oras@v0.10.0
 # helm.sh/helm/v3@v3.5.3 \
 
+## imports github.com/googleapis/gnostic/OpenAPIv2: not found
+# k8s.io/client-go/discovery
+
+# sigs.k8s.io/kustomize@v2.0.3+incompatible \
+
+# go.etcd.io/etcd@v0.5.0-alpha.5.0.20200819165624-17cef6e3e9d5 \
+# sigs.k8s.io/controller-runtime@v0.6.0 \
+# sigs.k8s.io/controller-runtime@v0.6.3 \
+
 RUN go get \
-  github.com/oras-project/oras
+  github.com/oras-project/oras 
+# sigs.k8s.io/controller-runtime@v0.11.0 \
   
 
 RUN go get \
@@ -56,7 +67,6 @@ RUN go get \
   gopkg.in/yaml.v2@v2.3.0 \
   gopkg.in/yaml.v3@v3.0.0-20200615113413-eeeca48fe776 \
   k8s.io/utils@v0.0.0-20200729134348-d5654de09c73 \
-  sigs.k8s.io/controller-runtime@v0.6.0 \
   sigs.k8s.io/structured-merge-diff@v0.0.0-20190525122527-15d366b2352e \
   golang.org/x/net@v0.0.0-20200707034311-ab3426394381 \
   golang.org/x/oauth2@v0.0.0-20191202225959-858c2ad4c8b6 \
@@ -74,9 +84,20 @@ RUN go get golang.org/x/net@v0.0.0-20201202161906-c7110b5ffcbb
 RUN go get \
   google.golang.org/grpc \
   k8s.io/api \
-  k8s.io/client-go/kubernetes/typed/flowcontrol/v1alpha1 \
-  k8s.io/client-go/listers/admissionregistration/v1 \
-  github.com/google/gnostic
+  k8s.io/client-go/kubernetes/scheme 
+# k8s.io/client-go/kubernetes/typed/flowcontrol/v1alpha1 \
+# k8s.io/client-go/listers/admissionregistration/v1 \
+
+RUN go get \
+#  for clm
+   golang.org/x/sync v0.0.0-20201207232520-09787c993a3a
+
+# Upgrades
+RUN go get \
+# google.golang.org/grpc@v1.38.0 \
+  google.golang.org/grpc@v1.44.0 \
+# k8s.io/api@v0.19.4 \
+  k8s.io/api@v0.23.3
 
 RUN go get github.com/akraino-edge-stack/icn-nodus@v0.0.0-20210629185217-79edb762b387 \
   github.com/asaskevich/govalidator@v0.0.0-20200428143746-21a406dcc535 \
@@ -192,7 +213,6 @@ RUN go get github.com/akraino-edge-stack/icn-nodus@v0.0.0-20210629185217-79edb76
   github.com/xeipuuv/gojsonschema@v1.2.0 \
   github.com/youmark/pkcs8@v0.0.0-20181117223130-1be2e3e5546d \
   github.com/yourbasic/graph@v0.0.0-20210606180040-8ecfec1c2869 \
-  go.etcd.io/etcd@v0.5.0-alpha.5.0.20200819165624-17cef6e3e9d5 \
   golang.org/x/crypto@v0.0.0-20201221181555-eec23a3978ad \
   golang.org/x/net@v0.0.0-20210405180319-a5a99cb37ef4 \
   golang.org/x/oauth2@v0.0.0-20210402161424-2e8d93401602 \
@@ -204,7 +224,7 @@ RUN go get github.com/akraino-edge-stack/icn-nodus@v0.0.0-20210629185217-79edb76
   gomodules.xyz/jsonpatch/v2@v2.0.1 \
   go.mongodb.org/mongo-driver@v1.5.1 \
   google.golang.org/genproto@v0.0.0-20210602131652-f16073e35f0c \
-  google.golang.org/grpc@v1.38.0 \
+# google.golang.org/grpc@v1.38.0 \
   google.golang.org/protobuf@v1.26.0 \
   gopkg.in/gorp.v1@v1.7.2 \
   gopkg.in/inf.v0@v0.9.1 \
@@ -214,10 +234,10 @@ RUN go get github.com/akraino-edge-stack/icn-nodus@v0.0.0-20210629185217-79edb76
   go.uber.org/atomic@v1.7.0 \
   go.uber.org/multierr@v1.6.0 \
   go.uber.org/zap@v1.17.0 \
-  k8s.io/apiextensions-apiserver@v0.19.4 \
+# k8s.io/apiextensions-apiserver@v0.19.4 \
   k8s.io/apimachinery@v0.19.4 \
-  k8s.io/apiserver@v0.19.4 \
-  k8s.io/api@v0.19.4 \
+# k8s.io/apiserver@v0.19.4 \
+# k8s.io/api@v0.19.4 \
   k8s.io/cli-runtime@v0.19.4 \
   k8s.io/component-base@v0.19.4 \
   k8s.io/klog@v1.0.0 \
@@ -225,7 +245,6 @@ RUN go get github.com/akraino-edge-stack/icn-nodus@v0.0.0-20210629185217-79edb76
   k8s.io/kubectl@v0.19.4 \
   k8s.io/kube-openapi@v0.0.0-20201113171705-d219536bb9fd \
   k8s.io/utils@v0.0.0-20201110183641-67b214c5f920 \
-  sigs.k8s.io/controller-runtime@v0.6.3 \
-  sigs.k8s.io/kustomize@v2.0.3+incompatible \
+# sigs.k8s.io/kustomize@v2.0.3+incompatible \
   sigs.k8s.io/structured-merge-diff/v4@v4.0.2 \
   sigs.k8s.io/yaml@v1.2.0 
