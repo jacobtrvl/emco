@@ -16,11 +16,10 @@ RUN apk update \
     &&  apk add --no-cache make
 RUN apk add curl
 RUN apk add --no-cache ca-certificates git
-# TODO Restore later
-# ARG HELM_VERSION="v3.5.1"
-# RUN curl -fssL -o  helm-${HELM_VERSION}-linux-amd64.tar.gz https://get.helm.sh/helm-${HELM_VERSION}-linux-amd64.tar.gz
-# RUN tar -zxvf helm-${HELM_VERSION}-linux-amd64.tar.gz
-# RUN mv linux-amd64/helm /usr/local/bin/helm
+ARG HELM_VERSION="v3.5.1"
+RUN curl -fssL -o  helm-${HELM_VERSION}-linux-amd64.tar.gz https://get.helm.sh/helm-${HELM_VERSION}-linux-amd64.tar.gz
+RUN tar -zxvf helm-${HELM_VERSION}-linux-amd64.tar.gz
+RUN mv linux-amd64/helm /usr/local/bin/helm
 
 #   github.com/containerd/containerd@v1.4.3 \
 #   github.com/containerd/containerd@v1.4.9 \
@@ -54,6 +53,7 @@ RUN go get \
   github.com/cespare/xxhash@v1.1.0 \
   github.com/docker/spdystream@v0.0.0-20160310174837-449fdfce4d96 \
   github.com/emicklei/go-restful@v2.9.5+incompatible \
+# github.com/golang/protobuf is deprecated: Use google.golang.org/protobuf \
   github.com/golang/protobuf@v1.4.2 \
   github.com/google/uuid@v1.1.1 \
   github.com/go-openapi/spec@v0.19.4 \
@@ -89,8 +89,19 @@ RUN go get \
 # k8s.io/client-go/listers/admissionregistration/v1 \
 
 RUN go get \
-#  for clm
-   golang.org/x/sync v0.0.0-20201207232520-09787c993a3a
+#  for clm \
+   golang.org/x/sync@v0.0.0-20201207232520-09787c993a3a \
+   google.golang.org/protobuf@v1.24.0 \
+   github.com/gogo/protobuf@v1.3.1 \
+   go.uber.org/zap@v1.14.1 \
+   google.golang.org/genproto@v0.0.0-20200526211855-cb27e3aa2013 \
+   go.uber.org/atomic@v1.6.0 \
+   go.uber.org/multierr@v1.5.0 \
+# for dcm \
+   github.com/json-iterator/go@v1.1.10 \
+   golang.org/x/term@v0.0.0-20201117132131-f5c789dd3221 \
+   github.com/docker/distribution@v0.0.0-20191216044856-a8371794149d \
+   github.com/google/go-cmp@v0.5.2 
 
 # Upgrades
 RUN go get \
@@ -127,6 +138,7 @@ RUN go get github.com/akraino-edge-stack/icn-nodus@v0.0.0-20210629185217-79edb76
   github.com/gobwas/glob@v0.2.3 \
   github.com/gogo/protobuf@v1.3.2 \
   github.com/golang/groupcache@v0.0.0-20200121045136-8c9f03a8e57e \
+# github.com/golang/protobuf is deprecated: Use google.golang.org/protobuf \
   github.com/golang/protobuf@v1.5.2 \
   github.com/golang/snappy@v0.0.1 \
   github.com/go-logr/logr@v0.2.1 \
