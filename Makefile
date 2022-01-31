@@ -5,7 +5,9 @@ export EMCOBUILDROOT=$(shell pwd)
 export CONFIG := $(wildcard config/*.txt)
 
 ifndef MODS
-MODS=clm dcm dtc nps sds its genericactioncontroller monitor ncm orchestrator ovnaction rsync tools/emcoctl sfc sfcclient hpa-plc hpa-ac
+MODS=clm dcm dtc nps sds its genericactioncontroller monitor ncm orchestrator ovnaction rsync tools/emcoctl sfc sfcclient hpa-plc hpa-ac workflowmgr
+MODS=clm dcm monitor orchestrator rsync tools/emcoctl workflowmgr
+#MODS=workflowmgr
 endif
 
 all: check-env docker-reg build
@@ -94,7 +96,7 @@ build: compile
 
 deploy: check-env docker-reg build
 	@echo "Creating helm charts. Pushing microservices to registry & copying docker-compose files if BUILD_CAUSE set to DEV_TEST"
-	@docker run --env USER=${USER} --env EMCODOCKERREPO=${EMCODOCKERREPO} --env BUILD_CAUSE=${BUILD_CAUSE} --env BRANCH=${BRANCH} --env TAG=${TAG} --env EMCOSRV_RELEASE_TAG=${EMCOSRV_RELEASE_TAG} --rm --user `id -u`:`id -g` --env GO111MODULE --env XDG_CACHE_HOME=/tmp/.cache -v `pwd`:/repo ${EMCODOCKERREPO}${BUILD_BASE_IMAGE_NAME}${BUILD_BASE_IMAGE_VERSION} /bin/sh -c "cd /repo/scripts ; sh deploy_emco.sh"
+	@docker run --env USER=${USER} --env EMCODOCKERREPO=${EMCODOCKERREPO} --env BUILD_CAUSE=${BUILD_CAUSE} --env BRANCH=${BRANCH} --env TAG=${TAG} --env EMCOSRV_RELEASE_TAG=${EMCOSRV_RELEASE_TAG} --rm --user `id -u`:`id -g` --env GO111MODULE --env XDG_CACHE_HOME=/tmp/.cache -v `pwd`:/repo ${BUILD_BASE_IMAGE_NAME}${BUILD_BASE_IMAGE_VERSION} /bin/sh -c "cd /repo/scripts ; sh deploy_emco.sh"
 	@MODS=`echo ${MODS} | sed 's/ovnaction/ovn/;s/genericactioncontroller/gac/;s/orchestrator/orch/;'` ./scripts/push_to_registry.sh
 	@echo "    Done."
 

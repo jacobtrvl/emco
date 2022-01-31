@@ -45,7 +45,8 @@ RUN mv linux-amd64/helm /usr/local/bin/helm
 # sigs.k8s.io/controller-runtime@v0.6.3 \
 
 RUN go get \
-  github.com/oras-project/oras 
+  github.com/oras-project/oras \
+  github.com/fluxcd/go-git-providers
 # sigs.k8s.io/controller-runtime@v0.11.0 \
   
 
