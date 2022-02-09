@@ -5,8 +5,8 @@ export GO111MODULE=on
 
 all: clean
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
-	go build -a -ldflags '-extldflags "-static"' \
-	-o ../../bin/monitor/monitor cmd/manager/main.go
+        go build -a -ldflags '-extldflags "-static"' \
+        -o ../../bin/monitor/monitor main.go
 
 build: clean test cover
 deploy: build
@@ -16,7 +16,7 @@ test: clean
 	@go test -v ./...
 
 format:
-	@go fmt ./...
+	 @go fmt ./...
 
 clean:
 	@rm -f ../../bin/monitor/monitor
@@ -25,3 +25,4 @@ clean:
 cover:
 	@go test -p 2 ./... -coverprofile=coverage.out
 	@go tool cover -html=coverage.out -o coverage.html
+
