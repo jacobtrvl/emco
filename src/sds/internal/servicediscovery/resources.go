@@ -56,8 +56,8 @@ type EndpointResource struct {
 	Subsets    []corev1.EndpointSubset `yaml:"subsets,omitempty"`
 }
 
-// getClusterServiceSpecs takes in a ResourceBundleStatus CR and returns the service relates specs
-func getClusterServiceSpecs(ac appcontext.AppContext, appContextID string, rbData *rb.ResourceBundleStatus, serviceName string,
+// getClusterServiceSpecs takes in a ResourceBundleStateStatus CR and returns the service relates specs
+func getClusterServiceSpecs(ac appcontext.AppContext, appContextID string, rbData *rb.ResourceBundleStateStatus, serviceName string,
 	serverApp string, cluster string) (serviceEntry, error) {
 
 	virtualService := serviceEntry{}

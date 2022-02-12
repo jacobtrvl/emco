@@ -74,7 +74,7 @@ func CheckDeploymentStatus(appContextID string, serverApp string) (bool, error) 
 }
 
 // GetClusterResources will retrieve the cluster resources
-func GetClusterResources(appContextID string, app string, cluster string) (*rb.ResourceBundleStatus, error) {
+func GetClusterResources(appContextID string, app string, cluster string) (*rb.ResourceBundleStateStatus, error) {
 
 	var ac appcontext.AppContext
 	_, err := ac.LoadAppContext(appContextID)
@@ -97,7 +97,7 @@ func GetClusterResources(appContextID string, app string, cluster string) (*rb.R
 			log.Fields{"Cluster": cluster, "AppName": app, "Error": err})
 		return nil, err
 	}
-	var rbValue rb.ResourceBundleStatus
+	var rbValue rb.ResourceBundleStateStatus
 	err = json.Unmarshal([]byte(clusterRbValue.(string)), &rbValue)
 	if err != nil {
 		log.Error("Error unmarshalling cluster status value for cluster, app",
@@ -108,8 +108,8 @@ func GetClusterResources(appContextID string, app string, cluster string) (*rb.R
 	return &rbValue, nil
 }
 
-// getClusterDeploymentStatus takes in a ResourceBundleStatus CR and returns the status of the deployment resource
-func getClusterDeploymentStatus(rbData *rb.ResourceBundleStatus, deploymentName string) (bool, error) {
+// getClusterDeploymentStatus takes in a ResourceBundleStateStatus CR and returns the status of the deployment resource
+func getClusterDeploymentStatus(rbData *rb.ResourceBundleStateStatus, deploymentName string) (bool, error) {
 
 	deploymentStatus := false
 	for _, d := range rbData.DeploymentStatuses {
