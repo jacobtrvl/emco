@@ -375,7 +375,7 @@ func (v *ClusterClient) GetClusterConfig(project, logicalCloud, clusterReference
 			return "", pkgerrors.Wrap(err, "An error occurred while reading the cluster status")
 		}
 
-		var rbstatus rb.ResourceBundleStatus
+		var rbstatus rb.ResourceBundleStateStatus
 		err = json.Unmarshal([]byte(statusRaw.(string)), &rbstatus)
 		if err != nil {
 			return "", pkgerrors.Wrap(err, "An error occurred while parsing the cluster status")

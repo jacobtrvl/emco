@@ -10,7 +10,7 @@ import (
 
 	pkgerrors "github.com/pkg/errors"
 	rb "gitlab.com/project-emco/core/emco-base/src/monitor/pkg/apis/k8splugin/v1alpha1"
-	"gitlab.com/project-emco/core/emco-base/src/monitor/pkg/generated/clientset/versioned/scheme"
+	"gitlab.com/project-emco/core/emco-base/src/monitor/pkg/client/clientset/versioned/scheme"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/appcontext"
 	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/utils"
@@ -57,8 +57,8 @@ func updateReadyCounts(ready bool, cnts map[string]int) string {
 	}
 }
 
-// GetClusterResources takes in a ResourceBundleStatus CR and resturns a list of ResourceStatus elments
-func GetClusterResources(rbData rb.ResourceBundleStatus, qOutput string, fResources []string,
+// GetClusterResources takes in a ResourceBundleStateStatus CR and resturns a list of ResourceStatus elments
+func GetClusterResources(rbData rb.ResourceBundleStateStatus, qOutput string, fResources []string,
 	resourceList *[]ResourceStatus, cnts map[string]int) (int, error) {
 
 	readyChecker := status.NewReadyChecker(status.PausedAsReady(true), status.CheckJobs(true))
@@ -125,21 +125,6 @@ func GetClusterResources(rbData rb.ResourceBundleStatus, qOutput string, fResour
 		count++
 	}
 
-	for _, s := range rbData.SecretStatuses {
-		if !keepResource(s.Name, fResources) {
-			continue
-		}
-		r := ResourceStatus{}
-		r.Name = s.Name
-		r.Gvk = (&s.TypeMeta).GroupVersionKind()
-		if qOutput == "detail" {
-			r.Detail = s
-		}
-		r.ClusterStatus = updateReadyCounts(true, cnts)
-		*resourceList = append(*resourceList, r)
-		count++
-	}
-
 	for _, d := range rbData.DaemonSetStatuses {
 		if !keepResource(d.Name, fResources) {
 			continue
@@ -151,21 +136,6 @@ func GetClusterResources(rbData rb.ResourceBundleStatus, qOutput string, fResour
 			r.Detail = d
 		}
 		r.ClusterStatus = updateReadyCounts(readyChecker.DaemonSetReady(&d), cnts)
-		*resourceList = append(*resourceList, r)
-		count++
-	}
-
-	for _, i := range rbData.IngressStatuses {
-		if !keepResource(i.Name, fResources) {
-			continue
-		}
-		r := ResourceStatus{}
-		r.Name = i.Name
-		r.Gvk = (&i.TypeMeta).GroupVersionKind()
-		if qOutput == "detail" {
-			r.Detail = i
-		}
-		r.ClusterStatus = updateReadyCounts(true, cnts)
 		*resourceList = append(*resourceList, r)
 		count++
 	}
@@ -595,7 +565,7 @@ func prepareStatusResult(statusType string, stateInfo state.StateInfo, qInstance
 						log.Fields{"Cluster": cluster, "AppName": app, "Error": err})
 					continue
 				}
-				var rbValue rb.ResourceBundleStatus
+				var rbValue rb.ResourceBundleStateStatus
 				err = json.Unmarshal([]byte(clusterRbValue.(string)), &rbValue)
 				if err != nil {
 					log.Info(":: Error unmarshalling cluster status value for cluster, app ::",
@@ -844,7 +814,7 @@ func PrepareResourcesByAppStatusResult(stateInfo state.StateInfo, qInstance, qTy
 						log.Fields{"Cluster": cluster, "AppName": app, "Error": err})
 					continue
 				}
-				var rbValue rb.ResourceBundleStatus
+				var rbValue rb.ResourceBundleStateStatus
 				err = json.Unmarshal([]byte(clusterRbValue.(string)), &rbValue)
 				if err != nil {
 					log.Info(":: Error unmarshalling cluster status value for cluster, app ::",

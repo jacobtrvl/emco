@@ -11,8 +11,8 @@ import (
 	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 
 	v1alpha1 "gitlab.com/project-emco/core/emco-base/src/monitor/pkg/apis/k8splugin/v1alpha1"
-	clientset "gitlab.com/project-emco/core/emco-base/src/monitor/pkg/generated/clientset/versioned"
-	informers "gitlab.com/project-emco/core/emco-base/src/monitor/pkg/generated/informers/externalversions"
+	clientset "gitlab.com/project-emco/core/emco-base/src/monitor/pkg/client/clientset/versioned"
+	informers "gitlab.com/project-emco/core/emco-base/src/monitor/pkg/client/informers/externalversions"
 	"gitlab.com/project-emco/core/emco-base/src/rsync/pkg/status"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/clientcmd"
