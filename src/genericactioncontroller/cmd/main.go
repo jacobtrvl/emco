@@ -121,7 +121,8 @@ func main() {
 	} else {
 		httpServer.TLSConfig = tlsConfig
 		// empty strings because tlsconfig already has this information
-		err = httpServer.ListenAndServeTLS("", "")
+		if err = httpServer.ListenAndServeTLS("", ""); err != nil {
+			log.Println(err)
+		}
 	}
-
 }

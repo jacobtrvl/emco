@@ -1,533 +1,271 @@
-package module
+package module_test
 
 // SPDX-License-Identifier: Apache-2.0
 // Copyright (c) 2020 Intel Corporation
 
 import (
-	"reflect"
-	"strings"
-	"testing"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+	"github.com/pkg/errors"
 
-	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
-	moduleLib "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/module"
+	"gitlab.com/project-emco/core/emco-base/src/genericactioncontroller/pkg/module"
 )
 
-func TestCreateCustomization(t *testing.T) {
-	testCases := []struct {
-		label                        string
-		inputCustomization           Customization
-		inputSpecFileContent         SpecFileContent
-		inputProject                 string
-		inputCompositeApp            string
-		inputCompositeAppVersion     string
-		inputDeploymentIntentGrpName string
-		inputGenericK8sIntent        string
-		inputResource                string
-		inputExists                  bool
-		expectedError                string
-		mockdb                       *db.MockDB
-		expected                     Customization
-	}{
-		{
-			label: "Create customization",
-			inputCustomization: Customization{
-				Metadata: Metadata{
-					Name:        "testCustomization",
-					Description: "testCustomization",
-					UserData1:   "userData1",
-					UserData2:   "userData2",
-				},
-				Spec: CustomizeSpec{
-					ClusterSpecific: "true",
-					ClusterInfo: ClusterInfo{
-						Scope:           "label",
-						ClusterProvider: "testClusterProvider",
-						ClusterName:     "",
-						ClusterLabel:    "testLabel",
-						Mode:            "allow",
-					},
-					PatchType: "json",
-					PatchJSON: []map[string]interface{}{
-						{
-							"op":    "replace",
-							"path":  "/name",
-							"value": "test",
-						},
-					},
-				},
-			},
-			inputSpecFileContent: SpecFileContent{
-				FileContents: []string{
-					"This is testFile1",
-					"This is testFile2",
-				},
-				FileNames: []string{
-					"testFile1",
-					"testFile2",
-				},
-			},
-			inputProject:                 "testProject",
-			inputCompositeApp:            "testCompositeApp",
-			inputCompositeAppVersion:     "testCompositeAppVersion",
-			inputDeploymentIntentGrpName: "testDeploymentIntentGroup",
-			inputGenericK8sIntent:        "testGenK8sIntent",
-			inputResource:                "testResource",
-			inputExists:                  false,
-			expected: Customization{
-				Metadata: Metadata{
-					Name:        "testCustomization",
-					Description: "testCustomization",
-					UserData1:   "userData1",
-					UserData2:   "userData2",
-				},
-				Spec: CustomizeSpec{
-					ClusterSpecific: "true",
-					ClusterInfo: ClusterInfo{
-						Scope:           "label",
-						ClusterProvider: "testClusterProvider",
-						ClusterName:     "",
-						ClusterLabel:    "testLabel",
-						Mode:            "allow",
-					},
-					PatchType: "json",
-					PatchJSON: []map[string]interface{}{
-						{
-							"op":    "replace",
-							"path":  "/name",
-							"value": "test",
-						},
-					},
-				},
-			},
-			expectedError: "",
-			mockdb: &db.MockDB{
-				Items: []map[string]map[string][]byte{
-					{
-						moduleLib.ProjectKey{ProjectName: "testProject"}.String(): {
-							"data": []byte(
-								"{\"project-name\":\"testProject\"," +
-									"\"description\":\"Test project for unit testing\"}"),
-						},
-						moduleLib.CompositeAppKey{CompositeAppName: "testCompositeApp",
-							Version: "testCompositeAppVersion", Project: "testProject"}.String(): {
-							"data": []byte(
-								"{\"metadata\":{" +
-									"\"name\":\"testCompositeApp\"," +
-									"\"description\":\"description\"," +
-									"\"userData1\":\"user data\"," +
-									"\"userData2\":\"user data\"" +
-									"}," +
-									"\"spec\":{" +
-									"\"version\":\"version of the composite app\"}}"),
-						},
-						moduleLib.DeploymentIntentGroupKey{
-							Name:         "testDeploymentIntentGroup",
-							Project:      "testProject",
-							CompositeApp: "testCompositeApp",
-							Version:      "testCompositeAppVersion",
-						}.String(): {
-							"data": []byte(
-								"{\"metadata\":{\"name\":\"testDeploymentIntentGroup\"," +
-									"\"description\":\"DescriptionTestDeploymentIntentGroup\"," +
-									"\"userData1\": \"userData1\"," +
-									"\"userData2\": \"userData2\"}," +
-									"\"spec\":{\"profile\": \"Testprofile\"," +
-									"\"version\": \"version of deployment\"," +
-									"\"overrideValues\":[" +
-									"{" +
-									"\"app\": \"TestAppName\"," +
-									"\"values\": " +
-									"{" +
-									"\"imageRepository\":\"registry.hub.docker.com\"" +
-									"}" +
-									"}," +
-									"{" +
-									"\"app\": \"TestAppName\"," +
-									"\"values\": " +
-									"{" +
-									"\"imageRepository\":\"registry.hub.docker.com\"" +
-									"}" +
-									"}" +
-									"]," +
-									"\"logical-cloud\": \"cloud1\"" +
-									"}" +
-									"}"),
-						},
-						GenericK8sIntentKey{
-							GenericK8sIntent:    "testGenK8sIntent",
-							Project:             "testProject",
-							CompositeApp:        "testCompositeApp",
-							CompositeAppVersion: "testCompositeAppVersion",
-							DigName:             "testDeploymentIntentGroup",
-						}.String(): {
-							"data": []byte(
-								"{\"metadata\":{\"Name\":\"testGenK8sIntent\"," +
-									"\"Description\":\"testGenK8sIntent\"," +
-									"\"UserData1\": \"userData1\"," +
-									"\"UserData2\": \"userData2\"}}"),
-						},
-						ResourceKey{
-							Resource:            "testResource",
-							Project:             "testProject",
-							CompositeApp:        "testCompositeApp",
-							CompositeAppVersion: "testCompositeAppVersion",
-							DigName:             "testDeploymentIntentGroup",
-							GenericK8sIntent:    "testGenK8sIntent",
-						}.String(): {
-							"data": []byte(
-								"{\"metadata\":{\"name\":\"testResource\",\"description\":\"testResource\",\"userData1\":\"userData1\",\"userData2\":\"userData2\"},\"spec\":{\"app\":\"testApp\",\"newobject\":\"True\",\"resourcegvk\":{\"apiversion\":\"v1\",\"kind\":\"configMap\",\"name\":\"TestCM\"}}}"),
-						},
-					},
-				},
-			},
-		},
-	}
-	for _, testCase := range testCases {
-		t.Run(testCase.label, func(t *testing.T) {
-			db.DBconn = testCase.mockdb
-			customCli := NewCustomizationClient()
-			got, err := customCli.CreateCustomization(testCase.inputCustomization, testCase.inputSpecFileContent, testCase.inputProject, testCase.inputCompositeApp, testCase.inputCompositeAppVersion, testCase.inputDeploymentIntentGrpName, testCase.inputGenericK8sIntent, testCase.inputResource, testCase.inputExists)
-			if err != nil {
-				if testCase.expectedError == "" {
-					t.Fatalf("CreateCustomization returned an unexpected error: %s", err)
-				}
-				if strings.Contains(err.Error(), testCase.expectedError) == false {
-					t.Fatalf("CreateCustomization returned an unexpected error: %s", err)
-				}
-			} else {
-				if reflect.DeepEqual(testCase.expected, got) == false {
-					t.Errorf("CreateCustomization returned unexpected body: got %v;"+
-						" expected %v", got, testCase.expected)
-				}
-			}
+var (
+	cClient = module.NewCustomizationClient()
+)
+
+var _ = Describe("Create Customization",
+	func() {
+		BeforeEach(func() {
+			populateCustomizationTestData()
 		})
-	}
+		Context("ccreate a customization that does not exist", func() {
+			It("returns the customization, no error and, the exists flag is false", func() {
+				l := len(mockdb.Items)
+				mc := mockCustomization("new-customization")
+				customization, cExists, err := cClient.CreateCustomization(
+					mc, module.CustomizationContent{}, v.Project, v.CompositeApp, v.Version, v.DeploymentIntentGroup, v.Intent, v.Resource, true)
+				validateError(err, "")
+				validateCustomization(customization, mc)
+				Expect(cExists).To(Equal(false))
+				Expect(len(mockdb.Items)).To(Equal(l + 1))
+			})
+		})
+		Context("create a customization that already exists", func() {
+			It("returns an error, no customization and, the exists flag is true", func() {
+				l := len(mockdb.Items)
+				mc := mockCustomization("test-customization-1")
+				customization, cExists, err := cClient.CreateCustomization(
+					mc, module.CustomizationContent{}, v.Project, v.CompositeApp, v.Version, v.DeploymentIntentGroup, v.Intent, v.Resource, true)
+				validateError(err, "Customization already exists")
+				validateCustomization(module.Customization{}, customization)
+				Expect(cExists).To(Equal(true))
+				Expect(len(mockdb.Items)).To(Equal(l))
+			})
+		})
+	},
+)
+
+var _ = Describe("Delete Customization",
+	func() {
+		BeforeEach(func() {
+			populateCustomizationTestData()
+		})
+		Context("delete an existing customization", func() {
+			It("returns no error and delete the entry from the db", func() {
+				l := len(mockdb.Items)
+				err := cClient.DeleteCustomization(
+					"test-customization-1", v.Project, v.CompositeApp, v.Version, v.DeploymentIntentGroup, v.Intent, v.Resource)
+				validateError(err, "")
+				Expect(len(mockdb.Items)).To(Equal(l - 1))
+			})
+		})
+		Context("delete a nonexisting customization", func() {
+			It("returns an error and no change in the db", func() {
+				l := len(mockdb.Items)
+				mockdb.Err = errors.New("db Remove resource not found")
+				err := cClient.DeleteCustomization(
+					"non-existing-customization", v.Project, v.CompositeApp, v.Version, v.DeploymentIntentGroup, v.Intent, v.Resource)
+				validateError(err, "db Remove resource not found")
+				Expect(len(mockdb.Items)).To(Equal(l))
+			})
+		})
+	},
+)
+
+var _ = Describe("Get All Customization",
+	func() {
+		BeforeEach(func() {
+			populateCustomizationTestData()
+		})
+		Context("get all the customizations", func() {
+			It("returns all the customizations, no error", func() {
+				customizations, err := cClient.GetAllCustomization(
+					v.Project, v.CompositeApp, v.Version, v.DeploymentIntentGroup, v.Intent, v.Resource)
+				validateError(err, "")
+				Expect(len(customizations)).To(Equal(len(mockdb.Items)))
+			})
+		})
+		Context("get all the customizations without creating any", func() {
+			It("returns an empty array, no error", func() {
+				mockdb.Items = []map[string]map[string][]byte{}
+				customizations, err := cClient.GetAllCustomization(
+					v.Project, v.CompositeApp, v.Version, v.DeploymentIntentGroup, v.Intent, v.Resource)
+				validateError(err, "")
+				Expect(len(customizations)).To(Equal(0))
+			})
+		})
+	},
+)
+
+var _ = Describe("Get Customization",
+	func() {
+		BeforeEach(func() {
+			populateCustomizationTestData()
+		})
+		Context("get an existing customization", func() {
+			It("returns the customization, no error", func() {
+				customization, err := cClient.GetCustomization(
+					"test-customization-1", v.Project, v.CompositeApp, v.Version, v.DeploymentIntentGroup, v.Intent, v.Resource)
+				validateError(err, "")
+				validateCustomization(customization, mockCustomization("test-customization-1"))
+			})
+		})
+		Context("get a nonexisting customization", func() {
+			It("returns an error, no customization", func() {
+				customization, err := cClient.GetCustomization(
+					"non-existing-customization", v.Project, v.CompositeApp, v.Version, v.DeploymentIntentGroup, v.Intent, v.Resource)
+				validateError(err, "Customization not found")
+				validateCustomization(customization, module.Customization{})
+			})
+		})
+	},
+)
+
+var _ = Describe("Get Customization Content",
+	func() {
+		BeforeEach(func() {
+			populateCustomizationTestData()
+		})
+		Context("get the existing customization content", func() {
+			It("returns the customization content, no error", func() {
+				populateCustomizationContent("test-customization-1")
+				content, err := cClient.GetCustomizationContent(
+					"test-customization-1", v.Project, v.CompositeApp, v.Version, v.DeploymentIntentGroup, v.Intent, v.Resource)
+				validateError(err, "")
+				Expect(content).To(Equal(mockCustomizationContent()))
+			})
+		})
+		Context("get the nonexisting customization content", func() {
+			It("returns an empty content, no error", func() {
+				content, err := cClient.GetCustomizationContent(
+					"non-existing-customization", v.Project, v.CompositeApp, v.Version, v.DeploymentIntentGroup, v.Intent, v.Resource)
+				validateError(err, "")
+				Expect(content).To(Equal(module.CustomizationContent{}))
+			})
+		})
+	},
+)
+
+// validateCustomization
+func validateCustomization(in, out module.Customization) {
+	Expect(in).To(Equal(out))
 }
 
-func TestGetCustomization(t *testing.T) {
-	testCases := []struct {
-		label                        string
-		inputCustomization           string
-		inputProject                 string
-		inputCompositeApp            string
-		inputCompositeAppVersion     string
-		inputDeploymentIntentGrpName string
-		inputGenericK8sIntent        string
-		inputResource                string
-		expectedError                string
-		mockdb                       *db.MockDB
-		expected                     Customization
-	}{
-		{
-			label:                        "Get customization",
-			inputCustomization:           "testCustomization",
-			inputProject:                 "testProject",
-			inputCompositeApp:            "testCompositeApp",
-			inputCompositeAppVersion:     "testCompositeAppVersion",
-			inputDeploymentIntentGrpName: "testDeploymentIntentGroup",
-			inputGenericK8sIntent:        "testGenK8sIntent",
-			inputResource:                "testResource",
-			expected: Customization{
-
-				Metadata: Metadata{
-					Name:        "testCustomization",
-					Description: "testCustomization",
-					UserData1:   "userData1",
-					UserData2:   "userData2",
-				},
-				Spec: CustomizeSpec{
-					ClusterSpecific: "true",
-					ClusterInfo: ClusterInfo{
-						Scope:           "label",
-						ClusterProvider: "testClusterProvider",
-						ClusterName:     "",
-						ClusterLabel:    "testLabel",
-						Mode:            "allow",
-					},
-					PatchType: "json",
-					PatchJSON: []map[string]interface{}{
-						{
-							"op":    "replace",
-							"path":  "/name",
-							"value": "test",
-						},
-					},
-				},
-			},
-			expectedError: "",
-			mockdb: &db.MockDB{
-				Items: []map[string]map[string][]byte{
-					{
-						CustomizationKey{
-							Customization:       "testCustomization",
-							Project:             "testProject",
-							CompositeApp:        "testCompositeApp",
-							CompositeAppVersion: "testCompositeAppVersion",
-							DigName:             "testDeploymentIntentGroup",
-							GenericK8sIntent:    "testGenK8sIntent",
-							Resource:            "testResource",
-						}.String(): {
-							"data": []byte(
-								"{\"metadata\":{\"name\":\"testCustomization\",\"description\":\"testCustomization\",\"userData1\":\"userData1\",\"userData2\":\"userData2\"},\"spec\":{\"clusterSpecific\":\"true\",\"clusterInfo\":{\"scope\":\"label\",\"clusterProvider\":\"testClusterProvider\",\"cluster\":\"\",\"clusterLabel\":\"testLabel\",\"mode\":\"allow\"},\"patchType\":\"json\",\"patchJson\":[{\"op\":\"replace\",\"path\":\"\\/name\",\"value\":\"test\"}]}}"),
-						},
-					},
-				},
-			},
+// mockCustomization
+func mockCustomization(name string) module.Customization {
+	return module.Customization{
+		Metadata: module.Metadata{
+			Name:        name,
+			Description: "test customization",
+			UserData1:   "some user data 1",
+			UserData2:   "some user data 2",
 		},
-	}
-
-	for _, testCase := range testCases {
-		t.Run(testCase.label, func(t *testing.T) {
-			db.DBconn = testCase.mockdb
-			customCli := NewCustomizationClient()
-			got, err := customCli.GetCustomization(testCase.inputCustomization, testCase.inputProject, testCase.inputCompositeApp, testCase.inputCompositeAppVersion, testCase.inputDeploymentIntentGrpName, testCase.inputGenericK8sIntent, testCase.inputResource)
-			if err != nil {
-				if testCase.expectedError == "" {
-					t.Fatalf("GetCustomization returned an unexpected error: %s", err)
-				}
-				if strings.Contains(err.Error(), testCase.expectedError) == false {
-					t.Fatalf("GetCustomization returned an unexpected error: %s", err)
-				}
-			} else {
-				if reflect.DeepEqual(testCase.expected, got) == false {
-					t.Errorf("GetCustomization returned unexpected body: got %v;"+
-						" expected %v", got, testCase.expected)
-				}
-			}
-		})
-	}
-}
-
-func TestGetAllCustomization(t *testing.T) {
-	testCases := []struct {
-		label                        string
-		inputProject                 string
-		inputCompositeApp            string
-		inputCompositeAppVersion     string
-		inputDeploymentIntentGrpName string
-		inputGenericK8sIntent        string
-		inputResource                string
-		inputExists                  bool
-		expectedError                string
-		mockdb                       *db.MockDB
-		expected                     []Customization
-	}{
-		{
-			label:                        "Get All customizations",
-			inputProject:                 "testProject",
-			inputCompositeApp:            "testCompositeApp",
-			inputCompositeAppVersion:     "testCompositeAppVersion",
-			inputDeploymentIntentGrpName: "testDeploymentIntentGroup",
-			inputGenericK8sIntent:        "testGenK8sIntent",
-			inputResource:                "testResource",
-			expected: []Customization{
+		Spec: module.CustomizationSpec{
+			ClusterSpecific: "true",
+			ClusterInfo: module.ClusterInfo{
+				Scope:           "label",
+				ClusterProvider: "provider-1",
+				ClusterName:     "cluster-1",
+				ClusterLabel:    "edge-cluster-1",
+				Mode:            "allow",
+			},
+			PatchType: "json",
+			PatchJSON: []map[string]interface{}{
 				{
-					Metadata: Metadata{
-						Name:        "testCustomization",
-						Description: "testCustomization",
-						UserData1:   "userData1",
-						UserData2:   "userData2",
-					},
-					Spec: CustomizeSpec{
-						ClusterSpecific: "true",
-						ClusterInfo: ClusterInfo{
-							Scope:           "label",
-							ClusterProvider: "testClusterProvider",
-							ClusterName:     "",
-							ClusterLabel:    "testLabel",
-							Mode:            "allow",
-						},
-						PatchType: "json",
-						PatchJSON: []map[string]interface{}{
-							{
-								"op":    "replace",
-								"path":  "/name",
-								"value": "test",
-							},
-						},
-					},
+					"op":    "replace",
+					"path":  "/spec/replicas",
+					"value": float64(6),
 				},
 			},
-			expectedError: "",
-			mockdb: &db.MockDB{
-				Items: []map[string]map[string][]byte{
+			ConfigMapOptions: module.ConfigMapOptions{
+				DataKeyOptions: []module.KeyOptions{
 					{
-						CustomizationKey{
-							Customization:       "",
-							Project:             "testProject",
-							CompositeApp:        "testCompositeApp",
-							CompositeAppVersion: "testCompositeAppVersion",
-							DigName:             "testDeploymentIntentGroup",
-							GenericK8sIntent:    "testGenK8sIntent",
-							Resource:            "testResource",
-						}.String(): {
-							"data": []byte(
-								"{\"metadata\":{\"name\":\"testCustomization\",\"description\":\"testCustomization\",\"userData1\":\"userData1\",\"userData2\":\"userData2\"},\"spec\":{\"clusterSpecific\":\"true\",\"clusterInfo\":{\"scope\":\"label\",\"clusterProvider\":\"testClusterProvider\",\"cluster\":\"\",\"clusterLabel\":\"testLabel\",\"mode\":\"allow\"},\"patchType\":\"json\",\"patchJson\":[{\"op\":\"replace\",\"path\":\"\\/name\",\"value\":\"test\"}]}}"),
-						},
+						FileName: "info.json",
+						KeyName:  "info",
 					},
 				},
 			},
 		},
-	}
-
-	for _, testCase := range testCases {
-		t.Run(testCase.label, func(t *testing.T) {
-			db.DBconn = testCase.mockdb
-			customCli := NewCustomizationClient()
-			got, err := customCli.GetAllCustomization(testCase.inputProject, testCase.inputCompositeApp, testCase.inputCompositeAppVersion, testCase.inputDeploymentIntentGrpName, testCase.inputGenericK8sIntent, testCase.inputResource)
-			if err != nil {
-				if testCase.expectedError == "" {
-					t.Fatalf("GetAllCustomization returned an unexpected error: %s", err)
-				}
-				if strings.Contains(err.Error(), testCase.expectedError) == false {
-					t.Fatalf("GetAllCustomization returned an unexpected error: %s", err)
-				}
-			} else {
-				if reflect.DeepEqual(testCase.expected, got) == false {
-					t.Errorf("GetAllCustomization returned unexpected body: got %v;"+
-						" expected %v", got, testCase.expected)
-				}
-			}
-		})
 	}
 }
 
-func TestGetCustomizationContent(t *testing.T) {
-	testCases := []struct {
-		label                        string
-		inputCustomization           string
-		inputProject                 string
-		inputCompositeApp            string
-		inputCompositeAppVersion     string
-		inputDeploymentIntentGrpName string
-		inputGenericK8sIntent        string
-		inputResourceName            string
-		expectedError                string
-		mockdb                       *db.MockDB
-		expected                     SpecFileContent
-	}{
-		{
-			label:                        "Get ResourceContent",
-			inputCustomization:           "testCustomization",
-			inputProject:                 "testProject",
-			inputCompositeApp:            "testCompositeApp",
-			inputCompositeAppVersion:     "testCompositeAppVersion",
-			inputDeploymentIntentGrpName: "testDeploymentIntentGroup",
-			inputGenericK8sIntent:        "testGenK8sIntent",
-			inputResourceName:            "testResource",
-			expected: SpecFileContent{
-				FileContents: []string{
-					"This is testFile1",
-					"This is testFile2",
-				},
-				FileNames: []string{
-					"testFile1",
-					"testFile2",
-				},
-			},
-			expectedError: "",
-			mockdb: &db.MockDB{
-				Items: []map[string]map[string][]byte{
-					{
-						CustomizationKey{
-							Customization:       "testCustomization",
-							Project:             "testProject",
-							CompositeApp:        "testCompositeApp",
-							CompositeAppVersion: "testCompositeAppVersion",
-							DigName:             "testDeploymentIntentGroup",
-							GenericK8sIntent:    "testGenK8sIntent",
-							Resource:            "testResource",
-						}.String(): {
-							"data": []byte(
-								"{\"metadata\":{\"name\":\"testCustomization\",\"description\":\"testCustomization\",\"userData1\":\"userData1\",\"userData2\":\"userData2\"},\"spec\":{\"clusterSpecific\":\"true\",\"clusterInfo\":{\"scope\":\"label\",\"clusterProvider\":\"testClusterProvider\",\"cluster\":\"\",\"clusterLabel\":\"testLabel\",\"mode\":\"allow\"},\"patchType\":\"json\",\"patchJson\":[{\"op\":\"replace\",\"path\":\"\\/name\",\"value\":\"test\"}]}}"),
-							"customizationcontent": []byte(
-								"{\"FileContents\":[\"This is testFile1\",\"This is testFile2\"],\"FileNames\":[\"testFile1\",\"testFile2\"]}"),
-						},
-					},
-				},
-			},
-		},
-	}
+// populateCustomizationTestData
+func populateCustomizationTestData() {
+	mockdb.Err = nil
+	mockdb.Items = []map[string]map[string][]byte{}
+	mockdb.MarshalErr = nil
 
-	for _, testCase := range testCases {
-		t.Run(testCase.label, func(t *testing.T) {
-			db.DBconn = testCase.mockdb
-			customCli := NewCustomizationClient()
-			got, err := customCli.GetCustomizationContent(testCase.inputCustomization, testCase.inputProject, testCase.inputCompositeApp, testCase.inputCompositeAppVersion, testCase.inputDeploymentIntentGrpName, testCase.inputGenericK8sIntent, testCase.inputResourceName)
-			if err != nil {
-				if testCase.expectedError == "" {
-					t.Fatalf("GetCustomizationContent returned an unexpected error: %s", err)
-				}
-				if strings.Contains(err.Error(), testCase.expectedError) == false {
-					t.Fatalf("GetCustomizationContent returned an unexpected error: %s", err)
-				}
-			} else {
-				if reflect.DeepEqual(testCase.expected, got) == false {
-					t.Errorf("GetCustomizationContent returned unexpected body: got %v;"+
-						" expected %v", got, testCase.expected)
-				}
-			}
-		})
+	// Customization 1
+	c := mockCustomization("test-customization-1")
+	key := module.CustomizationKey{
+		Customization:         c.Metadata.Name,
+		Project:               v.Project,
+		CompositeApp:          v.CompositeApp,
+		CompositeAppVersion:   v.Version,
+		DeploymentIntentGroup: v.DeploymentIntentGroup,
+		GenericK8sIntent:      v.Intent,
+		Resource:              v.Resource,
 	}
+	_ = mockdb.Insert("resources", key, nil, "data", c)
+
+	// Customization 2
+	c = mockCustomization("test-customization-2")
+	key = module.CustomizationKey{
+		Customization:         c.Metadata.Name,
+		Project:               v.Project,
+		CompositeApp:          v.CompositeApp,
+		CompositeAppVersion:   v.Version,
+		DeploymentIntentGroup: v.DeploymentIntentGroup,
+		GenericK8sIntent:      v.Intent,
+		Resource:              v.Resource,
+	}
+	_ = mockdb.Insert("resources", key, nil, "data", c)
+
+	// Customization 3
+	c = mockCustomization("test-customization-3")
+	key = module.CustomizationKey{
+		Customization:         c.Metadata.Name,
+		Project:               v.Project,
+		CompositeApp:          v.CompositeApp,
+		CompositeAppVersion:   v.Version,
+		DeploymentIntentGroup: v.DeploymentIntentGroup,
+		GenericK8sIntent:      v.Intent,
+		Resource:              v.Resource,
+	}
+	_ = mockdb.Insert("resources", key, nil, "data", c)
 }
 
-func TestDeleteCustomization(t *testing.T) {
-	testCases := []struct {
-		label                        string
-		inputCustomization           string
-		inputProject                 string
-		inputCompositeApp            string
-		inputCompositeAppVersion     string
-		inputDeploymentIntentGrpName string
-		inputGenericK8sIntent        string
-		inputResource                string
-		expectedError                string
-		mockdb                       *db.MockDB
-	}{
-		{
-			label:                        "Delete customization",
-			inputCustomization:           "testCustomization",
-			inputProject:                 "testProject",
-			inputCompositeApp:            "testCompositeApp",
-			inputCompositeAppVersion:     "testCompositeAppVersion",
-			inputDeploymentIntentGrpName: "testDeploymentIntentGroup",
-			inputGenericK8sIntent:        "testGenK8sIntent",
-			inputResource:                "testResource",
-			expectedError:                "",
-			mockdb: &db.MockDB{
-				Items: []map[string]map[string][]byte{
-					{
-						CustomizationKey{
-							Customization:       "testCustomization",
-							Project:             "testProject",
-							CompositeApp:        "testCompositeApp",
-							CompositeAppVersion: "testCompositeAppVersion",
-							DigName:             "testDeploymentIntentGroup",
-							GenericK8sIntent:    "testGenK8sIntent",
-							Resource:            "testResource",
-						}.String(): {
-							"data": []byte(
-								"{\"metadata\":{\"name\":\"testCustomization\",\"description\":\"testCustomization\",\"userData1\":\"userData1\",\"userData2\":\"userData2\"},\"spec\":{\"clusterSpecific\":\"true\",\"clusterInfo\":{\"scope\":\"label\",\"clusterProvider\":\"testClusterProvider\",\"cluster\":\"\",\"clusterLabel\":\"testLabel\",\"mode\":\"allow\"},\"patchType\":\"json\",\"patchJson\":[{\"op\":\"replace\",\"path\":\"\\/name\",\"value\":\"test\"}]}}"),
-						},
-					},
-				},
+// populateCustomizationContent
+func populateCustomizationContent(customization string) {
+	key := module.CustomizationKey{
+		Customization:         customization,
+		Project:               v.Project,
+		CompositeApp:          v.CompositeApp,
+		CompositeAppVersion:   v.Version,
+		DeploymentIntentGroup: v.DeploymentIntentGroup,
+		GenericK8sIntent:      v.Intent,
+		Resource:              v.Resource,
+	}
+	content := mockCustomizationContent()
+	_ = mockdb.Insert("resources", key, nil, "customizationcontent", content)
+}
+
+// mockCustomizationContent
+func mockCustomizationContent() module.CustomizationContent {
+	return module.CustomizationContent{
+		[]module.Content{
+			{
+				FileName: "info.json",
+				Content:  "ewogICAgImZydWl0IjogImJlcnJ5IiwKICAgICJhbmltYWwiOiAiZG9nIiwKICAgICJjb2xvciI6ICJyZWQiCn0K",
+				KeyName:  "info",
+			},
+			{
+				FileName: "data.json",
+				Content:  "ewogICAgIjEiOiAiYmVycnkiLAogICAgIjIiOiAiZG9nIiwKICAgICIzIjogInJlZCIKfQo=",
+				KeyName:  "data",
 			},
 		},
-	}
-
-	for _, testCase := range testCases {
-		t.Run(testCase.label, func(t *testing.T) {
-			db.DBconn = testCase.mockdb
-			customCli := NewCustomizationClient()
-			err := customCli.DeleteCustomization(testCase.inputCustomization, testCase.inputProject, testCase.inputCompositeApp, testCase.inputCompositeAppVersion, testCase.inputDeploymentIntentGrpName, testCase.inputGenericK8sIntent, testCase.inputResource)
-			if err != nil {
-				if testCase.expectedError == "" {
-					t.Fatalf("DeleteCustomization returned an unexpected error: %s", err)
-				}
-				if strings.Contains(err.Error(), testCase.expectedError) == false {
-					t.Fatalf("DeleteCustomization returned an unexpected error: %s", err)
-				}
-			}
-		})
 	}
 }

@@ -10,13 +10,13 @@ import (
 
 	"github.com/pkg/errors"
 	"gitlab.com/project-emco/core/emco-base/src/genericactioncontroller/pkg/module"
-	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/appcontext"
 	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 	yamlV2 "gopkg.in/yaml.v2"
+	"k8s.io/apimachinery/pkg/util/validation"
 )
 
-// SecretResource consists of ApiVersion, Kind, MetaData, type and Data map
-type SecretResource struct {
+// Secret holds the secret data
+type Secret struct {
 	APIVersion string            `yaml:"apiVersion"`
 	Kind       string            `yaml:"kind"`
 	MetaData   MetaData          `yaml:"metadata"`
@@ -24,79 +24,140 @@ type SecretResource struct {
 	Data       map[string]string `yaml:"data"`
 }
 
-// createSecret creates the ConfigMap struct based on the input
-func createSecret(file, name, intent string, customizationFiles module.SpecFileContent, appMeta appcontext.CompositeAppMeta, resource module.Resource, customization module.Customization, appContext appcontext.AppContext) error {
-	cm, err := setSecretBase(file, name)
-	if err != nil {
-		return err
-	}
-	data, err := handleCustomization(cm.Data, customizationFiles)
+// createSecret create the Secret data based on the JSON  patch,
+// content in the template file, and the customization file, if any
+func (o *updateOptions) createSecret() error {
+	// create a new Secret object based on the template file
+	secret, err := newSecret(o.resourceContent.Content, o.resource.Spec.ResourceGVK.Name)
 	if err != nil {
 		return err
 	}
 
-	cm.Data = data
+	if len(o.customizationContent.Content) > 0 {
+		// apply the customization data to the Secret
+		if err := handleSecretCustomization(secret, o.customizationContent.Content); err != nil {
+			return err
+		}
+	}
 
-	value, err := yamlV2.Marshal(&cm)
+	value, err := yamlV2.Marshal(secret)
 	if err != nil {
-		log.Error("error",
+		log.Error("Failed to serialize the secret object into a YAML document",
 			log.Fields{
+				"Secret": secret,
 				"Error ": err.Error()})
 		return err
 	}
 
-	fmt.Println(string(value))
+	if strings.ToLower(o.customization.Spec.PatchType) == "json" &&
+		len(o.customization.Spec.PatchJSON) > 0 {
+		// apply the JSON patch associated with the Secret customization
+		modifiedPatch, err := applyPatch(o.customization.Spec.PatchJSON, value)
+		if err != nil {
+			return err
+		}
+		value = modifiedPatch
+	}
 
-	err = createResource(appMeta, resource, customization, appContext, intent, value)
-	if err != nil {
+	// create the Secret
+	if err = o.create(value); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func setSecretBase(data, name string) (SecretResource, error) {
-	// Check if the resource has a file associated with it
-	if len(data) > 0 {
-		value, err := base64.StdEncoding.DecodeString(data)
+// newSecret creates a new Secret object based on the template file
+func newSecret(template, name string) (*Secret, error) {
+	if len(template) > 0 {
+		// set the base struct from the associated template file
+		value, err := base64.StdEncoding.DecodeString(template)
 		if err != nil {
-			log.Error("Failed to encode customization data.",
+			log.Error("Failed to decode the secret template content",
 				log.Fields{
 					"Error": err.Error()})
-			return SecretResource{}, err
+			return &Secret{}, err
 		}
 
 		if len(value) > 0 {
-			s := SecretResource{}
-			fmt.Println(string(value))
-			// If the configmap teplate is available then it should be YAML
-			err = yamlV2.Unmarshal(value, &s)
+			secret := Secret{}
+			// if the Secret template is available, then it should be YAML
+			err = yamlV2.Unmarshal(value, &secret)
 			if err != nil {
-				log.Error("Failed to unmarshal customization data.",
+				log.Error("Failed to unmarshal the secret template content",
 					log.Fields{
 						"Error": err.Error()})
-				return SecretResource{}, err
+				return &Secret{}, err
 			}
 
-			if s.APIVersion != "" &&
-				strings.ToLower(s.Kind) == "secret" &&
-				len(s.Data) != 0 &&
-				(s.MetaData != MetaData{}) {
-				return s, nil
+			if len(secret.Type) == 0 {
+				secret.Type = "Opaque"
 			}
 
-			return s, errors.New("Invalid secret template") // verify the logic of this.
+			if err = validateSecret(secret); err != nil {
+				return &secret, err
+			}
+
+			return &secret, nil
 		}
 	}
 
-	// We don't have the templae for ConfigMap. Only customization is available. Create the base config map
-	s := SecretResource{
+	// construct the Secret base struct since there is no template associated with the Secret
+	return &Secret{
 		APIVersion: "v1",
-		Kind:       "ConfigMap",
+		Kind:       "Secret",
+		Type:       "Opaque",
 		MetaData: MetaData{
 			Name: name,
 		},
 		Data: map[string]string{},
+	}, nil
+}
+
+// handleSecretCustomization adds the specified customization data to the Secret
+func handleSecretCustomization(s *Secret, customizations []module.Content) error {
+	// the number of customization file contents and filenames should be equal and in the same order
+	for _, c := range customizations {
+		// checks whether the key name is valid
+		err := validateSecretDataKey(s, c.KeyName)
+		if err != nil {
+			return err
+		}
+
+		s.Data[c.KeyName] = string([]byte(c.Content))
 	}
-	return s, nil
+
+	return nil
+}
+
+// validateSecretDataKey checks whether the data key name is valid
+func validateSecretDataKey(s *Secret, key string) error {
+	if errs := validation.IsConfigMapKey(key); len(errs) > 0 {
+		return fmt.Errorf("%q is not a valid key name for a Secret: %s", key, strings.Join(errs, ","))
+	}
+	if _, exists := s.Data[key]; exists {
+		return fmt.Errorf("cannot add key %q, another key by that name already exists in Data for Secret %q", key, s.MetaData.Name)
+	}
+	return nil
+}
+
+// validateSecret checks whether the secret has basic configurations
+func validateSecret(s Secret) error {
+	var err []string
+	if len(s.APIVersion) == 0 {
+		err = append(err, "apiVersion not set for secret")
+	}
+	if len(s.Kind) == 0 ||
+		strings.ToLower(s.Kind) != "secret" {
+		err = append(err, "kind not set for secret")
+	}
+	if len(s.MetaData.Name) == 0 {
+		err = append(err, "secret name may not be empty")
+	}
+
+	if len(err) > 0 {
+		return errors.New(strings.Join(err, "\n"))
+	}
+
+	return nil
 }

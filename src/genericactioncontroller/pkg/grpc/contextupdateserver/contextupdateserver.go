@@ -10,8 +10,6 @@ import (
 	"gitlab.com/project-emco/core/emco-base/src/genericactioncontroller/internal/action"
 	contextpb "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/grpc/contextupdate"
 	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
-	//"google.golang.org/grpc/codes"
-	//"google.golang.org/grpc/status"
 )
 
 type contextupdateServer struct {
@@ -19,14 +17,12 @@ type contextupdateServer struct {
 }
 
 func (cs *contextupdateServer) UpdateAppContext(ctx context.Context, req *contextpb.ContextUpdateRequest) (*contextpb.ContextUpdateResponse, error) {
-	log.Info("Received Update App Context request", log.Fields{
-		"AppContextId": req.AppContext,
-		"IntentName":   req.IntentName,
-	})
+	log.Info("Received appContext update request",
+		log.Fields{
+			"AppContext": req.AppContext,
+			"Intent":     req.IntentName})
 
-	err := action.UpdateAppContext(req.IntentName, req.AppContext)
-
-	if err != nil {
+	if err := action.UpdateAppContext(req.IntentName, req.AppContext); err != nil {
 		return &contextpb.ContextUpdateResponse{AppContextUpdated: false, AppContextUpdateMessage: err.Error()}, nil
 	}
 

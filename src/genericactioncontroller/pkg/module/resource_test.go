@@ -1,459 +1,241 @@
-package module
+package module_test
 
 // SPDX-License-Identifier: Apache-2.0
 // Copyright (c) 2020 Intel Corporation
 
 import (
-	"reflect"
-	"strings"
-	"testing"
+	"errors"
 
-	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
-	moduleLib "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/module"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+
+	"gitlab.com/project-emco/core/emco-base/src/genericactioncontroller/pkg/module"
 )
 
-func TestCreateResource(t *testing.T) {
-	testCases := []struct {
-		label                        string
-		inputResource                Resource
-		inputResourceContent         ResourceFileContent
-		inputProject                 string
-		inputCompositeApp            string
-		inputCompositeAppVersion     string
-		inputDeploymentIntentGrpName string
-		inputGenericK8sIntent        string
-		inputExists                  bool
-		expectedError                string
-		mockdb                       *db.MockDB
-		expected                     Resource
-	}{
-		{
-			label: "Create Resource",
-			inputResource: Resource{
-				Metadata: Metadata{
-					Name:        "testResource",
-					Description: "testResource",
-					UserData1:   "userData1",
-					UserData2:   "userData2",
-				},
-				Spec: ResourceSpec{
-					AppName:   "testApp",
-					NewObject: "True",
-					ResourceGVK: ResourceGVK{
-						APIVersion: "v1",
-						Kind:       "configMap",
-						Name:       "TestCM",
-					},
-				},
-			},
-			inputResourceContent: ResourceFileContent{
-				FileContent: "TestResourceContent",
-			},
-			inputProject:                 "testProject",
-			inputCompositeApp:            "testCompositeApp",
-			inputCompositeAppVersion:     "testCompositeAppVersion",
-			inputDeploymentIntentGrpName: "testDeploymentIntentGroup",
-			inputGenericK8sIntent:        "testGenK8sIntent",
-			inputExists:                  false,
-			expected: Resource{
-				Metadata: Metadata{
-					Name:        "testResource",
-					Description: "testResource",
-					UserData1:   "userData1",
-					UserData2:   "userData2",
-				},
-				Spec: ResourceSpec{
-					AppName:   "testApp",
-					NewObject: "True",
-					ResourceGVK: ResourceGVK{
-						APIVersion: "v1",
-						Kind:       "configMap",
-						Name:       "TestCM",
-					},
-				},
-			},
-			expectedError: "",
-			mockdb: &db.MockDB{
-				Items: []map[string]map[string][]byte{
-					{
-						moduleLib.ProjectKey{ProjectName: "testProject"}.String(): {
-							"data": []byte(
-								"{\"project-name\":\"testProject\"," +
-									"\"description\":\"Test project for unit testing\"}"),
-						},
-						moduleLib.CompositeAppKey{CompositeAppName: "testCompositeApp",
-							Version: "testCompositeAppVersion", Project: "testProject"}.String(): {
-							"data": []byte(
-								"{\"metadata\":{" +
-									"\"name\":\"testCompositeApp\"," +
-									"\"description\":\"description\"," +
-									"\"userData1\":\"user data\"," +
-									"\"userData2\":\"user data\"" +
-									"}," +
-									"\"spec\":{" +
-									"\"version\":\"version of the composite app\"}}"),
-						},
-						moduleLib.DeploymentIntentGroupKey{
-							Name:         "testDeploymentIntentGroup",
-							Project:      "testProject",
-							CompositeApp: "testCompositeApp",
-							Version:      "testCompositeAppVersion",
-						}.String(): {
-							"deploymentintentgroupmetadata": []byte(
-								"{\"metadata\":{\"name\":\"testDeploymentIntentGroup\"," +
-									"\"description\":\"DescriptionTestDeploymentIntentGroup\"," +
-									"\"userData1\": \"userData1\"," +
-									"\"userData2\": \"userData2\"}," +
-									"\"spec\":{\"profile\": \"Testprofile\"," +
-									"\"version\": \"version of deployment\"," +
-									"\"overrideValues\":[" +
-									"{" +
-									"\"app\": \"TestAppName\"," +
-									"\"values\": " +
-									"{" +
-									"\"imageRepository\":\"registry.hub.docker.com\"" +
-									"}" +
-									"}," +
-									"{" +
-									"\"app\": \"TestAppName\"," +
-									"\"values\": " +
-									"{" +
-									"\"imageRepository\":\"registry.hub.docker.com\"" +
-									"}" +
-									"}" +
-									"]," +
-									"\"logical-cloud\": \"cloud1\"" +
-									"}" +
-									"}"),
-						},
-						GenericK8sIntentKey{
-							GenericK8sIntent:    "testGenK8sIntent",
-							Project:             "testProject",
-							CompositeApp:        "testCompositeApp",
-							CompositeAppVersion: "testCompositeAppVersion",
-							DigName:             "testDeploymentIntentGroup",
-						}.String(): {
-							"generick8sintentmetadata": []byte(
-								"{\"metadata\":{\"Name\":\"testGenK8sIntent\"," +
-									"\"Description\":\"testGenK8sIntent\"," +
-									"\"UserData1\": \"userData1\"," +
-									"\"UserData2\": \"userData2\"}}"),
-						},
-					},
-				},
-			},
-		},
-	}
+var (
+	rClient = module.NewResourceClient()
+)
 
-	for _, testCase := range testCases {
-		t.Run(testCase.label, func(t *testing.T) {
-			db.DBconn = testCase.mockdb
-			resourceCli := NewResourceClient()
-			got, err := resourceCli.CreateResource(testCase.inputResource, testCase.inputResourceContent, testCase.inputProject, testCase.inputCompositeApp, testCase.inputCompositeAppVersion, testCase.inputDeploymentIntentGrpName, testCase.inputGenericK8sIntent, testCase.inputExists)
-			if err != nil {
-				if testCase.expectedError == "" {
-					t.Fatalf("CreateResource returned an unexpected error: %s", err)
-				}
-				if strings.Contains(err.Error(), testCase.expectedError) == false {
-					t.Fatalf("CreateResource returned an unexpected error: %s", err)
-				}
-			} else {
-				if reflect.DeepEqual(testCase.expected, got) == false {
-					t.Errorf("CreateResource returned unexpected body: got %v;"+
-						" expected %v", got, testCase.expected)
-				}
-			}
+var _ = Describe("Create Resource",
+	func() {
+		BeforeEach(func() {
+			populateResourceTestData()
 		})
-	}
+		Context("create a resource that does not exist", func() {
+			It("returns the resource, no error and, the exists flag is false", func() {
+				l := len(mockdb.Items)
+				mr := mockResource("new-resource")
+				res, rExists, err := rClient.CreateResource(
+					mr, module.ResourceContent{}, v.Project, v.CompositeApp, v.Version, v.DeploymentIntentGroup, v.Intent, true)
+				validateError(err, "")
+				validateResource(res, mr)
+				Expect(rExists).To(Equal(false))
+				Expect(len(mockdb.Items)).To(Equal(l + 1))
+			})
+		})
+		Context("create a resource that already exists", func() {
+			It("returns an error, no resource and, the exists flag is true", func() {
+				l := len(mockdb.Items)
+				mr := mockResource("test-resource-1")
+				res, rExists, err := rClient.CreateResource(
+					mr, module.ResourceContent{}, v.Project, v.CompositeApp, v.Version, v.DeploymentIntentGroup, v.Intent, true)
+				validateError(err, "Resource already exists")
+				validateResource(res, module.Resource{})
+				Expect(rExists).To(Equal(true))
+				Expect(len(mockdb.Items)).To(Equal(l))
+			})
+		})
+	},
+)
 
+var _ = Describe("Delete Resource",
+	func() {
+		BeforeEach(func() {
+			populateResourceTestData()
+		})
+		Context("delete an existing resource", func() {
+			It("returns no error and delete the entry from the db", func() {
+				l := len(mockdb.Items)
+				err := rClient.DeleteResource(
+					"test-resource-1", v.Project, v.CompositeApp, v.Version, v.DeploymentIntentGroup, v.Intent)
+				validateError(err, "")
+				Expect(len(mockdb.Items)).To(Equal(l - 1))
+			})
+		})
+		Context("delete a nonexisting resource", func() {
+			It("returns an error and no change in the db", func() {
+				l := len(mockdb.Items)
+				mockdb.Err = errors.New("db Remove resource not found")
+				err := rClient.DeleteResource(
+					"non-existing-resource", v.Project, v.CompositeApp, v.Version, v.DeploymentIntentGroup, v.Intent)
+				validateError(err, "db Remove resource not found")
+				Expect(len(mockdb.Items)).To(Equal(l))
+			})
+		})
+	},
+)
+
+var _ = Describe("Get All Resources",
+	func() {
+		BeforeEach(func() {
+			populateResourceTestData()
+		})
+		Context("get all the resources", func() {
+			It("returns all the resources, no error", func() {
+				l := len(mockdb.Items)
+				res, err := rClient.GetAllResources(
+					v.Project, v.CompositeApp, v.Version, v.DeploymentIntentGroup, v.Intent)
+				validateError(err, "")
+				Expect(len(res)).To(Equal(l))
+			})
+		})
+		Context("get all the resources without creating any", func() {
+			It("returns an empty array, no error", func() {
+				mockdb.Items = []map[string]map[string][]byte{}
+				res, err := rClient.GetAllResources(
+					v.Project, v.CompositeApp, v.Version, v.DeploymentIntentGroup, v.Intent)
+				validateError(err, "")
+				Expect(len(res)).To(Equal(0))
+			})
+		})
+	},
+)
+
+var _ = Describe("Get Resource",
+	func() {
+		BeforeEach(func() {
+			populateResourceTestData()
+		})
+		Context("get an existing resource", func() {
+			It("returns the resource, no error", func() {
+				res, err := rClient.GetResource(
+					"test-resource-1", v.Project, v.CompositeApp, v.Version, v.DeploymentIntentGroup, v.Intent)
+				validateError(err, "")
+				validateResource(res, mockResource("test-resource-1"))
+			})
+		})
+		Context("get a nonexisting resource", func() {
+			It("returns an error, no resource", func() {
+				res, err := rClient.GetResource(
+					"non-existing-resource", v.Project, v.CompositeApp, v.Version, v.DeploymentIntentGroup, v.Intent)
+				validateError(err, "Resource not found")
+				validateResource(res, module.Resource{})
+			})
+		})
+	},
+)
+
+var _ = Describe("Get Resource Content",
+	func() {
+		BeforeEach(func() {
+			populateResourceTestData()
+		})
+		Context("get the existing resource content", func() {
+			It("returns the resource content, no error", func() {
+				populateResourceContent("test-resource-1")
+				content, err := rClient.GetResourceContent(
+					"test-resource-1", v.Project, v.CompositeApp, v.Version, v.DeploymentIntentGroup, v.Intent)
+				validateError(err, "")
+				Expect(content.Content).To(Equal("YXBpVmVyc2lvbjogdjEKa2luZDogQ29"))
+			})
+		})
+		Context("get the nonexisting resource content", func() {
+			It("returns no content", func() {
+				content, err := rClient.GetResourceContent(
+					"non-existing-resource", v.Project, v.CompositeApp, v.Version, v.DeploymentIntentGroup, v.Intent)
+				validateError(err, "")
+				Expect(content).To(Equal(module.ResourceContent{}))
+			})
+		})
+	},
+)
+
+// validateResource
+func validateResource(in, out module.Resource) {
+	Expect(in).To(Equal(out))
 }
 
-func TestGetResource(t *testing.T) {
-	testCases := []struct {
-		label                        string
-		inputResourceName            string
-		inputProject                 string
-		inputCompositeApp            string
-		inputCompositeAppVersion     string
-		inputDeploymentIntentGrpName string
-		inputGenericK8sIntent        string
-		expectedError                string
-		mockdb                       *db.MockDB
-		expected                     Resource
-	}{
-		{
-			label:                        "Get All resources",
-			inputResourceName:            "testResource",
-			inputProject:                 "testProject",
-			inputCompositeApp:            "testCompositeApp",
-			inputCompositeAppVersion:     "testCompositeAppVersion",
-			inputDeploymentIntentGrpName: "testDeploymentIntentGroup",
-			inputGenericK8sIntent:        "testGenK8sIntent",
-			expected: Resource{
-
-				Metadata: Metadata{
-					Name:        "testResource",
-					Description: "testResource",
-					UserData1:   "userData1",
-					UserData2:   "userData2",
-				},
-				Spec: ResourceSpec{
-					AppName:   "testApp",
-					NewObject: "True",
-					ResourceGVK: ResourceGVK{
-						APIVersion: "v1",
-						Kind:       "configMap",
-						Name:       "TestCM",
-					},
-				},
-			},
-			expectedError: "",
-			mockdb: &db.MockDB{
-				Items: []map[string]map[string][]byte{
-					{
-						ResourceKey{
-							Resource:            "testResource",
-							Project:             "testProject",
-							CompositeApp:        "testCompositeApp",
-							CompositeAppVersion: "testCompositeAppVersion",
-							DigName:             "testDeploymentIntentGroup",
-							GenericK8sIntent:    "testGenK8sIntent",
-						}.String(): {
-							"data": []byte(
-								"{\"metadata\":{\"name\":\"testResource\",\"description\":\"testResource\",\"userData1\":\"userData1\",\"userData2\":\"userData2\"},\"spec\":{\"app\":\"testApp\",\"newObject\":\"True\",\"resourceGVK\":{\"apiversion\":\"v1\",\"kind\":\"configMap\",\"name\":\"TestCM\"}}}"),
-						},
-					},
-				},
+// mockResource
+func mockResource(name string) module.Resource {
+	return module.Resource{
+		Metadata: module.Metadata{
+			Name:        name,
+			Description: "test resource",
+			UserData1:   "some user data 1",
+			UserData2:   "some user data 2",
+		},
+		Spec: module.ResourceSpec{
+			AppName:   "operator",
+			NewObject: "true",
+			ResourceGVK: module.ResourceGVK{
+				APIVersion: "v1",
+				Kind:       "ConfigMap",
+				Name:       "my-cm",
 			},
 		},
-	}
-
-	for _, testCase := range testCases {
-		t.Run(testCase.label, func(t *testing.T) {
-			db.DBconn = testCase.mockdb
-			resourceCli := NewResourceClient()
-			got, err := resourceCli.GetResource(testCase.inputResourceName, testCase.inputProject, testCase.inputCompositeApp, testCase.inputCompositeAppVersion, testCase.inputDeploymentIntentGrpName, testCase.inputGenericK8sIntent)
-			if err != nil {
-				if testCase.expectedError == "" {
-					t.Fatalf("GetResource returned an unexpected error: %s", err)
-				}
-				if strings.Contains(err.Error(), testCase.expectedError) == false {
-					t.Fatalf("GetResource returned an unexpected error: %s", err)
-				}
-			} else {
-				if reflect.DeepEqual(testCase.expected, got) == false {
-					t.Errorf("GetResource returned unexpected body: got %v;"+
-						" expected %v", got, testCase.expected)
-				}
-			}
-		})
 	}
 }
 
-func TestGetAllResources(t *testing.T) {
-	testCases := []struct {
-		label                        string
-		inputProject                 string
-		inputCompositeApp            string
-		inputCompositeAppVersion     string
-		inputDeploymentIntentGrpName string
-		inputGenericK8sIntent        string
-		expectedError                string
-		mockdb                       *db.MockDB
-		expected                     []Resource
-	}{
-		{
-			label:                        "Get All resources",
-			inputProject:                 "testProject",
-			inputCompositeApp:            "testCompositeApp",
-			inputCompositeAppVersion:     "testCompositeAppVersion",
-			inputDeploymentIntentGrpName: "testDeploymentIntentGroup",
-			inputGenericK8sIntent:        "testGenK8sIntent",
-			expected: []Resource{
-				{
-					Metadata: Metadata{
-						Name:        "testResource",
-						Description: "testResource",
-						UserData1:   "userData1",
-						UserData2:   "userData2",
-					},
-					Spec: ResourceSpec{
-						AppName:   "testApp",
-						NewObject: "True",
-						ResourceGVK: ResourceGVK{
-							APIVersion: "v1",
-							Kind:       "configMap",
-							Name:       "TestCM",
-						},
-					},
-				},
-			},
-			expectedError: "",
-			mockdb: &db.MockDB{
-				Items: []map[string]map[string][]byte{
-					{
-						ResourceKey{
-							Resource:            "",
-							Project:             "testProject",
-							CompositeApp:        "testCompositeApp",
-							CompositeAppVersion: "testCompositeAppVersion",
-							DigName:             "testDeploymentIntentGroup",
-							GenericK8sIntent:    "testGenK8sIntent",
-						}.String(): {
-							"data": []byte(
-								"{\"metadata\":{\"name\":\"testResource\",\"description\":\"testResource\",\"userData1\":\"userData1\",\"userData2\":\"userData2\"},\"spec\":{\"app\":\"testApp\",\"newObject\":\"True\",\"resourceGVK\":{\"apiversion\":\"v1\",\"kind\":\"configMap\",\"name\":\"TestCM\"}}}"),
-						},
-					},
-				},
-			},
-		},
-	}
+// populateResourceTestData
+func populateResourceTestData() {
+	var (
+		r   module.Resource
+		key module.ResourceKey
+	)
 
-	for _, testCase := range testCases {
-		t.Run(testCase.label, func(t *testing.T) {
-			db.DBconn = testCase.mockdb
-			resourceCli := NewResourceClient()
-			got, err := resourceCli.GetAllResources(testCase.inputProject, testCase.inputCompositeApp, testCase.inputCompositeAppVersion, testCase.inputDeploymentIntentGrpName, testCase.inputGenericK8sIntent)
-			if err != nil {
-				if testCase.expectedError == "" {
-					t.Fatalf("GetAllResources returned an unexpected error: %s", err)
-				}
-				if strings.Contains(err.Error(), testCase.expectedError) == false {
-					t.Fatalf("GetAllResources returned an unexpected error: %s", err)
-				}
-			} else {
-				if reflect.DeepEqual(testCase.expected, got) == false {
-					t.Errorf("GetAllResources returned unexpected body: got %v;"+
-						" expected %v", got, testCase.expected)
-				}
-			}
-		})
+	mockdb.Err = nil
+	mockdb.Items = []map[string]map[string][]byte{}
+	mockdb.MarshalErr = nil
+
+	// Resource 1
+	r = mockResource("test-resource-1")
+	key = module.ResourceKey{
+		Resource:              r.Metadata.Name,
+		Project:               v.Project,
+		CompositeApp:          v.CompositeApp,
+		CompositeAppVersion:   v.Version,
+		DeploymentIntentGroup: v.DeploymentIntentGroup,
+		GenericK8sIntent:      v.Intent,
 	}
+	_ = mockdb.Insert("resources", key, nil, "data", r)
+
+	// Resource 2
+	r = mockResource("test-resource-2")
+	key = module.ResourceKey{
+		Resource:              r.Metadata.Name,
+		Project:               v.Project,
+		CompositeApp:          v.CompositeApp,
+		CompositeAppVersion:   v.Version,
+		DeploymentIntentGroup: v.DeploymentIntentGroup,
+		GenericK8sIntent:      v.Intent,
+	}
+	_ = mockdb.Insert("resources", key, nil, "data", r)
+
+	// Resource 3
+	r = mockResource("test-resource-3")
+	key = module.ResourceKey{
+		Resource:              r.Metadata.Name,
+		Project:               v.Project,
+		CompositeApp:          v.CompositeApp,
+		CompositeAppVersion:   v.Version,
+		DeploymentIntentGroup: v.DeploymentIntentGroup,
+		GenericK8sIntent:      v.Intent,
+	}
+	_ = mockdb.Insert("resources", key, nil, "data", r)
 }
 
-func TestGetResourceContent(t *testing.T) {
-	testCases := []struct {
-		label                        string
-		inputResourceName            string
-		inputProject                 string
-		inputCompositeApp            string
-		inputCompositeAppVersion     string
-		inputDeploymentIntentGrpName string
-		inputGenericK8sIntent        string
-		expectedError                string
-		mockdb                       *db.MockDB
-		expected                     ResourceFileContent
-	}{
-		{
-			label:                        "Get ResourceContent",
-			inputResourceName:            "testResource",
-			inputProject:                 "testProject",
-			inputCompositeApp:            "testCompositeApp",
-			inputCompositeAppVersion:     "testCompositeAppVersion",
-			inputDeploymentIntentGrpName: "testDeploymentIntentGroup",
-			inputGenericK8sIntent:        "testGenK8sIntent",
-			expected: ResourceFileContent{
-				FileContent: "testFileContent",
-			},
-			expectedError: "",
-			mockdb: &db.MockDB{
-				Items: []map[string]map[string][]byte{
-					{
-						ResourceKey{
-							Resource:            "testResource",
-							Project:             "testProject",
-							CompositeApp:        "testCompositeApp",
-							CompositeAppVersion: "testCompositeAppVersion",
-							DigName:             "testDeploymentIntentGroup",
-							GenericK8sIntent:    "testGenK8sIntent",
-						}.String(): {
-							"data": []byte(
-								"{\"metadata\":{\"name\":\"testResource\",\"description\":\"testResource\",\"userData1\":\"userData1\",\"userData2\":\"userData2\"},\"spec\":{\"app\":\"testApp\",\"newObject\":\"True\",\"resourceGVK\":{\"apiversion\":\"v1\",\"kind\":\"configMap\",\"name\":\"TestCM\"}}}"),
-							"resourcecontent": []byte(
-								"{\"FileContent\":\"testFileContent\"}"),
-						},
-					},
-				},
-			},
-		},
+// populateResourceContent
+func populateResourceContent(resource string) {
+	key := module.ResourceKey{
+		Resource:              resource,
+		Project:               v.Project,
+		CompositeApp:          v.CompositeApp,
+		CompositeAppVersion:   v.Version,
+		DeploymentIntentGroup: v.DeploymentIntentGroup,
+		GenericK8sIntent:      v.Intent,
 	}
-
-	for _, testCase := range testCases {
-		t.Run(testCase.label, func(t *testing.T) {
-			db.DBconn = testCase.mockdb
-			resourceCli := NewResourceClient()
-			got, err := resourceCli.GetResourceContent(testCase.inputResourceName, testCase.inputProject, testCase.inputCompositeApp, testCase.inputCompositeAppVersion, testCase.inputDeploymentIntentGrpName, testCase.inputGenericK8sIntent)
-			if err != nil {
-				if testCase.expectedError == "" {
-					t.Fatalf("GetResourceContent returned an unexpected error: %s", err)
-				}
-				if strings.Contains(err.Error(), testCase.expectedError) == false {
-					t.Fatalf("GetResourceContent returned an unexpected error: %s", err)
-				}
-			} else {
-				if reflect.DeepEqual(testCase.expected, got) == false {
-					t.Errorf("GetResourceContent returned unexpected body: got %v;"+
-						" expected %v", got, testCase.expected)
-				}
-			}
-		})
+	rContent := module.ResourceContent{
+		Content: "YXBpVmVyc2lvbjogdjEKa2luZDogQ29",
 	}
-}
-
-func TestDeleteResource(t *testing.T) {
-	testCases := []struct {
-		label                        string
-		inputResourceName            string
-		inputProject                 string
-		inputCompositeApp            string
-		inputCompositeAppVersion     string
-		inputDeploymentIntentGrpName string
-		inputGenericK8sIntent        string
-		expectedError                string
-		mockdb                       *db.MockDB
-	}{
-		{
-			label:                        "Delete resource",
-			inputResourceName:            "testResource",
-			inputProject:                 "testProject",
-			inputCompositeApp:            "testCompositeApp",
-			inputCompositeAppVersion:     "testCompositeAppVersion",
-			inputDeploymentIntentGrpName: "testDeploymentIntentGroup",
-			inputGenericK8sIntent:        "testGenK8sIntent",
-			expectedError:                "",
-			mockdb: &db.MockDB{
-				Items: []map[string]map[string][]byte{
-					{
-						ResourceKey{
-							Resource:            "testResource",
-							Project:             "testProject",
-							CompositeApp:        "testCompositeApp",
-							CompositeAppVersion: "testCompositeAppVersion",
-							DigName:             "testDeploymentIntentGroup",
-							GenericK8sIntent:    "testGenK8sIntent",
-						}.String(): {
-							"data": []byte(
-								"{\"metadata\":{\"name\":\"testResource\",\"description\":\"testResource\",\"userData1\":\"userData1\",\"userData2\":\"userData2\"},\"spec\":{\"app\":\"testApp\",\"newObject\":\"True\",\"resourceGVK\":{\"apiversion\":\"v1\",\"kind\":\"configMap\",\"name\":\"TestCM\"}}}"),
-						},
-					},
-				},
-			},
-		},
-	}
-
-	for _, testCase := range testCases {
-		t.Run(testCase.label, func(t *testing.T) {
-			db.DBconn = testCase.mockdb
-			resourceCli := NewResourceClient()
-			err := resourceCli.DeleteResource(testCase.inputResourceName, testCase.inputProject, testCase.inputCompositeApp, testCase.inputCompositeAppVersion, testCase.inputDeploymentIntentGrpName, testCase.inputGenericK8sIntent)
-			if err != nil {
-				if testCase.expectedError == "" {
-					t.Fatalf("DeleteResource returned an unexpected error: %s", err)
-				}
-				if strings.Contains(err.Error(), testCase.expectedError) == false {
-					t.Fatalf("DeleteResource returned an unexpected error: %s", err)
-				}
-			}
-		})
-	}
+	_ = mockdb.Insert("resources", key, nil, "resourcecontent", rContent)
 }

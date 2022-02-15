@@ -5,24 +5,26 @@ package module
 
 import (
 	"encoding/json"
+	"reflect"
 
-	pkgerrors "github.com/pkg/errors"
+	"github.com/pkg/errors"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
 )
 
 // Customization consists of metadata and Spec
 type Customization struct {
-	Metadata Metadata      `json:"metadata"`
-	Spec     CustomizeSpec `json:"spec"`
+	Metadata Metadata          `json:"metadata"`
+	Spec     CustomizationSpec `json:"spec"`
 }
 
-// CustomizeSpec consists of ClusterSpecific and ClusterInfo
-type CustomizeSpec struct {
-	ClusterSpecific string                   `json:"clusterSpecific"`
-	ClusterInfo     ClusterInfo              `json:"clusterInfo"`
-	PatchType       string                   `json:"patchType,omitempty"`
-	PatchJSON       []map[string]interface{} `json:"patchJson,omitempty"`
-	SpecFile        []SpecFile               `json:"specFile,omitempty"`
+// CustomizationSpec consists of ClusterSpecific and ClusterInfo
+type CustomizationSpec struct {
+	ClusterSpecific  string                   `json:"clusterSpecific"`
+	ClusterInfo      ClusterInfo              `json:"clusterInfo"`
+	PatchType        string                   `json:"patchType,omitempty"`
+	PatchJSON        []map[string]interface{} `json:"patchJson,omitempty"`
+	ConfigMapOptions ConfigMapOptions         `json:"configMapOptions,omitempty"`
+	SecretOptions    SecretOptions            `json:"secretOptions,omitempty"`
 }
 
 // ClusterInfo consists of scope, Clusterprovider, ClusterName, ClusterLabel and Mode
@@ -34,35 +36,58 @@ type ClusterInfo struct {
 	Mode            string `json:"mode"`
 }
 
-type SpecFile struct {
-	ConfigFile string `json:"configFile"`
-	ConfigKey  string `json:"configKey"`
+// ConfigMapOptions holds properties for customizing configmap
+type ConfigMapOptions struct {
+	DataKeyOptions []KeyOptions `json:"dataKeyOptions,omitempty"`
 }
 
-// SpecFileContent contains the array of file contents
-type SpecFileContent struct {
-	FileContents []string
-	FileNames    []string
+// SecretOptions holds properties for customizing secret
+type SecretOptions struct {
+	DataKeyOptions []KeyOptions `json:"dataKeyOptions,omitempty"`
 }
 
-// CustomizationKey consists of CustomizationName, project, CompApp, CompAppVersion, DeploymentIntentGroupName, GenericIntentName, ResourceName
+// KeyOptions holds properties for customizing configmap/secret data keys
+type KeyOptions struct {
+	FileName string `json:"fileName"`
+	KeyName  string `json:"keyName"`
+}
+
+// Content represent either a merge content or a JSON patch
+// and its targets. The content of the patch can either be from a file
+// or from an inline string.
+type Content struct {
+	FileName string
+	Content  string
+	KeyName  string
+}
+
+// CustomizationContent is a list of patches, where each one can be either a
+// merge content or a JSON patch.
+type CustomizationContent struct {
+	Content []Content
+}
+
+// CustomizationKey consists of CustomizationName, project, CompApp, CompAppVersion,
+// DeploymentIntentGroupName, GenericIntentName, ResourceName
 type CustomizationKey struct {
-	Customization       string `json:"customization"`
-	Project             string `json:"project"`
-	CompositeApp        string `json:"compositeApp"`
-	CompositeAppVersion string `json:"compositeAppVersion"`
-	DigName             string `json:"deploymentIntentGroup"`
-	GenericK8sIntent    string `json:"genericK8sIntent"`
-	Resource            string `json:"genericResource"`
+	Customization         string `json:"customization"`
+	Project               string `json:"project"`
+	CompositeApp          string `json:"compositeApp"`
+	CompositeAppVersion   string `json:"compositeAppVersion"`
+	DeploymentIntentGroup string `json:"deploymentIntentGroup"`
+	GenericK8sIntent      string `json:"genericK8sIntent"`
+	Resource              string `json:"genericResource"`
 }
 
 // CustomizationManager exposes all the functionalities of customization
 type CustomizationManager interface {
-	CreateCustomization(c Customization, t SpecFileContent, p, ca, cv, dig, gi, rs string, exists bool) (Customization, error)
-	GetCustomization(c, p, ca, cv, dig, gi, rs string) (Customization, error)
-	GetCustomizationContent(c, p, ca, cv, dig, gi, rs string) (SpecFileContent, error)
-	GetAllCustomization(p, ca, cv, dig, gi, rs string) ([]Customization, error)
-	DeleteCustomization(c, p, ca, cv, dig, gi, rs string) error
+	CreateCustomization(customization Customization, content CustomizationContent,
+		project, compositeApp, version, deploymentIntentGroup, intent, resource string,
+		failIfExists bool) (Customization, bool, error)
+	DeleteCustomization(customization, project, compositeApp, version, deploymentIntentGroup, intent, resource string) error
+	GetAllCustomization(project, compositeApp, version, deploymentIntentGroup, intent, resource string) ([]Customization, error)
+	GetCustomization(customization, project, compositeApp, version, deploymentIntentGroup, intent, resource string) (Customization, error)
+	GetCustomizationContent(customization, project, compositeApp, version, deploymentIntentGroup, intent, resource string) (CustomizationContent, error)
 }
 
 // CustomizationClientDbInfo consists of tableName and columns
@@ -70,7 +95,6 @@ type CustomizationClientDbInfo struct {
 	storeName  string // name of the mongodb collection to use for client documents
 	tagMeta    string // attribute key name for the json data of a client document
 	tagContent string // attribute key name for the file data of a client document
-	//tagFileName string // attribute key name for storing all the file names
 }
 
 // CustomizationClient consists of CustomizationClientDbInfo
@@ -80,8 +104,8 @@ type CustomizationClient struct {
 
 // We will use json marshalling to convert to string to
 // preserve the underlying structure.
-func (ck CustomizationKey) String() string {
-	out, err := json.Marshal(ck)
+func (k CustomizationKey) String() string {
+	out, err := json.Marshal(k)
 	if err != nil {
 		return ""
 	}
@@ -95,54 +119,63 @@ func NewCustomizationClient() *CustomizationClient {
 			storeName:  "resources",
 			tagMeta:    "data",
 			tagContent: "customizationcontent",
-			//tagFileName: "customizationfiles",
 		},
 	}
 }
 
 // CreateCustomization creates a new Customization
-func (cc *CustomizationClient) CreateCustomization(c Customization, t SpecFileContent, p, ca, cv, dig, gi, rs string, exists bool) (Customization, error) {
+func (cc *CustomizationClient) CreateCustomization(customization Customization, content CustomizationContent,
+	project, compositeApp, version, deploymentIntentGroup, intent, resource string,
+	failIfExists bool) (Customization, bool, error) {
 
+	cExists := false
 	key := CustomizationKey{
-		Customization:       c.Metadata.Name,
-		Project:             p,
-		CompositeApp:        ca,
-		CompositeAppVersion: cv,
-		DigName:             dig,
-		GenericK8sIntent:    gi,
-		Resource:            rs,
+		Customization:         customization.Metadata.Name,
+		Project:               project,
+		CompositeApp:          compositeApp,
+		CompositeAppVersion:   version,
+		DeploymentIntentGroup: deploymentIntentGroup,
+		GenericK8sIntent:      intent,
+		Resource:              resource,
 	}
 
-	_, err := cc.GetCustomization(c.Metadata.Name, p, ca, cv, dig, gi, rs)
-	if err == nil && !exists {
-		return Customization{}, pkgerrors.New("Customization already exists")
+	c, err := cc.GetCustomization(
+		customization.Metadata.Name, project, compositeApp, version, deploymentIntentGroup, intent, resource)
+	if err == nil &&
+		!reflect.DeepEqual(c, Customization{}) {
+		cExists = true
 	}
 
-	err = db.DBconn.Insert(cc.db.storeName, key, nil, cc.db.tagMeta, c)
-	if err != nil {
-		return Customization{}, pkgerrors.Wrap(err, "Creating DB Entry")
+	if cExists &&
+		failIfExists {
+		return Customization{}, cExists, errors.New("Customization already exists")
 	}
 
-	err = db.DBconn.Insert(cc.db.storeName, key, nil, cc.db.tagContent, t)
-	if err != nil {
-		return Customization{}, pkgerrors.Wrap(err, "Creating DB Entry")
+	if err = db.DBconn.Insert(cc.db.storeName, key, nil, cc.db.tagMeta, customization); err != nil {
+		return Customization{}, cExists, err
 	}
 
-	return c, nil
+	if !reflect.DeepEqual(content, CustomizationContent{}) {
+		if err = db.DBconn.Insert(cc.db.storeName, key, nil, cc.db.tagContent, content); err != nil {
+			return Customization{}, cExists, err
+		}
+	}
 
+	return customization, cExists, nil
 }
 
 // GetCustomization returns Customization
-func (cc *CustomizationClient) GetCustomization(c, p, ca, cv, dig, gi, rs string) (Customization, error) {
+func (cc *CustomizationClient) GetCustomization(
+	customization, project, compositeApp, version, deploymentIntentGroup, intent, resource string) (Customization, error) {
 
 	key := CustomizationKey{
-		Customization:       c,
-		Project:             p,
-		CompositeApp:        ca,
-		CompositeAppVersion: cv,
-		DigName:             dig,
-		GenericK8sIntent:    gi,
-		Resource:            rs,
+		Customization:         customization,
+		Project:               project,
+		CompositeApp:          compositeApp,
+		CompositeAppVersion:   version,
+		DeploymentIntentGroup: deploymentIntentGroup,
+		GenericK8sIntent:      intent,
+		Resource:              resource,
 	}
 
 	value, err := db.DBconn.Find(cc.db.storeName, key, cc.db.tagMeta)
@@ -151,101 +184,95 @@ func (cc *CustomizationClient) GetCustomization(c, p, ca, cv, dig, gi, rs string
 	}
 
 	if len(value) == 0 {
-		return Customization{}, pkgerrors.New("Customization not found")
+		return Customization{}, errors.New("Customization not found")
 	}
 
-	//value is a byte array
 	if value != nil {
 		c := Customization{}
-		err = db.DBconn.Unmarshal(value[0], &c)
-		if err != nil {
+		if err = db.DBconn.Unmarshal(value[0], &c); err != nil {
 			return Customization{}, err
 		}
 		return c, nil
 	}
 
-	return Customization{}, pkgerrors.New("Unknown Error")
-
+	return Customization{}, errors.New("Unknown Error")
 }
 
 // GetAllCustomization returns all the customization objects
-func (cc *CustomizationClient) GetAllCustomization(p, ca, cv, dig, gi, rs string) ([]Customization, error) {
+func (cc *CustomizationClient) GetAllCustomization(
+	project, compositeApp, version, deploymentIntentGroup, intent, resource string) ([]Customization, error) {
 
 	key := CustomizationKey{
-		Customization:       "",
-		Project:             p,
-		CompositeApp:        ca,
-		CompositeAppVersion: cv,
-		DigName:             dig,
-		GenericK8sIntent:    gi,
-		Resource:            rs,
+		Customization:         "",
+		Project:               project,
+		CompositeApp:          compositeApp,
+		CompositeAppVersion:   version,
+		DeploymentIntentGroup: deploymentIntentGroup,
+		GenericK8sIntent:      intent,
+		Resource:              resource,
 	}
 
-	var czs []Customization
 	values, err := db.DBconn.Find(cc.db.storeName, key, cc.db.tagMeta)
 	if err != nil {
 		return []Customization{}, err
 	}
 
+	var customizations []Customization
 	for _, value := range values {
-		cz := Customization{}
-		err = db.DBconn.Unmarshal(value, &cz)
-		if err != nil {
+		c := Customization{}
+		if err = db.DBconn.Unmarshal(value, &c); err != nil {
 			return []Customization{}, err
 		}
-		czs = append(czs, cz)
+		customizations = append(customizations, c)
 	}
 
-	return czs, nil
+	return customizations, nil
 }
 
 // GetCustomizationContent returns the customizationContent
-func (cc *CustomizationClient) GetCustomizationContent(c, p, ca, cv, dig, gi, rs string) (SpecFileContent, error) {
+func (cc *CustomizationClient) GetCustomizationContent(
+	customization, project, compositeApp, version, deploymentIntentGroup, intent, resource string) (CustomizationContent, error) {
+
 	key := CustomizationKey{
-		Customization:       c,
-		Project:             p,
-		CompositeApp:        ca,
-		CompositeAppVersion: cv,
-		DigName:             dig,
-		GenericK8sIntent:    gi,
-		Resource:            rs,
+		Customization:         customization,
+		Project:               project,
+		CompositeApp:          compositeApp,
+		CompositeAppVersion:   version,
+		DeploymentIntentGroup: deploymentIntentGroup,
+		GenericK8sIntent:      intent,
+		Resource:              resource,
 	}
 
 	value, err := db.DBconn.Find(cc.db.storeName, key, cc.db.tagContent)
 	if err != nil {
-		return SpecFileContent{}, err
+		return CustomizationContent{}, err
 	}
 
-	if len(value) == 0 {
-		return SpecFileContent{}, pkgerrors.New("Customization Spec File Content not found")
-	}
-
-	if value != nil {
-		sFileContent := SpecFileContent{}
-
-		err = db.DBconn.Unmarshal(value[0], &sFileContent)
-		if err != nil {
-			return SpecFileContent{}, err
+	if len(value) > 0 &&
+		value[0] != nil {
+		c := CustomizationContent{}
+		if err = db.DBconn.Unmarshal(value[0], &c); err != nil {
+			return CustomizationContent{}, err
 		}
-		return sFileContent, nil
+		return c, nil
 	}
 
-	return SpecFileContent{}, pkgerrors.New("Unknown Error")
+	return CustomizationContent{}, nil
 }
 
 // DeleteCustomization deletes Customization
-func (cc *CustomizationClient) DeleteCustomization(c, p, ca, cv, dig, gi, rs string) error {
+func (cc *CustomizationClient) DeleteCustomization(
+	customization, project, compositeApp, version, deploymentIntentGroup, intent, resource string) error {
 
 	key := CustomizationKey{
-		Customization:       c,
-		Project:             p,
-		CompositeApp:        ca,
-		CompositeAppVersion: cv,
-		DigName:             dig,
-		GenericK8sIntent:    gi,
-		Resource:            rs,
+		Customization:         customization,
+		Project:               project,
+		CompositeApp:          compositeApp,
+		CompositeAppVersion:   version,
+		DeploymentIntentGroup: deploymentIntentGroup,
+		GenericK8sIntent:      intent,
+		Resource:              resource,
 	}
 
-	err := db.DBconn.Remove(cc.db.storeName, key)
-	return err
+	return db.DBconn.Remove(cc.db.storeName, key)
 }

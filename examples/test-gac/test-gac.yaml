@@ -1,0 +1,432 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2022 Intel Corporation
+
+# register gac controller
+version: emco/v2
+resourceContext:
+  anchor: controllers
+metadata :
+  name: gac
+spec:
+  host: {{.HostIP}}
+  port: {{.GacPort}}
+  type: "action"
+  priority: 1
+
+---
+# create gac compositeApp
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps
+metadata :
+  name: {{.CompositeAppGac}}
+  description: test
+spec:
+  compositeAppVersion: v1
+
+---
+# add app to the compositeApp
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.CompositeAppGac}}/v1/apps
+metadata :
+  name: {{.App1}}
+  description: "description for app"
+file:
+  {{.HelmApp1}}
+
+---
+# create gac compositeProfile
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.CompositeAppGac}}/v1/composite-profiles
+metadata :
+  name: {{.CompositeProfile}}
+  description: test
+
+---
+# add profiles to the compositeProfile
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.CompositeAppGac}}/v1/composite-profiles/{{.CompositeProfile}}/profiles
+metadata :
+  name: profile1
+  description: test
+spec:
+  app: {{.App1}}
+file:
+  {{.ProfileApp1}}
+
+---
+# create deployment intent group
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.CompositeAppGac}}/v1/deployment-intent-groups
+metadata :
+  name: {{.DeploymentIntent}}
+  description: "description"
+spec:
+  compositeProfile: {{.CompositeProfile}}
+  version: r6
+  logicalCloud: {{.AdminCloud}}
+  overrideValues: []
+
+---
+# create intent in deployment intent group
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.CompositeAppGac}}/v1/deployment-intent-groups/{{.DeploymentIntent}}/intents
+metadata :
+  name: collection-deployment-intent
+  description: "description"
+spec:
+  intent:
+    genericPlacementIntent: {{.GenericPlacementIntent}}
+    gac: {{.GacIntent}}
+
+---
+# create the generic placement intent 
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.CompositeAppGac}}/v1/deployment-intent-groups/{{.DeploymentIntent}}/generic-placement-intents
+metadata :
+  name: {{.GenericPlacementIntent}}
+  description: "description for app"
+spec:
+  logicalCloud: {{.AdminCloud}}
+
+---
+# add the app placement intent to the generic placement intent
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.CompositeAppGac}}/v1/deployment-intent-groups/{{.DeploymentIntent}}/generic-placement-intents/{{.GenericPlacementIntent}}/app-intents
+metadata:
+  name: placement-intent
+  description: description of placement_intent
+spec:
+  app: {{.App1}}
+  intent:
+    allOf:
+    - clusterProvider: {{.ClusterProvider}}
+      clusterLabel: {{.ClusterLabel}}
+
+---
+# add the gac intent
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.CompositeAppGac}}/v1/deployment-intent-groups/{{.DeploymentIntent}}/generic-k8s-intents
+metadata:
+  name: {{.GacIntent}}
+
+---
+# create network policy
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.CompositeAppGac}}/v1/deployment-intent-groups/{{.DeploymentIntent}}/generic-k8s-intents/{{.GacIntent}}/resources
+metadata:
+  name: test-network-policy
+spec:
+  app: {{.App1}}
+  newObject: "true"
+  resourceGVK:
+    apiVersion: networking.k8s.io/v1
+    kind: networkpolicy
+    name: test-network-policy
+file:
+  testnetworkpolicy.yaml
+
+---
+# add customization for test-network-policy
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.CompositeAppGac}}/v1/deployment-intent-groups/{{.DeploymentIntent}}/generic-k8s-intents/{{.GacIntent}}/resources/test-network-policy/customizations
+metadata:
+  name: test-network-policy-customization
+spec:
+  clusterSpecific: "false"
+  clusterInfo:
+    scope: label
+    clusterProvider: {{.ClusterProvider}}
+    cluster: "dummy"
+    clusterLabel: {{.ClusterLabel}}
+    mode: allow
+files:
+  - mockcustomization.yaml # the content in this file will be ignored. emcoctl requires a file to create the multipart request
+
+---
+# create network policy
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.CompositeAppGac}}/v1/deployment-intent-groups/{{.DeploymentIntent}}/generic-k8s-intents/{{.GacIntent}}/resources
+metadata:
+  name: sample-network-policy
+spec:
+  app: {{.App1}}
+  newObject: "true"
+  resourceGVK:
+    apiVersion: networking.k8s.io/v1
+    kind: networkpolicy
+    name: sample-network-policy
+file:
+  samplenetworkpolicy.yaml
+
+---
+# add customization for sample-network-policy
+# patch sample-network-policy to update the role
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.CompositeAppGac}}/v1/deployment-intent-groups/{{.DeploymentIntent}}/generic-k8s-intents/{{.GacIntent}}/resources/sample-network-policy/customizations
+metadata:
+  name: sample-network-policy-customization
+spec:
+  clusterSpecific: "false"
+  clusterInfo:
+    scope: label
+    clusterProvider: {{.ClusterProvider}}
+    cluster: "dummy"
+    clusterLabel: {{.ClusterLabel}}
+    mode: allow
+  patchType: "json"
+  patchJson: [
+    {
+	    "op": "replace",
+	    "path": "/spec/podSelector/matchLabels/role",
+	    "value": "database" # original value db
+	  }
+	]
+files:
+  - mockcustomization.yaml # the content in this file will be ignored. emcoctl requires a file to create the multipart request
+
+---
+# create configmap
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.CompositeAppGac}}/v1/deployment-intent-groups/{{.DeploymentIntent}}/generic-k8s-intents/{{.GacIntent}}/resources
+metadata:
+  name: configmap-demo
+spec:
+  app: {{.App1}}
+  newObject: "true"
+  resourceGVK:
+    apiVersion: v1
+    kind: ConfigMap
+    name: configmap-demo
+file:
+  configmapdemo.yaml
+
+---
+# add customization for configmap-demo.
+# add more data configurations to configmap-demo using the customization files
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.CompositeAppGac}}/v1/deployment-intent-groups/{{.DeploymentIntent}}/generic-k8s-intents/{{.GacIntent}}/resources/configmap-demo/customizations
+metadata:
+  name: configmap-demo-customization
+spec:
+  clusterSpecific: "false"
+  clusterInfo:
+    scope: label
+    clusterProvider: {{.ClusterProvider}}
+    cluster: "dummy"
+    clusterLabel: {{.ClusterLabel}}
+    mode: allow
+files:
+  - info.json # data key will be `info.json`
+
+---
+# create configmap
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.CompositeAppGac}}/v1/deployment-intent-groups/{{.DeploymentIntent}}/generic-k8s-intents/{{.GacIntent}}/resources
+metadata:
+  name: test-configmap
+spec:
+  app: {{.App1}}
+  newObject: "true"
+  resourceGVK:
+    apiVersion: v1
+    kind: ConfigMap
+    name: test-configmap
+file:
+  testconfigmap.yaml
+
+---
+# add customization for test-configmap 
+# add more data configurations to test-configmap using the customization files 
+# patch test-configmap to update the player_initial_lives
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.CompositeAppGac}}/v1/deployment-intent-groups/{{.DeploymentIntent}}/generic-k8s-intents/{{.GacIntent}}/resources/test-configmap/customizations
+metadata:
+  name: test-configmap-customization
+spec:
+  clusterSpecific: "false"
+  clusterInfo:
+    scope: label
+    clusterProvider: {{.ClusterProvider}}
+    cluster: "dummy"
+    clusterLabel: {{.ClusterLabel}}
+    mode: allow
+  patchType: "json"
+  patchJson: [
+    {
+	    "op": "replace",
+	    "path": "/data/player_initial_lives",
+	    "value": "1" # original value `3`
+	  }
+	]
+  configMapOptions:
+    dataKeyOptions:
+      - fileName: gameproperties.yaml
+        keyName: game.properties
+      - fileName: userinterfaceproperties.yaml
+        keyName: user-interface.properties
+files:
+  - gameproperties.yaml # data key will be `game.properties`
+  - userinterfaceproperties.yaml # data key will be `user-interface.properties`
+
+---
+# create secret
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.CompositeAppGac}}/v1/deployment-intent-groups/{{.DeploymentIntent}}/generic-k8s-intents/{{.GacIntent}}/resources
+metadata:
+  name: user-secret
+spec:
+  app: {{.App1}}
+  newObject: "true"
+  resourceGVK:
+    apiVersion: v1
+    kind: Secret
+    name: user-secret
+file:
+  usersecret.yaml
+
+---
+# add customization for user-secret
+# add more data configurations to user-secret using the customization files
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.CompositeAppGac}}/v1/deployment-intent-groups/{{.DeploymentIntent}}/generic-k8s-intents/{{.GacIntent}}/resources/user-secret/customizations
+metadata:
+  name: user-secret-customization
+spec:
+  clusterSpecific: "false"
+  clusterInfo:
+    scope: label
+    clusterProvider: {{.ClusterProvider}}
+    cluster: "cluster1"
+    clusterLabel: {{.ClusterLabel}}
+    mode: allow
+files:
+  - usersecretexpiration.yaml # data key will be `usersecretexpiration.yaml`
+
+---
+# create secret
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.CompositeAppGac}}/v1/deployment-intent-groups/{{.DeploymentIntent}}/generic-k8s-intents/{{.GacIntent}}/resources
+metadata:
+  name: auth-secret
+spec:
+  app: {{.App1}}
+  newObject: "true"
+  resourceGVK:
+    apiVersion: v1
+    kind: Secret
+    name: auth-secret
+file:
+  authsecret.yaml
+
+---
+# add customization for auth-secret
+# add more data configurations to auth-secret using the customization files 
+# patch auth-secret to add USER_NAME and PASSWORD
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.CompositeAppGac}}/v1/deployment-intent-groups/{{.DeploymentIntent}}/generic-k8s-intents/{{.GacIntent}}/resources/auth-secret/customizations
+metadata:
+  name: auth-secret-customization
+spec:
+  clusterSpecific: "false"
+  clusterInfo:
+    scope: label
+    clusterProvider: {{.ClusterProvider}}
+    cluster: "dummy"
+    clusterLabel: {{.ClusterLabel}}
+    mode: allow
+  patchType: "json"
+  patchJson: [
+	  {
+	    "op": "add",
+	    "path": "/data/USER_NAME",
+	    "value": "YWRtaW4="
+	  },
+    {
+	    "op": "add",
+	    "path": "/data/PASSWORD",
+	    "value": "MWYyZDFlMmU2N2Rm"
+	  }
+	]
+  secretOptions:
+    dataKeyOptions:
+      - fileName: usersecretexpiration.yaml
+        keyName: EXPIRATION
+files:
+  - usersecretexpiration.yaml # data key will be `EXPIRATION`
+
+---
+# create StatefulSet
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.CompositeAppGac}}/v1/deployment-intent-groups/{{.DeploymentIntent}}/generic-k8s-intents/{{.GacIntent}}/resources
+metadata:
+  name: etcd-statefulset
+spec:
+  app: {{.App1}}
+  newObject: "false"
+  resourceGVK:
+    apiVersion: apps/v1
+    kind: StatefulSet
+    name: etcd
+file:
+  etcdstatefulset.yaml
+
+---
+# add customization for etcd-statefulset
+# patch etcd-statefulset to update the number of replicas
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.CompositeAppGac}}/v1/deployment-intent-groups/{{.DeploymentIntent}}/generic-k8s-intents/{{.GacIntent}}/resources/etcd-statefulset/customizations
+metadata:
+  name: etcd-statefulset-customization
+spec:
+  clusterSpecific: "true"
+  clusterInfo:
+    scope: label
+    clusterProvider: {{.ClusterProvider}}
+    cluster: ""
+    clusterLabel: {{.ClusterLabel}}
+    mode: allow
+  patchType: "json"
+  patchJson: [
+	  {
+	    "op": "replace",
+	    "path": "/spec/replicas",
+	    "value": 1 # original value `3`
+	  }
+	]
+files:
+  - mockcustomization.yaml # the content in this file will be ignored. emcoctl requires a file to create the multipart request
+
+---
+#Approve
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.CompositeAppGac}}/v1/deployment-intent-groups/{{.DeploymentIntent}}/approve
+
+---
+#Instantiate
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.CompositeAppGac}}/v1/deployment-intent-groups/{{.DeploymentIntent}}/instantiate

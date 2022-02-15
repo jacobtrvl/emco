@@ -1,329 +1,181 @@
-package module
+package module_test
+
+// SPDX-License-Identifier: Apache-2.0
+// Copyright (c) 2020 Intel Corporation
 
 import (
-	"reflect"
-	"strings"
-	"testing"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+	"github.com/pkg/errors"
 
-	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
-	moduleLib "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/module"
+	"gitlab.com/project-emco/core/emco-base/src/genericactioncontroller/pkg/module"
 )
 
-func TestCreateGenericK8sIntent(t *testing.T) {
-	testCases := []struct {
-		label                        string
-		inputGenericK8sIntent        GenericK8sIntent
-		inputProject                 string
-		inputCompositeApp            string
-		inputCompositeAppVersion     string
-		inputDeploymentIntentGrpName string
-		inputExists                  bool
-		expectedError                string
-		mockdb                       *db.MockDB
-		expected                     GenericK8sIntent
-	}{
-		{
-			label: "Create GenericK8sIntent",
-			inputGenericK8sIntent: GenericK8sIntent{
-				Metadata: Metadata{
-					Name:        "testGenK8sIntent",
-					Description: "testGenK8sIntent",
-					UserData1:   "userData1",
-					UserData2:   "userData2",
-				},
-			},
-			inputProject:                 "testProject",
-			inputCompositeApp:            "testCompositeApp",
-			inputCompositeAppVersion:     "testCompositeAppVersion",
-			inputDeploymentIntentGrpName: "testDeploymentIntentGroup",
-			inputExists:                  false,
-			expected: GenericK8sIntent{
-				Metadata: Metadata{
-					Name:        "testGenK8sIntent",
-					Description: "testGenK8sIntent",
-					UserData1:   "userData1",
-					UserData2:   "userData2",
-				},
-			},
-			expectedError: "",
-			mockdb: &db.MockDB{
-				Items: []map[string]map[string][]byte{
-					{
-						moduleLib.ProjectKey{ProjectName: "testProject"}.String(): {
-							"data": []byte(
-								"{\"project-name\":\"testProject\"," +
-									"\"description\":\"Test project for unit testing\"}"),
-						},
-						moduleLib.CompositeAppKey{CompositeAppName: "testCompositeApp",
-							Version: "testCompositeAppVersion", Project: "testProject"}.String(): {
-							"data": []byte(
-								"{\"metadata\":{" +
-									"\"name\":\"testCompositeApp\"," +
-									"\"description\":\"description\"," +
-									"\"userData1\":\"user data\"," +
-									"\"userData2\":\"user data\"" +
-									"}," +
-									"\"spec\":{" +
-									"\"version\":\"version of the composite app\"}}"),
-						},
-						moduleLib.DeploymentIntentGroupKey{
-							Name:         "testDeploymentIntentGroup",
-							Project:      "testProject",
-							CompositeApp: "testCompositeApp",
-							Version:      "testCompositeAppVersion",
-						}.String(): {
-							"data": []byte(
-								"{\"metadata\":{\"name\":\"testDeploymentIntentGroup\"," +
-									"\"description\":\"DescriptionTestDeploymentIntentGroup\"," +
-									"\"userData1\": \"userData1\"," +
-									"\"userData2\": \"userData2\"}," +
-									"\"spec\":{\"profile\": \"Testprofile\"," +
-									"\"version\": \"version of deployment\"," +
-									"\"overrideValues\":[" +
-									"{" +
-									"\"app\": \"TestAppName\"," +
-									"\"values\": " +
-									"{" +
-									"\"imageRepository\":\"registry.hub.docker.com\"" +
-									"}" +
-									"}," +
-									"{" +
-									"\"app\": \"TestAppName\"," +
-									"\"values\": " +
-									"{" +
-									"\"imageRepository\":\"registry.hub.docker.com\"" +
-									"}" +
-									"}" +
-									"]," +
-									"\"logical-cloud\": \"cloud1\"" +
-									"}" +
-									"}"),
-						},
-					},
-				},
-			},
-		},
-	}
-	for _, testCase := range testCases {
-		t.Run(testCase.label, func(t *testing.T) {
-			db.DBconn = testCase.mockdb
-			genK8sCli := NewGenericK8sIntentClient()
-			got, err := genK8sCli.CreateGenericK8sIntent(testCase.inputGenericK8sIntent, testCase.inputProject, testCase.inputCompositeApp, testCase.inputCompositeAppVersion, testCase.inputDeploymentIntentGrpName, testCase.inputExists)
-			if err != nil {
-				if testCase.expectedError == "" {
-					t.Fatalf("CreateGenericK8sIntent returned an unexpected error %s, ", err)
-				}
-				if strings.Contains(err.Error(), testCase.expectedError) == false {
-					t.Fatalf("CreateGenericK8sIntent returned an unexpected error %s", err)
-				}
-			} else {
-				if reflect.DeepEqual(testCase.expected, got) == false {
-					t.Errorf("CreateGenericK8sIntent returned unexpected body: got %v; "+" expected %v", got, testCase.expected)
-				}
-			}
+var (
+	gkiClient = module.NewGenericK8sIntentClient()
+)
+
+var _ = Describe("Create GenericK8sIntent",
+	func() {
+		BeforeEach(func() {
+			populateGenericK8sIntentTestData()
 		})
+		Context("create an intent that does not exist", func() {
+			It("returns the intent, no error and, the exists flag is false", func() {
+				l := len(mockdb.Items)
+				mgki := mockGenericK8sIntent("new-gki-1")
+				gki, gkiExists, err := gkiClient.CreateGenericK8sIntent(
+					mgki, v.Project, v.CompositeApp, v.Version, v.DeploymentIntentGroup, true)
+				validateError(err, "")
+				validateGenericK8sIntent(gki, mgki)
+				Expect(gkiExists).To(Equal(false))
+				Expect(len(mockdb.Items)).To(Equal(l + 1))
+			})
+		})
+		Context("create an intent that already exists", func() {
+			It("returns an error, no intent and, the exists flag is true", func() {
+				l := len(mockdb.Items)
+				mgki := mockGenericK8sIntent("test-gki-1")
+				gki, gkiExists, err := gkiClient.CreateGenericK8sIntent(
+					mgki, v.Project, v.CompositeApp, v.Version, v.DeploymentIntentGroup, true)
+				validateError(err, "GenericK8sIntent already exists")
+				validateGenericK8sIntent(gki, module.GenericK8sIntent{})
+				Expect(gkiExists).To(Equal(true))
+				Expect(len(mockdb.Items)).To(Equal(l))
+			})
+		})
+	},
+)
+
+var _ = Describe("Delete GenericK8sIntent",
+	func() {
+		BeforeEach(func() {
+			populateGenericK8sIntentTestData()
+		})
+		Context("delete an existing intent", func() {
+			It("returns no error and delete the entry from the db", func() {
+				l := len(mockdb.Items)
+				err := gkiClient.DeleteGenericK8sIntent(
+					"test-gki-1", v.Project, v.CompositeApp, v.Version, v.DeploymentIntentGroup)
+				validateError(err, "")
+				Expect(len(mockdb.Items)).To(Equal(l - 1))
+			})
+		})
+		Context("delete a nonexisting intent", func() {
+			It("returns an error and no change in the db", func() {
+				l := len(mockdb.Items)
+				mockdb.Err = errors.New("db Remove resource not found")
+				err := gkiClient.DeleteGenericK8sIntent(
+					"non-existing-gki", v.Project, v.CompositeApp, v.Version, v.DeploymentIntentGroup)
+				validateError(err, "db Remove resource not found")
+				Expect(len(mockdb.Items)).To(Equal(l))
+			})
+		})
+	},
+)
+
+var _ = Describe("Get All GenericK8sIntents",
+	func() {
+		BeforeEach(func() {
+			populateGenericK8sIntentTestData()
+		})
+		Context("get all the intents", func() {
+			It("returns all the intents, no error", func() {
+				gkis, err := gkiClient.GetAllGenericK8sIntents(
+					v.Project, v.CompositeApp, v.Version, v.DeploymentIntentGroup)
+				validateError(err, "")
+				Expect(len(gkis)).To(Equal(len(mockdb.Items)))
+			})
+		})
+		Context("get all the intents without creating any", func() {
+			It("returns an empty array, no error", func() {
+				mockdb.Items = []map[string]map[string][]byte{}
+				gkis, err := gkiClient.GetAllGenericK8sIntents(
+					v.Project, v.CompositeApp, v.Version, v.DeploymentIntentGroup)
+				validateError(err, "")
+				Expect(len(gkis)).To(Equal(0))
+			})
+		})
+	},
+)
+
+var _ = Describe("Get GenericK8sIntent",
+	func() {
+		BeforeEach(func() {
+			populateGenericK8sIntentTestData()
+		})
+		Context("get an existing intent", func() {
+			It("returns the intent, no error", func() {
+				gki, err := gkiClient.GetGenericK8sIntent(
+					"test-gki-1", v.Project, v.CompositeApp, v.Version, v.DeploymentIntentGroup)
+				validateError(err, "")
+				validateGenericK8sIntent(gki, mockGenericK8sIntent("test-gki-1"))
+			})
+		})
+		Context("get a nonexisting intent", func() {
+			It("returns an error, no intent", func() {
+				gki, err := gkiClient.GetGenericK8sIntent(
+					"non-existing-gki", v.Project, v.CompositeApp, v.Version, v.DeploymentIntentGroup)
+				validateError(err, "GenericK8sIntent not found")
+				validateGenericK8sIntent(gki, module.GenericK8sIntent{})
+			})
+		})
+	},
+)
+
+// validateGenericK8sIntent
+func validateGenericK8sIntent(in, out module.GenericK8sIntent) {
+	Expect(in).To(Equal(out))
+}
+
+// mockGenericK8sIntent
+func mockGenericK8sIntent(name string) module.GenericK8sIntent {
+	return module.GenericK8sIntent{
+		Metadata: module.Metadata{
+			Name:        name,
+			Description: "test intent",
+			UserData1:   "some user data 1",
+			UserData2:   "some user data 2",
+		},
 	}
 }
 
-func TestGetGenericK8sIntent(t *testing.T) {
-	testCases := []struct {
-		label                        string
-		inputGenericK8sIntent        string
-		inputProject                 string
-		inputCompositeApp            string
-		inputCompositeAppVersion     string
-		inputDeploymentIntentGrpName string
-		expectedError                string
-		mockdb                       *db.MockDB
-		expected                     GenericK8sIntent
-	}{
-		{
-			label:                        "Get Intent",
-			inputGenericK8sIntent:        "testGenK8sIntent",
-			inputProject:                 "testProject",
-			inputCompositeApp:            "testCompositeApp",
-			inputCompositeAppVersion:     "testCompositeAppVersion",
-			inputDeploymentIntentGrpName: "testDeploymentIntentGroup",
-			expected: GenericK8sIntent{
-				Metadata: Metadata{
-					Name:        "testGenK8sIntent",
-					Description: "testGenK8sIntent",
-					UserData1:   "userData1",
-					UserData2:   "userData2",
-				},
-			},
-			expectedError: "",
-			mockdb: &db.MockDB{
-				Items: []map[string]map[string][]byte{
-					{
-						GenericK8sIntentKey{
-							GenericK8sIntent:    "testGenK8sIntent",
-							Project:             "testProject",
-							CompositeApp:        "testCompositeApp",
-							CompositeAppVersion: "testCompositeAppVersion",
-							DigName:             "testDeploymentIntentGroup",
-						}.String(): {
-							"data": []byte(
-								"{\"metadata\":{\"Name\":\"testGenK8sIntent\"," +
-									"\"Description\":\"testGenK8sIntent\"," +
-									"\"UserData1\": \"userData1\"," +
-									"\"UserData2\": \"userData2\"}}"),
-						},
-					},
-				},
-			},
-		},
-	}
+// populateGenericK8sIntentTestData
+func populateGenericK8sIntentTestData() {
+	mockdb.Err = nil
+	mockdb.Items = []map[string]map[string][]byte{}
+	mockdb.MarshalErr = nil
 
-	for _, testCase := range testCases {
-		t.Run(testCase.label, func(t *testing.T) {
-			db.DBconn = testCase.mockdb
-			genK8sCli := NewGenericK8sIntentClient()
-			got, err := genK8sCli.GetGenericK8sIntent(testCase.inputGenericK8sIntent, testCase.inputProject, testCase.inputCompositeApp, testCase.inputCompositeAppVersion, testCase.inputDeploymentIntentGrpName)
-			if err != nil {
-				if testCase.expectedError == "" {
-					t.Fatalf("GetGenericK8sIntent returned an unexpected error: %s", err)
-				}
-				if strings.Contains(err.Error(), testCase.expectedError) == false {
-					t.Fatalf("GetGenericK8sIntent returned an unexpected error: %s", err)
-				}
-			} else {
-				if reflect.DeepEqual(testCase.expected, got) == false {
-					t.Errorf("GetGenericK8sIntent returned unexpected body: got %v;"+
-						" expected %v", got, testCase.expected)
-				}
-			}
-		})
+	// Intent 1
+	gki := mockGenericK8sIntent("test-gki-1")
+	key := module.GenericK8sIntentKey{
+		GenericK8sIntent:      gki.Metadata.Name,
+		Project:               v.Project,
+		CompositeApp:          v.CompositeApp,
+		CompositeAppVersion:   v.Version,
+		DeploymentIntentGroup: v.DeploymentIntentGroup,
 	}
-}
+	_ = mockdb.Insert("resources", key, nil, "data", gki)
 
-func TestGetAllGenericK8sIntents(t *testing.T) {
-	testCases := []struct {
-		label                        string
-		inputGenericK8sIntent        string
-		inputProject                 string
-		inputCompositeApp            string
-		inputCompositeAppVersion     string
-		inputDeploymentIntentGrpName string
-		expectedError                string
-		mockdb                       *db.MockDB
-		expected                     []GenericK8sIntent
-	}{
-		{
-			label:                        "Get All Intents",
-			inputProject:                 "testProject",
-			inputCompositeApp:            "testCompositeApp",
-			inputCompositeAppVersion:     "testCompositeAppVersion",
-			inputDeploymentIntentGrpName: "testDeploymentIntentGroup",
-			expected: []GenericK8sIntent{
-				{
-					Metadata: Metadata{
-						Name:        "testGenK8sIntent",
-						Description: "testGenK8sIntent",
-						UserData1:   "userData1",
-						UserData2:   "userData2",
-					},
-				},
-			},
-			expectedError: "",
-			mockdb: &db.MockDB{
-				Items: []map[string]map[string][]byte{
-					{
-						GenericK8sIntentKey{
-							GenericK8sIntent:    "",
-							Project:             "testProject",
-							CompositeApp:        "testCompositeApp",
-							CompositeAppVersion: "testCompositeAppVersion",
-							DigName:             "testDeploymentIntentGroup",
-						}.String(): {
-							"data": []byte(
-								"{\"metadata\":{\"Name\":\"testGenK8sIntent\"," +
-									"\"Description\":\"testGenK8sIntent\"," +
-									"\"UserData1\": \"userData1\"," +
-									"\"UserData2\": \"userData2\"}}"),
-						},
-					},
-				},
-			},
-		},
+	// Intent 2
+	gki = mockGenericK8sIntent("test-gki-2")
+	key = module.GenericK8sIntentKey{
+		GenericK8sIntent:      gki.Metadata.Name,
+		Project:               v.Project,
+		CompositeApp:          v.CompositeApp,
+		CompositeAppVersion:   v.Version,
+		DeploymentIntentGroup: v.DeploymentIntentGroup,
 	}
+	_ = mockdb.Insert("resources", key, nil, "data", gki)
 
-	for _, testCase := range testCases {
-		t.Run(testCase.label, func(t *testing.T) {
-			db.DBconn = testCase.mockdb
-			genK8sCli := NewGenericK8sIntentClient()
-			got, err := genK8sCli.GetAllGenericK8sIntents(testCase.inputProject, testCase.inputCompositeApp, testCase.inputCompositeAppVersion, testCase.inputDeploymentIntentGrpName)
-			if err != nil {
-				if testCase.expectedError == "" {
-					t.Fatalf("GetGenericK8sIntent returned an unexpected error: %s", err)
-				}
-				if strings.Contains(err.Error(), testCase.expectedError) == false {
-					t.Fatalf("GetGenericK8sIntent returned an unexpected error: %s", err)
-				}
-			} else {
-				if reflect.DeepEqual(testCase.expected, got) == false {
-					t.Errorf("GetGenericK8sIntent returned unexpected body: got %v;"+
-						" expected %v", got, testCase.expected)
-				}
-			}
-		})
+	// Intent 3
+	gki = mockGenericK8sIntent("test-gki-3")
+	key = module.GenericK8sIntentKey{
+		GenericK8sIntent:      gki.Metadata.Name,
+		Project:               v.Project,
+		CompositeApp:          v.CompositeApp,
+		CompositeAppVersion:   v.Version,
+		DeploymentIntentGroup: v.DeploymentIntentGroup,
 	}
-}
-
-func TestDeleteGenericK8sIntent(t *testing.T) {
-	testCases := []struct {
-		label                        string
-		inputGenericK8sIntent        string
-		inputProject                 string
-		inputCompositeApp            string
-		inputCompositeAppVersion     string
-		inputDeploymentIntentGrpName string
-		expectedError                string
-		mockdb                       *db.MockDB
-	}{
-		{
-			label:                        "Delete Intent",
-			inputGenericK8sIntent:        "testGenK8sIntent",
-			inputProject:                 "testProject",
-			inputCompositeApp:            "testCompositeApp",
-			inputCompositeAppVersion:     "testCompositeAppVersion",
-			inputDeploymentIntentGrpName: "testDeploymentIntentGroup",
-			expectedError:                "",
-			mockdb: &db.MockDB{
-				Items: []map[string]map[string][]byte{
-					{
-						GenericK8sIntentKey{
-							GenericK8sIntent:    "testGenK8sIntent",
-							Project:             "testProject",
-							CompositeApp:        "testCompositeApp",
-							CompositeAppVersion: "testCompositeAppVersion",
-							DigName:             "testDeploymentIntentGroup",
-						}.String(): {
-							"data": []byte(
-								"{\"metadata\":{\"Name\":\"testGenK8sIntent\"," +
-									"\"Description\":\"testGenK8sIntent\"," +
-									"\"UserData1\": \"userData1\"," +
-									"\"UserData2\": \"userData2\"}}"),
-						},
-					},
-				},
-			},
-		},
-	}
-
-	for _, testCase := range testCases {
-		t.Run(testCase.label, func(t *testing.T) {
-			db.DBconn = testCase.mockdb
-			genK8sCli := NewGenericK8sIntentClient()
-			err := genK8sCli.DeleteGenericK8sIntent(testCase.inputGenericK8sIntent, testCase.inputProject, testCase.inputCompositeApp, testCase.inputCompositeAppVersion, testCase.inputDeploymentIntentGrpName)
-			if err != nil {
-				if testCase.expectedError == "" {
-					t.Fatalf("DeleteGenericK8sIntent returned an unexpected error: %s", err)
-				}
-				if strings.Contains(err.Error(), testCase.expectedError) == false {
-					t.Fatalf("DeleteGenericK8sIntent returned an unexpected error: %s", err)
-				}
-			}
-		})
-	}
+	_ = mockdb.Insert("resources", key, nil, "data", gki)
 }
