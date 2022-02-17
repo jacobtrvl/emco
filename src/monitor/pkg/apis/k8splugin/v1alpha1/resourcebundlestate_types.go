@@ -16,14 +16,14 @@ limitations under the License.
 // +k8s:deepcopy-gen=package,register
 // +groupName=k8splugin.io
 package v1alpha1
+
 // +kubebuilder:validation:Optional
 import (
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/batch/v1"
 	certsapi "k8s.io/api/certificates/v1"
 	corev1 "k8s.io/api/core/v1"
-
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -40,44 +40,44 @@ type ResourceBundleStateSpec struct {
 type ResourceBundleStateStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
-	Ready               bool                                 `json:"ready" protobuf:"varint,1,opt,name=ready"`
-	ResourceCount       int32                                `json:"resourceCount" protobuf:"varint,2,opt,name=resourceCount"`
-	 
+	Ready         bool  `json:"ready" protobuf:"varint,1,opt,name=ready"`
+	ResourceCount int32 `json:"resourceCount" protobuf:"varint,2,opt,name=resourceCount"`
+
 	// +kubebuilder:validation:Optional
 	// +optional
-	PodStatuses         []corev1.Pod                         `json:"podStatuses,omitempty" protobuf:"varint,3,opt,name=podStatuses"`
-	 
+	PodStatuses []corev1.Pod `json:"podStatuses,omitempty" protobuf:"varint,3,opt,name=podStatuses"`
+
 	// +kubebuilder:validation:Optional
 	// +optional
-	ServiceStatuses     []corev1.Service                     `json:"serviceStatuses,omitempty" protobuf:"varint,4,opt,name=serviceStatuses"`
-	 
+	ServiceStatuses []corev1.Service `json:"serviceStatuses,omitempty" protobuf:"varint,4,opt,name=serviceStatuses"`
+
 	// +kubebuilder:validation:Optional
 	// +optional
-	ConfigMapStatuses   []corev1.ConfigMap                   `json:"configMapStatuses,omitempty" protobuf:"varint,5,opt,name=configMapStatuses"`
-	 
+	ConfigMapStatuses []corev1.ConfigMap `json:"configMapStatuses,omitempty" protobuf:"varint,5,opt,name=configMapStatuses"`
+
 	// +kubebuilder:validation:Optional
 	// +optional
-	DeploymentStatuses  []appsv1.Deployment                  `json:"deploymentStatuses,omitempty" protobuf:"varint,6,opt,name=deploymentStatuses"`
-	 
+	DeploymentStatuses []appsv1.Deployment `json:"deploymentStatuses,omitempty" protobuf:"varint,6,opt,name=deploymentStatuses"`
+
 	// +kubebuilder:validation:Optional
 	// +optional
-	DaemonSetStatuses   []appsv1.DaemonSet                   `json:"daemonSetStatuses,omitempty" protobuf:"varint,8,opt,name=daemonSetStatuses"`
-	 
+	DaemonSetStatuses []appsv1.DaemonSet `json:"daemonSetStatuses,omitempty" protobuf:"varint,8,opt,name=daemonSetStatuses"`
+
 	// +kubebuilder:validation:Optional
 	// +optional
-	CsrStatuses         []certsapi.CertificateSigningRequest `json:"csrStatuses,omitempty" protobuf:"varint,9,opt,name=csrStatuses"`
-	 
+	CsrStatuses []certsapi.CertificateSigningRequest `json:"csrStatuses,omitempty" protobuf:"varint,9,opt,name=csrStatuses"`
+
 	// +kubebuilder:validation:Optional
 	// +optional
-	JobStatuses         []v1.Job                             `json:"jobStatuses,omitempty" protobuf:"varint,12,opt,name=jobStatuses"`
-	 
+	JobStatuses []v1.Job `json:"jobStatuses,omitempty" protobuf:"varint,12,opt,name=jobStatuses"`
+
 	// +kubebuilder:validation:Optional
 	// +optional
-	StatefulSetStatuses []appsv1.StatefulSet                 `json:"statefulSetStatuses,omitempty" protobuf:"varint,13,opt,name=statefulSetStatuses"`
-	 
+	StatefulSetStatuses []appsv1.StatefulSet `json:"statefulSetStatuses,omitempty" protobuf:"varint,13,opt,name=statefulSetStatuses"`
+
 	// +kubebuilder:validation:Optional
 	// +optional
-	ResourceStatuses    []ResourceStatus                     `json:"resourceStatuses,omitempty" protobuf:"varint,14,opt,name=resourceStatuses"`
+	ResourceStatuses []ResourceStatus `json:"resourceStatuses,omitempty" protobuf:"varint,14,opt,name=resourceStatuses"`
 }
 
 // Resoureces
