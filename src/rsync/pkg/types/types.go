@@ -4,6 +4,7 @@
 package types
 
 import (
+	"context"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/appcontext"
@@ -212,7 +213,7 @@ type ResourceProvider interface {
 	Apply(name string, ref interface{}, content []byte) (interface{}, error)
 	Delete(name string, ref interface{}, content []byte) (interface{}, error)
 	Get(name string, gvkRes []byte) ([]byte, error)
-	Commit(ref interface{}) error
+	Commit(ctx context.Context, ref interface{}) error
 	IsReachable() error
 }
 
@@ -223,7 +224,9 @@ type StatusProvider interface {
 }
 
 type ReferenceProvider interface {
-	ApplyConfig(config interface{}) error
+	ApplyConfig(ctx context.Context, config interface{}) error
+	DeleteConfig(ctx context.Context, config interface{}) error
+
 }
 
 // Client Provider provides functionality to interface with the cluster

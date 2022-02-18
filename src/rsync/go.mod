@@ -4,25 +4,28 @@ go 1.13
 
 require (
 	github.com/fluxcd/go-git-providers v0.4.0
+	github.com/fluxcd/kustomize-controller/api v0.18.2
+	github.com/fluxcd/source-controller/api v0.19.2
 	github.com/ghodss/yaml v1.0.0
 	github.com/golang/mock v1.5.0
-	github.com/golang/protobuf v1.4.2
+	github.com/golang/protobuf v1.5.2
 	github.com/jonboulle/clockwork v0.1.0
 	github.com/pkg/errors v0.9.1
-	github.com/sirupsen/logrus v1.7.0
+	gitlab.com/project-emco/core/emco-base/src/clm v0.0.0-00010101000000-000000000000
 	gitlab.com/project-emco/core/emco-base/src/monitor v0.0.0-00010101000000-000000000000
 	gitlab.com/project-emco/core/emco-base/src/orchestrator v0.0.0-00010101000000-000000000000
-	golang.org/x/net v0.0.0-20210405180319-a5a99cb37ef4
+	golang.org/x/net v0.0.0-20210428140749-89ef3d95e781
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	google.golang.org/grpc v1.28.0
-	google.golang.org/protobuf v1.24.0
-	k8s.io/api v0.20.2
-	k8s.io/apiextensions-apiserver v0.20.2
-	k8s.io/apimachinery v0.20.2
+	google.golang.org/protobuf v1.26.0
+	k8s.io/api v0.22.2
+	k8s.io/apiextensions-apiserver v0.22.2
+	k8s.io/apimachinery v0.22.2
 	k8s.io/cli-runtime v0.20.2
 	k8s.io/client-go v12.0.0+incompatible
 	k8s.io/kube-openapi v0.0.0-20201113171705-d219536bb9fd
 	k8s.io/kubectl v0.20.2
+	sigs.k8s.io/controller-runtime v0.10.2
 )
 
 replace (
@@ -57,4 +60,5 @@ replace (
 	k8s.io/legacy-cloud-providers => k8s.io/legacy-cloud-providers v0.19.4
 	k8s.io/metrics => k8s.io/metrics v0.19.4
 	k8s.io/sample-apiserver => k8s.io/sample-apiserver v0.19.4
+	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.6.3
 )

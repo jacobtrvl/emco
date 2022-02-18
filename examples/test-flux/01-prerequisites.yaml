@@ -1,0 +1,109 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2022 Intel Corporation
+
+---
+#creating cluster provider
+version: emco/v2
+resourceContext:
+  anchor: cluster-providers
+metadata:
+   name: {{ .ClusterProvider }}
+
+{{- range $index, $cluster := .K8sClusters }}
+
+---
+#creating cluster
+version: emco/v2
+resourceContext:
+  anchor: cluster-providers/{{ $.ClusterProvider }}/clusters
+metadata:
+   name: {{ $cluster.Name }}
+file:
+  {{ $cluster.KubeConfig }}
+
+---
+#Add label cluster
+version: emco/v2
+resourceContext:
+  anchor: cluster-providers/{{ $.ClusterProvider }}/clusters/{{ $cluster.Name }}/labels
+clusterLabel: {{ $.ClusterLabel }}
+{{- end }}
+
+---
+#creating cluster provider kv pair
+version: emco/v2
+resourceContext:
+  anchor: cluster-providers/{{ $.ClusterProvider }}/cluster-sync-objects
+metadata:
+  name: {{ $.GitObj}}
+spec:
+  kv:
+  - gitType: github
+  - userName: {{ $.GithubUser }}
+  - githubToken:  {{ $.GithubToken }}
+  - repoName: {{ $.GithubRepo }}
+  - branch: main
+
+{{- range $index, $cluster := .FluxClusters }}
+
+---
+#creating cluster
+version: emco/v2
+resourceContext:
+  anchor: cluster-providers/{{ $.ClusterProvider }}/clusters
+metadata:
+   name: {{ $cluster.Name }}
+spec:
+  gitOps:
+    gitOpsType: "fluxcd"
+    gitOpsReferenceObject: {{ $.GitObj}}
+    gitOpsResourceObject: {{ $.GitObj}}
+file:
+  values.yaml
+---
+#Add label cluster
+version: emco/v2
+resourceContext:
+  anchor: cluster-providers/{{ $.ClusterProvider }}/clusters/{{ $cluster.Name }}/labels
+clusterLabel: {{ $.ClusterLabel }}
+{{- end }}
+
+---
+#create project
+version: emco/v2
+resourceContext:
+  anchor: projects
+metadata:
+   name: {{ .ProjectName }}
+
+---
+#create default logical cloud with admin permissions
+version: emco/v2
+resourceContext:
+  anchor: projects/{{ .ProjectName }}/logical-clouds
+metadata:
+  name: {{ .AdminCloud }}
+spec:
+  level: "0"
+
+{{- range $index, $cluster := .Clusters }}
+
+---
+#add cluster reference to logical cloud
+version: emco/v2
+resourceContext:
+  anchor: projects/{{ $.ProjectName }}/logical-clouds/{{ $.AdminCloud }}/cluster-references
+metadata:
+  name: {{ $cluster.Name }}
+spec:
+  clusterProvider: {{ $.ClusterProvider }}
+  cluster: {{ $cluster.Name }}
+  loadbalancerIp: "0.0.0.0"
+{{- end }}
+
+---
+#instantiate logical cloud
+version: emco/v2
+resourceContext:
+  anchor: projects/{{ .ProjectName }}/logical-clouds/{{ .AdminCloud }}/instantiate
+

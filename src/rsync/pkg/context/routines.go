@@ -530,6 +530,13 @@ func (c *Context) runCluster(ctx context.Context, op RsyncOperation, e RsyncEven
 	key := app + depend.SEPARATOR + cluster
 	switch e {
 	case InstantiateEvent:
+		// Apply config for the cluster if there are any resources to be applied
+		if len (c.ca.Apps[app].Clusters[cluster].ResOrder) > 0  {
+			err = cl.ApplyConfig(ctx, nil)
+			if err != nil {
+				return err
+			}
+		}
 		// Check if delete of status tracker is scheduled, if so stop and delete the timer
 		c.StopDeleteStatusCRTimer(key)
 		// Based on the discussions in Helm handling of CRD's
@@ -614,6 +621,13 @@ func (c *Context) runCluster(ctx context.Context, op RsyncOperation, e RsyncEven
 		// Ignore errors
 		_, _ = r.handleResources(ctx, op, rl)
 
+		// Delete config for the cluster if applied
+		if len (c.ca.Apps[app].Clusters[cluster].ResOrder) > 0  {
+			err = cl.DeleteConfig(ctx, nil)
+			if err != nil {
+				return err
+			}
+		}
 		// Check if delete of status tracker is scheduled, if so stop and delete the timer
 		// before scheduling a new one
 		c.StopDeleteStatusCRTimer(key)

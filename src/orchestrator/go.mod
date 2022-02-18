@@ -2,11 +2,11 @@ module gitlab.com/project-emco/core/emco-base/src/orchestrator
 
 require (
 	github.com/ghodss/yaml v1.0.0
-	github.com/golang/protobuf v1.4.2
+	github.com/golang/protobuf v1.5.2
 	github.com/gorilla/handlers v1.3.0
 	github.com/gorilla/mux v1.7.3
-	github.com/onsi/ginkgo v1.12.0
-	github.com/onsi/gomega v1.9.0
+	github.com/onsi/ginkgo v1.16.4
+	github.com/onsi/gomega v1.15.0
 	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.7.0
 	github.com/stretchr/testify v1.7.0
@@ -18,13 +18,13 @@ require (
 	gitlab.com/project-emco/core/emco-base/src/rsync v0.0.0-00010101000000-000000000000
 	go.etcd.io/etcd v3.3.25+incompatible
 	go.mongodb.org/mongo-driver v1.5.1
-	golang.org/x/net v0.0.0-20200707034311-ab3426394381
+	golang.org/x/net v0.0.0-20210428140749-89ef3d95e781
 	google.golang.org/grpc v1.28.0
-	google.golang.org/protobuf v1.24.0
-	gopkg.in/yaml.v2 v2.3.0
-	gopkg.in/yaml.v3 v3.0.0-20200615113413-eeeca48fe776
+	google.golang.org/protobuf v1.26.0
+	gopkg.in/yaml.v2 v2.4.0
+	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
 	helm.sh/helm/v3 v3.5.3
-	k8s.io/apimachinery v0.20.2
+	k8s.io/apimachinery v0.22.2
 
 )
 

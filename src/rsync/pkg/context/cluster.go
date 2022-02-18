@@ -64,7 +64,7 @@ func (r *resProvd) handleResources(ctx context.Context, op RsyncOperation, resou
 		// Check if the break from loop due to reachabilty issues
 		if reachable {
 			// Not reachability issue, commit resources to the cluster
-			r.cl.Commit(ref)
+			r.cl.Commit(ctx, ref)
 			return handledRes, nil
 		}
 	}

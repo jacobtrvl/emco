@@ -4,6 +4,7 @@
 package context
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 	"sort"
@@ -75,7 +76,7 @@ type MockClient struct {
 	applyCounter   int
 }
 
-func (m *MockClient) Commit(ref interface{}) error {
+func (m *MockClient) Commit(ctx context.Context, ref interface{}) error {
 	str := fmt.Sprintf("%v", ref)
 	i, ok := MatchList.CommitList.Load(m.cluster)
 	var st string
@@ -202,7 +203,11 @@ func (m *MockClient) ApplyStatusCR(content []byte) error {
 func (m *MockClient) DeleteStatusCR(content []byte) error {
 	return nil
 }
-func (m *MockClient) ApplyConfig(config interface{}) error {
+func (m *MockClient) ApplyConfig(ctx context.Context, config interface{}) error {
+	return nil
+}
+
+func (m *MockClient) DeleteConfig(ctx context.Context, config interface{}) error {
 	return nil
 }
 

@@ -4,6 +4,7 @@
 package k8s
 
 import (
+	"context"
 	pkgerrors "github.com/pkg/errors"
 	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 	"gitlab.com/project-emco/core/emco-base/src/rsync/pkg/internal/utils"
@@ -82,7 +83,7 @@ func (p *K8sProvider) Get(name string, gvkRes []byte) ([]byte, error) {
 }
 // Commit resources to the cluster
 // Not required in K8s case
-func (p *K8sProvider) Commit(ref interface{}) error {
+func (p *K8sProvider) Commit(ctx context.Context, ref interface{}) error {
 	return nil
 }
 // IsReachable cluster reachablity test
