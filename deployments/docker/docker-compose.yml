@@ -215,3 +215,20 @@ services:
     depends_on:
      - "etcd"
      - "mongo"
+  workflowmgr:
+    image: ${REGISTRY_PREFIX}emco-workflowmgr${TAG}
+    networks:
+      - emconet
+    ports:
+      - 9009:9009
+    environment:
+      - no_proxy=etcd,mongo,${NO_PROXY}
+      - NO_PROXY=etcd,mongo,${NO_PROXY}
+      - HTTP_PROXY=${HTTP_PROXY}
+      - http_proxy=${HTTP_PROXY}
+      - HTTPS_PROXY=${HTTPS_PROXY}
+      - https_proxy=${HTTPS_PROXY}
+      - TEMPORAL_SERVER=${TEMPORAL_SERVER}
+    depends_on:
+     - "etcd"
+     - "mongo"

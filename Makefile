@@ -5,7 +5,7 @@ export EMCOBUILDROOT=$(shell pwd)
 export CONFIG := $(wildcard config/*.txt)
 
 ifndef MODS
-MODS=clm dcm dtc nps sds its genericactioncontroller monitor ncm orchestrator ovnaction rsync tools/emcoctl sfc sfcclient hpa-plc hpa-ac
+MODS=clm dcm dtc nps sds its genericactioncontroller monitor ncm orchestrator ovnaction rsync tools/emcoctl sfc sfcclient hpa-plc hpa-ac workflowmgr
 endif
 
 all: check-env docker-reg build

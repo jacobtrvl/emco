@@ -124,3 +124,6 @@ resources:
       - name: sfcIntent
       - name: app
         commonKey: compositeAppVersion
+#emco-workflowmgr
+  - name: workflowIntent
+    parent: deploymentIntentGroup

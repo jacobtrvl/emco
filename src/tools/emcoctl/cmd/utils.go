@@ -604,6 +604,10 @@ func GetURL(anchor string) (string, error) {
 			baseUrl = GetHpaPlacementURL()
 			break
 		}
+		if len(s) >= 8 && s[7] == "temporal-workflow-intents" {
+			baseUrl = GetWorkflowMgrURL()
+			break
+		}
 		// All other paths go to Orchestrator
 		baseUrl = GetOrchestratorURL()
 	default:

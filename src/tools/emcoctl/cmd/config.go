@@ -23,6 +23,7 @@ type EmcoConfigurations struct {
 	HpaPlacement ControllerConfigurations
 	Sfc          ControllerConfigurations
 	SfcClient    ControllerConfigurations
+	WorkflowMgr  ControllerConfigurations
 }
 
 // ControllerConfigurations exported
@@ -62,6 +63,8 @@ func SetDefaultConfiguration() {
 	Configurations.Sfc.Port = 9055
 	Configurations.SfcClient.Host = "localhost"
 	Configurations.SfcClient.Port = 9057
+	Configurations.WorkflowMgr.Host = "localhost"
+	Configurations.WorkflowMgr.Port = 9045
 }
 
 // GetIngressURL Url for Ingress
@@ -210,6 +213,19 @@ func GetSfcClientURL() string {
 		os.Exit(1)
 	}
 	return urlPrefix + Configurations.SfcClient.Host + ":" + strconv.Itoa(Configurations.SfcClient.Port) + "/" + urlVersion
+}
+
+func GetWorkflowMgrURL() string {
+	// If Ingress is available use that url
+	if s := GetIngressURL(); s != "" {
+		return s
+	}
+	if Configurations.WorkflowMgr.Host == "" || Configurations.WorkflowMgr.Port == 0 {
+		fmt.Println("Fatal: No WorkflowMgr Information in Config File!")
+		// Exit executing
+		os.Exit(1)
+	}
+	return urlPrefix + Configurations.WorkflowMgr.Host + ":" + strconv.Itoa(Configurations.WorkflowMgr.Port) + "/" + urlVersion
 }
 
 // GetOrchestratorGrpcEndpoint gRPC endpoint for Orchestrator
