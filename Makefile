@@ -23,7 +23,9 @@ ifndef MAINDOCKERREPO
 endif
 
 ifndef MODS
-MODS=clm dcm dtc nps sds its genericactioncontroller monitor ncm orchestrator ovnaction rsync tools/emcoctl sfc sfcclient hpa-plc hpa-ac
+MODS=clm dcm dtc nps sds its genericactioncontroller monitor ncm orchestrator ovnaction rsync tools/emcoctl sfc sfcclient hpa-plc hpa-ac workflowmgr
+MODS=clm dcm monitor orchestrator rsync tools/emcoctl workflowmgr
+#MODS=workflowmgr
 endif
 
 all: check-env build

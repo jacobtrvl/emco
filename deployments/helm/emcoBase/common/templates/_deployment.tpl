@@ -87,11 +87,13 @@ spec:
           periodSeconds: {{ .Values.liveness.periodSeconds }}
         {{ end }}
 
+        {{- if or (not (hasKey .Values.readiness "enabled")) (.Values.readiness.enabled) }}
         readinessProbe:
           tcpSocket:
             port: {{ .Values.service.internalPort }}
           initialDelaySeconds: {{ .Values.readiness.initialDelaySeconds }}
           periodSeconds: {{ .Values.readiness.periodSeconds }}
+        {{ end }}
         volumeMounts:
           - mountPath: /etc/localtime
             name: localtime

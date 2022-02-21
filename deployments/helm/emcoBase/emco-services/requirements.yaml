@@ -50,3 +50,6 @@ dependencies:
   - name: hpa-plc
     version: ~0.x-0
     repository: 'file://../hpa-plc'
+  - name: workflowmgr
+    version: ~0.x-0
+    repository: 'file://../workflowmgr'
