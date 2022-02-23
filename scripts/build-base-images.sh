@@ -16,4 +16,10 @@ docker build --build-arg HTTP_PROXY=${HTTP_PROXY} --build-arg HTTPS_PROXY=${HTTP
 ${DIR}/deploy-docker.sh emco-service-build-base ${BUILD_BASE_VERSION}
 ${DIR}/deploy-docker.sh emco-service-build-base latest
 
+
+echo "Building golang-base container"
+docker build --build-arg HTTP_PROXY=${HTTP_PROXY} --build-arg HTTPS_PROXY=${HTTPS_PROXY} -t emco-golang -f build/docker/Dockerfile.golang .
+${DIR}/deploy-docker.sh emco-golang 1.17.7
+${DIR}/deploy-docker.sh emco-golang latest
+
 #########################################################

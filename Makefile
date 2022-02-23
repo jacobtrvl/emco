@@ -35,6 +35,8 @@ export BUILD_BASE_IMAGE_NAME := $(shell cat $(CONFIG) | grep 'BUILD_BASE_IMAGE_N
 export BUILD_BASE_IMAGE_VERSION := $(shell cat $(CONFIG) | grep 'BUILD_BASE_IMAGE_VERSION' | cut -d'=' -f2)
 export SERVICE_BASE_IMAGE_NAME := $(shell cat $(CONFIG) | grep 'SERVICE_BASE_IMAGE_NAME' | cut -d'=' -f2)
 export SERVICE_BASE_IMAGE_VERSION := $(shell cat $(CONFIG) | grep 'SERVICE_BASE_IMAGE_VERSION' | cut -d'=' -f2)
+export BUILD_GOLANG_IMAGE_NAME := $(shell cat $(CONFIG) | grep 'BUILD_GOLANG_IMAGE_NAME' | cut -d'=' -f2)
+export BUILD_GOLANG_IMAGE_VERSION := $(shell cat $(CONFIG) | grep 'BUILD_GOLANG_IMAGE_VERSION' | cut -d'=' -f2)
 
 clean-all:
 	@echo "Cleaning artifacts"
@@ -72,7 +74,7 @@ compile-container: pre-compile
 
 compile: check-env docker-reg
 	@echo "Building microservices within Docker build container"
-	docker run --rm --user `id -u`:`id -g` --env MODS="${MODS}" --env GO111MODULE --env XDG_CACHE_HOME=/tmp/.cache --env BRANCH=${BRANCH} --env TAG=${TAG} -v `pwd`:/repo ${EMCODOCKERREPO}${BUILD_BASE_IMAGE_NAME}${BUILD_BASE_IMAGE_VERSION} /bin/sh -c "cd /repo; make compile-container"
+	docker run --rm --user `id -u`:`id -g` --env MODS="${MODS}" --env GO111MODULE --env XDG_CACHE_HOME=/tmp/.cache --env BRANCH=${BRANCH} --env TAG=${TAG} -v `pwd`:/repo ${EMCODOCKERREPO}${BUILD_GOLANG_IMAGE_NAME} /bin/sh -c "cd /repo; make compile-container"
 	@echo "    Done."
 
 # Modules that follow naming conventions are done in a loop, rest later
