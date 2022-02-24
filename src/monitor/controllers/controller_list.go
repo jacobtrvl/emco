@@ -52,7 +52,12 @@ var GVKList = map[schema.GroupVersionKind]GvkElement{
 	{Version: "v1", Kind: "Pod"}:                                                     defaultType,
 	{Group: "apps", Version: "v1", Kind: "StatefulSet"}:                              defaultType,
 	{Group: "certificates.k8s.io", Version: "v1", Kind: "CertificateSigningRequest"}: defaultType,
-	{Group: "rbac.authorization.k8s.io", Version: "v1", Kind: "Role"}:                GvkElement{resource: "roles", defaultRes: false},
+	{Group: "rbac.authorization.k8s.io", Version: "v1", Kind: "Role"}:                {resource: "roles", defaultRes: false},
+	{Group: "rbac.authorization.k8s.io", Version: "v1", Kind: "RoleBinding"}:         {resource: "rolebindings", defaultRes: false},
+	{Group: "rbac.authorization.k8s.io", Version: "v1", Kind: "ClusterRole"}:         {resource: "roles", defaultRes: false},
+	{Group: "rbac.authorization.k8s.io", Version: "v1", Kind: "ClusterRoleBinding"}:  {resource: "clusterrolebindings", defaultRes: false},
+	{Version: "v1", Kind: "ResourceQuota"}:  {resource: "resourcequotas", defaultRes: false},
+	{Version: "v1", Kind: "Namespace"}:  {resource: "namespaces", defaultRes: false},
 }
 
 var GvkMap map[schema.GroupVersionKind]GvkElement
@@ -98,15 +103,13 @@ func (r *ControllerListReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		}
 		return ctrl.Result{}, err
 	}
-	//log = log.WithValues("kind", resource.GetKind(), "gen", resource.GetGeneration())
-
 	// If resource not a default resource for the controller
 	// Add status to ResourceStatues array
 	if g, ok := GvkMap[*r.gvk]; ok {
 		if g.defaultRes {
 			err = UpdateCR(r.Client, resource, req.NamespacedName, *r.gvk)
 		} else {
-			err = UpdateResourceStatus(r.Client, resource, req.NamespacedName)
+			err = UpdateResourceStatus(r.Client, resource, req.NamespacedName.Name, req.NamespacedName.Namespace)
 		}
 	}
 	if err != nil {

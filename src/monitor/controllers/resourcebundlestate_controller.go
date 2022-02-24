@@ -25,7 +25,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	slog "sigs.k8s.io/controller-runtime/pkg/log"
-
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/batch/v1"
 	certsapi "k8s.io/api/certificates/v1"
@@ -117,6 +117,12 @@ func (r *ResourceBundleStateReconciler) Reconcile(ctx context.Context, req ctrl.
 
 	if len(rbstate.Status.ResourceStatuses) == 0 {
 		rbstate.Status.ResourceStatuses = []k8spluginv1alpha1.ResourceStatus{}
+	}
+
+	err = r.updateDynResources(rbstate, rbstate.Spec.Selector.MatchLabels)
+	if err != nil {
+		log.Printf("Error adding dynamic resources: %v\n", err)
+		return ctrl.Result{}, err
 	}
 
 	err = CommitCR(r.Client, rbstate)
@@ -351,6 +357,32 @@ func (r *ResourceBundleStateReconciler) updateCsrs(rbstate *k8spluginv1alpha1.Re
 		resStatus.ObjectMeta.ManagedFields = []metav1.ManagedFieldsEntry{}
 		resStatus.Annotations = ClearLastApplied(resStatus.Annotations)
 		rbstate.Status.CsrStatuses = append(rbstate.Status.CsrStatuses, resStatus)
+	}
+	return nil
+}
+// updateDynResources updates non default resources
+func (r *ResourceBundleStateReconciler) updateDynResources(rbstate *k8spluginv1alpha1.ResourceBundleState,
+	selectors map[string]string) error {
+
+	for gvk, item := range GvkMap {
+		if item.defaultRes {
+			// Already handled
+			continue
+		}
+		resourceList := &unstructured.UnstructuredList{}
+		resourceList.SetGroupVersionKind(gvk)
+
+		err := listResources(r.Client, rbstate.Namespace, selectors, resourceList)
+		if err != nil {
+			log.Printf("Failed to list resources: %v", err)
+			return err
+		}
+		for _, res := range resourceList.Items {
+			err = UpdateResourceStatus(r.Client, &res, res.GetName(), res.GetNamespace())
+			if err != nil {
+				log.Println("Error updating status for resource", gvk, res.GetName())
+			}
+		}
 	}
 	return nil
 }

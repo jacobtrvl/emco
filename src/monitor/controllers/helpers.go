@@ -217,7 +217,7 @@ func ClearLastApplied(annotations map[string]string) map[string]string {
 }
 
 //Update CR status and also store in Git location if needed
-func UpdateResourceStatus(c client.Client, item *unstructured.Unstructured, namespacedName types.NamespacedName) error {
+func UpdateResourceStatus(c client.Client, item *unstructured.Unstructured, name, namespace string) error {
 	var err error
 
 	rbStatusList, err := GetCRListForResource(c, item)
@@ -228,7 +228,7 @@ func UpdateResourceStatus(c client.Client, item *unstructured.Unstructured, name
 	for _, cr := range rbStatusList.Items {
 		// Not scheduled for deletion
 		if item.GetDeletionTimestamp() == nil {
-			found, err = UpdateResourceStatusCR(&cr, item, namespacedName.Name, namespacedName.Namespace)
+			found, err = UpdateResourceStatusCR(&cr, item, name, namespace)
 
 			if err == nil {
 				CommitCR(c, &cr)
