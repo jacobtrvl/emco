@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	log "gitlab.com/project-emco/core/emco-base/src/common/pkg/infra/logutils"
+	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 )
 
 const default_host = "localhost"

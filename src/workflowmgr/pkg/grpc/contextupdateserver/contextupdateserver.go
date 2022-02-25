@@ -7,8 +7,8 @@ import (
 	"context"
 	"fmt"
 
-	contextpb "gitlab.com/project-emco/core/emco-base/src/common/pkg/grpc/contextupdate"
-	log "gitlab.com/project-emco/core/emco-base/src/common/pkg/infra/logutils"
+	contextpb "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/grpc/contextupdate"
+	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 )
 
 type contextupdateServer struct {

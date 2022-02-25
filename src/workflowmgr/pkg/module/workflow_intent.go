@@ -14,9 +14,9 @@ import (
 	pkgerrors "github.com/pkg/errors"
 	"go.temporal.io/sdk/client"
 
-	"gitlab.com/project-emco/core/emco-base/src/common/pkg/infra/db"
-	log "gitlab.com/project-emco/core/emco-base/src/common/pkg/infra/logutils"
 	tmpl "gitlab.com/project-emco/core/emco-base/src/emcotemporalapi"
+	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
+	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 	enums "go.temporal.io/api/enums/v1"
 	history "go.temporal.io/api/history/v1"
 )

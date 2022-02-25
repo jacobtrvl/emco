@@ -12,7 +12,7 @@ import (
 
 	tmpl "gitlab.com/project-emco/core/emco-base/src/emcotemporalapi"
 
-	log "gitlab.com/project-emco/core/emco-base/src/common/pkg/infra/logutils"
+	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 	moduleLib "gitlab.com/project-emco/core/emco-base/src/workflowmgr/pkg/module"
 )
 
