@@ -181,10 +181,8 @@ status:
 The  _cluster resource_ status is provided in two forms.
 
 1.  The `actual status{}` portion of the  _cluster resource_  (if present) is made available in the information returned via the ResourceBundleState CR.
-2.  Summarized in a value as follows.
-
--   **Present**: For  _rsync resources_  with a corresponding  _cluster resource_  in the ResourceBundleState CR, the clustesr status is present.
-
+2.  Based on the `status{}` of the resource and the type of resource, EMCO will make an assessment whether the resource is `Ready` or `Not Ready`.  (Previously _cluster resources_ were just
+    categorized as `Present` if they were found in a given ResourceBundleState CR.)
 
 ### Status Query
 The status query, and variations with query parameters, on an EMCO resource will present the information described previously to the caller.  The basic status query for the EMCO resources which support the status query looks like the following:
@@ -983,49 +981,48 @@ Having previously queried for the `resources` in a cluster to get the name of th
 Use the `detail` output parameter to get more information about the resource.
 
 ```
-URL: /v2/projects/testvfw/composite-apps/compositevfw/v1/deployment-intent-groups/vfw_deployment_intent_group/status?type=cluster\&resource=fw0-sink-b866bfddf-2jkpd&output=detail
+URL: /v2/projects/testvfw/composite-apps/compositevfw/v1/deployment-intent-groups/vfw_deployment_intent_group/status?resource=fw0-sink-5999cf64-cj2mn&type=cluster&output=detail
 
 Output:
-{
-  "project": "testvfw",
-  "composite-app-name": "compositevfw",                                                                                                                                                                                                                                         "composite-app-version": "v1",
-  "composite-profile-name": "vfw_composite-profile",
+{                                                                                                                                                                                                                                                                   [189/1708]  "project": "testvfw",                                                                                                                                                                                                                                                         "compositeApp": "compositevfw",
+  "compositeAppVersion": "v1",
+  "compositeProfile": "vfw_composite-profile",
   "name": "vfw_deployment_intent_group",
   "states": {
-    "statusctxid": "8042348702892447990",
+    "statusctxid": "3985997949968652445",
     "actions": [
       {
         "state": "Created",
         "instance": "",
-        "time": "2021-07-12T16:29:55.451Z",
+        "time": "2021-12-21T06:07:54.791Z",
         "revision": 0
       },
       {
         "state": "Approved",
         "instance": "",
-        "time": "2021-07-12T19:07:38.808Z",
+        "time": "2021-12-21T06:08:08.06Z",
         "revision": 0
       },
       {
         "state": "Instantiated",
-        "instance": "8042348702892447990",
-        "time": "2021-07-12T19:07:39.85Z",
+        "instance": "3985997949968652445",
+        "time": "2021-12-21T06:08:09.043Z",
         "revision": 1
       }
     ]
   },
   "status": "Instantiated",
-  "cluster-status": {
-    "Present": 1
+  "clusterStatus": {
+    "Ready": 1
   },
   "apps": [
     {
       "name": "sink",
       "clusters": [
         {
-          "cluster-provider": "vfw-cluster-provider",
+          "clusterProvider": "vfw-cluster-provider",
           "cluster": "edge02",
-          "readystatus": "Available",
+          "readyStatus": "Available",
           "resources": [
             {
               "GVK": {
@@ -1033,27 +1030,28 @@ Output:
                 "Version": "v1",
                 "Kind": "Pod"
               },
-              "name": "fw0-sink-b866bfddf-2jkpd",
+              "name": "fw0-sink-5999cf64-cj2mn",
               "detail": {
                 "kind": "Pod",
                 "apiVersion": "v1",
                 "metadata": {
-                  "name": "fw0-sink-b866bfddf-2jkpd",
-                  "generateName": "fw0-sink-b866bfddf-",
+                  "name": "fw0-sink-5999cf64-cj2mn",
+                  "generateName": "fw0-sink-5999cf64-",
                   "namespace": "default",
-                  "selfLink": "/api/v1/namespaces/default/pods/fw0-sink-b866bfddf-2jkpd",
-                  "uid": "b6fccb5b-70eb-4cdd-b252-9accbe18662f",
-                  "resourceVersion": "10432153",
-                  "creationTimestamp": "2021-07-12T19:07:41Z",
+                  "selfLink": "/api/v1/namespaces/default/pods/fw0-sink-5999cf64-cj2mn",
+                  "uid": "456f184e-07e2-42dd-a5bc-19fb0582c346",
+                  "resourceVersion": "40999342",
+                  "creationTimestamp": "2021-12-21T06:08:10Z",
                   "labels": {
                     "app": "sink",
-                    "emco/deployment-id": "8042348702892447990-sink",
-                    "pod-template-hash": "b866bfddf",
+                    "emco/deployment-id": "3985997949968652445-sink",
+                    "pod-template-hash": "5999cf64",
                     "release": "fw0"
                   },
                   "annotations": {
                     "container.apparmor.security.beta.kubernetes.io/sink": "runtime/default",
-                    "k8s.plugin.opnfv.org/nfn-network": "{\"type\":\"ovn4nfv\",\"interface\":[{\"interface\":\"eth2\",\"name\":\"emco-private-net\",\"defaultGateway\":\"false\",\"ipAddress\":\"10.10.20.4\"},{\"interface\":\"eth1\",\"name\":\"protected-private-net\",\"defaultGateway\":\"false\",\"ipAddress\":\"192.168.20.3\"}]}",
+                    "k8s.plugin.opnfv.org/nfn-network": "{\"type\":\"ovn4nfv\",\"interface\":[{\"interface\":\"eth2\",\"name\":\"emco-private-net\",\"defaultGateway\":\"false\",\"ipAddress\":\"10.10.20.4\"},{\"interface\":\"eth1\",\"name\":\"protected-private-[121/1708]faultGateway\":\"false\",\"ipAddress\":\"192.168.20.3\"}]}",
+                    "k8s.plugin.opnfv.org/ovnInterfaces": "[{\"ip_address\":\"10.10.20.4/24\", \"mac_address\":\"00:00:00:fc:d8:1e\", \"gateway_ip\": \"10.154.142.3\",\"defaultGateway\":\"false\",\"interface\":\"eth2\"},{\"ip_address\":\"192.168.20.3/24\", \"mac_address\":\"00:00:00:aa:f9:8f\", \"gateway_ip\": \"10.154.142.3\",\"defaultGateway\":\"false\",\"interface\":\"eth1\"},{\"ip_address\":\"10.154.142.12/18\", \"mac_address\":\"52:30:69:9a:8e:0d\", \"gateway_ip\": \"10.154.142.3\",\"interface\":\"*\"}]",
                     "k8s.v1.cni.cncf.io/networks": "[{\"name\":\"ovn-networkobj\",\"namespace\":\"default\",\"cni-args\":null}]",
                     "kubernetes.io/psp": "restricted",
                     "seccomp.security.alpha.kubernetes.io/pod": "runtime/default"
@@ -1062,13 +1060,117 @@ Output:
                     {
                       "apiVersion": "apps/v1",
                       "kind": "ReplicaSet",
-                      "name": "fw0-sink-b866bfddf",
-                      "uid": "cf54e7a7-c6c2-4ddd-aaa4-a1b255581a31",
+                      "name": "fw0-sink-5999cf64",
+                      "uid": "e3289ebf-139e-4644-99c7-7de4c12fab1c",
                       "controller": true,
                       "blockOwnerDeletion": true
                     }
+                  ]
+                },
+                "spec": {
+                  "volumes": [
+                    {
+                      "name": "scripts",
+                      "configMap": {
+                        "name": "sink-scripts-configmap",
+                        "defaultMode": 420
+                      }
+                    },
+                    {
+                      "name": "default-token-vjqtb",
+                      "secret": {
+                        "secretName": "default-token-vjqtb",
+                        "defaultMode": 420
+                      }
+                    }
                   ],
-                << DETAILS SNIPPED OUT FOR BREVITY >>
+                  "containers": [
+                    {
+                      "name": "sink",
+                      "image": "ubuntu:18.04",
+                      "command": [
+                        "/bin/bash",
+                        "/opt/vsn_start.sh"
+                      ],
+                      "env": [
+                        {
+                          "name": "unprotectedPrivateNetCidr",
+                          "value": "192.168.10.0/24"
+                        },
+                        {
+                          "name": "protectedPrivateNetCidr",
+                          "value": "192.168.20.0/24"
+                        },
+                        {
+                          "name": "vfwProtectedPrivateNetIp",
+                          "value": "192.168.20.2"
+                        }
+                      ],
+                      "resources": {
+                        "limits": {
+                          "cpu": "1",
+                          "memory": "4Gi"
+                        },
+                        "requests": {
+                          "cpu": "1",
+                          "memory": "4Gi"
+                        }
+                      },
+                      "volumeMounts": [                                                                                                                                                                                                                              [53/1708]                        {
+                          "name": "scripts",
+                          "mountPath": "/opt"
+                        },
+                        {
+                          "name": "default-token-vjqtb",
+                          "readOnly": true,
+                          "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount"
+                        }
+                      ],
+                      "terminationMessagePath": "/dev/termination-log",
+                      "terminationMessagePolicy": "File",
+                      "imagePullPolicy": "IfNotPresent",
+                      "securityContext": {
+                        "capabilities": {
+                          "drop": [
+                            "NET_RAW"
+                          ]
+                        },
+                        "privileged": true
+                      },
+                      "stdin": true,
+                      "tty": true
+                    }
+                  ],
+                  "restartPolicy": "Always",
+                  "terminationGracePeriodSeconds": 30,
+                  "dnsPolicy": "ClusterFirst",
+                  "serviceAccountName": "default",
+                  "serviceAccount": "default",
+                  "nodeName": "localhost",
+                  "securityContext": {},
+                  "imagePullSecrets": [
+                    {
+                      "name": "admin-registry-secret"
+                    }
+                  ],
+                  "schedulerName": "default-scheduler",
+                  "tolerations": [
+                    {
+                      "key": "node.kubernetes.io/not-ready",
+                      "operator": "Exists",
+                      "effect": "NoExecute",
+                      "tolerationSeconds": 300
+                    },
+                    {
+                      "key": "node.kubernetes.io/unreachable",
+                      "operator": "Exists",
+                      "effect": "NoExecute",
+                      "tolerationSeconds": 300
+                    }
+                  ],
+                  "priority": 0,
+                  "enableServiceLinks": true
+                },
                 "status": {
                   "phase": "Running",
                   "conditions": [
@@ -1076,55 +1178,56 @@ Output:
                       "type": "Initialized",
                       "status": "True",
                       "lastProbeTime": null,
-                      "lastTransitionTime": "2021-07-12T19:07:41Z"
+                      "lastTransitionTime": "2021-12-21T06:08:10Z"
                     },
                     {
                       "type": "Ready",
                       "status": "True",
                       "lastProbeTime": null,
-                      "lastTransitionTime": "2021-07-12T19:07:47Z"
+                      "lastTransitionTime": "2021-12-21T06:08:15Z"
                     },
                     {
                       "type": "ContainersReady",
                       "status": "True",
                       "lastProbeTime": null,
-                      "lastTransitionTime": "2021-07-12T19:07:47Z"
+                      "lastTransitionTime": "2021-12-21T06:08:15Z"
                     },
                     {
                       "type": "PodScheduled",
                       "status": "True",
                       "lastProbeTime": null,
-                      "lastTransitionTime": "2021-07-12T19:07:41Z"
+                      "lastTransitionTime": "2021-12-21T06:08:10Z"
                     }
                   ],
                   "hostIP": "10.0.2.15",
-                  "podIP": "10.244.64.130",
+                  "podIP": "10.244.64.8",
                   "podIPs": [
                     {
-                      "ip": "10.244.64.130"
+                      "ip": "10.244.64.8"
                     }
                   ],
-                  "startTime": "2021-07-12T19:07:41Z",
+                  "startTime": "2021-12-21T06:08:10Z",
                   "containerStatuses": [
                     {
                       "name": "sink",
                       "state": {
                         "running": {
-                          "startedAt": "2021-07-12T19:07:46Z"
+                          "startedAt": "2021-12-21T06:08:15Z"
                         }
                       },
                       "lastState": {},
                       "ready": true,
                       "restartCount": 0,
                       "image": "ubuntu:18.04",
-                      "imageID": "docker-pullable://ubuntu@sha256:04919776d30640ce4ed24442d5f7c1a8e4bd0e4793ed9469843cedaecb0d72fb",
-                      "containerID": "docker://3c997bd33ccc08967de278a09b3fe03767225082d948d76f7bbed4f014843e9f",
+                      "imageID": "docker-pullable://ubuntu@sha256:9bc830af2bef73276515a29aa896eedfa7bdf4bdbc5c1063b4c457a4bbb8cd79",
+                      "containerID": "docker://61d51a90e8ffc11331e3a66cd476ba5ef5c77b5f41da76f601ef7ac4dc5ddeb2",
                       "started": true
                     }
                   ],
                   "qosClass": "Guaranteed"
                 }
-              }
+              },
+              "clusterStatus": "Ready"
             }
           ]
         }

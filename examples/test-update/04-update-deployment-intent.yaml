@@ -1,0 +1,21 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2022 Intel Corporation
+
+{{- range $index, $app := .Applist }}
+---
+#add the app placement intent to the generic placement intent
+version: emco/v2
+resourceContext:
+  anchor: projects/{{ $.ProjectName }}/composite-apps/{{ $.CompositeApp }}/v1/deployment-intent-groups/{{ $.DeploymentIntent }}/generic-placement-intents/{{ $.GenericPlacementIntent }}/app-intents
+metadata:
+  name: {{ $app.Name }}-placement-intent
+spec:
+  app: {{ $app.Name }}
+  intent:
+    allOf:
+    {{- range $index1, $cluster := $app.UpdateCluster }}
+    - clusterProvider: {{ $.ClusterProvider }}
+      cluster: {{ $cluster }}
+    {{- end }}
+{{- end }}
+

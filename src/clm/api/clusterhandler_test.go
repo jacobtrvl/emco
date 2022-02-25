@@ -237,15 +237,6 @@ func (m *mockClusterManager) GetAllClusterSyncObjects(provider string) ([]cluste
 	return m.ClusterSyncObjectsItems, nil
 }
 
-// test functions for gitops
-func (m *mockClusterManager) CreateClusterGitOpsData(provider string, inp cluster.Cluster, exists bool) (cluster.Cluster, error) {
-	if m.Err != nil {
-		return cluster.Cluster{}, m.Err
-	}
-
-	return m.ClusterItems[0], nil
-}
-
 func init() {
 	cpJSONFile = "../json-schemas/metadata.json"
 	ckvJSONFile = "../json-schemas/cluster-kv.json"

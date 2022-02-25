@@ -3,15 +3,17 @@ module gitlab.com/project-emco/core/emco-base/src/rsync
 go 1.13
 
 require (
+	github.com/fluxcd/go-git-providers v0.4.0
 	github.com/ghodss/yaml v1.0.0
 	github.com/golang/mock v1.5.0
 	github.com/golang/protobuf v1.4.2
 	github.com/jonboulle/clockwork v0.1.0
 	github.com/pkg/errors v0.9.1
+	github.com/sirupsen/logrus v1.7.0
 	gitlab.com/project-emco/core/emco-base/src/monitor v0.0.0-00010101000000-000000000000
 	gitlab.com/project-emco/core/emco-base/src/orchestrator v0.0.0-00010101000000-000000000000
-	golang.org/x/net v0.0.0-20200707034311-ab3426394381
-	golang.org/x/sync v0.0.0-20201207232520-09787c993a3a
+	golang.org/x/net v0.0.0-20210405180319-a5a99cb37ef4
+	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	google.golang.org/grpc v1.28.0
 	google.golang.org/protobuf v1.24.0
 	k8s.io/api v0.20.2

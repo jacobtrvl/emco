@@ -10,7 +10,7 @@ import (
 
 	"github.com/pkg/errors"
 	"gitlab.com/project-emco/core/emco-base/src/genericactioncontroller/pkg/module"
-	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
+	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 	yamlV2 "gopkg.in/yaml.v2"
 	"k8s.io/apimachinery/pkg/util/validation"
 )
@@ -42,8 +42,8 @@ func (o *updateOptions) createSecret() error {
 
 	value, err := yamlV2.Marshal(secret)
 	if err != nil {
-		log.Error("Failed to serialize the secret object into a YAML document",
-			log.Fields{
+		logutils.Error("Failed to serialize the secret object into a YAML document",
+			logutils.Fields{
 				"Secret": secret,
 				"Error ": err.Error()})
 		return err
@@ -73,8 +73,8 @@ func newSecret(template, name string) (*Secret, error) {
 		// set the base struct from the associated template file
 		value, err := base64.StdEncoding.DecodeString(template)
 		if err != nil {
-			log.Error("Failed to decode the secret template content",
-				log.Fields{
+			logutils.Error("Failed to decode the secret template content",
+				logutils.Fields{
 					"Error": err.Error()})
 			return &Secret{}, err
 		}
@@ -84,8 +84,8 @@ func newSecret(template, name string) (*Secret, error) {
 			// if the Secret template is available, then it should be YAML
 			err = yamlV2.Unmarshal(value, &secret)
 			if err != nil {
-				log.Error("Failed to unmarshal the secret template content",
-					log.Fields{
+				logutils.Error("Failed to unmarshal the secret template content",
+					logutils.Fields{
 						"Error": err.Error()})
 				return &Secret{}, err
 			}

@@ -7,7 +7,7 @@ import (
 	"encoding/json"
 	"reflect"
 
-	pkgerrors "github.com/pkg/errors"
+	"github.com/pkg/errors"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
 )
 
@@ -83,7 +83,7 @@ func (g *GenericK8sIntentClient) CreateGenericK8sIntent(gki GenericK8sIntent,
 
 	if gkiExists &&
 		failIfExists {
-		return GenericK8sIntent{}, gkiExists, pkgerrors.New("GenericK8sIntent already exists")
+		return GenericK8sIntent{}, gkiExists, errors.New("GenericK8sIntent already exists")
 	}
 
 	if err = db.DBconn.Insert(g.db.storeName, key, nil, g.db.tagMeta, gki); err != nil {
@@ -111,7 +111,7 @@ func (g *GenericK8sIntentClient) GetGenericK8sIntent(intent, project, compositeA
 	}
 
 	if len(value) == 0 {
-		return GenericK8sIntent{}, pkgerrors.New("GenericK8sIntent not found")
+		return GenericK8sIntent{}, errors.New("GenericK8sIntent not found")
 	}
 
 	if value != nil {
@@ -122,7 +122,7 @@ func (g *GenericK8sIntentClient) GetGenericK8sIntent(intent, project, compositeA
 		return gki, nil
 	}
 
-	return GenericK8sIntent{}, pkgerrors.New("Unknown Error")
+	return GenericK8sIntent{}, errors.New("Unknown Error")
 }
 
 // GetAllGenericK8sIntents returns all of the GenericK8sIntent for corresponding name

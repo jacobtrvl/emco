@@ -102,21 +102,21 @@ cat << NET > emco-cfg.yaml
   orchestrator:
     host: $HOST_IP
     port: 30415
-    status-port: 30416
+    statusPort: 30416
   clm:
     host: $HOST_IP
     port: 30461
   ncm:
     host: $HOST_IP
     port: 30431
-    status-port: 30432
+    statusPort: 30482
   ovnaction:
     host: $HOST_IP
     port: 30471
   dcm:
     host: $HOST_IP
     port: 30477
-    status-port: 30478
+    statusPort: 30478
   gac:
     host: $HOST_IP
     port: 30491

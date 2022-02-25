@@ -98,7 +98,7 @@ func (o *updateOptions) createOrUpdateResource() error {
 		}
 
 		if err = o.updateExistingResource(); err != nil {
-			return err // hwo to test this case ? is this a valid use case ?
+			return err
 		}
 	}
 

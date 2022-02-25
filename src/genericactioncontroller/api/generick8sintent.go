@@ -9,7 +9,7 @@ import (
 
 	"gitlab.com/project-emco/core/emco-base/src/genericactioncontroller/pkg/module"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/apierror"
-	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
+	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 
 	"github.com/gorilla/mux"
 )
@@ -95,8 +95,8 @@ func (h genericK8sIntentHandler) createOrUpdateIntent(w http.ResponseWriter, r *
 	if !methodPost {
 		// name in URL should match the name in the body
 		if genericK8sIntent.Metadata.Name != vars.intent {
-			log.Error("The intent name is not matching with the name in the request",
-				log.Fields{"GenericK8sIntent": genericK8sIntent,
+			logutils.Error("The intent name is not matching with the name in the request",
+				logutils.Fields{"GenericK8sIntent": genericK8sIntent,
 					"IntentName": vars.intent})
 			http.Error(w, "the intent name is not matching with the name in the request",
 				http.StatusBadRequest)
@@ -125,8 +125,8 @@ func (h genericK8sIntentHandler) createOrUpdateIntent(w http.ResponseWriter, r *
 // validateGenericK8sIntentData validate the genericK8sIntent payload for the required values
 func validateGenericK8sIntentData(gki module.GenericK8sIntent) error {
 	if len(gki.Metadata.Name) == 0 {
-		log.Error("GenericK8sIntent name may not be empty",
-			log.Fields{})
+		logutils.Error("GenericK8sIntent name may not be empty",
+			logutils.Fields{})
 		return errors.New("genericK8sIntent name may not be empty")
 	}
 

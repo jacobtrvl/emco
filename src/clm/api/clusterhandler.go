@@ -269,7 +269,8 @@ func (h clusterHandler) createClusterHandler(w http.ResponseWriter, r *http.Requ
 			return
 		}
 	} else {
-		ret, err := h.client.CreateClusterGitOpsData(provider, p, false)
+		q.Kubeconfig = ""
+		ret, err := h.client.CreateCluster(provider, p, q)
 		if err != nil {
 			apiErr := apierror.HandleErrors(vars, err, p, apiErrors)
 			http.Error(w, apiErr.Message, apiErr.Status)

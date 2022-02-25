@@ -3544,6 +3544,134 @@ paths:
           description: Conflict
         '500':
           description: Internal Server Error
+  '/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/network-chains/{sfcIntent}/links':
+    parameters:
+      - $ref: '#/components/parameters/projectName'
+      - $ref: '#/components/parameters/compositeAppName'
+      - $ref: '#/components/parameters/compositeAppVersion'
+      - $ref: '#/components/parameters/deploymentIntentGroupName'
+      - $ref: '#/components/parameters/networkChainIntent'
+    post:
+      tags:
+        - Network Chain Link Intent
+      summary: Create Network Chain Link Intent
+      description: Add a new `network chain link intent`
+      operationId: addNetworkChainLinkIntent
+      responses:
+        '201':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChainLink'
+        '400':
+          description: Bad Request
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '422':
+          description: Unprocessable Entity
+        '500':
+          description: Internal Server Error
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChainLink'
+    get:
+      tags:
+        - Network Chain Link Intent
+      summary: Get all Network Chain Link Intents
+      description: |
+        Get all `network chain link intents`
+      operationId: getAllNetworkChainLinkIntent
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChainLinkArray'
+        '400':
+          description: Bad Request
+        '404':
+          description: No Network Chain Link Intent found
+        '500':
+          description: Internal Server Error
+  '/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/network-chains/{sfcIntent}/links/{sfcLink}':
+    parameters:
+      - $ref: '#/components/parameters/projectName'
+      - $ref: '#/components/parameters/compositeAppName'
+      - $ref: '#/components/parameters/compositeAppVersion'
+      - $ref: '#/components/parameters/deploymentIntentGroupName'
+      - $ref: '#/components/parameters/networkChainIntent'
+      - $ref: '#/components/parameters/networkChainLinkIntent'
+    get:
+      tags:
+        - Network Chain Link Intent
+      summary: Get Network Chain Link Intent
+      description: |
+        Get `network chain link intent`
+      operationId: getNetworkChainLinkIntent
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChainLink'
+        '400':
+          description: Bad Request
+        '404':
+          description: Network Chain Link Intent not found
+        '500':
+          description: Internal Server Error
+    put:
+      tags:
+        - Network Chain Link Intent
+      summary: Update Network Chain Link Intent
+      description: Update `Network Chain Link Intent`
+      operationId: updateNetworkChainLinkIntent
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChainLink'
+          description: Success
+        '400':
+          description: Bad Request
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '422':
+          description: Unprocessable Entity
+        '500':
+          description: Internal Server Error
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChainLink'
+        required: true
+    delete:
+      tags:
+        - Network Chain Link Intent
+      summary: Delete Network Chain Link Intent
+      description: |
+        Delete `Network Chain Link Intent`
+      operationId: deleteNetworkChainLinkIntent
+      responses:
+        '204':
+          description: Delete
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '500':
+          description: Internal Server Error
   '/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/network-chains/{sfcIntent}/client-selectors':
     parameters:
       - $ref: '#/components/parameters/projectName'
@@ -6352,12 +6480,6 @@ components:
               maxLength: 63
               pattern: '^[a-z0-9-]+$'
               default: default
-            networkChain:
-              type: string
-              maxLength: 1024
-              pattern: '^net=([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9](,app=([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9],net=([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])*$'
-          required:
-            - networkChain
     ChainEndpoint:
       type: string
       enum:
@@ -6367,6 +6489,61 @@ components:
       type: array
       items:
         $ref: '#/components/schemas/RouteBasedChain'
+    ChainLink:
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/MetadataBase'
+        spec:
+          type: object
+          properties:
+            leftNet:
+              type: string
+              description: Network label for left side of link
+              maxLength: 128
+              pattern: '^([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]$'
+              example: "virt-net1"
+            rightNet:
+              type: string
+              description: Network label for right side of link
+              maxLength: 128
+              pattern: '^([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]$'
+              example: "virt-net2"
+            linkLabel:
+              type: string
+              description: Label of function in network chain
+              maxLength: 381
+              pattern: '^((([a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\\/))?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]=)(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]))$'
+              example: "app=sdewan"
+            app:
+              type: string
+              description: Application name
+              maxLength: 128
+              pattern: '^([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]$'
+              example: "sdewan" 
+            workloadResource:
+              type: string
+              description: Name of the workload resource
+              maxLength: 254
+              pattern: '(^$|^([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]$)'
+              example: "sdewan" 
+            resourceType:
+              type: string
+              description: Type of the workload resource
+              maxLength: 128
+              pattern: '(^$|^([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]$)'
+              example: "Deployment"
+          required:
+            - leftNet
+            - rightNet
+            - linkLabel
+            - app
+            - workloadResource
+            - resourceType
+    ChainLinkArray:
+      type: array
+      items:
+        $ref: '#/components/schemas/ChainLink'
     ChainClientSelector:
       type: object
       properties:
@@ -7292,6 +7469,14 @@ components:
       name: sfcIntent
       in: path
       description: Name of the network chain intent
+      required: true
+      schema:
+        type: string
+        maxLength: 128
+    networkChainLinkIntent:
+      name: sfcLink
+      in: path
+      description: Name of a network chain link intent
       required: true
       schema:
         type: string

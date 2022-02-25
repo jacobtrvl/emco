@@ -11,10 +11,10 @@ import (
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
 )
 
-func TestApi(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "Api Suite")
-}
+var (
+	mockdb *db.NewMockDB
+	v      vars
+)
 
 type vars struct {
 	Project,
@@ -23,6 +23,17 @@ type vars struct {
 	DeploymentIntentGroup,
 	Intent,
 	Resource string
+}
+
+func init() {
+	mockdb = &db.NewMockDB{}
+	v = newVars()
+	db.DBconn = mockdb
+}
+
+func TestApi(t *testing.T) {
+	RegisterFailHandler(Fail)
+	RunSpecs(t, "Api Suite")
 }
 
 func newVars() vars {
@@ -43,15 +54,4 @@ func validateError(err error, message string) {
 		return
 	}
 	Expect(err.Error()).To(ContainSubstring(message))
-}
-
-var (
-	mockdb *db.NewMockDB
-	v      vars
-)
-
-func init() {
-	mockdb = &db.NewMockDB{}
-	v = newVars()
-	db.DBconn = mockdb
 }

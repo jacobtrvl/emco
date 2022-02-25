@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
+	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 )
 
 const DEFAULTHOST = "localhost"
@@ -22,27 +22,27 @@ func GetServerHostPort() (string, int) {
 	serviceName := os.Getenv(ENV_GENERIC_ACTION_CONTROLLER_NAME)
 	if serviceName == "" {
 		serviceName = DEFAULTGENERICACTIONCONTROLLER_NAME
-		log.Info("Using default name for generic-action-controller service name", log.Fields{
-			"Name": serviceName,
-		})
+		logutils.Info("Using default name for generic-action-controller service name",
+			logutils.Fields{
+				"Name": serviceName})
 	}
 
 	// expect service name to be in env variable - e.g. GENERIC_ACTION_CONTROLLER_SERVICE_HOST
 	host := os.Getenv(strings.ToUpper(serviceName) + "_SERVICE_HOST")
 	if host == "" {
 		host = DEFAULTHOST
-		log.Info("Using default host for generic-action-controller gRPC controller", log.Fields{
-			"Host": host,
-		})
+		logutils.Info("Using default host for generic-action-controller gRPC controller",
+			logutils.Fields{
+				"Host": host})
 	}
 
 	// expect service port to be in env variable - e.g. GENERIC_ACTION_CONTROLLER_SERVICE_PORT
 	port, err := strconv.Atoi(os.Getenv(strings.ToUpper(serviceName) + "_SERVICE_PORT"))
 	if err != nil || port < 0 {
 		port = DEFAULTPORT
-		log.Info("Using default port for generic-action-controller gRPC controller", log.Fields{
-			"Port": port,
-		})
+		logutils.Info("Using default port for generic-action-controller gRPC controller",
+			logutils.Fields{
+				"Port": port})
 	}
 	return host, port
 }
