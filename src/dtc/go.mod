@@ -1,7 +1,6 @@
 module gitlab.com/project-emco/core/emco-base/src/dtc
 
 require (
-	github.com/golang/protobuf v1.5.2
 	github.com/gorilla/handlers v1.5.1
 	github.com/gorilla/mux v1.8.0
 	github.com/onsi/ginkgo v1.16.5
@@ -10,7 +9,6 @@ require (
 	github.com/stretchr/testify v1.7.0
 	gitlab.com/project-emco/core/emco-base/src/orchestrator v0.0.0-00010101000000-000000000000
 	google.golang.org/grpc v1.43.0
-	google.golang.org/protobuf v1.27.1
 )
 
 replace (

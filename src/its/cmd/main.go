@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	updatepb "gitlab.com/project-emco/core/emco-base/src/dtc/pkg/grpc/contextupdate"
+	updatepb "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/grpc/contextupdate"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/config"
 	contextDb "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/contextdb"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"

@@ -8,7 +8,7 @@ import (
 	"fmt"
 
 	"gitlab.com/project-emco/core/emco-base/src/nps/internal/networkpolicy"
-	contextpb "gitlab.com/project-emco/core/emco-base/src/dtc/pkg/grpc/contextupdate"
+	contextpb "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/grpc/contextupdate"
 	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 )
 

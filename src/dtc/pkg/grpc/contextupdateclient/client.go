@@ -7,7 +7,7 @@ import (
 	"context"
 	"time"
 
-	contextpb "gitlab.com/project-emco/core/emco-base/src/dtc/pkg/grpc/contextupdate"
+	contextpb "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/grpc/contextupdate"
 	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/rpc"
 	pkgerrors "github.com/pkg/errors"
