@@ -6,11 +6,10 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
 #########################################################
 
-# build the "base build image" that will be used as the base for all containerized builds & deployments
-
-echo "Building build-base container (version ${BUILD_BASE_IMAGE_VERSION} with go${GO_VERSION})"
-docker build --build-arg GO_VERSION=${GO_VERSION} --build-arg HTTP_PROXY=${HTTP_PROXY} --build-arg HTTPS_PROXY=${HTTPS_PROXY} -t emco-service-build-base -f build/docker/Dockerfile.build-base .
-${DIR}/deploy-docker.sh emco-service-build-base ${BUILD_BASE_IMAGE_VERSION}
-${DIR}/deploy-docker.sh emco-service-build-base latest
+# build the "build base image" that will be used as the base for Helm
+echo "Building ${BUILD_BASE_IMAGE_NAME}:${BUILD_BASE_IMAGE_VERSION} image (with Helm v3.5.2) from ${SERVICE_BASE_IMAGE_NAME}:${SERVICE_BASE_IMAGE_VERSION}"
+docker build --build-arg HTTP_PROXY=${HTTP_PROXY} --build-arg HTTPS_PROXY=${HTTPS_PROXY} --build-arg MAINDOCKERREPO=${MAINDOCKERREPO} --build-arg SERVICE_BASE_IMAGE_NAME=${SERVICE_BASE_IMAGE_NAME} --build-arg SERVICE_BASE_IMAGE_VERSION=${SERVICE_BASE_IMAGE_VERSION} -t ${BUILD_BASE_IMAGE_NAME} -f build/docker/Dockerfile.build-base .
+${DIR}/deploy-docker.sh ${BUILD_BASE_IMAGE_NAME} ${BUILD_BASE_IMAGE_VERSION}
+${DIR}/deploy-docker.sh ${BUILD_BASE_IMAGE_NAME} latest
 
 #########################################################
