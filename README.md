@@ -43,9 +43,9 @@ The configuration file specifies two important parameters:
 By default, `config.txt` has the following content:
 ```
 BUILD_BASE_IMAGE_NAME=emco-service-build-base
-BUILD_BASE_IMAGE_VERSION=:1.1
+BUILD_BASE_IMAGE_VERSION=1.1
 SERVICE_BASE_IMAGE_NAME=alpine
-SERVICE_BASE_IMAGE_VERSION=:3.12
+SERVICE_BASE_IMAGE_VERSION=3.12
 ```
 TODO: correct the above
 
