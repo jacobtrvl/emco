@@ -3,6 +3,7 @@ module gitlab.com/project-emco/core/emco-base/src/rsync
 go 1.16
 
 require (
+	github.com/fluxcd/go-git-providers v0.5.4
 	github.com/ghodss/yaml v1.0.0
 	github.com/golang/mock v1.6.0
 	github.com/golang/protobuf v1.5.2
@@ -10,7 +11,6 @@ require (
 	github.com/pkg/errors v0.9.1
 	gitlab.com/project-emco/core/emco-base/src/monitor v0.0.0-00010101000000-000000000000
 	gitlab.com/project-emco/core/emco-base/src/orchestrator v0.0.0-00010101000000-000000000000
-	go.etcd.io/etcd v3.3.25+incompatible
 	golang.org/x/net v0.0.0-20220127200216-cd36cc0744dd
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	google.golang.org/grpc v1.43.0
