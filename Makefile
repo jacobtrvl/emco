@@ -6,6 +6,7 @@ export CONFIG := $(wildcard config/*.txt)
 
 # inject all variables defined in $(CONFIG) file
 export GO_VERSION := $(shell cat $(CONFIG) | grep 'GO_VERSION' | cut -d'=' -f2)
+export HELM_VERSION := $(shell cat $(CONFIG) | grep 'HELM_VERSION' | cut -d'=' -f2)
 export BUILD_BASE_IMAGE_NAME := $(shell cat $(CONFIG) | grep 'BUILD_BASE_IMAGE_NAME' | cut -d'=' -f2)
 export BUILD_BASE_IMAGE_VERSION := $(shell cat $(CONFIG) | grep 'BUILD_BASE_IMAGE_VERSION' | cut -d'=' -f2)
 export SERVICE_BASE_IMAGE_NAME := $(shell cat $(CONFIG) | grep 'SERVICE_BASE_IMAGE_NAME' | cut -d'=' -f2)

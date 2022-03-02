@@ -4,20 +4,18 @@
 ARG MAINDOCKERREPO
 ARG SERVICE_BASE_IMAGE_NAME
 ARG SERVICE_BASE_IMAGE_VERSION
-ARG HTTP_PROXY
-ARG HTTPS_PROXY
 
 FROM ${MAINDOCKERREPO}${SERVICE_BASE_IMAGE_NAME}:${SERVICE_BASE_IMAGE_VERSION}
 
-ENV HTTP_PROXY=${HTTP_PROXY}
-ENV HTTPS_PROXY=${HTTPS_PROXY}
+ARG HELM_VERSION
+ARG HTTP_PROXY
+ARG HTTPS_PROXY
 
 # Install some run-time build tools in the container.
 RUN apk update \
     &&  apk add --no-cache make
 RUN apk add curl
 RUN apk add --no-cache ca-certificates git
-ARG HELM_VERSION="v3.5.2"
-RUN curl -fssL -o  helm-${HELM_VERSION}-linux-amd64.tar.gz https://get.helm.sh/helm-${HELM_VERSION}-linux-amd64.tar.gz
-RUN tar -zxvf helm-${HELM_VERSION}-linux-amd64.tar.gz
+RUN curl -fssL -o helm-v${HELM_VERSION}-linux-amd64.tar.gz https://get.helm.sh/helm-v${HELM_VERSION}-linux-amd64.tar.gz
+RUN tar -zxvf helm-v${HELM_VERSION}-linux-amd64.tar.gz
 RUN mv linux-amd64/helm /usr/local/bin/helm
