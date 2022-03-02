@@ -83,7 +83,7 @@ compile-container: pre-compile
 
 compile: check-env
 	@echo "Building microservices within Docker build container"
-	docker run --rm --user `id -u`:`id -g` --env MODS="${MODS}" --env GO111MODULE --env XDG_CACHE_HOME=/tmp/.cache --env BRANCH=${BRANCH} --env TAG=${TAG} -v `pwd`:/repo golang:${GO_VERSION} /bin/sh -c "cd /repo; make compile-container"
+	docker run --rm --user `id -u`:`id -g` --env MODS="${MODS}" --env GO111MODULE --env XDG_CACHE_HOME=/tmp/.cache --env BRANCH=${BRANCH} --env TAG=${TAG} --env HTTP_PROXY=${HTTP_PROXY} --env HTTPS_PROXY=${HTTPS_PROXY} -v `pwd`:/repo golang:${GO_VERSION} /bin/sh -c "cd /repo; make compile-container"
 	@echo "    Done."
 
 # Modules that follow naming conventions are done in a loop, rest later
