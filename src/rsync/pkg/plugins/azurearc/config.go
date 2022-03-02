@@ -12,7 +12,9 @@ import (
 	"net/url"
 	"time"
 
+	"github.com/fluxcd/go-git-providers/gitprovider"
 	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
+	emcogit "gitlab.com/project-emco/core/emco-base/src/rsync/pkg/gitops/emcogit"
 )
 
 type Token struct {
@@ -149,12 +151,39 @@ func (p *AzureArcProvider) createGitConfiguration(accessToken string, repository
 }
 
 /*
+	Function to add dummy file to prevent the path getting deleted
+	params:
+	return
+
+*/
+func (p *AzureArcProvider) addDummyFile(ctx context.Context) error {
+	c, err := emcogit.CreateClient(p.gitProvider.GitToken, p.gitProvider.GitType)
+	if err != nil {
+		return err
+	}
+	files := []gitprovider.CommitFile{}
+
+	path := "clusters/" + p.gitProvider.Cluster + "/context/" + p.gitProvider.Cid
+	files = emcogit.Add(path+"/DoNotDelete", "Dummy file", files, p.gitProvider.GitType).([]gitprovider.CommitFile)
+
+	response := emcogit.CommitFiles(ctx, c, p.gitProvider.UserName, p.gitProvider.RepoName, "main", "New Commit", files, p.gitProvider.GitType)
+	if response != nil {
+		log.Error("Couldn't commit the file", log.Fields{"response": response})
+		return err
+	}
+
+	return nil
+}
+
+/*
 	Function to Delete Git configuration
 	params : Access Token, Subscription Id, Arc Cluster ResourceName, Arc Cluster Name, Flux Configuration name
 	return : Response, error
 
 */
 func (p *AzureArcProvider) deleteGitConfiguration(accessToken string, subscriptionIdValue string, arcClusterResourceGroupName string, arcClusterName string, gitConfiguration string) (string, error) {
+
+	log.Info("Inside DeleteGitConfiguration Azure Arc", log.Fields{})
 	// Create client
 	client := &http.Client{}
 	// Create request
@@ -163,6 +192,7 @@ func (p *AzureArcProvider) deleteGitConfiguration(accessToken string, subscripti
 	reqDelete, err := http.NewRequest("DELETE", urlDelete, nil)
 	if err != nil {
 		//Handle Error
+		log.Error("Error in request of delete configuration", log.Fields{"Response": reqDelete, "err": err})
 		return "", err
 	}
 	// Add request header
@@ -173,10 +203,12 @@ func (p *AzureArcProvider) deleteGitConfiguration(accessToken string, subscripti
 	resPut, err := client.Do(reqDelete)
 	if err != nil {
 		//Handle Error
+		log.Error("Error in response of delete configuration", log.Fields{"Response": resPut, "err": err})
 		return "", err
 	}
 	responseDataPut, err := ioutil.ReadAll(resPut.Body)
 	if err != nil {
+		log.Error("Error in parsing response of delete configuration", log.Fields{"Response": responseDataPut, "err": err})
 		return "", err
 	}
 
@@ -187,9 +219,16 @@ func (p *AzureArcProvider) deleteGitConfiguration(accessToken string, subscripti
 func (p *AzureArcProvider) ApplyConfig(ctx context.Context, config interface{}) error {
 	//get accesstoken for azure
 	log.Info("Inside ApplyConfig AzureArc", log.Fields{})
+
+	//Add dummy file to git
+	resp := p.addDummyFile(ctx)
+	if resp != nil {
+		log.Error("Couldn't add dummy file", log.Fields{"err": resp})
+		return resp
+	}
 	accessToken, err := p.getAccessToken(p.clientID, p.clientSecret, p.tenantID)
 
-	log.Info("Obtaine AccessToken: ", log.Fields{"accessToken": accessToken})
+	log.Info("Obtained AccessToken: ", log.Fields{"accessToken": accessToken})
 
 	if err != nil {
 		log.Error("Couldn't obtain access token", log.Fields{"err": err, "accessToken": accessToken})
@@ -219,7 +258,7 @@ func (p *AzureArcProvider) DeleteConfig(ctx context.Context, config interface{})
 
 	//Delete the files from the path?
 	// Maybe delete repo ("clusters/" + p.cluster + "/context/" + p.cid)
-
+	log.Info("Inside DeleteConfig Azure Arc", log.Fields{})
 	//delete configuration
 	//get accesstoken for azure
 	accessToken, err := p.getAccessToken(p.clientID, p.clientSecret, p.tenantID)
@@ -231,7 +270,7 @@ func (p *AzureArcProvider) DeleteConfig(ctx context.Context, config interface{})
 	// gitConfiguration := "config-" + p.gitProvider.Cluster + "-" + p.gitProvider.Cid // what should be the gitconfiguration name? Something unique like config-p.cluster-p.cid
 	gitConfiguration := "config-" + p.gitProvider.Cid
 
-	time.Sleep(5 * time.Second)
+	time.Sleep(1 * time.Second)
 
 	_, err = p.deleteGitConfiguration(accessToken, p.subscriptionID, p.arcResourceGroup, p.arcCluster, gitConfiguration)
 
