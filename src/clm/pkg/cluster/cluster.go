@@ -721,9 +721,7 @@ func (v *ClusterClient) GetClusterKvPairsValue(provider, cluster, kvpair, kvkey 
 
 		for _, kvmap := range ckvp.Spec.Kv {
 			if val, ok := kvmap[kvkey]; ok {
-				return struct {
-					Value interface{} `json:"value"`
-				}{Value: val}, nil
+				return val, nil
 			}
 		}
 		return nil, pkgerrors.New("Cluster KV pair key value not found")
