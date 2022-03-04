@@ -83,11 +83,30 @@ type WfTemporalStatusResponse struct {
 	WfQueryResult interface{} `json:"workflowQueryResult,omitempty"`
 }
 
+// WfTemporalCancelRequest is the set of parameters needed to invoke the
+// CancelWorkflow/TerminateWorkflow APIs.
+// Most fields, except the TemporalServer, are optional.
+type WfTemporalCancelRequest struct {
+	// The Temporal server's endpoint. E.g. "temporal.foo.com:7233". Required.
+	TemporalServer string `json:"temporalServer"`
+	// If WfID is specified, that overrides the one in the workflow intent.
+	WfID  string `json:"workflowID,omitempty"`
+	RunID string `json:"runID,omitempty"`
+	// If Terminate == true, TerminateWorkflow() is called, else CancelWorkflow().
+	Terminate bool          `json:"terminate,omitempty"`
+	Reason    string        `json:"reason,omitempty"`
+	Details   []interface{} `json:"details,omitempty"`
+}
+
 // Implement Stringer interface for query/response structs, so they can be logged.
 func (q WfTemporalStatusQuery) String() string {
 	return fmt.Sprintf("%#v", q)
 }
 
 func (r WfTemporalStatusResponse) String() string {
+	return fmt.Sprintf("%#v", r)
+}
+
+func (r WfTemporalCancelRequest) String() string {
 	return fmt.Sprintf("%#v", r)
 }

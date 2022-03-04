@@ -19,6 +19,7 @@ import (
 	log "gitlab.com/project-emco/core/emco-base/src/workflowmgr/pkg/infra/logutils"
 	enums "go.temporal.io/api/enums/v1"
 	history "go.temporal.io/api/history/v1"
+	wfsvc "go.temporal.io/api/workflowservice/v1"
 )
 
 // WorkflowIntent contains the parameters needed for managing workflows
@@ -41,6 +42,87 @@ type WfClientSpec struct {
 	WfClientEndpointPort int    `json:"clientEndpointPort"`
 }
 
+// WfTemporalStatusQuery encapsulates the data needed to check status of a
+// Temporal workflow from EMCO. It includes various flags to indicate the
+// types of status queries to be run.
+type WfTemporalStatusQuery struct {
+	// The Temporal server's endpoint. E.g. "temporal.foo.com:7233"
+	TemporalServer string `json:"temporalServer"`
+	// Temporal workflow ID. TODO get this from workflow intent if not provided.
+	WfID string `json:"workflowID"`
+	// Temporal Run ID. If it is "", the open or latest closed wf run is used.
+	RunID string `json:"runID,omitempty"`
+	// WaitForResult=true: block till workflow completes.
+	WaitForResult bool `json:"waitForResult,omitempty"`
+	// If true, run the DescribeWorkflowExecution API.
+	RunDescribeWfExec bool `json:"runDescribeWfExec,omitempty"`
+	// If true, run the GetWorkflowHistory API.
+	// If WaitForResult = true, this returns all history events, incl.
+	// those yet to happen (using  a long poll). If false, it returns only
+	// current events.
+	// TODO There is an option to return just the last event; if
+	// WaitForResult = true, this would be the last event which contains
+	// the workflow execution end result. For now, we always return all
+	// events, either till now or till the end.
+	GetWfHistory bool `json:"getWfHistory,omitempty"`
+	// See docs.temporal.io/docs/go/how-to-send-a-query-to-a-workflow-execution-in-go
+	QueryType   string        `json:"queryType,omitempty"`
+	QueryParams []interface{} `json:"queryParams,omitempty"`
+}
+
+// WfTemporalStatusResponse is the aggregation of responses from various
+// Temporal status APIs.
+type WfTemporalStatusResponse struct {
+	WfID  string `json:"workflowID"`
+	RunID string `json:"runID,omitempty"`
+
+	// TODO This is a dump from temporal. Needs polishing.
+	WfExecDesc wfsvc.DescribeWorkflowExecutionResponse `json:"workflowExecutionDescription,omitempty"`
+
+	WfHistory []history.HistoryEvent `json:"workflowHistory,omitempty"`
+	// For WfResult to be logged, it must implement the Stringer interface.
+	WfResult interface{} `json:"workflowResult,omitempty"`
+	// For WfQueryResult to be logged, it must implement the Stringer interface.
+	WfQueryResult interface{} `json:"workflowQueryResult,omitempty"`
+}
+
+// WfTemporalCancelRequest encapsulates a workflow cancel request. It is
+// the body of the POST call to "/cancel" API.
+// Only the spec field is of relevance, but emcoctl adds a 'metadata' field
+// anyway.
+type WfTemporalCancelRequest struct {
+	Metadata Metadata                    `json:"metadata,omitempty"`
+	Spec     WfTemporalCancelRequestSpec `json:"spec"`
+}
+
+// WfTemporalCancelRequestSpec is the set of parameters needed to invoke the
+// CancelWorkflow/TerminateWorkflow APIs.
+// Most fields, except the TemporalServer, are optional.
+type WfTemporalCancelRequestSpec struct {
+	// The Temporal server's endpoint. E.g. "temporal.foo.com:7233". Required.
+	TemporalServer string `json:"temporalServer"`
+	// If WfID is specified, that overrides the one in the workflow intent.
+	WfID  string `json:"workflowID,omitempty"`
+	RunID string `json:"runID,omitempty"`
+	// If Terminate == true, TerminateWorkflow() is called, else CancelWorkflow().
+	Terminate bool          `json:"terminate,omitempty"`
+	Reason    string        `json:"reason,omitempty"`
+	Details   []interface{} `json:"details,omitempty"`
+}
+
+// Implement Stringer interface for query/response structs, so they can be logged.
+func (q WfTemporalStatusQuery) String() string {
+	return fmt.Sprintf("%#v", q)
+}
+
+func (r WfTemporalStatusResponse) String() string {
+	return fmt.Sprintf("%#v", r)
+}
+
+func (r WfTemporalCancelRequest) String() string {
+	return fmt.Sprintf("%#v", r)
+}
+
 // WorkflowIntentKey is the key structure that is used in the database
 type WorkflowIntentKey struct {
 	WorkflowIntent      string `json:"workflowIntent"`
@@ -58,7 +140,9 @@ type WorkflowIntentManager interface {
 	DeleteWorkflowIntent(name, project, cApp, cAppVer, dig string) error
 	StartWorkflowIntent(name, project, cApp, cAppVer, dig string) error
 	GetStatusWorkflowIntent(name, project, cApp, cAppVer, dig string,
-		query *tmpl.WfTemporalStatusQuery) (*tmpl.WfTemporalStatusResponse, error)
+		query *WfTemporalStatusQuery) (*WfTemporalStatusResponse, error)
+	CancelWorkflowIntent(name, project, cApp, cAppVer, dig string,
+		req *WfTemporalCancelRequest) error
 }
 
 // WorkflowIntentClient implements the Manager
@@ -237,19 +321,18 @@ func (v *WorkflowIntentClient) StartWorkflowIntent(name,
 // GetStatusWorkflowIntent performs different types of Temporal workflow
 // status queries depending on the flags specified in the status API call.
 func (v *WorkflowIntentClient) GetStatusWorkflowIntent(name, project, cApp, cAppVer,
-	dig string, query *tmpl.WfTemporalStatusQuery) (*tmpl.WfTemporalStatusResponse, error) {
+	dig string, query *WfTemporalStatusQuery) (*WfTemporalStatusResponse, error) {
 	log.Info("Entered GetStatusWorkflowIntent", log.Fields{"project": project,
 		"composite app": cApp, "composite app version": cAppVer, "DIG": dig,
 		"intent name": name, "query": query, "queryType": query.QueryType})
 
-	resp := tmpl.WfTemporalStatusResponse{
+	resp := WfTemporalStatusResponse{
 		WfID:  query.WfID,
 		RunID: query.RunID,
 	}
 
 	clientOptions := client.Options{HostPort: query.TemporalServer}
 	c, err := client.NewClient(clientOptions)
-	ctx := context.Background() // TODO include query options later
 	if err != nil {
 		wrapErr := fmt.Errorf("Failed to connect to Temporal server (%s). Error: %s",
 			query.TemporalServer, err.Error())
@@ -258,6 +341,8 @@ func (v *WorkflowIntentClient) GetStatusWorkflowIntent(name, project, cApp, cApp
 			"intent name": name, "query": query})
 		return &resp, wrapErr
 	}
+
+	ctx := context.Background() // TODO include query options later
 
 	if query.RunDescribeWfExec {
 		log.Info("Running DescribeWorkflowExecution", log.Fields{"project": project,
@@ -372,4 +457,91 @@ func (v *WorkflowIntentClient) GetStatusWorkflowIntent(name, project, cApp, cApp
 	}
 
 	return &resp, nil
+}
+
+// Cancel/terminate the  Workflow
+func (v *WorkflowIntentClient) CancelWorkflowIntent(name,
+	project, cApp, cAppVer, dig string, req *WfTemporalCancelRequest) error {
+	var err error
+
+	//Construct key and tag to select the entry
+	key := WorkflowIntentKey{
+		WorkflowIntent:      name,
+		Project:             project,
+		CompositeApp:        cApp,
+		CompositeAppVersion: cAppVer,
+		DigName:             dig,
+	}
+
+	value, err := db.DBconn.Find(v.db.storeName, key, v.db.tagMeta)
+	if err != nil {
+		log.Error("CancelWorkflowIntent: Error getting intent",
+			log.Fields{"project": project, "composite app": cApp,
+				"composite app version": cAppVer, "DIG": dig,
+				"intent name": name, "error": err,
+			})
+		return err
+	} else if len(value) == 0 {
+		log.Error("CancelWorkflowIntent: Intent not found",
+			log.Fields{"project": project, "composite app": cApp,
+				"composite app version": cAppVer, "DIG": dig,
+				"intent name": name, "error": err,
+			})
+		return pkgerrors.New("Workflow Intent not found")
+	}
+
+	//value is a byte array
+	if value == nil {
+		log.Error("CancelWorkflowIntent: Intent value invalid",
+			log.Fields{"project": project, "composite app": cApp,
+				"composite app version": cAppVer, "DIG": dig,
+				"intent name": name, "error": err,
+			})
+		return pkgerrors.New("Unknown Error")
+	}
+
+	wfi := WorkflowIntent{}
+	if err = db.DBconn.Unmarshal(value[0], &wfi); err != nil {
+		log.Error("CancelWorkflowIntent: Can't decode intent",
+			log.Fields{"project": project, "composite app": cApp,
+				"composite app version": cAppVer, "DIG": dig,
+				"intent name": name, "error": err,
+			})
+		return err
+	}
+
+	spec := req.Spec
+
+	wfID := wfi.Spec.WfTemporalSpec.WfStartOpts.ID
+	if spec.WfID != "" { // wfID in the request overrides the one in the intent
+		wfID = spec.WfID
+	}
+
+	clientOptions := client.Options{HostPort: spec.TemporalServer}
+	c, err := client.NewClient(clientOptions)
+	if err != nil {
+		wrapErr := fmt.Errorf("CancelWorkflowIntent: Failed to "+
+			"connect to Temporal server (%s). Error: %s",
+			spec.TemporalServer, err.Error())
+		log.Error(wrapErr.Error(), log.Fields{"project": project,
+			"composite app": cApp, "composite app version": cAppVer, "DIG": dig,
+			"intent name": name, "cancel request": req})
+		return wrapErr
+	}
+
+	ctx := context.Background() // TODO include options later
+
+	if spec.Terminate {
+		log.Info("CancelWorkflowIntent: Calling TerminateWorkflow", log.Fields{
+			"wfID": wfID, "spec.runID": spec.RunID, "spec.reason": spec.Reason,
+			"spec.Details": spec.Details})
+		err = c.TerminateWorkflow(ctx, wfID, spec.RunID, spec.Reason, spec.Details)
+	} else {
+		log.Info("CancelWorkflowIntent: Calling CancelWorkflow", log.Fields{
+			"wfID": wfID, "spec.runID": spec.RunID})
+		err = c.CancelWorkflow(ctx, wfID, spec.RunID)
+	}
+
+	// Caller logs the error
+	return err
 }

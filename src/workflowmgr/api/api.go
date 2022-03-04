@@ -49,6 +49,7 @@ func NewRouter(testClient interface{}) *mux.Router {
 	nameUrl := baseUrl + "/{workflow-intent-name}"
 	startUrl := nameUrl + "/start"
 	statusUrl := nameUrl + "/status"
+	cancelUrl := nameUrl + "/cancel"
 
 	router.HandleFunc(baseUrl, wfIntentHandler.createHandler).Methods("POST")
 	router.HandleFunc(baseUrl, wfIntentHandler.getHandler).Methods("GET")
@@ -56,6 +57,7 @@ func NewRouter(testClient interface{}) *mux.Router {
 	router.HandleFunc(nameUrl, wfIntentHandler.deleteHandler).Methods("DELETE")
 	router.HandleFunc(startUrl, wfIntentHandler.startHandler).Methods("POST")
 	router.HandleFunc(statusUrl, wfIntentHandler.statusHandler).Methods("GET")
+	router.HandleFunc(cancelUrl, wfIntentHandler.cancelHandler).Methods("POST")
 
 	return router
 }

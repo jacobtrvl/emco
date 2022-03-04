@@ -7,10 +7,9 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/http/httputil"
 
 	"github.com/gorilla/mux"
-
-	tmpl "gitlab.com/project-emco/core/emco-base/src/emcotemporalapi"
 
 	log "gitlab.com/project-emco/core/emco-base/src/workflowmgr/pkg/infra/logutils"
 	moduleLib "gitlab.com/project-emco/core/emco-base/src/workflowmgr/pkg/module"
@@ -127,7 +126,7 @@ func (h workflowIntentHandler) deleteHandler(w http.ResponseWriter, r *http.Requ
 
 	err := h.client.DeleteWorkflowIntent(name, project, cApp, cAppVer, dig)
 	if err != nil {
-		log.Error(":: Error deleting workflow intent(s) ::",
+		log.Error(":: Error deleting workflow intent::",
 			log.Fields{"Error": err, "name": name, "project": project, "cApp": cApp, "cAppVer": cAppVer, "dig": dig})
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -218,8 +217,8 @@ func (h workflowIntentHandler) statusHandler(w http.ResponseWriter, r *http.Requ
 	})
 }
 
-func buildStatusQuery(r *http.Request) (*tmpl.WfTemporalStatusQuery, error) {
-	query := &tmpl.WfTemporalStatusQuery{}
+func buildStatusQuery(r *http.Request) (*moduleLib.WfTemporalStatusQuery, error) {
+	query := &moduleLib.WfTemporalStatusQuery{}
 
 	err := r.ParseForm()
 	if err != nil {
@@ -283,4 +282,70 @@ func buildStatusQuery(r *http.Request) (*tmpl.WfTemporalStatusQuery, error) {
 	}
 
 	return query, nil
+}
+
+func (h workflowIntentHandler) cancelHandler(w http.ResponseWriter, r *http.Request) {
+	var cancelReq moduleLib.WfTemporalCancelRequest
+
+	vars := mux.Vars(r)
+	name := vars["workflow-intent-name"]
+	project := vars["project"]
+	cApp := vars["compositeApp"]
+	cAppVer := vars["compositeAppVersion"]
+	dig := vars["deploymentIntentGroup"]
+
+	if requestDump, err := httputil.DumpRequest(r, true); err != nil {
+		log.Error("Failed to dump request", log.Fields{"error": err})
+	} else {
+		log.Info("cancelHandler", log.Fields{"reqDump": string(requestDump),
+			"cancelReq": cancelReq}) // XXX
+	}
+
+	err := json.NewDecoder(r.Body).Decode(&cancelReq)
+	switch {
+	case err == io.EOF:
+		errmsg := ":: Empty workflow cancel request POST body ::"
+		log.Error(errmsg, log.Fields{"Error": err})
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	case err != nil:
+		errmsg := ":: Error decoding workflow cancel request POST body ::"
+		log.Error(errmsg, log.Fields{"Error": err})
+		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
+		return
+	}
+
+	log.Info("cancelHandler", log.Fields{"cancelReq": cancelReq}) // XXX
+
+	if cancelReq.Spec.TemporalServer == "" {
+		errmsg := ":: Temporal Server endpoint is required."
+		log.Error(errmsg, log.Fields{"name": name,
+			"project": project, "cApp": cApp, "cAppVer": cAppVer, "dig": dig,
+			"cancelReq": cancelReq})
+		http.Error(w, errmsg, http.StatusBadRequest)
+		return
+	}
+
+	log.Info("cancelHandler API start", log.Fields{"name": name,
+		"project": project, "cApp": cApp, "cAppVer": cAppVer, "dig": dig,
+		"cancelReq": cancelReq,
+	})
+
+	err = h.client.CancelWorkflowIntent(name, project, cApp, cAppVer, dig, &cancelReq)
+	if err != nil {
+		errmsg := ":: Error cancelling workflow::"
+		if cancelReq.Spec.Terminate {
+			errmsg = ":: Error terminating workflow::"
+		}
+		log.Error(errmsg, log.Fields{"Error": err, "name": name, "project": project,
+			"cApp": cApp, "cAppVer": cAppVer, "dig": dig})
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+
+	log.Info("cancelHandler API success", log.Fields{"name": name,
+		"project": project, "cApp": cApp, "cAppVer": cAppVer, "dig": dig,
+	})
 }
