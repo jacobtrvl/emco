@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright (c) 2022 Intel Corporation
 
-package emcotemporalapi
+package module
 
 // This package represents the API exported by EMCO for 3rd party workflows.
 // A 3rd party workflow is expected to import this package + Temporal SDK.
@@ -11,10 +11,10 @@ package emcotemporalapi
 // TODO Version this API?
 
 import (
-	"fmt"
+//	"fmt"
 
-	history "go.temporal.io/api/history/v1"
-	wfsvc "go.temporal.io/api/workflowservice/v1"
+//	history "go.temporal.io/api/history/v1"
+//	wfsvc "go.temporal.io/api/workflowservice/v1"
 	cl "go.temporal.io/sdk/client"
 	wf "go.temporal.io/sdk/workflow"
 )
@@ -38,7 +38,7 @@ type WorkflowParams struct {
 	// map of wf-specific key-value pairs indexed by activity name
 	ActivityParams map[string]map[string]string `json:"activityParams,omitempty"`
 }
-
+/*
 // WfTemporalStatusQuery encapsulates the data needed to check status of a
 // Temporal workflow from EMCO. It includes various flags to indicate the
 // types of status queries to be run.
@@ -83,21 +83,6 @@ type WfTemporalStatusResponse struct {
 	WfQueryResult interface{} `json:"workflowQueryResult,omitempty"`
 }
 
-// WfTemporalCancelRequest is the set of parameters needed to invoke the
-// CancelWorkflow/TerminateWorkflow APIs.
-// Most fields, except the TemporalServer, are optional.
-type WfTemporalCancelRequest struct {
-	// The Temporal server's endpoint. E.g. "temporal.foo.com:7233". Required.
-	TemporalServer string `json:"temporalServer"`
-	// If WfID is specified, that overrides the one in the workflow intent.
-	WfID  string `json:"workflowID,omitempty"`
-	RunID string `json:"runID,omitempty"`
-	// If Terminate == true, TerminateWorkflow() is called, else CancelWorkflow().
-	Terminate bool          `json:"terminate,omitempty"`
-	Reason    string        `json:"reason,omitempty"`
-	Details   []interface{} `json:"details,omitempty"`
-}
-
 // Implement Stringer interface for query/response structs, so they can be logged.
 func (q WfTemporalStatusQuery) String() string {
 	return fmt.Sprintf("%#v", q)
@@ -106,7 +91,5 @@ func (q WfTemporalStatusQuery) String() string {
 func (r WfTemporalStatusResponse) String() string {
 	return fmt.Sprintf("%#v", r)
 }
+*/
 
-func (r WfTemporalCancelRequest) String() string {
-	return fmt.Sprintf("%#v", r)
-}

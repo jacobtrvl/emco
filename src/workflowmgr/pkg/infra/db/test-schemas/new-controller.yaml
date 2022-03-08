@@ -1,9 +1,0 @@
-name: emco-new-controller
-resources:
-  - name: sfcIntent
-  - name: sfcLink
-    parent: sfcIntent
-  - name: sfcClientSelector
-    parent: sfcIntent
-  - name: sfcProviderNetwork
-    parent: sfcIntent

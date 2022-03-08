@@ -11,7 +11,7 @@ import (
 
 	"github.com/gorilla/mux"
 
-	log "gitlab.com/project-emco/core/emco-base/src/workflowmgr/pkg/infra/logutils"
+	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 	moduleLib "gitlab.com/project-emco/core/emco-base/src/workflowmgr/pkg/module"
 )
 

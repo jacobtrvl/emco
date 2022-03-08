@@ -14,9 +14,9 @@ import (
 	pkgerrors "github.com/pkg/errors"
 	"go.temporal.io/sdk/client"
 
-	tmpl "gitlab.com/project-emco/core/emco-base/src/emcotemporalapi"
-	"gitlab.com/project-emco/core/emco-base/src/workflowmgr/pkg/infra/db"
-	log "gitlab.com/project-emco/core/emco-base/src/workflowmgr/pkg/infra/logutils"
+//	tmpl "gitlab.com/project-emco/core/emco-base/src/emcotemporalapi"
+	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
+	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 	enums "go.temporal.io/api/enums/v1"
 	history "go.temporal.io/api/history/v1"
 	wfsvc "go.temporal.io/api/workflowservice/v1"
@@ -33,7 +33,7 @@ type WorkflowIntentSpec struct {
 	// Network endpoint at which the workflow client resides.
 	WfClientSpec WfClientSpec `json:"workflowClient"`
 	// See emcotemporalapi package.
-	WfTemporalSpec tmpl.WfTemporalSpec `json:"temporal"`
+	WfTemporalSpec WfTemporalSpec `json:"temporal"`
 }
 
 // WfClientSpec is the network endpoint at which the workflow client resides.

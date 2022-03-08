@@ -15,9 +15,9 @@ import (
 	"github.com/gorilla/handlers"
 
 	"gitlab.com/project-emco/core/emco-base/src/workflowmgr/api"
-	"gitlab.com/project-emco/core/emco-base/src/workflowmgr/pkg/infra/auth"
-	"gitlab.com/project-emco/core/emco-base/src/workflowmgr/pkg/infra/config"
-	"gitlab.com/project-emco/core/emco-base/src/workflowmgr/pkg/infra/db"
+	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/auth"
+	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/config"
+	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
 )
 
 /*

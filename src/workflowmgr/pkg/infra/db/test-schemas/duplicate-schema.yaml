@@ -1,6 +1,0 @@
-name: emco-base
-resources:
-  - name: newProviderNetwork
-    parent: cluster
-  - name: newNetwork
-    parent: cluster
