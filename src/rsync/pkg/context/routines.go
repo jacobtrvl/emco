@@ -517,13 +517,17 @@ func (c *Context) runCluster(ctx context.Context, op RsyncOperation, e RsyncEven
 		return err
 	}
 	defer cl.CleanClientProvider()
-	err = cl.StartClusterWatcher()
-	if err != nil {
-		log.Error("Error starting Cluster Watcher", log.Fields{
-			"error":   err,
-			"cluster": cluster,
-		})
-		return err
+	// Start cluster watcher if there are resources to be watched
+	// case like admin cloud has no resources
+	if len (c.ca.Apps[app].Clusters[cluster].ResOrder) > 0  {
+		err = cl.StartClusterWatcher()
+		if err != nil {
+			log.Error("Error starting Cluster Watcher", log.Fields{
+				"error":   err,
+				"cluster": cluster,
+			})
+			return err
+		}
 	}
 	r := resProvd{app: app, cluster: cluster, cl: cl, context: *c}
 	// Timer key
@@ -676,7 +680,7 @@ func ScheduleDeleteStatusTracker(acID, app, cluster, level, namespace string, co
 			return
 		}
 		defer cl.CleanClientProvider()
-		if err = cl.DeleteStatusCR(b); err != nil {
+		if err = cl.DeleteStatusCR(label, b); err != nil {
 			log.Info("Failed to delete res", log.Fields{"error": err, "app": app, "label": label})
 			return
 		}

@@ -220,8 +220,8 @@ type ResourceProvider interface {
 
 type StatusProvider interface {
 	StartClusterWatcher() error
-	ApplyStatusCR(content []byte) error
-	DeleteStatusCR(content []byte) error
+	ApplyStatusCR(name string, content []byte) error
+	DeleteStatusCR(name string, content []byte) error
 }
 
 type ReferenceProvider interface {

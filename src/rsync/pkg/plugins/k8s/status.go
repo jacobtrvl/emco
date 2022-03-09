@@ -16,7 +16,7 @@ import (
 	"gitlab.com/project-emco/core/emco-base/src/rsync/pkg/status"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/clientcmd"
-        "gitlab.com/project-emco/core/emco-base/src/rsync/pkg/internal/utils"
+	"gitlab.com/project-emco/core/emco-base/src/rsync/pkg/internal/utils"
 )
 
 type channelManager struct {
@@ -149,7 +149,7 @@ func scheduleStatus(clusterId string, c <-chan struct{}, s cache.SharedIndexInfo
 }
 
 // ApplyStatusCR applies status CR
-func (p *K8sProvider) ApplyStatusCR(content []byte) error {
+func (p *K8sProvider) ApplyStatusCR(name string, content []byte) error {
 	if err := p.client.Apply(content); err != nil {
 		log.Error("Failed to apply Status CR", log.Fields{
 			"error": err,
@@ -161,7 +161,7 @@ func (p *K8sProvider) ApplyStatusCR(content []byte) error {
 }
 
 // DeleteStatusCR deletes status CR
-func (p *K8sProvider) DeleteStatusCR(content []byte) error {
+func (p *K8sProvider) DeleteStatusCR(name string, content []byte) error {
 	if err := p.client.Delete(content); err != nil {
 		log.Error("Failed to delete Status CR", log.Fields{
 			"error": err,

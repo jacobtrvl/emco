@@ -154,3 +154,53 @@ func Delete(path string, files []gitprovider.CommitFile) []gitprovider.CommitFil
 
 	return files
 }
+
+/*
+	Function to get files to the github repo
+	params : context, github client, User Name, Repo Name, Branch Name, path)
+	return : []*gitprovider.CommitFile, nil/error
+*/
+func GetFiles(ctx context.Context, c gitprovider.Client, userName string, repoName string, branch string, path string) ( []*gitprovider.CommitFile, error ){
+
+	// create repo reference
+	userRepoRef := getRepoRef(userName, repoName)
+	userRepo, err := c.UserRepositories().Get(ctx, userRepoRef)
+	if err != nil {
+		return nil, err
+	}
+
+	// Read the files  
+	cf, err := userRepo.Files().Get(ctx, path, branch)
+	if err != nil {
+		return nil, err
+	}
+	return cf, nil
+}
+
+/*
+	Function to get files to the github repo
+	params : context, github client, User Name, Repo Name, Branch Name, path)
+	return : []*gitprovider.CommitFile, nil/error
+*/
+func GetFilesNewCommit(ctx context.Context, c gitprovider.Client, userName, repoName, branch, path, commitId string) ( []*gitprovider.CommitFile, error ){
+
+	// create repo reference
+	userRepoRef := getRepoRef(userName, repoName)
+	userRepo, err := c.UserRepositories().Get(ctx, userRepoRef)
+	if err != nil {
+		return nil, err
+	}
+	cmts, err := userRepo.Commits().ListPage(ctx, branch, 100, 1)
+	for _, ct := range cmts {
+		s := ct.Get().Message
+		if s == "Adding Status for" {
+			if ct.Get().Sha != commitId {}
+		}
+	}
+	// Read the files  
+	cf, err := userRepo.Files().Get(ctx, path, branch)
+	if err != nil {
+		return nil, err
+	}
+	return cf, nil
+}

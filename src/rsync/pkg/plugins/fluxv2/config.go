@@ -72,7 +72,7 @@ func (p *Fluxv2Provider) ApplyConfig(ctx context.Context, config interface{}) er
 	// Add to the commit
 	gp = emcogithub.Add(path, string(y), gp)
 	// Commit
-	err = emcogithub.CommitFiles(ctx, p.client, p.userName, p.repoName, p.branch, "Commit for "+p.getPath(), gp)
+	err = emcogithub.CommitFiles(ctx, p.client, p.userName, p.repoName, p.branch, "Commit for "+p.getPath("context"), gp)
 	if err != nil {
 		log.Error("ApplyConfig:: Commit files err", log.Fields{"err": err, "gp": gp})
 	}
@@ -85,7 +85,7 @@ func (p *Fluxv2Provider) DeleteConfig(ctx context.Context, config interface{}) e
 	gp := emcogithub.Delete(path, []gitprovider.CommitFile{})
 	path = "clusters/" + p.cluster + "/" + "kcust" + p.cid + ".yaml"
 	gp = emcogithub.Delete(path, gp)
-	err := emcogithub.CommitFiles(ctx, p.client, p.userName, p.repoName, p.branch, "Commit for "+p.getPath(), gp)
+	err := emcogithub.CommitFiles(ctx, p.client, p.userName, p.repoName, p.branch, "Commit for "+p.getPath("context"), gp)
 	if err != nil {
 		log.Error("ApplyConfig:: Commit files err", log.Fields{"err": err, "gp": gp})
 	}

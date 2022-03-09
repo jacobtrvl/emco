@@ -274,7 +274,7 @@ func (r *resProvd) addStatusTracker(extraLabel string) error {
 		log.Error("Failed to get status CR for installing", log.Fields{"error": err, "label": label,})
 		return err
 	}
-	if err = r.cl.ApplyStatusCR(b); err != nil {
+	if err = r.cl.ApplyStatusCR(label, b); err != nil {
 		log.Error("Failed to apply status tracker", log.Fields{"error": err, "cluster": r.cluster, "app": r.app, "label":   label,})
 		return err
 	}
@@ -289,7 +289,7 @@ func (r *resProvd) deleteStatusTracker(extraLabel string) error {
 		log.Error("Failed to get status CR for deleting", log.Fields{"error": err, "label": label,})
 		return err
 	}
-	if err = r.cl.DeleteStatusCR(b); err != nil {
+	if err = r.cl.DeleteStatusCR(label, b); err != nil {
 		log.Error("Failed to delete res", log.Fields{"error": err, "app":   r.app, "label": label,})
 		return err
 	}

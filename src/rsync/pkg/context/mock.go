@@ -200,11 +200,11 @@ func (m *MockClient) StartClusterWatcher() error {
 	return nil
 }
 
-func (m *MockClient) ApplyStatusCR(content []byte) error {
+func (m *MockClient) ApplyStatusCR(name string, content []byte) error {
 	return nil
 }
 
-func (m *MockClient) DeleteStatusCR(content []byte) error {
+func (m *MockClient) DeleteStatusCR(name string, content []byte) error {
 	return nil
 }
 func (m *MockClient) ApplyConfig(ctx context.Context, config interface{}) error {
