@@ -15,24 +15,26 @@ Please see [generic-action-controller.md](../../docs/design/generic-action-contr
 
     1. Run the setup script for creating artifacts needed to test GAC on a single cluster
 
-      ```shell
-        $ sudo chmod +x setup.sh
+          ```shell
+            $ sudo chmod +x setup.sh
 
-        $ ./setup.sh create
-      ```
+            $ ./setup.sh create
+          ```
 
       The output of this command is
         1. `emco-cfg.yaml` for the current environment
         2. `prerequisites.yaml` for the test
         3. `values.yaml` for the current environment
-        4. `instantiate.yaml` instantiate the deployment intent group
-        5. `helm chart and profiles tar.gz files` for all the use cases
+        4. `instantiate.yaml` to instantiate the deployment intent group
+        5. `update.yaml` to update the deployment intent group
+        6. `rollback.yaml` to rollback to a previous version
+        7. `helm chart and profiles tar.gz files` for all the use cases
       
     2. Cleanup artifacts generated above with the cleanup command
 
-      ```shell
-        $ ./setup.sh cleanup
-      ```
+          ```shell
+            $ ./setup.sh cleanup
+          ```
 
 ## Test Kubernetes resource creation
 
@@ -58,47 +60,93 @@ Once the deploymentIntentGroup is instantiated successfully, we can see the foll
 
   1. `networkpolicy`
 
-    - netpol-db
-    - netpol-web
+        - netpol-db
+        - netpol-web
 
-      $ kubectl get netpol
-      NAME                    POD-SELECTOR    AGE
-      netpol-db               role=database   5s
-      netpol-web              app=emco        5s
+      ```shell
+        $ kubectl get netpol
+        NAME                    POD-SELECTOR    AGE
+        netpol-db               role=database   5s
+        netpol-web              app=emco        5s
+      ```
 
   2. `configmap`
 
-    - cm-game
-    - cm-team
+        - cm-game
+        - cm-team
 
-      $ kubectl get cm
-      NAME             DATA   AGE
-      cm-game          5      5s
-      cm-team          4      5s
+      ```shell
+        $ kubectl get cm
+        NAME             DATA   AGE
+        cm-game          5      5s
+        cm-team          4      5s
+      ```
 
   3. `secret`
 
-    - m3db-operator-token-bxt65
-    - secret-auth
-    - secret-user
+        - m3db-operator-token-bxt65
+        - secret-auth
+        - secret-user
 
-      $ kubectl get secret
-      NAME                        TYPE                                  DATA   AGE
-      m3db-operator-token-bxt65   kubernetes.io/service-account-token   3      5s
-      secret-auth                 kubernetes.io/service-account-token   7      5s
-      secret-user                 kubernetes.io/service-account-token   7      5s
+      ```shell
+          $ kubectl get secret
+          NAME                        TYPE                                  DATA   AGE
+          m3db-operator-token-bxt65   kubernetes.io/service-account-token   3      5s
+          secret-auth                 kubernetes.io/service-account-token   7      5s
+          secret-user                 kubernetes.io/service-account-token   7      5s
+      ```
 
   4. `statefulset`
 
-    - etcd
-    - m3db-operator
+        - etcd
+        - m3db-operator
 
-      $ kubectl get statefulset 
-      NAME            READY   AGE
-      etcd            1/1     5s
-      m3db-operator   1/1     5s
+      ```shell
+        $ kubectl get statefulset 
+        NAME            READY   AGE
+        etcd            1/1     5s
+        m3db-operator   1/1     5s
+      ```
     
 <b> Note: We are using the operator app in this example. You can create resources for different apps based on the use cases. <b>
+
+## Test Kubernetes resource update/rollback
+
+  You can create/update Kubernetes objects after instantiating a deployment intent. For example, if you want to update the replica count of the `etcd` statefulset, follow the below steps.
+
+  1. Update customization
+
+      ```shell
+        $ $bin/emcoctl update --config emco-cfg.yaml -v values.yaml -f test-gac-update.yaml
+      ```
+
+  2. Update GAC compositeApp deploymentIntentGroup
+
+      ```shell
+        $ $bin/emcoctl apply --config emco-cfg.yaml -v values.yaml -f update.yaml
+      ```
+
+  Once the deployment is updated successfully, we can see that the replica count of `etcd` statefulset is now two.
+
+  ```shell
+    $ kubectl get statefulset
+    NAME            READY   AGE
+    etcd            2/2     2m
+  ```
+
+  You can also rollback the statefulset state to a previous version. For example, if you want to roll back the above changes,
+
+  ```shell
+    $ $bin/emcoctl apply --config emco-cfg.yaml -v values.yaml -f rollback.yaml
+  ```
+
+  Once the deployment is updated successfully, we can see that the replica count of `etcd` statefulset is now back to one.
+
+  ```shell
+    $ kubectl get statefulset
+    NAME            READY   AGE
+    etcd            1/1     3m
+  ```
 
 ### Cleanup
 
@@ -149,21 +197,25 @@ Once the deployment intent group is instantiated successfully, we can see the fo
 
   1. `configmap`
 
-    - cm-istio
+        - cm-istio
 
-      $ kubectl get cm
-      NAME             DATA   AGE
-      cm-istio         4      5s
+      ```shell
+        $ kubectl get cm
+        NAME             DATA   AGE
+        cm-istio         4      5s
+      ```
 
   2. `secret`
   
-    - m3db-operator-token-bxt65
-    - secret-db
+        - m3db-operator-token-bxt65
+        - secret-db
 
-      $ kubectl get secret
-      NAME                        TYPE                                  DATA   AGE
-      m3db-operator-token-bxt65   kubernetes.io/service-account-token   3      5s
-      secret-db                   kubernetes.io/service-account-token   6      5s
+      ```shell
+        $ kubectl get secret
+        NAME                        TYPE                                  DATA   AGE
+        m3db-operator-token-bxt65   kubernetes.io/service-account-token   3      5s
+        secret-db                   kubernetes.io/service-account-token   6      5s
+      ```
 
 <b> Note: We are using the operator app in this example. You can create resources for different apps based on the use cases. <b>
 

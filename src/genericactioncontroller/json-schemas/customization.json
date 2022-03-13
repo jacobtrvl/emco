@@ -174,7 +174,7 @@
           },
           "value": {
             "description": "specifies the new value for the referenced location",
-            "type": "string",
+            "type": ["string","number","object","array","boolean","null","integer"],
             "example": 3
           }
         },

@@ -1,0 +1,31 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2022 Intel Corporation
+
+# update customization for etcd-statefulset
+# patch etcd-statefulset to update the number of replicas
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.CompositeAppGac}}/v1/deployment-intent-groups/{{.DeploymentIntent}}/generic-k8s-intents/{{.GacIntent}}/resources/sts-etcd/customizations
+metadata:
+  name: sts-etcd-customization
+spec:
+  clusterSpecific: "true"
+  clusterInfo:
+    scope: label
+    clusterProvider: {{.ClusterProvider}}
+    cluster: ""
+    clusterLabel: {{.ClusterLabel}}
+    mode: allow
+  patchType: "json"
+  patchJson: [
+	  {
+	    "op": "replace",
+	    "path": "/spec/replicas",
+	    "value": 2 # original value `1`
+	  }
+	]
+files:
+  - customization-dummy.yaml
+# the content in this file will be ignored 
+# customization using files only supported for ConfigMap/Secret
+# emcoctl requires a file to create the multipart request

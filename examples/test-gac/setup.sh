@@ -333,6 +333,32 @@ resourceContext:
   anchor: projects/{{.ProjectName}}/composite-apps/{{.CompositeAppGac}}/v1/deployment-intent-groups/{{.DeploymentIntent}}/instantiate
 NET
 
+# head of update.yaml
+cat << NET > update.yaml
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2022 Intel Corporation
+
+# update
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.CompositeAppGac}}/v1/deployment-intent-groups/{{.DeploymentIntent}}/update
+NET
+
+# head of rollback.yaml
+cat << NET > rollback.yaml
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2022 Intel Corporation
+
+# rollback
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.CompositeAppGac}}/v1/deployment-intent-groups/{{.DeploymentIntent}}/rollback
+metadata:
+  description: "rollback to revision 1"
+spec:
+  revision: "1"
+NET
+
 }
 
 function usage {
@@ -345,6 +371,8 @@ function cleanup {
     rm -f emco-cfg.yaml
     rm -f prerequisites.yaml
     rm -f instantiate.yaml
+    rm -f update.yaml
+    rm -f rollback.yaml
     rm -rf output
 }
 
