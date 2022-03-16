@@ -1,0 +1,117 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2020-2022 Intel Corporation
+
+---
+#create project
+version: emco/v2
+resourceContext:
+  anchor: projects
+metadata :
+   name: {{.ProjectName}}
+
+---
+#creating controller entries
+version: emco/v2
+resourceContext:
+  anchor: controllers
+metadata :
+   name: rsync
+spec:
+  host:  {{.HostIP}}
+  port: {{.RsyncPort}}
+
+---
+version: emco/v2
+resourceContext:
+  anchor: controllers
+metadata :
+   name: dtc
+spec:
+  host: {{.HostIP}}
+  port: {{.DtcPort}}
+  type: "action"
+  priority: 1
+
+---
+#creating dtc controller entries
+version: emco/v2
+resourceContext:
+  anchor: dtc-controllers
+metadata :
+   name: nps
+spec:
+  host:  {{.HostIP}}
+  port: {{.NpsPort}}
+  type: "action"
+  priority: 1
+
+---
+#creating cluster provider
+version: emco/v2
+resourceContext:
+  anchor: cluster-providers
+metadata :
+   name: {{.ClusterProvider}}
+
+---
+#creating cluster
+version: emco/v2
+resourceContext:
+  anchor: cluster-providers/{{.ClusterProvider}}/clusters
+metadata :
+   name: {{.Cluster1}}
+file:
+  {{.KubeConfig}}
+
+---
+#creating cluster
+version: emco/v2
+resourceContext:
+  anchor: cluster-providers/{{.ClusterProvider}}/clusters
+metadata :
+   name: {{.Cluster2}}
+file:
+  {{.KubeConfig2}}
+
+---
+#Add label cluster
+version: emco/v2
+resourceContext:
+  anchor: cluster-providers/{{.ClusterProvider}}/clusters/{{.Cluster1}}/labels
+clusterLabel: {{.ClusterLabel}}
+
+---
+#Add label cluster
+version: emco/v2
+resourceContext:
+  anchor: cluster-providers/{{.ClusterProvider}}/clusters/{{.Cluster2}}/labels
+clusterLabel: {{.ClusterLabel}}
+
+---
+#create privileged logical cloud
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/logical-clouds
+metadata:
+  name: {{.LogicalCloud}}
+spec:
+  namespace: {{.StandardNamespace}}
+  user:
+    userName: user-1
+    type: certificate
+
+---
+#add primary user permission (only one that is allowed in standard logical clouds)
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/logical-clouds/{{.LogicalCloud}}/user-permissions
+metadata:
+    name: {{.StandardPermission}}
+spec:
+    namespace: {{.StandardNamespace}}
+    apiGroups:
+    - "*"
+    resources:
+    - "*"
+    verbs:
+    - "*"

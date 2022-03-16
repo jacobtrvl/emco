@@ -1,0 +1,11 @@
+---
+#add first cluster reference to logical cloud
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/logical-clouds/{{.LogicalCloud}}/cluster-references
+metadata:
+  name: {{.Cluster1Ref}}
+spec:
+  clusterProvider: {{.ClusterProvider}}
+  cluster: {{.Cluster1}}
+  loadbalancerIp: "0.0.0.0"
