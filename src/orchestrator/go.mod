@@ -28,6 +28,7 @@ require (
 	github.com/xeipuuv/gojsonschema v1.2.0
 	github.com/yourbasic/graph v0.0.0-20210606180040-8ecfec1c2869
 	gitlab.com/project-emco/core/emco-base/src/clm v0.0.0-00010101000000-000000000000
+	gitlab.com/project-emco/core/emco-base/src/dcm v0.0.0-20220316014142-c297b334c82c // indirect
 	gitlab.com/project-emco/core/emco-base/src/monitor v0.0.0-00010101000000-000000000000
 	gitlab.com/project-emco/core/emco-base/src/rsync v0.0.0-00010101000000-000000000000
 	go.etcd.io/etcd v3.3.25+incompatible

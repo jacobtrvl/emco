@@ -8,11 +8,10 @@ require (
 	github.com/onsi/gomega v1.18.1
 	github.com/pkg/errors v0.9.1
 	github.com/stretchr/testify v1.7.0
-	gitlab.com/project-emco/core/emco-base/src/dcm v0.0.0-20220228211731-aa584916ddda
+	gitlab.com/project-emco/core/emco-base/src/dcm v0.0.0-20220316014142-c297b334c82c
 	gitlab.com/project-emco/core/emco-base/src/orchestrator v0.0.0-00010101000000-000000000000
 	gitlab.com/project-emco/core/emco-base/src/rsync v0.0.0-00010101000000-000000000000
 	gitlab.com/project-emco/core/emco-base/src/sfc v0.0.0-00010101000000-000000000000
-	google.golang.org/grpc v1.43.0
 	k8s.io/api v0.23.3
 	k8s.io/apimachinery v0.23.3
 	k8s.io/client-go v0.23.3

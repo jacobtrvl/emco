@@ -11,6 +11,7 @@ import (
 	"time"
 
 	pkgerrors "github.com/pkg/errors"
+	dcm "gitlab.com/project-emco/core/emco-base/src/dcm/pkg/module"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/appcontext"
 	gpic "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/gpic"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
@@ -276,7 +277,7 @@ func cleanTmpfiles(sortedTemplates []helm.KubernetesResourceTemplate) error {
 	return nil
 }
 
-func validateLogicalCloud(p string, lc string, dcmCloudClient *LogicalCloudClient) error {
+func validateLogicalCloud(p string, lc string, dcmCloudClient *dcm.LogicalCloudClient) error {
 	// check that specified logical cloud is already instantiated
 	logicalCloud, err := dcmCloudClient.Get(p, lc)
 	if err != nil {
@@ -302,7 +303,7 @@ func validateLogicalCloud(p string, lc string, dcmCloudClient *LogicalCloudClien
 
 	// make sure rsync status for this logical cloud is Instantiated (instantiated),
 	// otherwise the cloud isn't ready to receive the application being instantiated
-	acStatus, err := GetAppContextStatus(ac)
+	acStatus, err := dcm.GetAppContextStatus(ac)
 	if err != nil {
 		return err
 	}
@@ -332,8 +333,8 @@ func validateLogicalCloud(p string, lc string, dcmCloudClient *LogicalCloudClien
 	return nil
 }
 
-func getLogicalCloudInfo(p string, lc string) ([]Cluster, string, string, error) {
-	dcmCloudClient := NewLogicalCloudClient()
+func getLogicalCloudInfo(p string, lc string) ([]dcm.Cluster, string, string, error) {
+	dcmCloudClient := dcm.NewLogicalCloudClient()
 	logicalCloud, _ := dcmCloudClient.Get(p, lc)
 	if err := validateLogicalCloud(p, lc, dcmCloudClient); err != nil {
 		return nil, "", "", err
@@ -347,13 +348,13 @@ func getLogicalCloudInfo(p string, lc string) ([]Cluster, string, string, error)
 
 	// get all clusters from specified logical cloud (LC)
 	// [candidate in the future for emco-lib]
-	dcmClusterClient := NewClusterClient()
+	dcmClusterClient := dcm.NewClusterClient()
 	dcmClusters, _ := dcmClusterClient.GetAllClusters(p, lc)
 	log.Info(":: dcmClusters ::", log.Fields{"dcmClusters": dcmClusters})
 	return dcmClusters, namespace, level, nil
 }
 
-func checkClusters(listOfClusters gpic.ClusterList, dcmClusters []Cluster) error {
+func checkClusters(listOfClusters gpic.ClusterList, dcmClusters []dcm.Cluster) error {
 	// make sure LC can support DIG by validating DIG clusters against LC clusters
 	var mandatoryClusters []gpic.ClusterWithName
 
