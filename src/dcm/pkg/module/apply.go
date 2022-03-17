@@ -401,12 +401,132 @@ func callRsyncUninstall(contextid interface{}) error {
 	return nil
 }
 
+func prepL1ClusterAppContext(logicalcloud LogicalCloud, cluster Cluster, quotaList []Quota, userPermissionList []UserPermission, lcclient *LogicalCloudClient, lckey LogicalCloudKey, context appcontext.AppContext, cid string) error {
+	logicalCloudName := logicalcloud.MetaData.LogicalCloudName
+	clusterName := strings.Join([]string{cluster.Specification.ClusterProvider, "+", cluster.Specification.ClusterName}, "")
+	appHandle, err := context.GetAppHandle("logical-cloud")          // caution: ignoring error
+	clusterHandle, err := context.AddCluster(appHandle, clusterName) // caution: ignoring error
+	// pre-build array to pass to cleanupCompositeApp() [for performance]
+	details := []string{logicalCloudName, clusterName, cid}
+
+	if err != nil {
+		return cleanupCompositeApp(context, err, "Error adding Cluster to AppContext", details)
+	}
+
+	// Get resources to be added
+	namespace, namespaceName, err := createNamespace(logicalcloud)
+	if err != nil {
+		return pkgerrors.Wrap(err, "Error Creating Namespace YAML for logical cloud")
+	}
+
+	roles, roleNames, err := createRoles(logicalcloud, userPermissionList)
+	if err != nil {
+		return pkgerrors.Wrap(err, "Error Creating Roles/ClusterRoles YAMLs for logical cloud")
+	}
+
+	roleBindings, roleBindingNames, err := createRoleBindings(logicalcloud, userPermissionList)
+	if err != nil {
+		return pkgerrors.Wrap(err, "Error Creating RoleBindings/ClusterRoleBindings YAMLs for logical cloud")
+	}
+
+	quotas, quotaNames, err := createQuotas(quotaList, logicalcloud.Specification.NameSpace)
+	if err != nil {
+		return pkgerrors.Wrap(err, "Error Creating Quota YAMLs for logical cloud")
+	}
+
+	csr, key, csrName, err := createUserCSR(logicalcloud)
+	if err != nil {
+		return pkgerrors.Wrap(err, "Error Creating User CSR and Key for logical cloud")
+	}
+
+	approval, err := createApprovalSubresource(logicalcloud)
+	if err != nil {
+		return pkgerrors.Wrap(err, "Error Creating approval subresource for logical cloud")
+	}
+
+	// Add namespace resource to each cluster
+	_, err = context.AddResource(clusterHandle, namespaceName, namespace)
+	if err != nil {
+		return cleanupCompositeApp(context, err, "Error adding Namespace Resource to AppContext", details)
+	}
+
+	// Add csr resource to each cluster
+	csrHandle, err := context.AddResource(clusterHandle, csrName, csr)
+	if err != nil {
+		return cleanupCompositeApp(context, err, "Error adding CSR Resource to AppContext", details)
+	}
+
+	// Add csr approval as a subresource of csr:
+	_, err = context.AddLevelValue(csrHandle, "subresource/approval", approval)
+	if err != nil {
+		return cleanupCompositeApp(context, err, "Error approving CSR via AppContext", details)
+	}
+
+	// Add private key to MongoDB
+	err = db.DBconn.Insert(lcclient.storeName, lckey, nil, "privatekey", key)
+	if err != nil {
+		return cleanupCompositeApp(context, err, "Error adding private key to DB", details)
+	}
+
+	// Add [Cluster]Role resources to each cluster
+	for i, roleName := range roleNames {
+		_, err = context.AddResource(clusterHandle, roleName, roles[i])
+		if err != nil {
+			return cleanupCompositeApp(context, err, "Error adding [Cluster]Role Resource to AppContext", details)
+		}
+	}
+
+	// Add [Cluster]RoleBinding resource to each cluster
+	for i, roleBindingName := range roleBindingNames {
+		_, err = context.AddResource(clusterHandle, roleBindingName, roleBindings[i])
+		if err != nil {
+			return cleanupCompositeApp(context, err, "Error adding [Cluster]RoleBinding Resource to AppContext", details)
+		}
+	}
+
+	// Add quota resources to each cluster
+	for i, quotaName := range quotaNames {
+		_, err = context.AddResource(clusterHandle, quotaName, quotas[i])
+		if err != nil {
+			return cleanupCompositeApp(context, err, "Error adding quota Resource to AppContext", details)
+		}
+	}
+
+	// Add Subresource Order and Subresource Dependency
+	subresOrder, err := json.Marshal(map[string][]string{"subresorder": []string{"approval"}})
+	if err != nil {
+		return pkgerrors.Wrap(err, "Error creating subresource order JSON")
+	}
+
+	// Add Resource Order
+	resorderList := []string{namespaceName, csrName}
+	resorderList = append(resorderList, quotaNames...)
+	resorderList = append(resorderList, roleNames...)
+	resorderList = append(resorderList, roleBindingNames...)
+	resOrder, err := json.Marshal(map[string][]string{"resorder": resorderList})
+	if err != nil {
+		return pkgerrors.Wrap(err, "Error creating resource order JSON")
+	}
+
+	// Add Resource-level Order
+	_, err = context.AddInstruction(clusterHandle, "resource", "order", string(resOrder))
+	if err != nil {
+		return cleanupCompositeApp(context, err, "Error adding instruction order to AppContext", details)
+	}
+	_, err = context.AddInstruction(csrHandle, "subresource", "order", string(subresOrder))
+	if err != nil {
+		return cleanupCompositeApp(context, err, "Error adding instruction order to AppContext", details)
+	}
+
+	return nil
+}
+
 // Instantiate prepares all yaml resources to be given to the clusters via rsync,
 // then creates an appcontext with such resources and asks rsync to instantiate the logical cloud
 func Instantiate(project string, logicalcloud LogicalCloud, clusterList []Cluster,
 	quotaList []Quota, userPermissionList []UserPermission) error {
-
 	APP := "logical-cloud"
+
 	logicalCloudName := logicalcloud.MetaData.LogicalCloudName
 	level := logicalcloud.Specification.Level
 
@@ -602,37 +722,6 @@ func Instantiate(project string, logicalcloud LogicalCloud, clusterList []Cluste
 		return pkgerrors.New("Level-1 Logical Clouds require a User Permission assigned to its primary namespace")
 	}
 
-	// Get resources to be added
-	namespace, namespaceName, err := createNamespace(logicalcloud)
-	if err != nil {
-		return pkgerrors.Wrap(err, "Error Creating Namespace YAML for logical cloud")
-	}
-
-	roles, roleNames, err := createRoles(logicalcloud, userPermissionList)
-	if err != nil {
-		return pkgerrors.Wrap(err, "Error Creating Roles/ClusterRoles YAMLs for logical cloud")
-	}
-
-	roleBindings, roleBindingNames, err := createRoleBindings(logicalcloud, userPermissionList)
-	if err != nil {
-		return pkgerrors.Wrap(err, "Error Creating RoleBindings/ClusterRoleBindings YAMLs for logical cloud")
-	}
-
-	quotas, quotaNames, err := createQuotas(quotaList, logicalcloud.Specification.NameSpace)
-	if err != nil {
-		return pkgerrors.Wrap(err, "Error Creating Quota YAMLs for logical cloud")
-	}
-
-	csr, key, csrName, err := createUserCSR(logicalcloud)
-	if err != nil {
-		return pkgerrors.Wrap(err, "Error Creating User CSR and Key for logical cloud")
-	}
-
-	approval, err := createApprovalSubresource(logicalcloud)
-	if err != nil {
-		return pkgerrors.Wrap(err, "Error Creating approval subresource for logical cloud")
-	}
-
 	// From this point on, we are dealing with a new AppContext
 	context := appcontext.AppContext{}
 	ctxVal, err := context.InitAppContext()
@@ -646,7 +735,7 @@ func Instantiate(project string, logicalcloud LogicalCloud, clusterList []Cluste
 		return pkgerrors.Wrap(err, "Error creating AppContext CompositeApp")
 	}
 
-	appHandle, err := context.AddApp(handle, APP)
+	_, err = context.AddApp(handle, APP)
 	if err != nil {
 		return cleanupCompositeApp(context, err, "Error adding App to AppContext", []string{logicalCloudName, cid})
 	}
@@ -669,110 +758,29 @@ func Instantiate(project string, logicalcloud LogicalCloud, clusterList []Cluste
 		return cleanupCompositeApp(context, err, "Error Adding Logical Cloud Meta to AppContext", []string{logicalCloudName, cid})
 	}
 
+	// Add App Order and App Dependency
+	appOrder, err := json.Marshal(map[string][]string{"apporder": []string{APP}})
+	if err != nil {
+		return pkgerrors.Wrap(err, "Error creating app order JSON")
+	}
+	appDependency, err := json.Marshal(map[string]map[string]string{"appdependency": map[string]string{APP: "go"}})
+	if err != nil {
+		return pkgerrors.Wrap(err, "Error creating app dependency JSON")
+	}
+
+	// Add App-level Order and Dependency
+	_, err = context.AddInstruction(handle, "app", "order", string(appOrder))
+	if err != nil {
+		return cleanupCompositeApp(context, err, "Error adding app-level order to AppContext", []string{logicalCloudName})
+	}
+	_, err = context.AddInstruction(handle, "app", "dependency", string(appDependency))
+	if err != nil {
+		return cleanupCompositeApp(context, err, "Error adding app-level dependency to AppContext", []string{logicalCloudName})
+	}
+
 	// Iterate through cluster list and add all the clusters
 	for _, cluster := range clusterList {
-		clusterName := strings.Join([]string{cluster.Specification.ClusterProvider, "+", cluster.Specification.ClusterName}, "")
-		clusterHandle, err := context.AddCluster(appHandle, clusterName)
-		// pre-build array to pass to cleanupCompositeApp() [for performance]
-		details := []string{logicalCloudName, clusterName, cid}
-
-		if err != nil {
-			return cleanupCompositeApp(context, err, "Error adding Cluster to AppContext", details)
-		}
-
-		// Add namespace resource to each cluster
-		_, err = context.AddResource(clusterHandle, namespaceName, namespace)
-		if err != nil {
-			return cleanupCompositeApp(context, err, "Error adding Namespace Resource to AppContext", details)
-		}
-
-		// Add csr resource to each cluster
-		csrHandle, err := context.AddResource(clusterHandle, csrName, csr)
-		if err != nil {
-			return cleanupCompositeApp(context, err, "Error adding CSR Resource to AppContext", details)
-		}
-
-		// Add csr approval as a subresource of csr:
-		_, err = context.AddLevelValue(csrHandle, "subresource/approval", approval)
-		if err != nil {
-			return cleanupCompositeApp(context, err, "Error approving CSR via AppContext", details)
-		}
-
-		// Add private key to MongoDB
-		err = db.DBconn.Insert(lcclient.storeName, lckey, nil, "privatekey", key)
-		if err != nil {
-			return cleanupCompositeApp(context, err, "Error adding private key to DB", details)
-		}
-
-		// Add [Cluster]Role resources to each cluster
-		for i, roleName := range roleNames {
-			_, err = context.AddResource(clusterHandle, roleName, roles[i])
-			if err != nil {
-				return cleanupCompositeApp(context, err, "Error adding [Cluster]Role Resource to AppContext", details)
-			}
-		}
-
-		// Add [Cluster]RoleBinding resource to each cluster
-		for i, roleBindingName := range roleBindingNames {
-			_, err = context.AddResource(clusterHandle, roleBindingName, roleBindings[i])
-			if err != nil {
-				return cleanupCompositeApp(context, err, "Error adding [Cluster]RoleBinding Resource to AppContext", details)
-			}
-		}
-
-		// Add quota resources to each cluster
-		for i, quotaName := range quotaNames {
-			_, err = context.AddResource(clusterHandle, quotaName, quotas[i])
-			if err != nil {
-				return cleanupCompositeApp(context, err, "Error adding quota Resource to AppContext", details)
-			}
-		}
-
-		// Add Subresource Order and Subresource Dependency
-		subresOrder, err := json.Marshal(map[string][]string{"subresorder": []string{"approval"}})
-		if err != nil {
-			return pkgerrors.Wrap(err, "Error creating subresource order JSON")
-		}
-
-		// Add Resource Order
-		resorderList := []string{namespaceName, csrName}
-		resorderList = append(resorderList, quotaNames...)
-		resorderList = append(resorderList, roleNames...)
-		resorderList = append(resorderList, roleBindingNames...)
-		resOrder, err := json.Marshal(map[string][]string{"resorder": resorderList})
-		if err != nil {
-			return pkgerrors.Wrap(err, "Error creating resource order JSON")
-		}
-
-		// Add App Order and App Dependency
-		appOrder, err := json.Marshal(map[string][]string{"apporder": []string{APP}})
-		if err != nil {
-			return pkgerrors.Wrap(err, "Error creating app order JSON")
-		}
-		appDependency, err := json.Marshal(map[string]map[string]string{"appdependency": map[string]string{APP: "go"}})
-		if err != nil {
-			return pkgerrors.Wrap(err, "Error creating app dependency JSON")
-		}
-
-		// Add Resource-level Order
-		_, err = context.AddInstruction(clusterHandle, "resource", "order", string(resOrder))
-		if err != nil {
-			return cleanupCompositeApp(context, err, "Error adding instruction order to AppContext", details)
-		}
-		_, err = context.AddInstruction(csrHandle, "subresource", "order", string(subresOrder))
-		if err != nil {
-			return cleanupCompositeApp(context, err, "Error adding instruction order to AppContext", details)
-		}
-
-		// Add App-level Order and Dependency
-		_, err = context.AddInstruction(handle, "app", "order", string(appOrder))
-		if err != nil {
-			return cleanupCompositeApp(context, err, "Error adding app-level order to AppContext", details)
-		}
-		_, err = context.AddInstruction(handle, "app", "dependency", string(appDependency))
-		if err != nil {
-			return cleanupCompositeApp(context, err, "Error adding app-level dependency to AppContext", details)
-		}
+		prepL1ClusterAppContext(logicalcloud, cluster, quotaList, userPermissionList, lcclient, lckey, context, cid)
 	}
 
 	// call resource synchronizer to instantiate the CRs in the cluster
