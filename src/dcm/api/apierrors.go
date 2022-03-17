@@ -13,7 +13,6 @@ var apiErrors = []apierror.APIError{
 	{ID: "Cluster Reference mismatch", Message: "Cluster Reference mismatch", Status: http.StatusConflict},
 	{ID: "No Cluster References associated", Message: "No Cluster References associated", Status: http.StatusBadRequest},
 	{ID: "Error getting app context status", Message: "Error getting app context status", Status: http.StatusInternalServerError},
-	{ID: "Cluster References cannot be added", Message: "Cluster References cannot be added/removed unless the Logical Cloud is not instantiated", Status: http.StatusConflict},
 	{ID: "Can't remove Cluster Reference: the Logical Cloud is being terminated", Message: "Can't remove Cluster Reference: the Logical Cloud is being terminated", Status: http.StatusConflict},
 	{ID: "Can't remove Cluster Reference: the Logical Cloud is instantiated, please terminate first", Message: "Can't remove Cluster Reference: the Logical Cloud is instantiated, please terminate first", Status: http.StatusConflict},
 	{ID: "Can't remove Cluster Reference: the Logical Cloud is instantiating, please wait and then terminate.", Message: "Can't remove Cluster Reference: the Logical Cloud is instantiating, please wait and then terminate.", Status: http.StatusConflict},
@@ -72,4 +71,5 @@ var apiErrors = []apierror.APIError{
 	{ID: "LogicalCloud is in an invalid state: ", Message: "LogicalCloud is in an invalid state: ", Status: http.StatusBadRequest},
 	{ID: "Error updating the stateInfo of the LogicalCloud: ", Message: "Error updating the stateInfo of the LogicalCloud: ", Status: http.StatusInternalServerError},
 	{ID: "LogicalCloud is not instantiated: ", Message: "LogicalCloud is not instantiated: ", Status: http.StatusBadRequest},
+	{ID: "Logical Cloud is not in a state where a cluster can be created", Message: "Logical Cloud is not in a state where a cluster can be created", Status: http.StatusConflict},
 }

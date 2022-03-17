@@ -32,6 +32,9 @@ import (
 // rsyncName denotes the name of the rsync controller
 const rsyncName = "rsync"
 
+// lcAppName denotes the technical/internal name of *any* logical cloud inside an appcontext
+const lcAppName = "logical-cloud"
+
 type Resource struct {
 	ApiVersion    string         `yaml:"apiVersion"`
 	Kind          string         `yaml:"kind"`
@@ -404,7 +407,7 @@ func callRsyncUninstall(contextid interface{}) error {
 func prepL1ClusterAppContext(logicalcloud LogicalCloud, cluster Cluster, quotaList []Quota, userPermissionList []UserPermission, lcclient *LogicalCloudClient, lckey LogicalCloudKey, context appcontext.AppContext, cid string) error {
 	logicalCloudName := logicalcloud.MetaData.LogicalCloudName
 	clusterName := strings.Join([]string{cluster.Specification.ClusterProvider, "+", cluster.Specification.ClusterName}, "")
-	appHandle, err := context.GetAppHandle("logical-cloud")          // caution: ignoring error
+	appHandle, err := context.GetAppHandle(lcAppName)                // caution: ignoring error
 	clusterHandle, err := context.AddCluster(appHandle, clusterName) // caution: ignoring error
 	// pre-build array to pass to cleanupCompositeApp() [for performance]
 	details := []string{logicalCloudName, clusterName, cid}
@@ -521,20 +524,215 @@ func prepL1ClusterAppContext(logicalcloud LogicalCloud, cluster Cluster, quotaLi
 	return nil
 }
 
+// blindInstantiateL0 attempts to instantiate a Level-0 logical cloud into the appContext without making any
+// judgements about that logical cloud. It doesn't check for any current status for that logical cloud, it
+// simply adds it to a new appcontext, with a new appcontext ID, even if it was previously there. Any
+// judgements about the logical cloud, and any calls to rsync, are done by either Instantiate() or Update().
+func blindInstantiateL0(project string, logicalcloud LogicalCloud, lcclient *LogicalCloudClient,
+	clusterList []Cluster) (appcontext.AppContext, string, error) {
+	var err error
+	var context appcontext.AppContext
+	l0ns := ""
+	logicalCloudName := logicalcloud.MetaData.LogicalCloudName
+	lckey := LogicalCloudKey{
+		LogicalCloudName: logicalCloudName,
+		Project:          project,
+	}
+	// cycle through all clusters to obtain and validate the single level-0 namespace to use
+	// the namespace of each cluster is retrieved from CloudConfig in rsync
+	for _, cluster := range clusterList {
+
+		ccc := rsync.NewCloudConfigClient()
+		log.Info("Asking rsync's CloudConfig for this cluster's namespace at level-0", log.Fields{"cluster": cluster.Specification.ClusterName})
+		ns, err := ccc.GetNamespace(
+			cluster.Specification.ClusterProvider,
+			cluster.Specification.ClusterName,
+		)
+		if err != nil {
+			if err.Error() == "No CloudConfig was returned" {
+				return context, "", pkgerrors.New("It looks like the cluster provided as reference does not exist")
+			}
+			return context, "", pkgerrors.Wrap(err, "Couldn't determine namespace for L0 logical cloud")
+		}
+		// we're checking here if any of the clusters have a differently-named namespace at level 0 and, if so,
+		// we abort the instantiate operation because a single namespace name for this logical cloud cannot be inferred
+		if len(l0ns) > 0 && ns != l0ns {
+			log.Error("The clusters associated to this L0 logical cloud don't all share the same namespace name", log.Fields{"logicalcloud": logicalCloudName})
+			return context, "", pkgerrors.New("The clusters associated to this L0 logical cloud don't all share the same namespace name")
+		}
+		l0ns = ns
+	}
+	// if l0ns is still empty, something definitely went wrong so we can't let this pass
+	if len(l0ns) == 0 {
+		log.Error("Something went wrong as no cluster namespaces got checked", log.Fields{"logicalcloud": logicalCloudName})
+		return context, "", pkgerrors.New("Something went wrong as no cluster namespaces got checked")
+	}
+	// at this point we know what namespace name to give to the logical cloud
+	logicalcloud.Specification.NameSpace = l0ns
+	// the following is an update operation:
+	err = db.DBconn.Insert(lcclient.storeName, lckey, nil, lcclient.tagMeta, logicalcloud)
+	if err != nil {
+		log.Error("Failed to update L0 logical cloud with a namespace name", log.Fields{"logicalcloud": logicalCloudName, "namespace": l0ns})
+		return context, "", pkgerrors.Wrap(err, "Failed to update L0 logical cloud with a namespace name")
+	}
+	log.Info("The L0 logical cloud has been updated with a namespace name", log.Fields{"logicalcloud": logicalCloudName, "namespace": l0ns})
+
+	// prepare empty-shell appcontext for the L0 LC in order to officially set it as Instantiated
+	context = appcontext.AppContext{}
+	ctxVal, err := context.InitAppContext()
+	if err != nil {
+		return context, "", pkgerrors.Wrap(err, "Error creating L0 LC AppContext")
+	}
+	cid := ctxVal.(string)
+
+	handle, err := context.CreateCompositeApp()
+	if err != nil {
+		return context, "", pkgerrors.Wrap(err, "Error creating L0 LC AppContext CompositeApp")
+	}
+
+	appHandle, err := context.AddApp(handle, lcAppName)
+	if err != nil {
+		return context, "", cleanupCompositeApp(context, err, "Error adding App to L0 LC AppContext", []string{logicalCloudName, cid})
+	}
+
+	// iterate through cluster list and add all the clusters (as empty-shells)
+	for _, cluster := range clusterList {
+		clusterName := strings.Join([]string{cluster.Specification.ClusterProvider, "+", cluster.Specification.ClusterName}, "")
+		clusterHandle, err := context.AddCluster(appHandle, clusterName)
+		// pre-build array to pass to cleanupCompositeApp() [for performance]
+		details := []string{logicalCloudName, clusterName, cid}
+
+		if err != nil {
+			return context, "", cleanupCompositeApp(context, err, "Error adding Cluster to L0 LC AppContext", details)
+		}
+
+		// resource-level order is mandatory too for an empty-shell appcontext
+		resOrder, err := json.Marshal(map[string][]string{"resorder": []string{}})
+		if err != nil {
+			return context, "", pkgerrors.Wrap(err, "Error creating resource order JSON")
+		}
+		_, err = context.AddInstruction(clusterHandle, "resource", "order", string(resOrder))
+		if err != nil {
+			return context, "", cleanupCompositeApp(context, err, "Error adding resource-level order to L0 LC AppContext", details)
+		}
+		// TODO add resource-level dependency as well
+		// app-level order is mandatory too for an empty-shell appcontext
+		appOrder, err := json.Marshal(map[string][]string{"apporder": []string{lcAppName}})
+		if err != nil {
+			return context, "", pkgerrors.Wrap(err, "Error creating app order JSON")
+		}
+		_, err = context.AddInstruction(handle, "app", "order", string(appOrder))
+		if err != nil {
+			return context, "", cleanupCompositeApp(context, err, "Error adding app-level order to L0 LC AppContext", details)
+		}
+		// TODO add app-level dependency as well
+		// TODO move app-level order/dependency out of loop
+	}
+	return context, cid, nil
+}
+
+// // blindInstantiateL1 is the equivalent of blindInstantiateL0 but for Level-1 Logical Clouds.
+func blindInstantiateL1(project string, logicalcloud LogicalCloud, lcclient *LogicalCloudClient,
+	clusterList []Cluster, quotaList []Quota, userPermissionList []UserPermission) (appcontext.AppContext, string, error) {
+	var err error
+	var context appcontext.AppContext
+	logicalCloudName := logicalcloud.MetaData.LogicalCloudName
+	lckey := LogicalCloudKey{
+		LogicalCloudName: logicalCloudName,
+		Project:          project,
+	}
+
+	if len(userPermissionList) == 0 {
+		return context, "", pkgerrors.New("Level-1 Logical Clouds require at least a User Permission assigned to its primary namespace")
+	}
+
+	primaryUP := false
+	for _, up := range userPermissionList {
+		if up.Specification.Namespace == logicalcloud.Specification.NameSpace {
+			primaryUP = true
+			break
+		}
+	}
+	if !primaryUP {
+		return context, "", pkgerrors.New("Level-1 Logical Clouds require a User Permission assigned to its primary namespace")
+	}
+
+	// From this point on, we are dealing with a new AppContext
+	context = appcontext.AppContext{}
+	ctxVal, err := context.InitAppContext()
+	if err != nil {
+		return context, "", pkgerrors.Wrap(err, "Error creating AppContext")
+	}
+	cid := ctxVal.(string)
+
+	handle, err := context.CreateCompositeApp()
+	if err != nil {
+		return context, "", pkgerrors.Wrap(err, "Error creating AppContext CompositeApp")
+	}
+
+	_, err = context.AddApp(handle, lcAppName)
+	if err != nil {
+		return context, "", cleanupCompositeApp(context, err, "Error adding App to AppContext", []string{logicalCloudName, cid})
+	}
+
+	// Create a Logical Cloud Meta that will store the project and the logical cloud name in the AppContext:
+	err = context.AddCompositeAppMeta(appcontext.CompositeAppMeta{Project: project, LogicalCloud: logicalCloudName})
+	if err != nil {
+		return context, "", pkgerrors.Wrap(err, "Error Adding Logical Cloud Meta to AppContext")
+	}
+
+	// Create a Logical Cloud Meta with all data needed for a successful L1 (standard/privileged) instantiation:
+	// project name, logical cloud name, level=0 and namespace=default (for rsync cluster access - may get modularized in the future)
+	err = context.AddCompositeAppMeta(
+		appcontext.CompositeAppMeta{
+			Project:      project,
+			LogicalCloud: logicalCloudName,
+			Level:        "0",
+			Namespace:    "default"})
+	if err != nil {
+		return context, "", cleanupCompositeApp(context, err, "Error Adding Logical Cloud Meta to AppContext", []string{logicalCloudName, cid})
+	}
+
+	// Add App Order and App Dependency
+	appOrder, err := json.Marshal(map[string][]string{"apporder": []string{lcAppName}})
+	if err != nil {
+		return context, "", pkgerrors.Wrap(err, "Error creating app order JSON")
+	}
+	appDependency, err := json.Marshal(map[string]map[string]string{"appdependency": map[string]string{lcAppName: "go"}})
+	if err != nil {
+		return context, "", pkgerrors.Wrap(err, "Error creating app dependency JSON")
+	}
+
+	// Add App-level Order and Dependency
+	_, err = context.AddInstruction(handle, "app", "order", string(appOrder))
+	if err != nil {
+		return context, "", cleanupCompositeApp(context, err, "Error adding app-level order to AppContext", []string{logicalCloudName})
+	}
+	_, err = context.AddInstruction(handle, "app", "dependency", string(appDependency))
+	if err != nil {
+		return context, "", cleanupCompositeApp(context, err, "Error adding app-level dependency to AppContext", []string{logicalCloudName})
+	}
+
+	// Iterate through cluster list and add all the clusters
+	for _, cluster := range clusterList {
+		err = prepL1ClusterAppContext(logicalcloud, cluster, quotaList, userPermissionList, lcclient, lckey, context, cid)
+		if err != nil {
+			// TODO
+		}
+	}
+
+	return context, cid, nil
+}
+
 // Instantiate prepares all yaml resources to be given to the clusters via rsync,
 // then creates an appcontext with such resources and asks rsync to instantiate the logical cloud
 func Instantiate(project string, logicalcloud LogicalCloud, clusterList []Cluster,
 	quotaList []Quota, userPermissionList []UserPermission) error {
-	APP := "logical-cloud"
 
 	logicalCloudName := logicalcloud.MetaData.LogicalCloudName
 	level := logicalcloud.Specification.Level
 
 	lcclient := NewLogicalCloudClient()
-	lckey := LogicalCloudKey{
-		LogicalCloudName: logicalCloudName,
-		Project:          project,
-	}
 
 	// Check if there was a previous context for this logical cloud
 	s, err := lcclient.GetState(project, logicalCloudName)
@@ -595,217 +793,45 @@ func Instantiate(project string, logicalcloud LogicalCloud, clusterList []Cluste
 		}
 	}
 
-	// if this is an L0 logical cloud, only the following will be done as part of instantiate
-	// ================================================================================
+	// If this is an L0 logical cloud, only the following will be done as part of instantiate
+	// ======================================================================================
+	var context appcontext.AppContext // still need this because one final cleanupCompositeApp might be needed
+	var newcid string
 	if level == "0" {
-		l0ns := ""
-		// cycle through all clusters to obtain and validate the single level-0 namespace to use
-		// the namespace of each cluster is retrieved from CloudConfig in rsync
-		for _, cluster := range clusterList {
-
-			ccc := rsync.NewCloudConfigClient()
-			log.Info("Asking rsync's CloudConfig for this cluster's namespace at level-0", log.Fields{"cluster": cluster.Specification.ClusterName})
-			ns, err := ccc.GetNamespace(
-				cluster.Specification.ClusterProvider,
-				cluster.Specification.ClusterName,
-			)
-			if err != nil {
-				if err.Error() == "No CloudConfig was returned" {
-					return pkgerrors.New("It looks like the cluster provided as reference does not exist")
-				}
-				return pkgerrors.Wrap(err, "Couldn't determine namespace for L0 logical cloud")
-			}
-			// we're checking here if any of the clusters have a differently-named namespace at level 0 and, if so,
-			// we abort the instantiate operation because a single namespace name for this logical cloud cannot be inferred
-			if len(l0ns) > 0 && ns != l0ns {
-				log.Error("The clusters associated to this L0 logical cloud don't all share the same namespace name", log.Fields{"logicalcloud": logicalCloudName})
-				return pkgerrors.New("The clusters associated to this L0 logical cloud don't all share the same namespace name")
-			}
-			l0ns = ns
-		}
-		// if l0ns is still empty, something definitely went wrong so we can't let this pass
-		if len(l0ns) == 0 {
-			log.Error("Something went wrong as no cluster namespaces got checked", log.Fields{"logicalcloud": logicalCloudName})
-			return pkgerrors.New("Something went wrong as no cluster namespaces got checked")
-		}
-		// at this point we know what namespace name to give to the logical cloud
-		logicalcloud.Specification.NameSpace = l0ns
-		// the following is an update operation:
-		err = db.DBconn.Insert(lcclient.storeName, lckey, nil, lcclient.tagMeta, logicalcloud)
-		if err != nil {
-			log.Error("Failed to update L0 logical cloud with a namespace name", log.Fields{"logicalcloud": logicalCloudName, "namespace": l0ns})
-			return pkgerrors.Wrap(err, "Failed to update L0 logical cloud with a namespace name")
-		}
-		log.Info("The L0 logical cloud has been updated with a namespace name", log.Fields{"logicalcloud": logicalCloudName, "namespace": l0ns})
-
-		// prepare empty-shell appcontext for the L0 LC in order to officially set it as Instantiated
-		context := appcontext.AppContext{}
-		ctxVal, err := context.InitAppContext()
-		if err != nil {
-			return pkgerrors.Wrap(err, "Error creating L0 LC AppContext")
-		}
-		cid = ctxVal.(string)
-
-		handle, err := context.CreateCompositeApp()
-		if err != nil {
-			return pkgerrors.Wrap(err, "Error creating L0 LC AppContext CompositeApp")
-		}
-
-		appHandle, err := context.AddApp(handle, APP)
-		if err != nil {
-			return cleanupCompositeApp(context, err, "Error adding App to L0 LC AppContext", []string{logicalCloudName, cid})
-		}
-
-		// iterate through cluster list and add all the clusters (as empty-shells)
-		for _, cluster := range clusterList {
-			clusterName := strings.Join([]string{cluster.Specification.ClusterProvider, "+", cluster.Specification.ClusterName}, "")
-			clusterHandle, err := context.AddCluster(appHandle, clusterName)
-			// pre-build array to pass to cleanupCompositeApp() [for performance]
-			details := []string{logicalCloudName, clusterName, cid}
-
-			if err != nil {
-				return cleanupCompositeApp(context, err, "Error adding Cluster to L0 LC AppContext", details)
-			}
-
-			// resource-level order is mandatory too for an empty-shell appcontext
-			resOrder, err := json.Marshal(map[string][]string{"resorder": []string{}})
-			if err != nil {
-				return pkgerrors.Wrap(err, "Error creating resource order JSON")
-			}
-			_, err = context.AddInstruction(clusterHandle, "resource", "order", string(resOrder))
-			if err != nil {
-				return cleanupCompositeApp(context, err, "Error adding resource-level order to L0 LC AppContext", details)
-			}
-			// TODO add resource-level dependency as well
-			// app-level order is mandatory too for an empty-shell appcontext
-			appOrder, err := json.Marshal(map[string][]string{"apporder": []string{APP}})
-			if err != nil {
-				return pkgerrors.Wrap(err, "Error creating app order JSON")
-			}
-			_, err = context.AddInstruction(handle, "app", "order", string(appOrder))
-			if err != nil {
-				return cleanupCompositeApp(context, err, "Error adding app-level order to L0 LC AppContext", details)
-			}
-			// TODO add app-level dependency as well
-			// TODO move app-level order/dependency out of loop
-		}
-
-		// call resource synchronizer to instantiate the CRs in the cluster
-		err = callRsyncInstall(ctxVal)
-		if err != nil {
-			log.Error("Failed calling rsync install-app", log.Fields{"err": err})
-			return pkgerrors.Wrap(err, "Failed calling rsync install-app")
-		}
-
-		// Update state with switch to Instantiated state, along with storing the AppContext ID for future retrieval
-		err = addState(lcclient, project, logicalCloudName, cid, state.StateEnum.Instantiated)
-		if err != nil {
-			return cleanupCompositeApp(context, err, "Error adding L0 LC AppContext to DB", []string{logicalCloudName, cid})
-		}
-
-		log.Info("The L0 logical cloud is now associated with an empty-shell appcontext and is ready to be used", log.Fields{"logicalcloud": logicalCloudName, "namespace": l0ns})
-		return nil
+		context, newcid, err = blindInstantiateL0(project, logicalcloud, lcclient, clusterList)
+	} else {
+		context, newcid, err = blindInstantiateL1(project, logicalcloud, lcclient, clusterList, quotaList, userPermissionList)
 	}
-
-	if len(userPermissionList) == 0 {
-		return pkgerrors.New("Level-1 Logical Clouds require at least a User Permission assigned to its primary namespace")
-	}
-
-	primaryUP := false
-	for _, up := range userPermissionList {
-		if up.Specification.Namespace == logicalcloud.Specification.NameSpace {
-			primaryUP = true
-			break
-		}
-	}
-	if !primaryUP {
-		return pkgerrors.New("Level-1 Logical Clouds require a User Permission assigned to its primary namespace")
-	}
-
-	// From this point on, we are dealing with a new AppContext
-	context := appcontext.AppContext{}
-	ctxVal, err := context.InitAppContext()
 	if err != nil {
-		return pkgerrors.Wrap(err, "Error creating AppContext")
-	}
-	cid = ctxVal.(string)
-
-	handle, err := context.CreateCompositeApp()
-	if err != nil {
-		return pkgerrors.Wrap(err, "Error creating AppContext CompositeApp")
+		// TODO
 	}
 
-	_, err = context.AddApp(handle, APP)
+	// Call rsync to install Logical Cloud in clusters
+	err = callRsyncInstall(newcid)
 	if err != nil {
-		return cleanupCompositeApp(context, err, "Error adding App to AppContext", []string{logicalCloudName, cid})
-	}
-
-	// Create a Logical Cloud Meta that will store the project and the logical cloud name in the AppContext:
-	err = context.AddCompositeAppMeta(appcontext.CompositeAppMeta{Project: project, LogicalCloud: logicalCloudName})
-	if err != nil {
-		return pkgerrors.Wrap(err, "Error Adding Logical Cloud Meta to AppContext")
-	}
-
-	// Create a Logical Cloud Meta with all data needed for a successful L1 (standard/privileged) instantiation:
-	// project name, logical cloud name, level=0 and namespace=default (for rsync cluster access - may get modularized in the future)
-	err = context.AddCompositeAppMeta(
-		appcontext.CompositeAppMeta{
-			Project:      project,
-			LogicalCloud: logicalCloudName,
-			Level:        "0",
-			Namespace:    "default"})
-	if err != nil {
-		return cleanupCompositeApp(context, err, "Error Adding Logical Cloud Meta to AppContext", []string{logicalCloudName, cid})
-	}
-
-	// Add App Order and App Dependency
-	appOrder, err := json.Marshal(map[string][]string{"apporder": []string{APP}})
-	if err != nil {
-		return pkgerrors.Wrap(err, "Error creating app order JSON")
-	}
-	appDependency, err := json.Marshal(map[string]map[string]string{"appdependency": map[string]string{APP: "go"}})
-	if err != nil {
-		return pkgerrors.Wrap(err, "Error creating app dependency JSON")
-	}
-
-	// Add App-level Order and Dependency
-	_, err = context.AddInstruction(handle, "app", "order", string(appOrder))
-	if err != nil {
-		return cleanupCompositeApp(context, err, "Error adding app-level order to AppContext", []string{logicalCloudName})
-	}
-	_, err = context.AddInstruction(handle, "app", "dependency", string(appDependency))
-	if err != nil {
-		return cleanupCompositeApp(context, err, "Error adding app-level dependency to AppContext", []string{logicalCloudName})
-	}
-
-	// Iterate through cluster list and add all the clusters
-	for _, cluster := range clusterList {
-		prepL1ClusterAppContext(logicalcloud, cluster, quotaList, userPermissionList, lcclient, lckey, context, cid)
-	}
-
-	// call resource synchronizer to instantiate the CRs in the cluster
-	err = callRsyncInstall(ctxVal)
-	if err != nil {
-		return err
+		log.Error("Failed calling rsync install-app", log.Fields{"err": err})
+		return pkgerrors.Wrap(err, "Failed calling rsync install-app")
 	}
 
 	// Update state with switch to Instantiated state, along with storing the AppContext ID for future retrieval
-	err = addState(lcclient, project, logicalCloudName, cid, state.StateEnum.Instantiated)
+	err = addState(lcclient, project, logicalCloudName, newcid, state.StateEnum.Instantiated)
 	if err != nil {
-		return cleanupCompositeApp(context, err, "Error adding L1 LC AppContext to DB", []string{logicalCloudName, cid})
+		return cleanupCompositeApp(context, err, "Error adding Logical Cloud AppContext to DB", []string{logicalCloudName, newcid})
+		// TODO update apierrors with modified messages (2 of them removed)
 	}
 
-	// call grpc streaming api in rsync, which launches a goroutine to wait for the response of
-	// every cluster (function should know how many clusters are expected and only finish when
-	// all respective certificates have been obtained and all kubeconfigs stored in CloudConfig)
-	err = callRsyncReadyNotify(ctxVal)
-	if err != nil {
-		log.Error("Failed calling rsync ready-notify", log.Fields{"err": err})
-		return pkgerrors.Wrap(err, "Failed calling rsync ready-notify")
+	if level == "1" {
+		// Call rsync grpc streaming api, which launches a goroutine to wait for the response of
+		// every cluster (function should know how many clusters are expected and only finish when
+		// all respective certificates have been obtained and all kubeconfigs stored in CloudConfig)
+		err = callRsyncReadyNotify(cid)
+		if err != nil {
+			log.Error("Failed calling rsync ready-notify", log.Fields{"err": err})
+			return pkgerrors.Wrap(err, "Failed calling rsync ready-notify")
+		}
 	}
 
 	return nil
-
 }
 
 // Terminate asks rsync to terminate the logical cloud
