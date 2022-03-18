@@ -114,13 +114,13 @@ func NewClusterClient() *ClusterClient {
 }
 
 // Create entry for the cluster reference resource in the database
-func (v *ClusterClient) CreateCluster(project, logicalCloud string, c Cluster) (Cluster, error) {
+func (v *ClusterClient) CreateCluster(project, logicalCloud string, clusterReference Cluster) (Cluster, error) {
 
 	//Construct key consisting of name
 	key := ClusterKey{
 		Project:          project,
 		LogicalCloudName: logicalCloud,
-		ClusterReference: c.MetaData.ClusterReference,
+		ClusterReference: clusterReference.MetaData.ClusterReference,
 	}
 	lcClient := NewLogicalCloudClient()
 
@@ -136,32 +136,27 @@ func (v *ClusterClient) CreateCluster(project, logicalCloud string, c Cluster) (
 			return Cluster{}, err
 		}
 
-		// since there's a context associated, if the logical cloud isn't fully Terminated then prevent
-		// clusters from being added since this is a functional scenario not currently supported
+		// Since there's a context associated, if the logical cloud isn't fully
+		// Terminated or fully Instantiated, then prevent clusters from being added
 		acStatus, err := GetAppContextStatus(ac)
-		if err != nil {
-			return Cluster{}, err
-		}
-		switch acStatus.Status {
-		case appcontext.AppContextStatusEnum.Terminated:
-			break
-		default:
-			return Cluster{}, pkgerrors.New("Cluster References cannot be added/removed unless the Logical Cloud is not instantiated")
+		if acStatus.Status != appcontext.AppContextStatusEnum.Terminated && acStatus.Status != appcontext.AppContextStatusEnum.Instantiated {
+			return Cluster{}, pkgerrors.New("Cluster References cannot be added/removed unless the Logical Cloud is fully Instantiated or Terminated")
 		}
 	}
 
 	//Check if this Cluster Reference already exists
-	_, err = v.GetCluster(project, logicalCloud, c.MetaData.ClusterReference)
+	_, err = v.GetCluster(project, logicalCloud, clusterReference.MetaData.ClusterReference)
 	if err == nil {
 		return Cluster{}, pkgerrors.New("Cluster reference already exists")
 	}
 
-	err = db.DBconn.Insert(v.storeName, key, nil, v.tagMeta, c)
+	log.Info("Adding cluster-reference. Changes won't take effect until the respective Logical Cloud is updated.", log.Fields{"clusterreference": clusterReference, "logicalcloud": logicalCloud})
+	err = db.DBconn.Insert(v.storeName, key, nil, v.tagMeta, clusterReference)
 	if err != nil {
 		return Cluster{}, pkgerrors.Wrap(err, "Creating DB Entry")
 	}
 
-	return c, nil
+	return clusterReference, nil
 }
 
 // Get returns  Cluster for corresponding cluster reference
@@ -251,12 +246,13 @@ func (v *ClusterClient) DeleteCluster(project, logicalCloud, clusterReference st
 		return nil
 	}
 
-	// Make sure rsync status for this logical cloud is Terminated,
-	// otherwise prevent the clusters from being removed
 	ac, err := state.GetAppContextFromId(cid)
 	if err != nil {
 		return err
 	}
+
+	// Since there's a context associated, if the logical cloud isn't fully
+	// Terminated or fully Instantiated, then prevent clusters from being added
 	acStatus, err := GetAppContextStatus(ac)
 	if err != nil {
 		return pkgerrors.Wrap(err, "Error getting app context status")
@@ -265,9 +261,6 @@ func (v *ClusterClient) DeleteCluster(project, logicalCloud, clusterReference st
 	case appcontext.AppContextStatusEnum.Terminating:
 		log.Error("Can't remove Cluster Reference yet: the Logical Cloud is being terminated.", log.Fields{"clusterreference": clusterReference, "logicalcloud": logicalCloud})
 		return pkgerrors.New("Can't remove Cluster Reference: the Logical Cloud is being terminated.")
-	case appcontext.AppContextStatusEnum.Instantiated:
-		log.Error("Can't remove Cluster Reference: the Logical Cloud is instantiated, please terminate first.", log.Fields{"clusterreference": clusterReference, "logicalcloud": logicalCloud})
-		return pkgerrors.New("Can't remove Cluster Reference: the Logical Cloud is instantiated, please terminate first.")
 	case appcontext.AppContextStatusEnum.Instantiating:
 		log.Error("Can't remove Cluster Reference: the Logical Cloud is instantiating, please wait and then terminate.", log.Fields{"clusterreference": clusterReference, "logicalcloud": logicalCloud})
 		return pkgerrors.New("Can't remove Cluster Reference: the Logical Cloud is instantiating, please wait and then terminate.")
@@ -277,6 +270,9 @@ func (v *ClusterClient) DeleteCluster(project, logicalCloud, clusterReference st
 	case appcontext.AppContextStatusEnum.TerminateFailed:
 		log.Info("The Logical Cloud has failed terminating, proceeding with the delete operation.", log.Fields{"clusterreference": clusterReference, "logicalcloud": logicalCloud})
 		// try to delete anyway since termination failed
+		fallthrough
+	case appcontext.AppContextStatusEnum.Instantiated:
+		log.Error("Removing cluster-reference. Changes won't take effect until the respective Logical Cloud is updated.", log.Fields{"clusterreference": clusterReference, "logicalcloud": logicalCloud})
 		fallthrough
 	case appcontext.AppContextStatusEnum.Terminated:
 		err := db.DBconn.Remove(v.storeName, key)

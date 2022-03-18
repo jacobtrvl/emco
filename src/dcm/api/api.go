@@ -57,9 +57,9 @@ func NewRouter(
 	lcRouter.HandleFunc(
 		"/logical-clouds/{logicalCloud}",
 		logicalCloudHandler.deleteHandler).Methods("DELETE")
-	// lcRouter.HandleFunc(
-	// 	"/logical-clouds/{logicalCloud}",
-	// 	logicalCloudHandler.updateHandler).Methods("PUT")
+	lcRouter.HandleFunc(
+		"/logical-clouds/{logicalCloud}",
+		logicalCloudHandler.updateHandler).Methods("PUT")
 	lcRouter.HandleFunc(
 		"/logical-clouds/{logicalCloud}/instantiate",
 		logicalCloudHandler.instantiateHandler).Methods("POST")

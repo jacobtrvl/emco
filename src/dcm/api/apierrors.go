@@ -56,6 +56,7 @@ var apiErrors = []apierror.APIError{
 	{ID: "Logical cloud don't all share the same namespace", Message: "The clusters associated to this L0 logical cloud don't all share the same namespace name", Status: http.StatusConflict},
 	{ID: "Level-1 Logical Clouds require a User Permission", Message: "Level-1 Logical Clouds require a User Permission assigned to its primary namespace", Status: http.StatusConflict},
 	{ID: "The cluster provided as reference does not exist", Message: "The cluster provided as reference does not exist", Status: http.StatusConflict},
+	{ID: "Cluster References cannot be added/removed unless the Logical Cloud is fully Instantiated or Terminated", Message: "Cluster References cannot be added/removed unless the Logical Cloud is fully Instantiated or Terminated", Status: http.StatusConflict},
 	{ID: "The Logical Cloud is not instantiated", Message: "The Logical Cloud is not instantiated", Status: http.StatusConflict},
 	{ID: "The Logical Cloud has already been terminated", Message: "The Logical Cloud has already been terminated", Status: http.StatusConflict},
 	{ID: "The Logical Cloud is already being terminated", Message: "The Logical Cloud is already being terminated", Status: http.StatusConflict},

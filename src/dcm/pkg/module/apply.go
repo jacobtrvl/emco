@@ -19,6 +19,7 @@ import (
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/appcontext"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/appcontext/subresources"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/grpc/installappclient"
+	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/grpc/updateappclient"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
 	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/module/controller"
@@ -404,6 +405,25 @@ func callRsyncUninstall(contextid interface{}) error {
 	return nil
 }
 
+func callRsyncUpdate(FromContextid, ToContextid interface{}) error {
+	rsyncInfo, err := queryDBAndSetRsyncInfo()
+	log.Info("Calling the Rsync ", log.Fields{
+		"RsyncName": rsyncInfo.RsyncName,
+	})
+	if err != nil {
+		return err
+	}
+
+	fromAppContextID := fmt.Sprintf("%v", FromContextid)
+	toAppContextID := fmt.Sprintf("%v", ToContextid)
+	err = updateappclient.InvokeUpdateApp(fromAppContextID, toAppContextID)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// TODO: use context.ctxid instead of passing cid
 func prepL1ClusterAppContext(logicalcloud LogicalCloud, cluster Cluster, quotaList []Quota, userPermissionList []UserPermission, lcclient *LogicalCloudClient, lckey LogicalCloudKey, context appcontext.AppContext, cid string) error {
 	logicalCloudName := logicalcloud.MetaData.LogicalCloudName
 	clusterName := strings.Join([]string{cluster.Specification.ClusterProvider, "+", cluster.Specification.ClusterName}, "")
@@ -717,7 +737,7 @@ func blindInstantiateL1(project string, logicalcloud LogicalCloud, lcclient *Log
 	for _, cluster := range clusterList {
 		err = prepL1ClusterAppContext(logicalcloud, cluster, quotaList, userPermissionList, lcclient, lckey, context, cid)
 		if err != nil {
-			// TODO
+			return context, "", err
 		}
 	}
 
@@ -793,17 +813,17 @@ func Instantiate(project string, logicalcloud LogicalCloud, clusterList []Cluste
 		}
 	}
 
-	// If this is an L0 logical cloud, only the following will be done as part of instantiate
-	// ======================================================================================
-	var context appcontext.AppContext // still need this because one final cleanupCompositeApp might be needed
+	// still need this because one final cleanupCompositeApp might be needed
+	var context appcontext.AppContext
 	var newcid string
+	// TODO: use context.ctxid instead of returning newcid
 	if level == "0" {
 		context, newcid, err = blindInstantiateL0(project, logicalcloud, lcclient, clusterList)
 	} else {
 		context, newcid, err = blindInstantiateL1(project, logicalcloud, lcclient, clusterList, quotaList, userPermissionList)
 	}
 	if err != nil {
-		// TODO
+		return err
 	}
 
 	// Call rsync to install Logical Cloud in clusters
@@ -817,14 +837,13 @@ func Instantiate(project string, logicalcloud LogicalCloud, clusterList []Cluste
 	err = addState(lcclient, project, logicalCloudName, newcid, state.StateEnum.Instantiated)
 	if err != nil {
 		return cleanupCompositeApp(context, err, "Error adding Logical Cloud AppContext to DB", []string{logicalCloudName, newcid})
-		// TODO update apierrors with modified messages (2 of them removed)
 	}
 
 	if level == "1" {
 		// Call rsync grpc streaming api, which launches a goroutine to wait for the response of
 		// every cluster (function should know how many clusters are expected and only finish when
 		// all respective certificates have been obtained and all kubeconfigs stored in CloudConfig)
-		err = callRsyncReadyNotify(cid)
+		err = callRsyncReadyNotify(newcid)
 		if err != nil {
 			log.Error("Failed calling rsync ready-notify", log.Fields{"err": err})
 			return pkgerrors.Wrap(err, "Failed calling rsync ready-notify")

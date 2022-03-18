@@ -302,7 +302,7 @@ func (v *LogicalCloudClient) Update(project, logicalCloudName string, c LogicalC
 		return LogicalCloud{}, pkgerrors.New("Logical Cloud name mismatch")
 	}
 	//Check if this Logical Cloud exists
-	_, err := v.Get(project, logicalCloudName)
+	logicalCloud, err := v.Get(project, logicalCloudName)
 	if err != nil {
 		return LogicalCloud{}, err
 	}
@@ -310,6 +310,111 @@ func (v *LogicalCloudClient) Update(project, logicalCloudName string, c LogicalC
 	if err != nil {
 		return LogicalCloud{}, pkgerrors.Wrap(err, "Updating DB Entry")
 	}
+
+	// If Logical Cloud was already instantiated, then prepare new appcontext to give to rsync
+	lcStateInfo, err := v.GetState(project, logicalCloudName)
+	if err != nil {
+		return LogicalCloud{}, err
+	}
+	log.Debug("", log.Fields{"lcStateInfo": lcStateInfo})
+	oldCID := state.GetLastContextIdFromStateInfo(lcStateInfo)
+	if oldCID != "" {
+		log.Debug("", log.Fields{"oldCID": oldCID})
+		oldContext, err := state.GetAppContextFromId(oldCID)
+		if err != nil {
+			return LogicalCloud{}, err
+		}
+
+		// Since there's a context associated, if the logical cloud isn't fully Terminated then prevent
+		// clusters from being added since this is a functional scenario not currently supported
+		contextStatus, err := GetAppContextStatus(oldContext)
+		if err != nil {
+			return LogicalCloud{}, pkgerrors.New("Logical Cloud is not in a state where a cluster can be created")
+		}
+		// If Logical Cloud is instantiated, it's safe to proceed with an updated-instantiation
+		if contextStatus.Status == appcontext.AppContextStatusEnum.Instantiated {
+			// We need to know which clusters to instantiate on
+			clusterList, err := NewClusterClient().GetAllClusters(project, logicalCloudName)
+			if err != nil {
+				return LogicalCloud{}, err
+			}
+
+			// We need to know the Level as that influences how to build the appcontext
+			level := logicalCloud.Specification.Level
+
+			var newCID string
+			// Prepare new appcontext to replace previous one
+			if level == "1" {
+				// For L1, we need to know what quotas and user permissions to use
+				quotaList, err := NewQuotaClient().GetAllQuotas(project, logicalCloudName)
+				if err != nil {
+					return LogicalCloud{}, err
+				}
+				userPermissionList, err := NewUserPermissionClient().GetAllUserPerms(project, logicalCloudName)
+				if err != nil {
+					return LogicalCloud{}, err
+				}
+				_, newCID, err = blindInstantiateL1(project, logicalCloud, v, clusterList, quotaList, userPermissionList)
+				log.Debug("", log.Fields{"newCID": newCID})
+			} else if level == "0" {
+				_, newCID, err = blindInstantiateL0(project, logicalCloud, v, clusterList)
+				log.Debug("", log.Fields{"newCID": newCID})
+			}
+			if err != nil {
+				return LogicalCloud{}, err
+			}
+
+			// Update DB Status CID
+			err = state.UpdateAppContextStatusContextID(newCID, oldCID)
+			if err != nil {
+				return LogicalCloud{}, err
+			}
+
+			// Call rsync to update Logical Cloud in clusters (calculate differences and bring clusters up to DCM state)
+			err = callRsyncUpdate(oldCID, newCID)
+			if err != nil {
+				log.Error("Failed calling rsync update", log.Fields{"err": err})
+				return LogicalCloud{}, pkgerrors.Wrap(err, "Failed calling rsync update")
+			}
+
+			latestRev, err := state.GetLatestRevisionFromStateInfo(lcStateInfo)
+			if err != nil {
+				log.Error("Latest revision not found", log.Fields{})
+				return LogicalCloud{}, err
+			}
+			// TODO: make atomic
+			newRev := latestRev + 1
+
+			a := state.ActionEntry{
+				State:     state.StateEnum.Updated,
+				ContextId: newCID,
+				TimeStamp: time.Now(),
+				Revision:  newRev,
+			}
+			lcStateInfo.StatusContextId = newCID
+			lcStateInfo.Actions = append(lcStateInfo.Actions, a)
+
+			err = db.DBconn.Insert(v.storeName, key, nil, v.tagState, lcStateInfo)
+			if err != nil {
+				log.Error("Error updating the state info of the LogicalCloud: ", log.Fields{"logicalCloud": logicalCloud})
+				return LogicalCloud{}, err
+			}
+
+			// TODO: enhancement: also check if any L1 cluster actually got added, if not then no need for ReadyNotify:
+			if level == "1" {
+				// Call rsync grpc streaming api, which launches a goroutine to wait for the response of
+				// every cluster (function should know how many clusters are expected and only finish when
+				// all respective certificates have been obtained and all kubeconfigs stored in CloudConfig)
+				err = callRsyncReadyNotify(newCID)
+				if err != nil {
+					log.Error("Failed calling rsync ready-notify", log.Fields{"err": err})
+					return LogicalCloud{}, pkgerrors.Wrap(err, "Failed calling rsync ready-notify")
+				}
+			}
+		}
+		return LogicalCloud{}, nil
+	}
+
 	return c, nil
 }
 
