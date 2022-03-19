@@ -156,42 +156,64 @@ func (h logicalCloudHandler) updateHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	// TODO: OpenAPI spec may be in need of an update (e.g. empty body is no longer an error)
+	ret, err := h.client.UpdateInstantiation(project, name, v)
+	if err != nil {
+		apiErr := apierror.HandleErrors(vars, err, v, apiErrors)
+		http.Error(w, apiErr.Message, apiErr.Status)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	err = json.NewEncoder(w).Encode(ret)
+	if err != nil {
+		http.Error(w, err.Error(),
+			http.StatusInternalServerError)
+		return
+	}
+}
+
+// putHandler handles PUT API update operations on a particular logical cloud
+func (h logicalCloudHandler) putHandler(w http.ResponseWriter, r *http.Request) {
+	var v dcm.LogicalCloud
+	vars := mux.Vars(r)
+	project := vars["project"]
+	name := vars["logicalCloud"]
+	var err error
+
+	// Get logical cloud
+	_, err = h.client.Get(project, name)
+	if err != nil {
+		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
+		http.Error(w, apiErr.Message, apiErr.Status)
+		return
+	}
+
 	err = json.NewDecoder(r.Body).Decode(&v)
-	hasBody := true
 	switch {
 	case err == io.EOF:
-		hasBody = false
+		log.Error(err.Error(), log.Fields{})
+		http.Error(w, "Empty body", http.StatusBadRequest)
+		return
 	case err != nil:
 		log.Error(err.Error(), log.Fields{})
 		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
 		return
 	}
 
-	if hasBody {
-		err, httpError := validation.ValidateJsonSchemaData(logicalCloudJSONValidation, v)
-		if err != nil {
-			log.Error(":: Invalid Logical Cloud JSON ::", log.Fields{"Error": err})
-			http.Error(w, err.Error(), httpError)
-			return
-		}
-
-		if v.MetaData.LogicalCloudName == "" {
-			log.Error("API: Missing name in PUT request", log.Fields{})
-			http.Error(w, "Missing name in PUT request", http.StatusBadRequest)
-			return
-		}
-	} else {
-		// if no body was provided, then let's load the current Logical Cloud from the DB instead
-		v, err = h.client.Get(project, name)
-		if err != nil {
-			apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
-			http.Error(w, apiErr.Message, apiErr.Status)
-			return
-		}
+	err, httpError := validation.ValidateJsonSchemaData(logicalCloudJSONValidation, v)
+	if err != nil {
+		log.Error(":: Invalid Logical Cloud JSON ::", log.Fields{"Error": err})
+		http.Error(w, err.Error(), httpError)
+		return
 	}
 
-	ret, err := h.client.Update(project, name, v)
+	if v.MetaData.LogicalCloudName == "" {
+		log.Error("API: Missing name in PUT request", log.Fields{})
+		http.Error(w, "Missing name in PUT request", http.StatusBadRequest)
+		return
+	}
+
+	ret, err := h.client.UpdateLogicalCloud(project, name, v)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, v, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
