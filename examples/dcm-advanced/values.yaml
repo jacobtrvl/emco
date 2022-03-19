@@ -53,6 +53,6 @@
     OvnPort: 9032
     DtcPort: 9048
     NpsPort: 9038
-    KubeConfig: /root/clusters/k23-1.conf
-    KubeConfig2: /root/clusters/k22-1.conf
+    KubeConfig: /home/vagrant/git/multicloud-k8s/cluster-configs/config-edge02
+    KubeConfig2: /home/vagrant/git/multicloud-k8s/cluster-configs/config-edge03
     HostIP: 127.0.0.1

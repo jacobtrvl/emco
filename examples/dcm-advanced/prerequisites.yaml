@@ -21,31 +21,6 @@ spec:
   port: {{.RsyncPort}}
 
 ---
-version: emco/v2
-resourceContext:
-  anchor: controllers
-metadata :
-   name: dtc
-spec:
-  host: {{.HostIP}}
-  port: {{.DtcPort}}
-  type: "action"
-  priority: 1
-
----
-#creating dtc controller entries
-version: emco/v2
-resourceContext:
-  anchor: dtc-controllers
-metadata :
-   name: nps
-spec:
-  host:  {{.HostIP}}
-  port: {{.NpsPort}}
-  type: "action"
-  priority: 1
-
----
 #creating cluster provider
 version: emco/v2
 resourceContext:
