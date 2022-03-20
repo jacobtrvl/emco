@@ -5,12 +5,13 @@ package k8s
 
 import (
 	"context"
+	"strings"
+
 	pkgerrors "github.com/pkg/errors"
 	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 	"gitlab.com/project-emco/core/emco-base/src/rsync/pkg/internal/utils"
 	"gitlab.com/project-emco/core/emco-base/src/rsync/pkg/status"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"strings"
 )
 
 // Creates a new resource if the not already existing
@@ -27,6 +28,7 @@ func (p *K8sProvider) Create(name string, ref interface{}, content []byte) (inte
 	}
 	return nil, nil
 }
+
 // Apply resource to the cluster
 func (p *K8sProvider) Apply(name string, ref interface{}, content []byte) (interface{}, error) {
 
@@ -48,10 +50,13 @@ func (p *K8sProvider) Apply(name string, ref interface{}, content []byte) (inter
 		log.Info("Approval Subresource::", log.Fields{"cluster": p.cluster, "resource": result[0], "approval": string(subres)})
 		err = p.client.Approve(result[0], subres)
 		return nil, err
+	} else {
+		log.Info("Apply - GetSubResApprove - Error with subresource", log.Fields{"name": name, "cluster": p.cluster, "error": err})
 	}
 
 	return nil, nil
 }
+
 // Delete resource from the cluster
 func (p *K8sProvider) Delete(name string, ref interface{}, content []byte) (interface{}, error) {
 	if err := p.client.Delete(content); err != nil {
@@ -60,6 +65,7 @@ func (p *K8sProvider) Delete(name string, ref interface{}, content []byte) (inte
 	}
 	return nil, nil
 }
+
 // Get resource from the cluster
 func (p *K8sProvider) Get(name string, gvkRes []byte) ([]byte, error) {
 	b, err := p.client.Get(gvkRes, p.namespace)
@@ -69,11 +75,13 @@ func (p *K8sProvider) Get(name string, gvkRes []byte) ([]byte, error) {
 	}
 	return b, nil
 }
+
 // Commit resources to the cluster
 // Not required in K8s case
 func (p *K8sProvider) Commit(ctx context.Context, ref interface{}) error {
 	return nil
 }
+
 // IsReachable cluster reachablity test
 func (p *K8sProvider) IsReachable() error {
 	return p.client.IsReachable()

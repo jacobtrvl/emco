@@ -428,7 +428,7 @@ func (c *Context) updateModifyPhase(e AppContextQueueElement) error {
 							if bytes.Equal(cRes, uRes) {
 								res.Skip = true
 							} else {
-								log.Info("Update Resource Diff found::", log.Fields{"resource": res.Name, "cluster": cluster})
+								log.Info("Update Resource Diff found::", log.Fields{"resource": res.Name, "cluster": cluster, "cRes": string(cRes), "uRes": string(uRes)})
 								diffRes = true
 							}
 						} else {
@@ -519,7 +519,7 @@ func (c *Context) runCluster(ctx context.Context, op RsyncOperation, e RsyncEven
 	defer cl.CleanClientProvider()
 	// Start cluster watcher if there are resources to be watched
 	// case like admin cloud has no resources
-	if len (c.ca.Apps[app].Clusters[cluster].ResOrder) > 0  {
+	if len(c.ca.Apps[app].Clusters[cluster].ResOrder) > 0 {
 		err = cl.StartClusterWatcher()
 		if err != nil {
 			log.Error("Error starting Cluster Watcher", log.Fields{
@@ -535,7 +535,7 @@ func (c *Context) runCluster(ctx context.Context, op RsyncOperation, e RsyncEven
 	switch e {
 	case InstantiateEvent:
 		// Apply config for the cluster if there are any resources to be applied
-		if len (c.ca.Apps[app].Clusters[cluster].ResOrder) > 0  {
+		if len(c.ca.Apps[app].Clusters[cluster].ResOrder) > 0 {
 			err = cl.ApplyConfig(ctx, nil)
 			if err != nil {
 				return err
@@ -545,7 +545,7 @@ func (c *Context) runCluster(ctx context.Context, op RsyncOperation, e RsyncEven
 		c.StopDeleteStatusCRTimer(key)
 		// Based on the discussions in Helm handling of CRD's
 		// https://helm.sh/docs/chart_best_practices/custom_resource_definitions/
-		if len (c.ca.Apps[app].Clusters[cluster].Dependency["crd-install"]) > 0 {
+		if len(c.ca.Apps[app].Clusters[cluster].Dependency["crd-install"]) > 0 {
 			// Create CRD Resources if they don't exist
 			log.Info("Creating CRD Resources if they don't exist", log.Fields{"App": app, "cluster": cluster, "hooks": c.ca.Apps[app].Clusters[cluster].Dependency["crd-install"]})
 			_, err := r.handleResources(ctx, OpCreate, c.ca.Apps[app].Clusters[cluster].Dependency["crd-install"])
@@ -582,7 +582,7 @@ func (c *Context) runCluster(ctx context.Context, op RsyncOperation, e RsyncEven
 			return err
 		}
 		log.Info("Done Installing main resources", log.Fields{"App": app, "cluster": cluster, "resources": c.ca.Apps[app].Clusters[cluster].ResOrder})
-		if len (c.ca.Apps[app].Clusters[cluster].Dependency["post-install"]) > 0 {
+		if len(c.ca.Apps[app].Clusters[cluster].Dependency["post-install"]) > 0 {
 			log.Info("Installing Post-install Hooks", log.Fields{"App": app, "cluster": cluster, "hooks": c.ca.Apps[app].Clusters[cluster].Dependency["post-install"]})
 			// Install Postinstall hooks with wait
 			_, err = r.handleResourcesWithWait(ctx, op, c.ca.Apps[app].Clusters[cluster].Dependency["post-install"])
@@ -593,7 +593,7 @@ func (c *Context) runCluster(ctx context.Context, op RsyncOperation, e RsyncEven
 		}
 	case TerminateEvent:
 		// Apply Predelete hooks with wait
-		if len (c.ca.Apps[app].Clusters[cluster].Dependency["pre-delete"]) > 0 {
+		if len(c.ca.Apps[app].Clusters[cluster].Dependency["pre-delete"]) > 0 {
 			log.Info("Deleting pre-delete Hooks", log.Fields{"App": app, "cluster": cluster, "hooks": c.ca.Apps[app].Clusters[cluster].Dependency["pre-delete"]})
 			_, err = r.handleResourcesWithWait(ctx, OpApply, c.ca.Apps[app].Clusters[cluster].Dependency["pre-delete"])
 			if err != nil {
@@ -607,7 +607,7 @@ func (c *Context) runCluster(ctx context.Context, op RsyncOperation, e RsyncEven
 			return err
 		}
 		// Apply Postdelete hooks with wait
-		if len (c.ca.Apps[app].Clusters[cluster].Dependency["post-delete"]) > 0 {
+		if len(c.ca.Apps[app].Clusters[cluster].Dependency["post-delete"]) > 0 {
 			log.Info("Deleting post-delete Hooks", log.Fields{"App": app, "cluster": cluster, "hooks": c.ca.Apps[app].Clusters[cluster].Dependency["post-delete"]})
 			_, err = r.handleResourcesWithWait(ctx, OpApply, c.ca.Apps[app].Clusters[cluster].Dependency["post-delete"])
 			if err != nil {
@@ -626,7 +626,7 @@ func (c *Context) runCluster(ctx context.Context, op RsyncOperation, e RsyncEven
 		_, _ = r.handleResources(ctx, op, rl)
 
 		// Delete config for the cluster if applied
-		if len (c.ca.Apps[app].Clusters[cluster].ResOrder) > 0  {
+		if len(c.ca.Apps[app].Clusters[cluster].ResOrder) > 0 {
 			err = cl.DeleteConfig(ctx, nil)
 			if err != nil {
 				return err

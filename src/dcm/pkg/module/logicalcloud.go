@@ -321,18 +321,10 @@ func (v *LogicalCloudClient) UpdateInstantiation(project, logicalCloudName strin
 		Project:          project,
 		LogicalCloudName: logicalCloudName,
 	}
-	// Check for mismatch, logicalCloudName and payload logical cloud name
-	if c.MetaData.LogicalCloudName != logicalCloudName {
-		return LogicalCloud{}, pkgerrors.New("Logical Cloud name mismatch")
-	}
 	//Check if this Logical Cloud exists
 	logicalCloud, err := v.Get(project, logicalCloudName)
 	if err != nil {
 		return LogicalCloud{}, err
-	}
-	err = db.DBconn.Insert(v.storeName, key, nil, v.tagMeta, c)
-	if err != nil {
-		return LogicalCloud{}, pkgerrors.Wrap(err, "Updating DB Entry")
 	}
 
 	// If Logical Cloud was already instantiated, then prepare new appcontext to give to rsync
@@ -378,7 +370,7 @@ func (v *LogicalCloudClient) UpdateInstantiation(project, logicalCloudName strin
 				if err != nil {
 					return LogicalCloud{}, err
 				}
-				_, newCID, err = blindInstantiateL1(project, logicalCloud, v, clusterList, quotaList, userPermissionList)
+				_, newCID, err = blindInstantiateL1(oldCID, project, logicalCloud, v, clusterList, quotaList, userPermissionList)
 				log.Debug("", log.Fields{"newCID": newCID})
 			} else if level == "0" {
 				_, newCID, err = blindInstantiateL0(project, logicalCloud, v, clusterList)

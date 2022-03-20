@@ -55,4 +55,4 @@
     NpsPort: 9038
     KubeConfig: /home/vagrant/git/multicloud-k8s/cluster-configs/config-edge02
     KubeConfig2: /home/vagrant/git/multicloud-k8s/cluster-configs/config-edge03
-    HostIP: 127.0.0.1
+    HostIP: rsync

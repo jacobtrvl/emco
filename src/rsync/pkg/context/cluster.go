@@ -5,14 +5,15 @@ package context
 
 import (
 	"context"
+	"strings"
+	"time"
+
 	pkgerrors "github.com/pkg/errors"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/appcontext"
 	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/resourcestatus"
 	"gitlab.com/project-emco/core/emco-base/src/rsync/pkg/status"
 	. "gitlab.com/project-emco/core/emco-base/src/rsync/pkg/types"
-	"strings"
-	"time"
 )
 
 type resProvd struct {
@@ -184,6 +185,9 @@ func (r *resProvd) handleResource(ctx context.Context, op RsyncOperation, res st
 
 func (r *resProvd) instantiateResource(name string, ref interface{}) (interface{}, error) {
 	var q interface{}
+	// pre-emptive setting of status
+	r.updateResourceStatus(name, resourcestatus.ResourceStatus{Status: resourcestatus.RsyncStatusEnum.Pending})
+
 	res, _, err := r.context.acRef.GetRes(name, r.app, r.cluster)
 	if err != nil {
 		r.updateResourceStatus(name, resourcestatus.ResourceStatus{Status: resourcestatus.RsyncStatusEnum.Failed})
@@ -257,7 +261,7 @@ func (r *resProvd) readResource(name string) error {
 	b, err := r.cl.Get(name, res)
 	if err != nil {
 		r.updateResourceStatus(name, resourcestatus.ResourceStatus{Status: resourcestatus.RsyncStatusEnum.Failed})
-		log.Error("Failed to read res", log.Fields{"error": err, "resource": name,})
+		log.Error("Failed to read res", log.Fields{"error": err, "resource": name})
 		return err
 	}
 	// Store result back in AppContext
@@ -271,11 +275,11 @@ func (r *resProvd) addStatusTracker(extraLabel string) error {
 	label := r.context.statusAcID + "-" + r.app
 	b, err := status.GetStatusCR(label, extraLabel)
 	if err != nil {
-		log.Error("Failed to get status CR for installing", log.Fields{"error": err, "label": label,})
+		log.Error("Failed to get status CR for installing", log.Fields{"error": err, "label": label})
 		return err
 	}
 	if err = r.cl.ApplyStatusCR(label, b); err != nil {
-		log.Error("Failed to apply status tracker", log.Fields{"error": err, "cluster": r.cluster, "app": r.app, "label":   label,})
+		log.Error("Failed to apply status tracker", log.Fields{"error": err, "cluster": r.cluster, "app": r.app, "label": label})
 		return err
 	}
 	return nil
@@ -286,11 +290,11 @@ func (r *resProvd) deleteStatusTracker(extraLabel string) error {
 	label := r.context.statusAcID + "-" + r.app
 	b, err := status.GetStatusCR(label, extraLabel)
 	if err != nil {
-		log.Error("Failed to get status CR for deleting", log.Fields{"error": err, "label": label,})
+		log.Error("Failed to get status CR for deleting", log.Fields{"error": err, "label": label})
 		return err
 	}
 	if err = r.cl.DeleteStatusCR(label, b); err != nil {
-		log.Error("Failed to delete res", log.Fields{"error": err, "app":   r.app, "label": label,})
+		log.Error("Failed to delete res", log.Fields{"error": err, "app": r.app, "label": label})
 		return err
 	}
 	return nil
