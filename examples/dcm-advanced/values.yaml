@@ -47,6 +47,7 @@
     CompositeAppDtc: dtc-composite-app
     DtcIntent: collectd-dtc-intent
     CompositeAppMonitor: monitor-composite-app
+    Intent: intent
     ConfigmapFile: info.json
     RsyncPort: 9031
     GacPort: 9033
@@ -56,3 +57,15 @@
     KubeConfig: /home/vagrant/git/multicloud-k8s/cluster-configs/config-edge02
     KubeConfig2: /home/vagrant/git/multicloud-k8s/cluster-configs/config-edge03
     HostIP: rsync
+
+    PackagesPath: output
+    Clusters:
+      - Name: cluster1
+        KubeConfig: /home/vagrant/git/multicloud-k8s/cluster-configs/config-edge02
+      - Name: cluster2
+        KubeConfig: /home/vagrant/git/multicloud-k8s/cluster-configs/config-edge03
+    Applist:
+      - Name: collectd
+        Cluster:
+          - cluster1
+          - cluster2

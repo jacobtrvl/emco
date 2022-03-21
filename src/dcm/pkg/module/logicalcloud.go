@@ -407,7 +407,7 @@ func (v *LogicalCloudClient) UpdateInstantiation(project, logicalCloudName strin
 				TimeStamp: time.Now(),
 				Revision:  newRev,
 			}
-			lcStateInfo.StatusContextId = newCID
+			//lcStateInfo.StatusContextId = newCID
 			lcStateInfo.Actions = append(lcStateInfo.Actions, a)
 
 			err = db.DBconn.Insert(v.storeName, key, nil, v.tagState, lcStateInfo)

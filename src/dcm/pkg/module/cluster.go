@@ -324,7 +324,8 @@ func (v *ClusterClient) GetClusterConfig(project, logicalCloud, clusterReference
 	if err != nil {
 		return "", err
 	}
-	cid := state.GetLastContextIdFromStateInfo(s)
+	//cid := state.GetLastContextIdFromStateInfo(s)
+	cid := state.GetStatusContextIdFromStateInfo(s)
 
 	if cid == "" {
 		return "", pkgerrors.New("Logical Cloud hasn't been instantiated yet")
@@ -355,12 +356,13 @@ func (v *ClusterClient) GetClusterConfig(project, logicalCloud, clusterReference
 	// before attempting to generate a kubeconfig,
 	// check if certificate has been issued and copy it from etcd to mongodb
 	if cluster.Specification.Certificate == "" {
-		log.Info("Certificate not yet in MongoDB, checking etcd.", log.Fields{})
+		log.Info("Certificate not yet in MongoDB, checking etcd.", log.Fields{"cid": cid, "logical cloud": logicalCloud, "cluster ref": clusterReference})
 
 		// access etcd
 		clusterName := strings.Join([]string{cluster.Specification.ClusterProvider, "+", cluster.Specification.ClusterName}, "")
 
 		// get the app context handle for the status of this cluster (which should contain the certificate inside, if already issued)
+		log.Info("Looking up clusterName.", log.Fields{"cid": cid, "logical cloud": logicalCloud, "cluster ref": clusterReference, "cluster": clusterName})
 		statusHandle, err := ac.GetClusterStatusHandle("logical-cloud", clusterName)
 
 		if err != nil {
