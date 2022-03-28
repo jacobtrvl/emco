@@ -51,8 +51,6 @@ paths:
           description: Conflict
         '422':
           description: Unprocessable Entity
-        '500':
-          description: Internal Server Error
 
       requestBody:
         content:
@@ -82,8 +80,6 @@ paths:
           description: No Found
         '400':
           description: Bad Request
-        '500':
-          description: Internal Server Error
 
   /projects/{project}:
     # parameters list that are used with each operation for this path
@@ -110,8 +106,6 @@ paths:
           content: {}
         '400':
           description: Bad Request
-        '500':
-          description: Internal Server Error
     put:
       tags:
         - Projects
@@ -133,8 +127,6 @@ paths:
           description: Conflict
         '422':
           description: Unprocessable Entity
-        '500':
-          description: Internal Server Error
       # request body documentation
       requestBody:
         content:
@@ -159,8 +151,6 @@ paths:
           description: Not Found
         '409':
           description: Conflict
-        '500':
-          description: Internal Server Error
 
   ############################ Application API'S #################################################
   /projects/{project}/composite-apps:
@@ -187,8 +177,6 @@ paths:
           description: Conflict
         '422':
           description: Unprocessable Entity
-        '500':
-          description: Internal Server Error
       requestBody:
         content:
           application/json:
@@ -217,8 +205,6 @@ paths:
           description: No Composite App found
         '400':
           description: Bad Request
-        '500':
-          description: Internal Server Error
 
   /projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}:
     # parameters list that are used with each operation for this path
@@ -246,8 +232,6 @@ paths:
           description: Composite Application not found
         '400':
           description: Bad Request
-        '500':
-          description: Internal Server Error
     put:
       tags:
         - Composite Application
@@ -269,8 +253,6 @@ paths:
           description: Conflict
         '422':
           description: Unprocessable Entity
-        '500':
-          description: Internal Server Error
       # request body documentation
       requestBody:
         content:
@@ -296,8 +278,6 @@ paths:
           description: Not Found
         '409':
           description: Conflict
-        '500':
-          description: Internal Server Error
 
   /projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/apps:
     parameters:
@@ -325,8 +305,6 @@ paths:
           description: Conflict
         '422':
           description: Unprocessable Entity
-        '500':
-          description: Internal Server Error
       # request body documentation
       requestBody:
         content:
@@ -355,8 +333,6 @@ paths:
           description: No Apps found in Composite Application
         '400':
           description: Bad Request
-        '500':
-          description: Internal Server Error
 
   /projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/apps/{app}:
     # parameters list that are used with each operation for this path
@@ -392,8 +368,6 @@ paths:
           description: Application not found
         '400':
           description: Bad Request
-        '500':
-          description: Internal Server Error
     put:
       tags:
         - Composite Application
@@ -415,8 +389,6 @@ paths:
           description: Conflict
         '422':
           description: Unprocessable Entity
-        '500':
-          description: Internal Server Error
       # request body documentation
       requestBody:
         content:
@@ -440,8 +412,6 @@ paths:
           description: Not Found
         '409':
           description: Conflict
-        '500':
-          description: Internal Server Error
 
 ############################ Application Dependency API'S #################################################
   /projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/apps/{app}/dependency:
@@ -471,8 +441,6 @@ paths:
           description: Conflict
         '422':
           description: Unprocessable Entity
-        '500':
-          description: Internal Server Error
       # request body documentation
       requestBody:
         content:
@@ -502,8 +470,6 @@ paths:
           description: No dependency found for the Application
         '400':
           description: Bad Request
-        '500':
-          description: Internal Server Error
 
   /projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/apps/{app}/dependency/{dependency}:
     # parameters list that are used with each operation for this path
@@ -533,8 +499,6 @@ paths:
           description: Dependency not found
         '400':
           description: Bad Request
-        '500':
-          description: Internal Server Error
     put:
       tags:
         - Application Dependency
@@ -556,8 +520,6 @@ paths:
           description: Conflict
         '422':
           description: Unprocessable Entity
-        '500':
-          description: Internal Server Error
       # request body documentation
       requestBody:
         content:
@@ -581,8 +543,6 @@ paths:
           description: Not Found
         '409':
           description: Conflict
-        '500':
-          description: Internal Server Error
 
 ############################ PROFILE API'S #################################################
   /projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/composite-profiles:
@@ -611,8 +571,6 @@ paths:
           description: Conflict
         '422':
           description: Unprocessable Entity
-        '500':
-          description: Internal Server Error
       requestBody:
         content:
           application/json:
@@ -641,8 +599,6 @@ paths:
           description: No composite profile found
         '400':
           description: Bad Request
-        '500':
-          description: Internal Server Error
 
   /projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/composite-profiles/{compositeProfile}:
     # parameters list that are used with each operation for this path
@@ -671,8 +627,6 @@ paths:
           description: Composite Profile not found
         '400':
           description: Bad Request
-        '500':
-          description: Internal Server Error
     put:
       tags:
         - Composite Profile
@@ -694,8 +648,6 @@ paths:
           description: Conflict
         '422':
           description: Unprocessable Entity
-        '500':
-          description: Internal Server Error
       # request body documentation
       requestBody:
         content:
@@ -720,8 +672,6 @@ paths:
           description: Not Found
         '409':
           description: Conflict
-        '500':
-          description: Internal Server Error
 
   /projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/composite-profiles/{compositeProfile}/profiles:
     parameters:
@@ -750,8 +700,6 @@ paths:
           description: Conflict
         '422':
           description: Unprocessable Entity
-        '500':
-          description: Internal Server Error
       requestBody:
         content:
           multipart/form-data: # Media type
@@ -777,8 +725,6 @@ paths:
           description: No profile found
         '400':
           description: Bad Request
-        '500':
-          description: Internal Server Error
 
   /projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/composite-profiles/{compositeProfile}/profiles/{appProfile}:
     # parameters list that are used with each operation for this path
@@ -815,8 +761,6 @@ paths:
           description: Profile not found
         '400':
           description: Bad Request
-        '500':
-          description: Internal Server Error
     put:
       tags:
         - Composite Profile
@@ -838,8 +782,6 @@ paths:
           description: Conflict
         '422':
           description: Unprocessable Entity
-        '500':
-          description: Internal Server Error
       # request body documentation
       requestBody:
         content:
@@ -863,8 +805,6 @@ paths:
           description: Not Found
         '409':
           description: Conflict
-        '500':
-          description: Internal Server Error
 
   # Qurey for Profile - Get profile for app
   /projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/composite-profiles/{compositeProfile}/profiles/:
@@ -906,8 +846,6 @@ paths:
           description: Profile for application not found
         '400':
           description: Bad Request
-        '500':
-          description: Internal Server Error
 
 
 
@@ -938,8 +876,6 @@ paths:
           description: Conflict
         '422':
           description: Unprocessable Entity
-        '500':
-          description: Internal Server Error
       requestBody:
         content:
           application/json:
@@ -967,8 +903,6 @@ paths:
           description: No Deployment Intent Group found
         '400':
           description: Bad Request
-        '500':
-          description: Internal Server Error
 
   /projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}:
     # parameters list that are used with each operation for this path
@@ -997,8 +931,6 @@ paths:
           description: Deployment Intent Group not found
         '400':
           description: Bad Request
-        '500':
-          description: Internal Server Error
     put:
       tags:
         - Deployment Intent Group
@@ -1020,8 +952,6 @@ paths:
           description: Conflict
         '422':
           description: Unprocessable Entity
-        '500':
-          description: Internal Server Error
       # request body documentation
       requestBody:
         content:
@@ -1047,8 +977,6 @@ paths:
           description: Not Found
         '409':
           description: Conflict
-        '500':
-          description: Internal Server Error
 
   /projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/intents/:
     parameters:
@@ -1077,8 +1005,6 @@ paths:
           description: Conflict
         '422':
           description: Unprocessable Entity
-        '500':
-          description: Internal Server Error
       requestBody:
         content:
           application/json: # Media type
@@ -1104,8 +1030,6 @@ paths:
           description: No Deployment Intent Group found
         '400':
           description: Bad Request
-        '500':
-          description: Internal Server Error
 
 
   /projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/intents/{intent-name}:
@@ -1136,8 +1060,6 @@ paths:
           description: Deployment Intent not found
         '400':
           description: Bad Request
-        '500':
-          description: Internal Server Error
     put:
       tags:
         - Deployment Intent Group
@@ -1159,8 +1081,6 @@ paths:
           description: Conflict
         '422':
           description: Unprocessable Entity
-        '500':
-          description: Internal Server Error
       # request body documentation
       requestBody:
         content:
@@ -1184,8 +1104,6 @@ paths:
           description: Not Found
         '409':
           description: Conflict
-        '500':
-          description: Internal Server Error
    #Query
   /projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/intents:
     parameters:
@@ -1220,8 +1138,6 @@ paths:
           description: Deployment Intent not found
         '400':
           description: Bad Request
-        '500':
-          description: Internal Server Error
 
 ############################ GENERIC PLACEMENT INTENT API'S #################################################
   /projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/generic-placement-intents:
@@ -1251,8 +1167,6 @@ paths:
           description: Conflict
         '422':
           description: Unprocessable Entity
-        '500':
-          description: Internal Server Error
       requestBody:
         content:
           application/json:
@@ -1281,8 +1195,6 @@ paths:
           description: No Generic Placement Intent found
         '400':
           description: Bad Request
-        '500':
-          description: Internal Server Error
 
   /projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/generic-placement-intents/{generic-placement-intent-name}:
     # parameters list that are used with each operation for this path
@@ -1312,8 +1224,6 @@ paths:
           description: Generic Placement Intent not found
         '400':
           description: Bad Request
-        '500':
-          description: Internal Server Error
     put:
       tags:
         - Generic Placement Intent
@@ -1335,8 +1245,6 @@ paths:
           description: Conflict
         '422':
           description: Unprocessable Entity
-        '500':
-          description: Internal Server Error
       # request body documentation
       requestBody:
         content:
@@ -1361,8 +1269,6 @@ paths:
           description: Not Found
         '409':
           description: Conflict
-        '500':
-          description: Internal Server Error
 
   /projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/generic-placement-intents/{generic-placement-intent-name}/app-intents:
     parameters:
@@ -1392,8 +1298,6 @@ paths:
           description: Conflict
         '422':
           description: Unprocessable Entity
-        '500':
-          description: Internal Server Error
       requestBody:
         content:
           application/json: # Media type
@@ -1419,8 +1323,6 @@ paths:
           description: No Generic Placement Intent found
         '400':
           description: Bad Request
-        '500':
-          description: Internal Server Error
 
   /projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/generic-placement-intents/{generic-placement-intent-name}/app-intents/{intent-name}:
     parameters:
@@ -1452,8 +1354,6 @@ paths:
           description: Intent  not found
         '400':
           description: Bad Request
-        '500':
-          description: Internal Server Error
     put:
       tags:
         - Generic Placement Intent
@@ -1475,8 +1375,6 @@ paths:
           description: Conflict
         '422':
           description: Unprocessable Entity
-        '500':
-          description: Internal Server Error
       # request body documentation
       requestBody:
         content:
@@ -1501,8 +1399,6 @@ paths:
           description: Not Found
         '409':
           description: Conflict
-        '500':
-          description: Internal Server Error
 
   # Qurey for Intent - Get intent for app
   /projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/generic-placement-intents/{generic-placement-intent-name}/app-intents/:
@@ -1539,8 +1435,6 @@ paths:
           description: Generic Placement Intent for application not found
         '400':
           description: Bad Request
-        '500':
-          description: Internal Server Error
 
 ####################Lifecycle Management#######################################
   /projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/approve:
@@ -1568,8 +1462,6 @@ paths:
           description: Conflict
         '422':
           description: Unprocessable Entity
-        '500':
-          description: Internal Server Error
       requestBody:
         content: {}
 
@@ -1598,8 +1490,6 @@ paths:
           description: Conflict
         '422':
           description: Unprocessable Entity
-        '500':
-          description: Internal Server Error
       requestBody:
         content: {}
 
@@ -1628,8 +1518,6 @@ paths:
           description: Conflict
         '422':
           description: Unprocessable Entity
-        '500':
-          description: Internal Server Error
       requestBody:
         content: {}
 
@@ -1658,8 +1546,6 @@ paths:
           description: Conflict
         '422':
           description: Unprocessable Entity
-        '500':
-          description: Internal Server Error
       requestBody:
         content:
           application/json: # Media type
@@ -1691,8 +1577,6 @@ paths:
           description: Conflict
         '422':
           description: Unprocessable Entity
-        '500':
-          description: Internal Server Error
       requestBody:
         content: {}
 
@@ -1721,8 +1605,6 @@ paths:
           description: Conflict
         '422':
           description: Unprocessable Entity
-        '500':
-          description: Internal Server Error
       requestBody:
         content:
           application/json: # Media type
@@ -1805,8 +1687,6 @@ paths:
           description: No Status found
         '400':
           description: Bad Request
-        '500':
-          description: Internal Server Error
 
   /projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/stop:
     parameters:
@@ -1833,8 +1713,6 @@ paths:
           description: Conflict
         '422':
           description: Unprocessable Entity
-        '500':
-          description: Internal Server Error
       requestBody:
         content: {}
 ############################ Controller Registration API'S #################################################
@@ -1860,8 +1738,6 @@ paths:
           description: Conflict
         '422':
           description: Unprocessable Entity
-        '500':
-          description: Internal Server Error
       requestBody:
         content:
           application/json:
@@ -1889,8 +1765,6 @@ paths:
               description: No controllers found
             '400':
               description: Bad Request
-            '500':
-              description: Internal Server Error
 
   /controllers/{controller}:
     # parameters list that are used with each operation for this path
@@ -1916,8 +1790,6 @@ paths:
           description: Controller not found
         '400':
           description: Bad Request
-        '500':
-          description: Internal Server Error
     put:
       tags:
         - Controller Registration
@@ -1939,8 +1811,6 @@ paths:
           description: Conflict
         '422':
           description: Unprocessable Entity
-        '500':
-          description: Internal Server Error
       # request body documentation
       requestBody:
         content:
@@ -1965,8 +1835,6 @@ paths:
           description: Not Found
         '409':
           description: Conflict
-        '500':
-          description: Internal Server Error
 ############################ Clm Controller Registration API'S #################################################
   /clm-controllers:
     post:
@@ -1988,8 +1856,6 @@ paths:
           description: Not Found
         '409':
           description: Conflict
-        '500':
-          description: Internal Server Error
       requestBody:
         content:
           application/json:
@@ -2017,8 +1883,6 @@ paths:
               description: No controllers found
             '400':
               description: Bad Request
-            '500':
-              description: Internal Server Error
 
   /clm-controllers/{clmController}:
     # parameters list that are used with each operation for this path
@@ -2044,8 +1908,6 @@ paths:
           description: ClmController not found
         '400':
           description: Bad Request
-        '500':
-          description: Internal Server Error
     put:
       tags:
         - Clm Controller Registration
@@ -2063,8 +1925,6 @@ paths:
           description: Bad Request
         '404':
           description: Not Found
-        '500':
-          description: Internal Server Error
       # request body documentation
       requestBody:
         content:
@@ -2087,8 +1947,6 @@ paths:
           description: Delete
         '404':
           description: Not Found
-        '500':
-          description: Internal Server Error
 ############################ Cluster Provider API'S #################################################
   /cluster-providers:
     post:
@@ -2112,8 +1970,6 @@ paths:
           description: Conflict
         '422':
           description: Unprocessable Entity
-        '500':
-          description: Internal Server Error
       requestBody:
         content:
           application/json:
@@ -2141,8 +1997,6 @@ paths:
               description: No cluster provider found
             '400':
               description: Bad Request
-            '500':
-              description: Internal Server Error
 
   /cluster-providers/{clusterProvider}:
     # parameters list that are used with each operation for this path
@@ -2168,8 +2022,6 @@ paths:
           description: Cluster Provider not found
         '400':
           description: Bad Request
-        '500':
-          description: Internal Server Error
     put:
       tags:
         - Cluster Providers
@@ -2191,8 +2043,6 @@ paths:
           description: Conflict
         '422':
           description: Unprocessable Entity
-        '500':
-          description: Internal Server Error
       # request body documentation
       requestBody:
         content:
@@ -2217,8 +2067,6 @@ paths:
           description: Not Found
         '409':
           description: Conflict
-        '500':
-          description: Internal Server Error
 
   /cluster-providers/{clusterProvider}/clusters:
     parameters:
@@ -2244,8 +2092,6 @@ paths:
           description: Conflict
         '422':
           description: Unprocessable Entity
-        '500':
-          description: Internal Server Error
       requestBody:
         content:
           multipart/form-data: # Media type
@@ -2278,8 +2124,6 @@ paths:
           description: No clusters found in cluster provider
         '400':
           description: Bad Request
-        '500':
-          description: Internal Server Error
   /cluster-providers/{clusterProvider}/clusters/{cluster}:
     # parameters list that are used with each operation for this path
     parameters:
@@ -2312,8 +2156,6 @@ paths:
           description: Cluster not found
         '400':
           description: Bad Request
-        '500':
-          description: Internal Server Error
     put:
       tags:
         - Clusters
@@ -2337,8 +2179,6 @@ paths:
           description: Conflict
         '422':
           description: Unprocessable Entity
-        '500':
-          description: Internal Server Error
       # request body documentation
       requestBody:
         content:
@@ -2363,8 +2203,6 @@ paths:
           description: Not Found
         '409':
           description: Conflict
-        '500':
-          description: Internal Server Error
 
 ############################ Cluster Labels API'S #################################################
   /cluster-providers/{clusterProvider}/clusters/{cluster}/labels:
@@ -2393,8 +2231,6 @@ paths:
           description: Conflict
         '422':
           description: Unprocessable Entity
-        '500':
-          description: Internal Server Error
       requestBody:
         content:
           application/json:
@@ -2424,8 +2260,6 @@ paths:
               description: No labels found
             '400':
               description: Bad Request
-            '500':
-              description: Internal Server Error
 
   /cluster-providers/{clusterProvider}/clusters/{cluster}/labels/{clusterLabel}:
     # parameters list that are used with each operation for this path
@@ -2453,8 +2287,6 @@ paths:
           description: label not found
         '400':
           description: Bad Request
-        '500':
-          description: Internal Server Error
     put:
       tags:
         - Clusters
@@ -2476,8 +2308,6 @@ paths:
           description: Conflict
         '422':
           description: Unprocessable Entity
-        '500':
-          description: Internal Server Error
       requestBody:
         content:
           application/json:
@@ -2501,8 +2331,6 @@ paths:
           description: Not Found
         '409':
           description: Conflict
-        '500':
-          description: Internal Server Error
 
 ############################ Cluster Key Value API'S #################################################
   /cluster-providers/{clusterProvider}/clusters/{cluster}/kv-pairs:
@@ -2531,8 +2359,6 @@ paths:
           description: Conflict
         '422':
           description: Unprocessable Entity
-        '500':
-          description: Internal Server Error
       requestBody:
         content:
           application/json:
@@ -2562,8 +2388,6 @@ paths:
               description: No labels found
             '400':
               description: Bad Request
-            '500':
-              description: Internal Server Error
 
   /cluster-providers/{clusterProvider}/clusters/{cluster}/kv-pairs/{clusterKv}:
     # parameters list that are used with each operation for this path
@@ -2598,8 +2422,6 @@ paths:
           description: KV pair or key value not found
         '400':
           description: Bad Request
-        '500':
-          description: Internal Server Error
     put:
       tags:
         - Clusters
@@ -2621,8 +2443,6 @@ paths:
           description: Conflict
         '422':
           description: Unprocessable Entity
-        '500':
-          description: Internal Server Error
       requestBody:
         content:
           application/json:
@@ -2646,8 +2466,6 @@ paths:
           description: Not Found
         '409':
           description: Conflict
-        '500':
-          description: Internal Server Error
 
 ############################ Cluster Virtual Networks API'S #################################################
   /cluster-providers/{clusterProvider}/clusters/{cluster}/networks:
@@ -2676,8 +2494,6 @@ paths:
           description: Conflict
         '422':
           description: Unprocessable Entity
-        '500':
-          description: Internal Server Error
       requestBody:
         content:
           application/json:
@@ -2705,8 +2521,6 @@ paths:
               description: No virtual networks found
             '400':
               description: Bad Request
-            '500':
-              description: Internal Server Error
 
   /cluster-providers/{clusterProvider}/clusters/{cluster}/networks/{network}:
     # parameters list that are used with each operation for this path
@@ -2734,8 +2548,6 @@ paths:
           description: Network not found
         '400':
           description: Bad Request
-        '500':
-          description: Internal Server Error
     delete: # documentation for DELETE operation for this path
       tags:
         - Networks
@@ -2752,8 +2564,6 @@ paths:
           description: Not Found
         '409':
           description: Conflict
-        '500':
-          description: Internal Server Error
 
 ############################ Cluster Provider  Networks API'S #################################################
   /cluster-providers/{clusterProvider}/clusters/{cluster}/provider-networks:
@@ -2782,8 +2592,6 @@ paths:
           description: Conflict
         '422':
           description: Unprocessable Entity
-        '500':
-          description: Internal Server Error
       requestBody:
         content:
           application/json:
@@ -2811,8 +2619,6 @@ paths:
               description: No provider networks found
             '400':
               description: Bad Request
-            '500':
-              description: Internal Server Error
 
   /cluster-providers/{clusterProvider}/clusters/{cluster}/provider-networks/{providerNetwork}:
     # parameters list that are used with each operation for this path
@@ -2840,8 +2646,6 @@ paths:
           description: Provider network not found
         '400':
           description: Bad Request
-        '500':
-          description: Internal Server Error
 
     delete: # documentation for DELETE operation for this path
       tags:
@@ -2859,8 +2663,6 @@ paths:
           description: Not Found
         '409':
           description: Conflict
-        '500':
-          description: Internal Server Error
 
   /cluster-providers/{clusterProvider}/clusters/{cluster}/apply:
     # parameters list that are used with each operation for this path
@@ -2885,8 +2687,6 @@ paths:
           description: Conflict
         '422':
           description: Unprocessable Entity
-        '500':
-          description: Internal Server Error
       requestBody:
         content: {}
 
@@ -2913,8 +2713,6 @@ paths:
           description: Conflict
         '422':
           description: Unprocessable Entity
-        '500':
-          description: Internal Server Error
       requestBody:
         content: {}
 
@@ -2981,8 +2779,6 @@ paths:
           description: No Status found
         '400':
           description: Bad Request
-        '500':
-          description: Internal Server Error
 
   /cluster-providers/{clusterProvider}/clusters/{cluster}/stop:
     # parameters list that are used with each operation for this path
@@ -3007,8 +2803,6 @@ paths:
           description: Conflict
         '422':
           description: Unprocessable Entity
-        '500':
-          description: Internal Server Error
       requestBody:
         content: {}
 
@@ -3040,8 +2834,6 @@ paths:
           description: Conflict
         '422':
           description: Unprocessable Entity
-        '500':
-          description: Internal Server Error
       requestBody:
         content:
             application/json: # operation response mime type
@@ -3067,8 +2859,6 @@ paths:
           description: No Network Controller Intent found
         '400':
           description: Bad Request
-        '500':
-          description: Internal Server Error
   /projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/network-controller-intent/{netControllerIntent}:
     # parameters list that are used with each operation for this path
     parameters:
@@ -3097,8 +2887,6 @@ paths:
           description: Network Controller Intent not found
         '400':
           description: Bad Request
-        '500':
-          description: Internal Server Error
     put:
       tags:
         - Network Controller Intent
@@ -3120,8 +2908,6 @@ paths:
           description: Conflict
         '422':
           description: Unprocessable Entity
-        '500':
-          description: Internal Server Error
       # request body documentation
       requestBody:
         content:
@@ -3145,8 +2931,6 @@ paths:
           description: Not Found
         '409':
           description: Conflict
-        '500':
-          description: Internal Server Error
 
 ################## Workload Intents##################################
   /projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/network-controller-intent/{netControllerIntent}/workload-intents:
@@ -3177,8 +2961,6 @@ paths:
           description: Conflict
         '422':
           description: Unprocessable Entity
-        '500':
-          description: Internal Server Error
       requestBody:
         content:
             application/json: # operation response mime type
@@ -3204,8 +2986,6 @@ paths:
           description: No Network Controller Workload Intent found
         '400':
           description: Bad Request
-        '500':
-          description: Internal Server Error
 
   /projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/network-controller-intent/{netControllerIntent}/workload-intents/{workloadIntent}:
     # parameters list that are used with each operation for this path
@@ -3236,8 +3016,6 @@ paths:
           description: Network Controller Workload Intent not found
         '400':
           description: Bad Request
-        '500':
-          description: Internal Server Error
     put:
       tags:
         - Network Controller Intent
@@ -3259,8 +3037,6 @@ paths:
           description: Conflict
         '422':
           description: Unprocessable Entity
-        '500':
-          description: Internal Server Error
       # request body documentation
       requestBody:
         content:
@@ -3284,8 +3060,6 @@ paths:
           description: Not Found
         '409':
           description: Conflict
-        '500':
-          description: Internal Server Error
 
 ################## Workload Intents Interfaces ##################################
   /projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/network-controller-intent/{netControllerIntent}/workload-intents/{workloadIntent}/interfaces:
@@ -3317,8 +3091,6 @@ paths:
           description: Conflict
         '422':
           description: Unprocessable Entity
-        '500':
-          description: Internal Server Error
       requestBody:
         content:
             application/json: # operation response mime type
@@ -3344,8 +3116,6 @@ paths:
           description: No Network Controller Workload Interface found
         '400':
           description: Bad Request
-        '500':
-          description: Internal Server Error
 
   /projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/network-controller-intent/{netControllerIntent}/workload-intents/{workloadIntent}/interfaces/{interfaceIntent}:
     # parameters list that are used with each operation for this path
@@ -3377,8 +3147,6 @@ paths:
           description: Network Controller Workload Interface not found
         '400':
           description: Bad Request
-        '500':
-          description: Internal Server Error
     put:
       tags:
         - Network Controller Intent
@@ -3400,8 +3168,6 @@ paths:
           description: Conflict
         '422':
           description: Unprocessable Entity
-        '500':
-          description: Internal Server Error
       # request body documentation
       requestBody:
         content:
@@ -3426,8 +3192,6 @@ paths:
           description: Not Found
         '409':
           description: Conflict
-        '500':
-          description: Internal Server Error
 
 ############################ Network Chaining API's #################################################
   '/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/network-chains':
@@ -3457,8 +3221,6 @@ paths:
           description: Conflict
         '422':
           description: Unprocessable Entity
-        '500':
-          description: Internal Server Error
       requestBody:
         content:
           application/json:
@@ -3482,8 +3244,6 @@ paths:
           description: Bad Request
         '404':
           description: No Network Controller Intent found
-        '500':
-          description: Internal Server Error
   '/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/network-chains/{sfcIntent}':
     parameters:
       - $ref: '#/components/parameters/projectName'
@@ -3509,8 +3269,6 @@ paths:
           description: Bad Request
         '404':
           description: Network Chain Intent not found
-        '500':
-          description: Internal Server Error
     put:
       tags:
         - Network Chain Intent
@@ -3532,8 +3290,6 @@ paths:
           description: Conflict
         '422':
           description: Unprocessable Entity
-        '500':
-          description: Internal Server Error
       requestBody:
         content:
           application/json:
@@ -3554,8 +3310,6 @@ paths:
           description: Not Found
         '409':
           description: Conflict
-        '500':
-          description: Internal Server Error
   '/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/network-chains/{sfcIntent}/links':
     parameters:
       - $ref: '#/components/parameters/projectName'
@@ -3584,8 +3338,6 @@ paths:
           description: Conflict
         '422':
           description: Unprocessable Entity
-        '500':
-          description: Internal Server Error
       requestBody:
         content:
           application/json:
@@ -3609,8 +3361,6 @@ paths:
           description: Bad Request
         '404':
           description: No Network Chain Link Intent found
-        '500':
-          description: Internal Server Error
   '/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/network-chains/{sfcIntent}/links/{sfcLink}':
     parameters:
       - $ref: '#/components/parameters/projectName'
@@ -3637,8 +3387,6 @@ paths:
           description: Bad Request
         '404':
           description: Network Chain Link Intent not found
-        '500':
-          description: Internal Server Error
     put:
       tags:
         - Network Chain Link Intent
@@ -3660,8 +3408,6 @@ paths:
           description: Conflict
         '422':
           description: Unprocessable Entity
-        '500':
-          description: Internal Server Error
       requestBody:
         content:
           application/json:
@@ -3682,8 +3428,6 @@ paths:
           description: Not Found
         '409':
           description: Conflict
-        '500':
-          description: Internal Server Error
   '/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/network-chains/{sfcIntent}/client-selectors':
     parameters:
       - $ref: '#/components/parameters/projectName'
@@ -3712,8 +3456,6 @@ paths:
           description: Conflict
         '422':
           description: Unprocessable Entity
-        '500':
-          description: Internal Server Error
       requestBody:
         content:
           application/json:
@@ -3737,8 +3479,6 @@ paths:
           description: Bad Request
         '404':
           description: No Network Chain Client Selector Intent found
-        '500':
-          description: Internal Server Error
   '/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/network-chains/{sfcIntent}/client-selectors/{sfcClientSelector}':
     parameters:
       - $ref: '#/components/parameters/projectName'
@@ -3765,8 +3505,6 @@ paths:
           description: Bad Request
         '404':
           description: Network Chain Client Selector Intent not found
-        '500':
-          description: Internal Server Error
     put:
       tags:
         - Network Chain Client Selector Intent
@@ -3788,8 +3526,6 @@ paths:
           description: Conflict
         '422':
           description: Unprocessable Entity
-        '500':
-          description: Internal Server Error
       requestBody:
         content:
           application/json:
@@ -3810,8 +3546,6 @@ paths:
           description: Not Found
         '409':
           description: Conflict
-        '500':
-          description: Internal Server Error
   '/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/network-chains/{sfcIntent}/provider-networks':
     parameters:
       - $ref: '#/components/parameters/projectName'
@@ -3840,8 +3574,6 @@ paths:
           description: Conflict
         '422':
           description: Unprocessable Entity
-        '500':
-          description: Internal Server Error
       requestBody:
         content:
           application/json:
@@ -3865,8 +3597,6 @@ paths:
           description: Bad Request
         '404':
           description: No Network Chain Provider Network Intent found
-        '500':
-          description: Internal Server Error
   '/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/network-chains/{sfcIntent}/provider-networks/{providerNetwork}':
     parameters:
       - $ref: '#/components/parameters/projectName'
@@ -3893,8 +3623,6 @@ paths:
           description: Bad Request
         '404':
           description: Network Chain Provider Network Intent not found
-        '500':
-          description: Internal Server Error
     put:
       tags:
         - Network Chain Provider Network Intent
@@ -3916,8 +3644,6 @@ paths:
           description: Conflict
         '422':
           description: Unprocessable Entity
-        '500':
-          description: Internal Server Error
       requestBody:
         content:
           application/json:
@@ -3938,8 +3664,6 @@ paths:
           description: Not Found
         '409':
           description: Conflict
-        '500':
-          description: Internal Server Error
   '/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/sfc-clients':
     parameters:
       - $ref: '#/components/parameters/projectName'
@@ -3967,8 +3691,6 @@ paths:
           description: Conflict
         '422':
           description: Unprocessable Entity
-        '500':
-          description: Internal Server Error
       requestBody:
         content:
           application/json:
@@ -3992,8 +3714,6 @@ paths:
           description: Bad Request
         '404':
           description: No Network Chain Client Intent found
-        '500':
-          description: Internal Server Error
   '/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/sfc-clients/{sfcClientIntent}':
     parameters:
       - $ref: '#/components/parameters/projectName'
@@ -4019,8 +3739,6 @@ paths:
           description: Bad Request
         '404':
           description: Network Chain Client Intent not found
-        '500':
-          description: Internal Server Error
     put:
       tags:
         - Network Chain Client Intent
@@ -4042,8 +3760,6 @@ paths:
           description: Conflict
         '422':
           description: Unprocessable Entity
-        '500':
-          description: Internal Server Error
       requestBody:
         content:
           application/json:
@@ -4064,8 +3780,6 @@ paths:
           description: Not Found
         '409':
           description: Conflict
-        '500':
-          description: Internal Server Error
 
 ############################ Logical Cloud API's #################################################
   /projects/{project}/logical-clouds:
@@ -4096,8 +3810,6 @@ paths:
         '422':
           description: Invalid input
           content: {}
-        '500':
-          description: Internal error creating or returning Logical Cloud
           content: {}
       requestBody:
         content:
@@ -4119,8 +3831,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/LogicalCloudArray'
-        '500':
-          description: Internal error while looking up Logical Clouds or encoding response
         '400':
           description: Bad Request
         '404':
@@ -4146,8 +3856,6 @@ paths:
         '404':
           description: Logical Cloud not found
           content: {}
-        '500':
-          description: Internal error while looking up Logical Cloud or encoding response
           content: {}
         '400':
           description: Bad Request
@@ -4164,8 +3872,6 @@ paths:
           description: Not Found
         '409':
           description: Conflict
-        '500':
-          description: Internal Server Error
     put:
       tags:
         - Logical Clouds
@@ -4185,8 +3891,6 @@ paths:
           description: Not Found
         '409':
           description: Conflict
-        '500':
-          description: Internal Server Error
       # request body documentation
       requestBody:
         content:
@@ -4218,8 +3922,6 @@ paths:
         '409':
           description: Logical Cloud isn't in the correct state
           content: {}
-        '500':
-          description: Internal error
           content: {}
       requestBody:
         content: {}
@@ -4247,8 +3949,6 @@ paths:
         '409':
           description: Logical Cloud has not been applied or is already terminating
           content: {}
-        '500':
-          description: Internal error
           content: {}
       requestBody:
         content: {}
@@ -4310,8 +4010,6 @@ paths:
           description: No Status found
         '400':
           description: Bad Request
-        '500':
-          description: Internal Server Error
 
   /projects/{project}/logical-clouds/{logicalCloud}/stop:
     parameters:
@@ -4356,8 +4054,6 @@ paths:
           description: Conflict
         '422':
           description: Unprocessable Entity
-        '500':
-          description: Internal Server Error
       requestBody:
         content: {}
 
@@ -4391,8 +4087,6 @@ paths:
         '422':
           description: Invalid input
           content: {}
-        '500':
-          description: Internal error
           content: {}
       requestBody:
         content:
@@ -4415,8 +4109,6 @@ paths:
         '400':
           description: No Cluster References are associated
           content: {}
-        '500':
-          description: Internal error
           content: {}
         '404':
           description: Not Found
@@ -4442,8 +4134,6 @@ paths:
         '404':
           description: Cluster Reference not found
           content: {}
-        '500':
-          description: Internal error
           content: {}
         '400':
           description: Bad Request
@@ -4460,8 +4150,6 @@ paths:
           description: Not Found
         '409':
           description: Conflict
-        '500':
-          description: Internal Server Error
 
 ############################ Logical Cloud User Permission API's #################################
   /projects/{project}/logical-clouds/{logicalCloud}/user-permissions:
@@ -4487,8 +4175,6 @@ paths:
         '422':
           description: Invalid input
           content: {}
-        '500':
-          description: Internal error
           content: {}
       requestBody:
         content:
@@ -4513,8 +4199,6 @@ paths:
           content: {}
         '400':
           description: Bad Request
-        '500':
-          description: Internal Server Error
   /projects/{project}/logical-clouds/{logicalCloud}/user-permissions/{userPermission}:
     parameters:
     - $ref: '#/components/parameters/projectName'
@@ -4537,8 +4221,6 @@ paths:
         '404':
           description: User Permission not found
           content: {}
-        '500':
-          description: Internal error
           content: {}
         '400':
           description: Bad Request
@@ -4555,8 +4237,6 @@ paths:
           description: Not Found
         '409':
           description: Conflict
-        '500':
-          description: Internal Server Error
 ############################ Logical Cloud Cluster Quota API's ###################################
   /projects/{project}/logical-clouds/{logicalCloud}/cluster-quotas:
     parameters:
@@ -4581,8 +4261,6 @@ paths:
         '422':
           description: Invalid input
           content: {}
-        '500':
-          description: Internal error
           content: {}
       requestBody:
         content:
@@ -4602,8 +4280,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ClusterQuotaArray'
-        '500':
-          description: Internal error
         '400':
           description: Bad Request
         '404':
@@ -4630,8 +4306,6 @@ paths:
         '404':
           description: Cluster Quota not found
           content: {}
-        '500':
-          description: Internal error
           content: {}
         '400':
           description: Bad Request
@@ -4648,8 +4322,6 @@ paths:
           description: Not Found
         '409':
           description: Conflict
-        '500':
-          description: Internal Server Error
 
 ############################ Logical Cloud KV Pair API's #########################################
   /projects/{project}/logical-clouds/{logicalCloud}/kv-pairs:
@@ -4675,8 +4347,6 @@ paths:
         '422':
           description: Invalid input
           content: {}
-        '500':
-          description: Internal error
           content: {}
       requestBody:
         content:
@@ -4696,8 +4366,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/KVPairArray'
-        '500':
-          description: Internal error
           content: {}
         '400':
           description: Bad Request
@@ -4725,8 +4393,6 @@ paths:
         '404':
           description: KV Pair not found
           content: {}
-        '500':
-          description: Internal error
           content: {}
         '400':
           description: Bad Request
@@ -4744,8 +4410,6 @@ paths:
           description: Not Found
         '409':
           description: Conflict
-        '500':
-          description: Internal Server Error
 
 
   ######################## Generic Controller Intent API's##########################################
@@ -4776,8 +4440,6 @@ paths:
           description: Conflict
         '422':
           description: Unprocessable Entity
-        '500':
-          description: Internal Server Error
       requestBody:
         content:
             application/json: # operation response mime type
@@ -4802,8 +4464,6 @@ paths:
           description: No Generic Controller Intent found
         '400':
           description: Bad Request
-        '500':
-          description: Internal Server Error
 
   /projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/generic-k8s-intents/{genericK8sIntent}:
     # parameters list that are used with each operation for this path
@@ -4832,8 +4492,6 @@ paths:
           description: Generic Controller Intent not found
         '400':
           description: Bad Request
-        '500':
-          description: Internal Server Error
     put:
       tags:
         - Generic Controller Intent
@@ -4855,8 +4513,6 @@ paths:
           description: Conflict
         '422':
           description: Unprocessable Entity
-        '500':
-          description: Internal Server Error
       # request body documentation
       requestBody:
         content:
@@ -4879,8 +4535,6 @@ paths:
           description: Not Found
         '409':
           description: Conflict
-        '500':
-          description: Internal Server Error
 
 ################## Resource Intents##################################
   /projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/generic-k8s-intents/{genericK8sIntent}/resources:
@@ -4911,8 +4565,6 @@ paths:
           description: Conflict
         '422':
           description: Unprocessable Entity
-        '500':
-          description: Internal Server Error
       requestBody:
         content:
           multipart/form-data: # Media type
@@ -4938,8 +4590,6 @@ paths:
           description: No Generic Controller Resource Intent found
         '400':
           description: Bad Request
-        '500':
-          description: Internal Server Error
 
   /projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/generic-k8s-intents/{genericK8sIntent}/resources/{genericResource}:
     # parameters list that are used with each operation for this path
@@ -4969,8 +4619,6 @@ paths:
           description: Generic Controller Resource Intent not found
         '400':
           description: Bad Request
-        '500':
-          description: Internal Server Error
     put:
       tags:
         - Generic Controller Intent
@@ -4992,8 +4640,6 @@ paths:
           description: Conflict
         '422':
           description: Unprocessable Entity
-        '500':
-          description: Internal Server Error
       # request body documentation
       requestBody:
         content:
@@ -5016,8 +4662,6 @@ paths:
           description: Not Found
         '409':
           description: Conflict
-        '500':
-          description: Internal Server Error
 
 ################## Resource Intents Customizations ##################################
   /projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/generic-k8s-intents/{genericK8sIntent}/resources/{genericResource}/customizations:
@@ -5049,8 +4693,6 @@ paths:
           description: Conflict
         '422':
           description: Unprocessable Entity
-        '500':
-          description: Internal Server Error
       requestBody:
         content:
           multipart/form-data: # Media type
@@ -5075,8 +4717,6 @@ paths:
           description: No Generic Controller Resource Customization found
         '400':
           description: Bad Request
-        '500':
-          description: Internal Server Error
   /projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/generic-k8s-intents/{genericK8sIntent}/resources/{genericResource}/customizations/{customization}:
     # parameters list that are used with each operation for this path
     parameters:
@@ -5106,8 +4746,6 @@ paths:
           description: Generic Controller Resource Customization not found
         '400':
           description: Bad Request
-        '500':
-          description: Internal Server Error
     put:
       tags:
         - Generic Controller Intent
@@ -5129,8 +4767,6 @@ paths:
           description: Conflict
         '422':
           description: Unprocessable Entity
-        '500':
-          description: Internal Server Error
       # request body documentation
       requestBody:
         content:
@@ -5154,8 +4790,6 @@ paths:
           description: Not Found
         '409':
           description: Conflict
-        '500':
-          description: Internal Server Error
 
   ######################## Traffic Controller Intent API's##########################################
   /projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/traffic-group-intents:
@@ -5185,8 +4819,6 @@ paths:
           description: Conflict
         '422':
           description: Unprocessable Entity
-        '500':
-          description: Internal Server Error
       requestBody:
         content:
             application/json: # operation response mime type
@@ -5211,8 +4843,6 @@ paths:
           description: No Traffic Controller Intent found
         '400':
           description: Bad Request
-        '500':
-          description: Internal Server Error
   /projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/traffic-group-intents/{trafficGroupIntent}:
     # parameters list that are used with each operation for this path
     parameters:
@@ -5240,8 +4870,6 @@ paths:
           description: Traffic Controller Intent not found
         '400':
           description: Bad Request
-        '500':
-          description: Internal Server Error
     put:
       tags:
         - Traffic Controller Intent
@@ -5263,8 +4891,6 @@ paths:
           description: Conflict
         '422':
           description: Unprocessable Entity
-        '500':
-          description: Internal Server Error
       # request body documentation
       requestBody:
         content:
@@ -5287,8 +4913,6 @@ paths:
           description: Not Found
         '409':
           description: Conflict
-        '500':
-          description: Internal Server Error
 
 ################## Inbound Server Intents ##################################
   /projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/traffic-group-intents/{trafficGroupIntent}/inbound-intents:
@@ -5319,8 +4943,6 @@ paths:
           description: Conflict
         '422':
           description: Unprocessable Entity
-        '500':
-          description: Internal Server Error
       requestBody:
         content:
             application/json: # operation response mime type
@@ -5345,8 +4967,6 @@ paths:
           description: No Traffic Controller Inbound Intent found
         '400':
           description: Bad Request
-        '500':
-          description: Internal Server Error
 
   /projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/traffic-group-intents/{trafficGroupIntent}/inbound-intents/{inboundServerIntent}:
     # parameters list that are used with each operation for this path
@@ -5376,8 +4996,6 @@ paths:
           description: Traffic Controller Inbound Intent not found
         '400':
           description: Bad Request
-        '500':
-          description: Internal Server Error
     put:
       tags:
         - Traffic Controller Intent
@@ -5399,8 +5017,6 @@ paths:
           description: Conflict
         '422':
           description: Unprocessable Entity
-        '500':
-          description: Internal Server Error
       # request body documentation
       requestBody:
         content:
@@ -5423,8 +5039,6 @@ paths:
           description: Not Found
         '409':
           description: Conflict
-        '500':
-          description: Internal Server Error
 
 ################## Inbound Client Intents ##################################
   /projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/traffic-group-intents/{trafficGroupIntent}/inbound-intents/{inboundServerIntent}/clients:
@@ -5456,8 +5070,6 @@ paths:
           description: Conflict
         '422':
           description: Unprocessable Entity
-        '500':
-          description: Internal Server Error
       requestBody:
         content:
             application/json: # operation response mime type
@@ -5482,8 +5094,6 @@ paths:
           description: No Traffic Controller Client Inbound Intent found
         '400':
           description: Bad Request
-        '500':
-          description: Internal Server Error
   /projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/traffic-group-intents/{trafficGroupIntent}/inbound-intents/{inboundServerIntent}/clients/{inboundClientIntent}:
     # parameters list that are used with each operation for this path
     parameters:
@@ -5513,8 +5123,6 @@ paths:
           description: Traffic Controller Client Inbound Intent not found
         '400':
           description: Bad Request
-        '500':
-          description: Internal Server Error
     put:
       tags:
         - Traffic Controller Intent
@@ -5536,8 +5144,6 @@ paths:
           description: Conflict
         '422':
           description: Unprocessable Entity
-        '500':
-          description: Internal Server Error
       # request body documentation
       requestBody:
         content:
@@ -5561,8 +5167,6 @@ paths:
           description: Not Found
         '409':
           description: Conflict
-        '500':
-          description: Internal Server Error
 
 ################## Inbound Client Access Intents ##################################
   /projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/traffic-group-intents/{trafficGroupIntent}/inbound-intents/{inboundServerIntent}/clients/{inboundClientIntent}/access-points:
@@ -5595,8 +5199,6 @@ paths:
           description: Conflict
         '422':
           description: Unprocessable Entity
-        '500':
-          description: Internal Server Error
       requestBody:
         content:
             application/json: # operation response mime type
@@ -5621,8 +5223,6 @@ paths:
           description: No Traffic Controller Client Access Inbound Intent found
         '400':
           description: Bad Request
-        '500':
-          description: Internal Server Error
   /projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/traffic-group-intents/{trafficGroupIntent}/inbound-intents/{inboundServerIntent}/clients/{inboundClientIntent}/access-points/{inboundClientAccessIntent}:
     # parameters list that are used with each operation for this path
     parameters:
@@ -5653,8 +5253,6 @@ paths:
           description: Traffic Controller Client Access Inbound Intent not found
         '400':
           description: Bad Request
-        '500':
-          description: Internal Server Error
     put:
       tags:
         - Traffic Controller Intent
@@ -5676,8 +5274,6 @@ paths:
           description: Conflict
         '422':
           description: Unprocessable Entity
-        '500':
-          description: Internal Server Error
       # request body documentation
       requestBody:
         content:
@@ -5701,8 +5297,6 @@ paths:
           description: Not Found
         '409':
           description: Conflict
-        '500':
-          description: Internal Server Error
 
 ####################### HPA Intents ##################################
   # HPA INTENTS API
@@ -5733,8 +5327,6 @@ paths:
           description: Conflict
         '422':
           description: Unprocessable Entity
-        '500':
-          description: Internal Server Error
       requestBody:
         content:
           application/json: # Media type
@@ -5760,8 +5352,6 @@ paths:
           description: No Found
         '400':
           description: Bad Request
-        '500':
-          description: Internal Server Error
 
   # HPA INTENT RUD(retrieve, update, delete) API
   /projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/hpa-intents/{hpa-intent-name}:
@@ -5792,8 +5382,6 @@ paths:
           description: No Found
         '400':
           description: Bad Request
-        '500':
-          description: Internal Server Error
     put:
       tags:
         - HPA Intents
@@ -5815,8 +5403,6 @@ paths:
           description: Conflict
         '422':
           description: Unprocessable Entity
-        '500':
-          description: Internal Server Error
       # request body documentation
       requestBody:
         content:
@@ -5840,8 +5426,6 @@ paths:
           description: Not Found
         '409':
           description: Conflict
-        '500':
-          description: Internal Server Error
   #Query
   /projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/hpa-intents:
     parameters:
@@ -5876,8 +5460,6 @@ paths:
           description: No Found
         '400':
           description: Bad Request
-        '500':
-          description: Internal Server Error
 
  # HPA INTENT CONSUMERS API
   /projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/hpa-intents/{hpa-intent-name}/hpa-resource-consumers/:
@@ -5908,8 +5490,6 @@ paths:
           description: Conflict
         '422':
           description: Unprocessable Entity
-        '500':
-          description: Internal Server Error
       requestBody:
         content:
           application/json: # Media type
@@ -5935,8 +5515,6 @@ paths:
           description: No Found
         '400':
           description: Bad Request
-        '500':
-          description: Internal Server Error
 
  # HPA INTENT CONSUMER RUD(retrieve, update, delete) API
   /projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/hpa-intents/{hpa-intent-name}/hpa-resource-consumers/{hpa-consumer-name}:
@@ -5968,8 +5546,6 @@ paths:
           description: No Found
         '400':
           description: Bad Request
-        '500':
-          description: Internal Server Error
     put:
       tags:
         - HpaIntent Consumers
@@ -5991,8 +5567,6 @@ paths:
           description: Conflict
         '422':
           description: Unprocessable Entity
-        '500':
-          description: Internal Server Error
       # request body documentation
       requestBody:
         content:
@@ -6016,8 +5590,6 @@ paths:
           description: Not Found
         '409':
           description: Conflict
-        '500':
-          description: Internal Server Error
 
   #Query
   /projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/hpa-intents/{hpa-intent-name}/hpa-resource-consumers:
@@ -6054,8 +5626,6 @@ paths:
           description: No Found
         '400':
           description: Bad Request
-        '500':
-          description: Internal Server Error
 
   # HPA INTENT CONSUMER RESOURCES API
   /projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/hpa-intents/{hpa-intent-name}/hpa-resource-consumers/{hpa-consumer-name}/resource-requirements/:
@@ -6087,8 +5657,6 @@ paths:
           description: Conflict
         '422':
           description: Unprocessable Entity
-        '500':
-          description: Internal Server Error
       requestBody:
         content:
           application/json: # Media type
@@ -6114,8 +5682,6 @@ paths:
           description: No Found
         '400':
           description: Bad Request
-        '500':
-          description: Internal Server Error
 
   # HPA INTENT CONSUMER RESOURCE RUD(retrieve, update, delete) API
   /projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/hpa-intents/{hpa-intent-name}/hpa-resource-consumers/{hpa-consumer-name}/resource-requirements/{hpa-resource-name}:
@@ -6150,8 +5716,6 @@ paths:
           description: Not Found
         '409':
           description: Conflict
-        '500':
-          description: Internal Server Error
 
     put:
       tags:
@@ -6174,8 +5738,6 @@ paths:
           description: Conflict
         '422':
           description: Unprocessable Entity
-        '500':
-          description: Internal Server Error
 
       # request body documentation
       requestBody:
@@ -6200,8 +5762,6 @@ paths:
           description: Not Found
         '409':
           description: Conflict
-        '500':
-          description: Internal Server Error
 
   #Query
   /projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/hpa-intents/{hpa-intent-name}/hpa-resource-consumers/{hpa-consumer-name}/resource-requirements:
@@ -6239,8 +5799,6 @@ paths:
           description: No Found
         '400':
           description: Bad Request
-        '500':
-          description: Internal Server Error
 
 
 
