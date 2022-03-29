@@ -89,7 +89,7 @@ Deploy monitor program in each cluster (assumes multicloud-k8s repo is present i
 	# one time setup per cluster - install the CRD
 	cd multicloud-k8s/src/monitor/deploy
 	kubectl apply -f crds/k8splugin_v1alpha1_resourcebundlestate_crd.yaml
-	
+
 	# one time setup per cluster
 	# update yaml files with correct image
 	# (cleanup first, if monitor was already installed - see monitor-cleanup.sh)
@@ -166,7 +166,7 @@ Change directory to EMCO/kud/tests
 The rest of the data needed for the test is present in the script.
 
 1.  Invoke API calls to create the data
-    
+
     vfw-test.sh create
 
     This does all of the data setup

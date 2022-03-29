@@ -69,11 +69,11 @@ Every time SDS polls for the service specs, it will monitor the status of the pa
 
 There will be certain corner cases to cover during termination, which will be discussed below.
 
-2. **Terminate:**   
+2. **Terminate:**
 
    When the user triggers terminate, the orchestrator begins initiating the uninstall of resources of the parent's app context. The orchestrator needs to check the state of the child's appcontext. If the child's app context is "instantiating/instantiated", then it calls rsync to terminate the child's appcontext resources. If the child's app context is failed, then there is no need to call rsync to uninstall for the child's app context because the polling routine would have already deleted the resources deployed on the clusters. After all resources in the child's app context have been terminated, it will terminate the parent's app context.
 
-3. **Status:**   
+3. **Status:**
 
   To get the status of each child app context, we populate the list of nested child app contexts to the deployment intent group status structure as shown below.
 ```
@@ -113,6 +113,6 @@ There will be certain corner cases to cover during termination, which will be di
 ```
 
 Now, query status of the nested appcontext:
-`curl    <parent app context>/deployment-intent-group/vfw_deployment_intent_group/status?instance=c<child app context>`    
+`curl    <parent app context>/deployment-intent-group/vfw_deployment_intent_group/status?instance=c<child app context>`
 
 This will provide the status of the child app context.

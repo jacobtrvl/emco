@@ -157,7 +157,7 @@ Mongo Document format with example references list:
                 "project" : "projectOne"
             },
             "keyid" : "{logicalCloud,project,}"
-        }, 
+        },
         {
             "key" : {
                 "compositeProfile" : "Example-composite-profile",
@@ -203,11 +203,11 @@ Each resource entry has the following format:
     references:                  # [optional] needed when resource has references
       - name: <resource name>    #   [required] name of the refereced resource
         type: ["map" | "many"]   #   [optional] only needed if a "map" or "many" reference type is being defined
-        map: <JSON tag of map> 
+        map: <JSON tag of map>
         fixedKv:
           <fixedKey>: <fixedValue>
         filterKeys:
-          - <filterKeyName> 
+          - <filterKeyName>
         commonKey: <resource name>
 ```
 
@@ -416,7 +416,7 @@ As a result, the `clusterLabel` resource has not been listed as a reference in t
 
 ## Network in the `ovnaction` `interfaceIntent` resource
 
-The `interfaceIntent` resource has a `NetworkName` attribute in its `spec` object.  In practice, this network name could be referencing either a `network` or `providerNetwork` that has been deployed to a cluster by the `ncm` microservice.  
+The `interfaceIntent` resource has a `NetworkName` attribute in its `spec` object.  In practice, this network name could be referencing either a `network` or `providerNetwork` that has been deployed to a cluster by the `ncm` microservice.
 
 The `interfaceIntent` resource schema does not define a reference to a network resource, because there is not enough information.  It is again a possible many to one reference - because each network for each cluster is a separate EMCO resource.  Additionally, the `interfaceIntent` resource does not provide any cluster key information.  Not to mention that the referenced network could be one of two possible resource types - `network` or `providerNetwork`.
 
@@ -457,82 +457,82 @@ Also, the `level` and `namespace` elements of the `cloudConfig` key do not repre
 ```
     name: emco-clm
     resources:
-      - name: clusterProvider                          
-      - name: cluster                                  
+      - name: clusterProvider
+      - name: cluster
         parent: clusterProvider
-      - name: clusterLabel                             
+      - name: clusterLabel
         parent: cluster
-      - name: clusterKv                                
+      - name: clusterKv
         parent: cluster
 
     name: emco-dcm
-    resources:  
-      - name: logicalCloud                             
+    resources:
+      - name: logicalCloud
         parent: project
-      - name: clusterReference                         
+      - name: clusterReference
         parent: logicalCloud
         references:
           - name: cluster
-      - name: clusterQuota                             
+      - name: clusterQuota
         parent: logicalCloud
-      - name: logicalCloudKv                           
+      - name: logicalCloudKv
         parent: logicalCloud
-      - name: userPermission                           
+      - name: userPermission
         parent: logicalCloud
 
     name: emco-dtc
     resources:
-      - name: trafficGroupIntent                       
+      - name: trafficGroupIntent
         parent: deploymentIntentGroup
-      - name: inboundServerIntent                      
+      - name: inboundServerIntent
         parent: trafficGroupIntent
         references:
           - name: app
-      - name: inboundClientsIntent                     
+      - name: inboundClientsIntent
         parent: inboundServerIntent
         references:
           - name: app
 
     name: emco-gac
     resources:
-      - name: genericK8sIntent                         
+      - name: genericK8sIntent
         parent: deploymentIntentGroup
-      - name: genericResource                          
+      - name: genericResource
         parent: genericK8sIntent
         references:
           - name: app
-      - name: customization                            
+      - name: customization
         parent: genericResource
         references:
           - name: cluster
 
     name: emco-ncm
     resources:
-      - name: providerNetwork                          
+      - name: providerNetwork
         parent: cluster
-      - name: network                                  
+      - name: network
         parent: cluster
 
     name: emco-orchestrator
     resources:
-      - name: controllerGroup.controller               
-      - name: project                                  
-      - name: compositeApp.compositeAppVersion         
+      - name: controllerGroup.controller
+      - name: project
+      - name: compositeApp.compositeAppVersion
         parent: project
-      - name: app                                      
+      - name: app
         parent: compositeAppVersion
-      - name: compositeProfile                         
+      - name: compositeProfile
         parent: compositeAppVersion
-      - name: appProfile                               
+      - name: appProfile
         parent: compositeProfile
         references:
           - name: app
-      - name: deploymentIntentGroup                    
+      - name: deploymentIntentGroup
         parent: compositeAppVersion
         references:
           - name: logicalCloud
           - name: compositeProfile
-      - name: groupIntent                              
+      - name: groupIntent
         parent: deploymentIntentGroup
         references:
           - name: controller
@@ -542,9 +542,9 @@ Also, the `level` and `namespace` elements of the `cloudConfig` key do not repre
               controllerGroup: orchestrator
             filterKeys:
               - genericPlacementIntent
-      - name: genericPlacementIntent                   
+      - name: genericPlacementIntent
         parent: deploymentIntentGroup
-      - name: genericAppPlacementIntent                
+      - name: genericAppPlacementIntent
         parent: genericPlacementIntent
         references:
           - name: app
@@ -553,27 +553,27 @@ Also, the `level` and `namespace` elements of the `cloudConfig` key do not repre
 
     name: emco-ovnaction
     resources:
-      - name: netControllerIntent                      
+      - name: netControllerIntent
         parent: deploymentIntentGroup
-      - name: workloadIntent                           
+      - name: workloadIntent
         parent: netControllerIntent
         references:
           - name: app
-      - name: interfaceIntent                          
+      - name: interfaceIntent
         parent: workloadIntent
 
     name: emco-sfc
-    resources:    
-      - name: sfcIntent                                
+    resources:
+      - name: sfcIntent
         parent: deploymentIntentGroup
-      - name: sfcClientSelector                        
+      - name: sfcClientSelector
         parent: sfcIntent
-      - name: sfcProviderNetwork                       
+      - name: sfcProviderNetwork
         parent: sfcIntent
 
     name: emco-sfcclient
-    resources: 
-      - name: sfcClientIntent                           
+    resources:
+      - name: sfcClientIntent
         parent: netControllerIntent
         references:
           - name: sfcIntent

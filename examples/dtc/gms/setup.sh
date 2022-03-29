@@ -45,7 +45,7 @@ function create {
     AdminCloud: default
     CompositeApp: gms-collection-composite-app
     CompositeAppVersion: v1
-    Applist: 
+    Applist:
       - adservice
       - cartservice
       - checkoutservice
@@ -58,7 +58,7 @@ function create {
       - shippingservice
       - frontend
       - productcatalogservice
-    AppsInCluster1: 
+    AppsInCluster1:
       - adservice
       - checkoutservice
       - currencyservice
@@ -67,7 +67,7 @@ function create {
       - paymentservice
       - recommendationservice
       - frontend
-    AppsInCluster2: 
+    AppsInCluster2:
       - productcatalogservice
       - cartservice
       - redis

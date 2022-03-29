@@ -10,7 +10,7 @@ https://github.com/akraino-edge-stack/icn-nodus
 
 EMCO provides two action controllers
 
-1. sfc controller - which takes SFC intents 
+1. sfc controller - which takes SFC intents
 as part of an EMCO composite application to deploy the
 service functions to create an SFC.
 

@@ -9,4 +9,4 @@ data:
         {"Group": "k8s.plugin.opnfv.org", "Version": "v1alpha1", "Kind": "Network", "Resource": "networks" },
         {"Group": "rbac.authorization.k8s.io", "Version": "v1", "Kind": "ClusterRole", "Resource": "clusterroles"}
       ]
-  
+

@@ -10,7 +10,7 @@ EMCO. The first two sections give a broad overview whereas the later
 sections offer a deeper look at the integration model. This document does
 not introduce [Temporal](https://docs.temporal.io/docs/temporal-explained/introduction).
 
-## Problem Statement 
+## Problem Statement
 
 EMCO is an extensible orchestrator whose functionality can be enhanced by
 adding new controllers. Placement controllers, action controllers and
@@ -57,7 +57,7 @@ general, a workflow may be a batch job, a cron job that runs periodically,
 or any other workload pattern. The tasks within a workflow may run
 sequentially, concurrently, or be activated in response to events outside
 the workflow. Multiple workflows may run concurrently, within and across
-Kubernetes clusters. 
+Kubernetes clusters.
 
 A workflow client is a user-provided software that launches workflows and
 optionally monitors, queries or terminates them.
@@ -127,12 +127,12 @@ is believed to be sufficiently general that it can be adapted for others.
 ### Component Relationships
 A workflow is executed by a worker entity within a worker process; there
 can be one or more worker entities within a worker process, and one or more
-worker processes in a system. 
+worker processes in a system.
 
 There can be multiple workflow clients. Each client may launch many workflows,
 including copies of the same workflow, with some way to distinguish them.
 (In a Temporal system, this unique marker is the workflow ID in most cases
-or the workflow-ID/run-ID pair in some cases.) 
+or the workflow-ID/run-ID pair in some cases.)
 
 The communication between the workers and the workflow clients can take any
 form: EMCO does not mandate anything.
@@ -154,7 +154,7 @@ recommended that they each be packaged into containers and deployed via Helm
 charts.
 
 The diagram depicts workers and workflow clients as packaged in separate
-container images, deployed separately, and scaled separately. 
+container images, deployed separately, and scaled separately.
 
 EMCO, including the newly added `workflowmgr` microservice, is usually
 deployed in a namespace. In practice, some kind of ingress gateway is
@@ -165,7 +165,7 @@ The EMCO `workflowmgr` microservice interacts with Temporal components in
 two ways: it can invoke a `HTTP POST` operation on a workflow client to
 start a workflow, and it can invoke Temporal SDK APIs directly on the
 Temporal server for status checks, workflow queries and workflow
-cancellation/termination. 
+cancellation/termination.
 
 The Temporal server, workers and workflow clients need not be co-located in
 the same Kubernetes worker node or even the same cluster; they only need
@@ -179,7 +179,7 @@ clients are structured or how they communicates, as described in the
 previous section.
 
 The workflow client process or container is expected to expose a HTTP
-URL of the form `/invoke/{workflowclientname}`, which can take a `HTTP POST` 
+URL of the form `/invoke/{workflowclientname}`, which can take a `HTTP POST`
 call with the workflow parameters as the `POST` body. In addition, the
 `POST` call is expected to be non-blocking: since workflows may run for
 days or weeks, the call should only start the workflow and return

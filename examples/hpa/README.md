@@ -52,7 +52,7 @@ $ emcoctl --config emco-cfg.yaml apply -f hpa-vfw-apps.yaml -v values.yaml
 
 To demonstrate the concepts of HPA, the firewall and packetgen apps are intended to be
 deployed to any of the clusters which support hugepages, while the sink app is intended
-to be deployed to all clusters. In this case, if cluster1 and cluster2 both support 
+to be deployed to all clusters. In this case, if cluster1 and cluster2 both support
 hugepages are labelled correctly, firewall and packetgen apps are deployed to only one of
 them. If only one cluster supports hugepages and labelled correctly, they will be deployed
 to it.

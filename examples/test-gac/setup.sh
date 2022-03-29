@@ -153,9 +153,9 @@ metadata :
   name: {{.IstioIngressGatewayKvName}}
 spec:
   kv:
-    - istioingressgatewayaddress: "192.168.121.26" 
+    - istioingressgatewayaddress: "192.168.121.26"
     - istioingressgatewayport: "32001"
-    - istioingressgatewayinternalport: "15443" 
+    - istioingressgatewayinternalport: "15443"
 
 ---
 #Add label kvpair
@@ -282,7 +282,7 @@ spec:
     gac: {{.GacIntent}}
 
 ---
-# create the generic placement intent 
+# create the generic placement intent
 version: emco/v2
 resourceContext:
   anchor: projects/{{.ProjectName}}/composite-apps/{{.CompositeAppGac}}/v1/deployment-intent-groups/{{.DeploymentIntent}}/generic-placement-intents

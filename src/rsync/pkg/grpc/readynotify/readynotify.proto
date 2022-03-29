@@ -11,7 +11,7 @@ service readyNotify {
 	}
 
 	rpc Unsubscribe (Topic) returns (UnsubscribeResponse){
-		
+
 	}
 }
 

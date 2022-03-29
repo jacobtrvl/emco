@@ -14,12 +14,12 @@ the camel case convention and database integrity changes.
 | orchestrator | app profile                              | spec.app-name                    | spec.app |
 |              | deployment intent group                  | spec.profile                     | spec.compositeProfile |
 |              |                                          | spec.logical-cloud               | spec.logicalCloud |
-|              |                                          | spec.override-values             | spec.overrideValues | 
-|              |                                          | spec.override-values[].app-name  | spec.overrideValues[].app | 
-|              | app generic placement intent             | spec.app-name                    | spec.app | 
-|              |   - all usage inside 'allOf' and 'anyOf' | spec.intent.*.provider-name      | spec.intent.*.clusterProvider | 
-|              |   - all usage inside 'allOf' and 'anyOf' | spec.intent.*.cluster-name       | spec.intent.*.cluster | 
-|              |   - all usage inside 'allOf' and 'anyOf' | spec.intent.*.cluster-label-name | spec.intent.*.clusterLabel | 
+|              |                                          | spec.override-values             | spec.overrideValues |
+|              |                                          | spec.override-values[].app-name  | spec.overrideValues[].app |
+|              | app generic placement intent             | spec.app-name                    | spec.app |
+|              |   - all usage inside 'allOf' and 'anyOf' | spec.intent.*.provider-name      | spec.intent.*.clusterProvider |
+|              |   - all usage inside 'allOf' and 'anyOf' | spec.intent.*.cluster-name       | spec.intent.*.cluster |
+|              |   - all usage inside 'allOf' and 'anyOf' | spec.intent.*.cluster-label-name | spec.intent.*.clusterLabel |
 |  dcm         | cluster reference                        | spec.cluster-provider            | spec.clusterProvider |
 |              |                                          | spec.cluster-name                | spec.cluster |
 |              |                                          | spec.loadbalancer-ip             | spec.loadbalancerIp |

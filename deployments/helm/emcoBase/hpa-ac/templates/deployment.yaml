@@ -64,7 +64,7 @@ spec:
           - mountPath: /etc/localtime
             name: localtime
             readOnly: true
-          - mountPath: {{ .Values.workingDir }}/config.json 
+          - mountPath: {{ .Values.workingDir }}/config.json
             name: {{ include "common.name" .}}
             subPath: config.json
         resources:

@@ -6,7 +6,7 @@ Copyright (c) 2019-2021 Intel Corporation
 
 # Notes on working with the EMCO referential schema
 
-## Overview 
+## Overview
 
 ### Initial design
 
@@ -25,7 +25,7 @@ The schema configmap that is prepared can be pulled out of the helm charts as fo
 	2. run:  make  <-- to build the EMCO helm charts
 	3. helm template -s templates/emco-db-ref-schema.yaml schema ./deployments/helm/emcoBase/dist/packages/emco-db-0.1.0.tgz
 
-The output of step 3 is the content of the 'emco-db-ref-schema.yaml'.  
+The output of step 3 is the content of the 'emco-db-ref-schema.yaml'.
 
 Alternatively, if the top level EMCO Makefile has been invoked with the 'deploy' target, then the directory '<EMCO_repo>/bin/helm' will have the ECMO helm charts.  The following sequence can be done:
 	1. In '<EMCO_repo>' directory, run 'make deploy' (with appropriate environment settings) for example:
@@ -42,7 +42,7 @@ Docker compose ?
 
 ## Developing a new controller which extends the referential schema
 
-A developer may write a new controller to run along with the EMCO microservices.  If the new controller adds APIs to manage new database resources, the referential schema will need to be updated.  For example, a new action or placement controller will likely define new resources which exist as 'child' resources of the 'deploymentIntentGroup' resource.  These resources may also have referential relationships to other resources like the 'app' resource.  
+A developer may write a new controller to run along with the EMCO microservices.  If the new controller adds APIs to manage new database resources, the referential schema will need to be updated.  For example, a new action or placement controller will likely define new resources which exist as 'child' resources of the 'deploymentIntentGroup' resource.  These resources may also have referential relationships to other resources like the 'app' resource.
 
 The following illustrates the sequence of steps that a developer might go through to implement a new sample controller.
 NOTE: The steps described here will proceed by adding a new controller within the same code base and directory structure of the EMCO base repository.  In principle, this effort could be done in a completely separate project.
@@ -86,7 +86,7 @@ Alternatively, if the new controller was created and built separately, the refer
 
 Manually apply the new configmap (it may also be necessary to set the 'namespace' attribute of the updated configmap file to match the local EMCO installation), for example:
 	kubectl -n <emco namespace> apply -f new-ref-schema.yaml
-	
+
 Another alternative is to directly edit the configmap in the cluster and add the new resources.
 
 NOTE: this process is clearly developer oriented and a method for new controllers to register their referential schema updates without manual intervention should be implemented.
@@ -117,11 +117,11 @@ Consider that the new controller defines a new 'sampleIntent' with a resource th
 	  }
 	}
 ```
-	
+
 Attempt to create the resource, for example:
 	$ curl -d @sample1.json  http://10.10.10.6:30424/v2/projects/testvfw/composite-apps/compositevfw/v1/deployment-intent-groups/vfw_deployment_intent_group/sampleIntents
 	Cannot perform requested operation. Parent resource not found
-	
+
 Looking at the logs for the sample controller, the following message can be noted:
 What is seen here is that the referential integrity determined that the parent resource, the 'deploymentIntentGroup' does not exist, so the new sample intent is not allowed to be created.
 ```
@@ -157,7 +157,7 @@ Now, assuming that the parent resource has been created (in this example, the '<
 ```
 	$ curl -d @sample1.json  http://10.10.10.6:30424/v2/projects/testvfw/composite-apps/compositevfw/v1/deployment-intent-groups/vfw_deployment_intent_group/sampleIntents
 	{"metadata":{"name":"sample-intent"},"spec":{"app":"abc","sampleIntentData":"some data"}}
-	
+
 	$ curl  http://10.10.10.6:30424/v2/projects/testvfw/composite-apps/compositevfw/v1/deployment-intent-groups/vfw_deployment_intent_group/sampleIntents
 	[{"metadata":{"name":"sample-intent"},"spec":{"app":"abc","sampleIntentData":"some data"}}]
 ```
@@ -198,7 +198,7 @@ The actual mongo document of the new sample resource looks like this:
 	        }
 	    },
 	    "keyId" : "{compositeApp,compositeAppVersion,deploymentIntentGroup,project,sampleIntent,}",
-	    "references" : [ 
+	    "references" : [
 	        {
 	            "key" : {
 	                "compositeApp" : "compositevfw",
@@ -238,7 +238,7 @@ Looking at the updated mongo document, it can be seen to be correct now:
 	        }
 	    },
 	    "keyId" : "{compositeApp,compositeAppVersion,deploymentIntentGroup,project,sampleIntent,}",
-	    "references" : [ 
+	    "references" : [
 	        {
 	            "key" : {
 	                "project" : "testvfw",
@@ -276,7 +276,7 @@ Phase 2 ideas
 Phase 1 is in the scope of release 21.12.
 ### Scope
 
-	- The scope of phase 1 is to have every controller define its schema and register it in the schema. Every time the controller starts, use its schema defined in the schema file and the schema segments defined by other controllers to create a consolidated referential schema map. 
+	- The scope of phase 1 is to have every controller define its schema and register it in the schema. Every time the controller starts, use its schema defined in the schema file and the schema segments defined by other controllers to create a consolidated referential schema map.
 	- Enforce the referential integrity of the data using the referential schema map. As part of phase 1, we have enforced the referential integrity for any database insert/ update. The database insert/update will fail if the resources you are trying to create\update are not present in the referential schema map.
 	- Schema update is out of the scope of phase 1.  You cannot update the schema of an existing controller. At this point, you will have to clear the database and re-install all the controllers to update the schema. Updating the schema of the controller without deleting the database/ other controllers will be addressed in a future release.
 
@@ -288,7 +288,7 @@ When the controller starts, if the controller does not have any schema defined, 
 
 **Note** In this scenario, the controller will start without issues. However, any insert/ update to the resources defined by the controller will fail.
 
-Each schema segment registered, by the controllers, in the database will have a unique Id. We generate this segment Id using the content in the schema file. For example, if the schema file has two resources, as shown below, the segment Id will be a hash of the content in the file. Any change to the content in the file will create a new segment Id(for example, adding a space, newline, new resource, new reference) 
+Each schema segment registered, by the controllers, in the database will have a unique Id. We generate this segment Id using the content in the schema file. For example, if the schema file has two resources, as shown below, the segment Id will be a hash of the content in the file. Any change to the content in the file will create a new segment Id(for example, adding a space, newline, new resource, new reference)
 
 ```
 	name: "C1"
@@ -323,14 +323,14 @@ A valid schema definition for controller C2 is as follows.
 		- name: providerNetwork
 		  parent: cluster
 
-```		
+```
 
-The controller C2 will fail to create the referential schema map with the following schema since the resource `cluster` is also part of C1.	 
+The controller C2 will fail to create the referential schema map with the following schema since the resource `cluster` is also part of C1.
 
-```	
+```
 	name: "C2"
 	resources:
-		- name: cluster 
+		- name: cluster
 	    - name: providerNetwork
 	      parent: cluster
 	    - name: network
@@ -383,7 +383,7 @@ For example, there are two controllers C1 and C2. The controller C2 has a resour
 	  - name: cluster
 	  - name: clusterLabel
 	    parent: cluster
-	  
+
 	name: "C2"
 	resources:
 	  - name: network
@@ -404,4 +404,4 @@ For example, there are two controllers C1 and C2. The controller C2 has a resour
 		"db-schema-backoff": 5
 	}
 
-``` 
+```

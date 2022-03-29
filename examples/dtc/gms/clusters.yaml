@@ -16,7 +16,7 @@ resourceContext:
 metadata :
    name: {{ .Cluster1 }}
 file:
-   {{ .KubeConfig1 }} 
+   {{ .KubeConfig1 }}
 
 ---
 #creating cluster
@@ -51,9 +51,9 @@ metadata :
   name: {{ .Cluster1IstioIngressGatewayKvName }}
 spec:
   kv:
-    - istioingressgatewayaddress: "192.168.121.26" 
+    - istioingressgatewayaddress: "192.168.121.26"
     - istioingressgatewayport: "32001"
-    - istioingressgatewayinternalport: "15443" 
+    - istioingressgatewayinternalport: "15443"
 ---
 #Add label kvpair
 version: emco/v2

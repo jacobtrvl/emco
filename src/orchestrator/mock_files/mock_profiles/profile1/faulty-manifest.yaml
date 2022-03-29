@@ -4,7 +4,7 @@
 ---
 version: v1
 type:
-  values: 
+  values:
     - override_values.yaml
   configresource:
   - filepath: subdir/p1.yaml

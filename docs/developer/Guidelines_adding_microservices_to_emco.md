@@ -9,7 +9,7 @@ Following are the list of files that need to be added/updated followed by thorou
 ###  Dockerfile:
 • Create new docker file with name Docker.<service name> under root/build/docker folder
 
-### Makefile : 
+### Makefile :
 • Update Build, Pre-compile, compile-container, tidy, clean targets
 
 ### Docker-compose.yml:
@@ -23,7 +23,7 @@ Following are the list of files that need to be added/updated followed by thorou
 • Under deployments/helm/emcoCI/templates
 -> Update configmap.yaml with config values from src/service/config.json file
 -> Update deployment.yaml with correct ports , volume mounts, binary file details
--> Update service.yaml with correct ports 
+-> Update service.yaml with correct ports
 
 ### Scripts:
 
@@ -39,7 +39,7 @@ Under root/src/tools/emcoctl/examples
 * Update emco-cfg.yaml, emco-cfg-local.yaml and emco-cfg-remote.yaml for new service,host and port
 
 
-* After updating the code, please use the 
+* After updating the code, please use the
   [local install tutorial](../user/Tutorial_Local_Install.md) and the
   [Helm install tutorial](../user/Tutorial_Helm.md) to build and deploy
   the new microservice.

@@ -21,7 +21,7 @@ type approval struct {
 	res []byte
 }
 type reference struct {
-	op RsyncOperation 
+	op RsyncOperation
 	filepath string
 	approveList []approval
 }
@@ -35,7 +35,7 @@ func appendRef(ref interface{}, b []byte, op RsyncOperation, apv ...approval) in
 	default:
 		exists = false
 
-	} 
+	}
 	var rf *reference
 	// Create rf is doesn't exist
 	if !exists {
@@ -136,7 +136,7 @@ func (p *K8sProviderExp) Commit(ctx context.Context, ref interface{}) error {
 	default:
 		exists = false
 
-	} 
+	}
 	// Check for rf
 	if !exists {
 		log.Error("Commit: No ref found", log.Fields{})
@@ -167,7 +167,7 @@ func (p *K8sProviderExp) Commit(ctx context.Context, ref interface{}) error {
 				if err := p.client.Approve(apv.name, apv.res); err != nil {
 					log.Error("Failed to approve resources", log.Fields{"error": err})
 					return err
-				}		
+				}
 			}
 		}
 	case OpCreate:

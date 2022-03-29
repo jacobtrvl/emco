@@ -1,5 +1,5 @@
 ```text
-SPDX-License-Identifier: Apache-2.0       
+SPDX-License-Identifier: Apache-2.0
 Copyright (c) 2022 Intel Corporation
 ```
 
@@ -1478,7 +1478,7 @@ The same query parameters, except for the `apps`, `clusters` and `resources` par
 Note: the `cluster` and `app` filter parameters are not useful for the cluster network intents status query since cluster is inherent in the query URL and there is only
 a single internal app for any given cluster network intent and it is not dislayed.
 
-Note: the format of the cluster intents status query changed in Release `21.03`.  The `apps` and `clusters` levels were removed since they are 
+Note: the format of the cluster intents status query changed in Release `21.03`.  The `apps` and `clusters` levels were removed since they are
 redundant for this query. They have been replaced with a single `cluster` object which contains the list of network resources.
 
 ```

@@ -127,5 +127,5 @@ $ curl 192.168.121.10 | grep product
 ## Uninstall the application
 Uninstall the app using the command:
 ```shell
-$ ./delete.sh 
+$ ./delete.sh
 ```

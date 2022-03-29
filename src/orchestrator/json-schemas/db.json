@@ -2,12 +2,12 @@
     "$schema": "http://json-schema.org/schema#",
     "type": "object",
     "properties": {
-        "name": {"$ref": "#/definitions/string"},    
+        "name": {"$ref": "#/definitions/string"},
         "resources": {
             "description": "Resources associated with the database schema segment",
             "type": "array",
             "properties": {
-                "name": {"$ref": "#/definitions/string"},          
+                "name": {"$ref": "#/definitions/string"},
                 "parent": {"$ref": "#/definitions/string"},
                 "references": {
                     "description": "List of references, if any",
@@ -42,7 +42,7 @@
                 }
             },
             "required": ["name"]
-        }    
+        }
     },
     "required": ["name"],
     "definitions": {

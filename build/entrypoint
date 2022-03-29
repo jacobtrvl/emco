@@ -24,7 +24,7 @@ case ${cmd} in
    "ovnaction")
       ./ovnaction
       ;;
-   
+
    "dtc")
       ./dtc
       ;;

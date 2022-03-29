@@ -5,7 +5,7 @@ image:
     repository: <myrepository.example.com>/app/my-custom-httptest-client-proxy
     tag: "1.1"
     pullPolicy: Always
-  
+
 server:
     domain: "http://http-service:30083"
 

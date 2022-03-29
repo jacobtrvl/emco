@@ -51,7 +51,7 @@
       },
       "resource": {
         "oneOf": [
-          { 
+          {
             "type": "object",
             "properties": {
               "name": {

@@ -3,8 +3,8 @@
 # Copyright (c) 2021 Intel Corporation
 
 if [ "$#" -lt 1 ] ; then
-  echo "enter a destination directory"      
-  exit  
+  echo "enter a destination directory"
+  exit
 fi
 
 mkdir $1

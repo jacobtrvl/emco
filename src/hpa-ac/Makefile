@@ -7,7 +7,7 @@ all: clean
 	@echo -e "\nBuilding HPA Action Controller .."
 	@CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
 	go build -tags netgo -o ../../bin/hpa-ac/hpa-ac ./cmd/main.go
-	
+
 # The following is done this way as each patch on CI runs build and each merge runs deploy. So for build we don't need to build binary and hence
 # no need to create a static binary with additional flags. However, for generating binary, additional build flags are necessary. This if used with
 # mock plugin errors out for unit tests. So the seperation avoids the error.

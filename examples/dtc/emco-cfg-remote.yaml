@@ -2,17 +2,17 @@
 # Copyright (c) 2020 Intel Corporation
 
 orchestrator:
-  host: 172.16.16.150 
+  host: 172.16.16.150
   port: 30415
 clm:
   host: 172.16.16.150
   port: 30461
 dcm:
-  host: 172.16.16.150 
+  host: 172.16.16.150
   port: 30477
 gac:
-  host: 172.16.16.150 
+  host: 172.16.16.150
   port: 30420
 dtc:
-  host: 172.16.16.150 
+  host: 172.16.16.150
   port: 30418

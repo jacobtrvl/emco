@@ -3,8 +3,8 @@ SPDX-License-Identifier: Apache-2.0
 Copyright (c) 2021 Intel Corporation
 ```
 <!-- omit in toc -->
-# Sample application to demonstrate service discovery feature 
-This document describes how to deploy an example application with network policy of traffic controller. The deployment consists of server and client pods, once deployed the client sends the request to the server every five seconds. The client pod logs the message "Hello from http-server" to indicate successful connectivity with the server. 
+# Sample application to demonstrate service discovery feature
+This document describes how to deploy an example application with network policy of traffic controller. The deployment consists of server and client pods, once deployed the client sends the request to the server every five seconds. The client pod logs the message "Hello from http-server" to indicate successful connectivity with the server.
 
 - Requirements
 - Install EMCO and emcoctl
@@ -91,7 +91,7 @@ NOTE: Public cloud scenarios are experimental and are not tested with public clo
     get:
     2020-12-09 00:21:17 Hello from http-server with the pod IP - 10.233.120.123 and podname - r1-http-server-7cf7db8d8-7bmsd
     get:
-    2020-12-09 00:21:22 Hello from http-server with the pod IP - 10.233.120.123 and podname - r1-http-server-7cf7db8d8-7bmsd 
+    2020-12-09 00:21:22 Hello from http-server with the pod IP - 10.233.120.123 and podname - r1-http-server-7cf7db8d8-7bmsd
     ```
 
     ## Uninstall the application
@@ -160,7 +160,7 @@ NOTE: Public cloud scenarios are experimental and are not tested with public clo
     get:
     2020-12-09 00:21:17 Hello from http-server with the pod IP - 10.233.120.123 and podname - r1-http-server-7cf7db8d8-7bmsd
     get:
-    2020-12-09 00:21:22 Hello from http-server with the pod IP - 10.233.120.123 and podname - r1-http-server-7cf7db8d8-7bmsd 
+    2020-12-09 00:21:22 Hello from http-server with the pod IP - 10.233.120.123 and podname - r1-http-server-7cf7db8d8-7bmsd
     ```
 
     ## Uninstall the application
@@ -230,7 +230,7 @@ NOTE: Public cloud scenarios are experimental and are not tested with public clo
     get:
     2020-12-09 00:21:17 Hello from http-server with the pod IP - 10.233.120.123 and podname - r1-http-server-7cf7db8d8-7bmsd
     get:
-    2020-12-09 00:21:22 Hello from http-server with the pod IP - 10.233.120.123 and podname - r1-http-server-7cf7db8d8-7bmsd 
+    2020-12-09 00:21:22 Hello from http-server with the pod IP - 10.233.120.123 and podname - r1-http-server-7cf7db8d8-7bmsd
     ```
 
     ## Uninstall the application
@@ -299,7 +299,7 @@ NOTE: Public cloud scenarios are experimental and are not tested with public clo
     get:
     2020-12-09 00:21:17 Hello from http-server with the pod IP - 10.233.120.123 and podname - r1-http-server-7cf7db8d8-7bmsd
     get:
-    2020-12-09 00:21:22 Hello from http-server with the pod IP - 10.233.120.123 and podname - r1-http-server-7cf7db8d8-7bmsd 
+    2020-12-09 00:21:22 Hello from http-server with the pod IP - 10.233.120.123 and podname - r1-http-server-7cf7db8d8-7bmsd
     ```
 
     ## Uninstall the application

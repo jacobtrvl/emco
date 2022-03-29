@@ -8,7 +8,7 @@
 
 ```
 cd helm/m3db-operator
-helm package . 
+helm package .
 helm install m3db-operator-0.0.1.tgz
 ```
 

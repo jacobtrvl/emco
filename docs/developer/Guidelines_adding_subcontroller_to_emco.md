@@ -40,7 +40,7 @@ This handler module imports the controller package @EMCO/src/orchestrator/pkg/mo
 
 The handler functions for create, get, put, and delete are added, refer to [example](../../src/dtc/api/controllerhandler.go) for details.
 
-## gRPC Callouts 
+## gRPC Callouts
 
 gRPC proto buffs and contextupdate packages can be used from common packages @EMCO/src/orchestrator/pkg/grpc or can implement its own messages based on the service being offered.
 

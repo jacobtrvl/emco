@@ -34,7 +34,7 @@ spec:
     mode: allow
 files:
   - customization-dummy.yaml
-  # GAC will ignore the content in this file 
+  # GAC will ignore the content in this file
   # emcoctl requires a file to create the multipart request
   # customization using files only supported for ConfigMap/Secret
 
@@ -81,7 +81,7 @@ spec:
 	]
 files:
   - customization-dummy.yaml
-  # the content in this file will be ignored 
+  # the content in this file will be ignored
   # customization using files only supported for ConfigMap/Secret
   # emcoctl requires a file to create the multipart request
 
@@ -139,8 +139,8 @@ file:
   configmap-team.yaml
 
 ---
-# add customization for cm-team 
-# add more data configurations to cm-team using the customization files 
+# add customization for cm-team
+# add more data configurations to cm-team using the customization files
 # patch cm-team to update the team_size
 version: emco/v2
 resourceContext:
@@ -228,7 +228,7 @@ file:
 
 ---
 # add customization for secret-auth
-# add more data configurations to secret-auth using the customization files 
+# add more data configurations to secret-auth using the customization files
 # patch secret-auth to add USER_NAME and PASSWORD
 version: emco/v2
 resourceContext:
@@ -306,6 +306,6 @@ spec:
 	]
 files:
   - customization-dummy.yaml
-# the content in this file will be ignored 
+# the content in this file will be ignored
 # customization using files only supported for ConfigMap/Secret
 # emcoctl requires a file to create the multipart request

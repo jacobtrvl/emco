@@ -6,7 +6,7 @@ EMCO Helm charts include charts for EMCO microservices along with MongoDb, etcd,
 
 **NOTE: Make sure to add the correct repository name in common/values.yaml**
 For Ex: repository: myrepository.example.com/emco/
-Make sure to add "/" in the end while defining the repository 
+Make sure to add "/" in the end while defining the repository
 
 ### Steps to generate and install packages
 **1. Run make file to package all the required chart**

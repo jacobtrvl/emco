@@ -46,7 +46,7 @@ data []byte
 Insert function inserts the provided `data` into the `collection` as a document in MongoDB. `FindOneAndUpdate` mongo API is used to achieve this with the `upsert` option set to `true`. With this if the record doesn't exist it is created and if it exists it is updated with new data for the tag.
 
 Key and Query parameters are assumed to be json structures with each element as part of the key. Those key-value pairs are used as the key for the document.
-Internally this API takes all the fields in the Key structure and adds them as fields in the document. Query parameter works just like key and it is used to add additional fields to the document. 
+Internally this API takes all the fields in the Key structure and adds them as fields in the document. Query parameter works just like key and it is used to add additional fields to the document.
 
 With this key the document can be quried with Mongo `Find` function for both the key fields and Query fields.
 
@@ -108,7 +108,7 @@ key interface
 tag string
 ```
 
-Find function return one or more tag data based on the Key value. If key has all the fields defined then an exact match is looked for based on the key passed in. 
+Find function return one or more tag data based on the Key value. If key has all the fields defined then an exact match is looked for based on the key passed in.
 If some of the field value in structure are empty strings then this function returns all the documents which have the same type. (ANY operation)
 
 #### Example of Exact Match based on fields Key Values
@@ -127,7 +127,7 @@ key := CompositeAppKey{
 		Project:           "testProject",
 		CompositeAppName:  "",
 		Version:           "",
-		
+
 	}
 ```
 

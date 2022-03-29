@@ -6,7 +6,7 @@ loadgenerator:
       repository: gcr.io/google-samples/microservices-demo/loadgenerator
       tag: v0.3.0
       pullPolicy: IfNotPresent
-      busybox: 
+      busybox:
         pullPolicy: IfNotPresent
     resources:
       limits:

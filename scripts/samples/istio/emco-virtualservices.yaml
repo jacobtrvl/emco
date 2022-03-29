@@ -58,7 +58,7 @@ spec:
         regex: /v2/projects/.+/composite-apps/[^\/]*\/[^\/]*/deployment-intent-groups/[^\/]*/generic-placement-intents/[^\/]*/app-intents
     - uri:
         regex: /v2/projects/.+/composite-apps/[^\/]*\/[^\/]*/deployment-intent-groups/[^\/]*/generic-placement-intents/[^\/]*/app-intents/[^\/]*
-          
+
     route:
     - destination:
         port:
@@ -230,7 +230,7 @@ spec:
   http:
   - match:
     - uri:
-        prefix: /mesh/auth_callback        
+        prefix: /mesh/auth_callback
     route:
     - destination:
         host: orchestrator

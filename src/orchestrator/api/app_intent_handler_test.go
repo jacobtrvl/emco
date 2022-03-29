@@ -549,18 +549,18 @@ func TestCreateAppIntentHandler(t *testing.T) {
 			label: "AnyOf Only Clusterlabel or Cluster Allowed",
 			code:  http.StatusBadRequest,
 			err:   "Only one of cluster name or cluster label allowed",
-			reader: bytes.NewBuffer([]byte(`{ 
+			reader: bytes.NewBuffer([]byte(`{
 				"metadata": {
 					"name": "testAppIntent",
 					"description": "Test AppIntent used for unit testing",
 					"userData1": "data1",
 					"userData2": "data2"
 				},
-				 "spec": { 
+				 "spec": {
 					 "app": "testApp",
-					 "intent": { 
-						 "anyOf": [ 
-							{ 
+					 "intent": {
+						 "anyOf": [
+							{
 								 "clusterProvider": "testClusterProvider",
 								 "clusterLabel": "testClusterLabel",
 								 "cluster": "testCluster"
@@ -581,8 +581,8 @@ func TestCreateAppIntentHandler(t *testing.T) {
 					"userData1": "data1",
 					"userData2": "data2"
 				},
-				"spec": { 
-					"app": "testApp", 
+				"spec": {
+					"app": "testApp",
 					"intent": {
 						"allOf": [
 							{
@@ -606,15 +606,15 @@ func TestCreateAppIntentHandler(t *testing.T) {
 			label: "AllOf AnyOf Missing ClusterProvider Name",
 			code:  http.StatusBadRequest,
 			err:   "Missing clusterProvider in an intent",
-			reader: bytes.NewBuffer([]byte(`{ 
+			reader: bytes.NewBuffer([]byte(`{
 				"metadata": {
 					"name": "testAppIntent",
 					"description": "Test AppIntent used for unit testing",
 					"userData1": "data1",
 					"userData2": "data2"
 				},
-				"spec": { 
-					"app": "testApp",  
+				"spec": {
+					"app": "testApp",
 					"intent": {
 						"allOf": [
 							{
@@ -645,7 +645,7 @@ func TestCreateAppIntentHandler(t *testing.T) {
 					"userData1": "data1",
 					"userData2": "data2"
 				},
-				"spec": { 
+				"spec": {
 					"app": "testApp",
 					"intent": {
 						"allOf": [
@@ -678,7 +678,7 @@ func TestCreateAppIntentHandler(t *testing.T) {
 					"userData1": "data1",
 					"userData2": "data2"
 				},
-				"spec": { 
+				"spec": {
 					"app": "testApp",
 					"intent": {
 						"allOf": [
@@ -704,14 +704,14 @@ func TestCreateAppIntentHandler(t *testing.T) {
 			label: "Create AppIntent",
 			code:  http.StatusCreated,
 			err:   "",
-			reader: bytes.NewBuffer([]byte(`{   
+			reader: bytes.NewBuffer([]byte(`{
 				"metadata": {
 					"name": "testAppIntent",
 					"description": "Test AppIntent used for unit testing",
 					"userData1": "data1",
 					"userData2": "data2"
 				},
-				"spec": { 
+				"spec": {
 					"app": "testApp",
 					"intent": {
 						"allOf": [
@@ -782,14 +782,14 @@ func TestCreateAppIntentHandler(t *testing.T) {
 			label: "AppIntent Already Exists",
 			code:  http.StatusConflict,
 			err:   "Intent already exists",
-			reader: bytes.NewBuffer([]byte(`{   
+			reader: bytes.NewBuffer([]byte(`{
 				"metadata": {
 					"name": "testAppIntent",
 					"description": "Test AppIntent used for unit testing",
 					"userData1": "data1",
 					"userData2": "data2"
 				},
-				"spec": { 
+				"spec": {
 					"app": "testApp",
 					"intent": {
 						"allOf": [
@@ -1010,18 +1010,18 @@ func TestUpdateAppIntentHandler(t *testing.T) {
 			name:  "testAppIntent",
 			code:  http.StatusBadRequest,
 			err:   "Only one of cluster name or cluster label allowed",
-			reader: bytes.NewBuffer([]byte(`{ 
+			reader: bytes.NewBuffer([]byte(`{
 				"metadata": {
 					"name": "testAppIntent",
 					"description": "Test AppIntent used for unit testing",
 					"userData1": "data1",
 					"userData2": "data2"
 				},
-				 "spec": { 
+				 "spec": {
 					 "app": "testApp",
-					 "intent": { 
-						 "anyOf": [ 
-							{ 
+					 "intent": {
+						 "anyOf": [
+							{
 								 "clusterProvider": "testClusterProvider",
 								 "clusterLabel": "testClusterLabel",
 								 "cluster": "testCluster"
@@ -1043,8 +1043,8 @@ func TestUpdateAppIntentHandler(t *testing.T) {
 					"userData1": "data1",
 					"userData2": "data2"
 				},
-				"spec": { 
-					"app": "testApp", 
+				"spec": {
+					"app": "testApp",
 					"intent": {
 						"allOf": [
 							{
@@ -1069,15 +1069,15 @@ func TestUpdateAppIntentHandler(t *testing.T) {
 			name:  "testAppIntent",
 			code:  http.StatusBadRequest,
 			err:   "Missing clusterProvider in an intent",
-			reader: bytes.NewBuffer([]byte(`{ 
+			reader: bytes.NewBuffer([]byte(`{
 				"metadata": {
 					"name": "testAppIntent",
 					"description": "Test AppIntent used for unit testing",
 					"userData1": "data1",
 					"userData2": "data2"
 				},
-				"spec": { 
-					"app": "testApp",  
+				"spec": {
+					"app": "testApp",
 					"intent": {
 						"allOf": [
 							{
@@ -1109,7 +1109,7 @@ func TestUpdateAppIntentHandler(t *testing.T) {
 					"userData1": "data1",
 					"userData2": "data2"
 				},
-				"spec": { 
+				"spec": {
 					"app": "testApp",
 					"intent": {
 						"allOf": [
@@ -1143,7 +1143,7 @@ func TestUpdateAppIntentHandler(t *testing.T) {
 					"userData1": "data1",
 					"userData2": "data2"
 				},
-				"spec": { 
+				"spec": {
 					"app": "testApp",
 					"intent": {
 						"allOf": [
@@ -1169,14 +1169,14 @@ func TestUpdateAppIntentHandler(t *testing.T) {
 			label: "Update Non Existing AppIntent",
 			code:  http.StatusCreated,
 			name:  "nonExistingAppIntent",
-			reader: bytes.NewBuffer([]byte(`{   
+			reader: bytes.NewBuffer([]byte(`{
 				"metadata": {
 					"name": "nonExistingAppIntent",
 					"description": "Test AppIntent used for unit testing",
 					"userData1": "data1",
 					"userData2": "data2"
 				},
-				"spec": { 
+				"spec": {
 					"app": "testApp",
 					"intent": {
 						"allOf": [
@@ -1270,14 +1270,14 @@ func TestUpdateAppIntentHandler(t *testing.T) {
 			label: "Update Existing AppIntent",
 			code:  http.StatusOK,
 			name:  "testAppIntent",
-			reader: bytes.NewBuffer([]byte(`{   
+			reader: bytes.NewBuffer([]byte(`{
 				"metadata": {
 					"name": "testAppIntent",
 					"description": "Test AppIntent updated for unit testing",
 					"userData1": "data1_new",
 					"userData2": "data2_new"
 				},
-				"spec": { 
+				"spec": {
 					"app": "testUpdatedApp",
 					"intent": {
 						"allOf": [

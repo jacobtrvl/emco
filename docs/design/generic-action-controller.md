@@ -5,9 +5,9 @@ Copyright (c) 2019-2022 Intel Corporation
 
 # GENERIC ACTION CONTROLLER (GAC)
 
-The EMCO orchestrator supports placement and action controllers to control the deployment of applications. Placement controllers allow the orchestrator to choose the exact locations to place the application in the composite application. Action controllers can modify the state of a resource (create additional resources to be deployed, modify or delete the existing resources). 
+The EMCO orchestrator supports placement and action controllers to control the deployment of applications. Placement controllers allow the orchestrator to choose the exact locations to place the application in the composite application. Action controllers can modify the state of a resource (create additional resources to be deployed, modify or delete the existing resources).
 
-GAC is an action controller registered with the central orchestrator. 
+GAC is an action controller registered with the central orchestrator.
 
 ## Overview Of GAC
 
@@ -21,7 +21,7 @@ GAC is an action controller registered with the central orchestrator.
       - ***Cluster-Specific***  : Apply the new object only to cluster(s) where the app has deployed, specified by a `name`, single cluster, or a  `label`, multiple clusters.
 
   - ***Modify Kubernetes Object(s)***
-  
+
     GAC allows you to modify an existing Kubernetes object which may have deployed using the helm chart for an app or GAC itself. Modification may correspond to specific fields in the YAML definition of the Kubernetes object.
 
   ### Components of GAC
@@ -83,9 +83,9 @@ GAC is an action controller registered with the central orchestrator.
             ```
         - `KEY - file`
             [configmap-game.yaml](../../examples/test-gac/configmap-game.yaml)
-          
+
           - `app`         : Name of the application of interest, in this example operator.
-          - `newObject`   : Indicates whether this resource defines a new Kubernetes object. If true, the resource template file must be present in the request except for ConfigMap/Secret. The file should have the resource definition in YAML format. 
+          - `newObject`   : Indicates whether this resource defines a new Kubernetes object. If true, the resource template file must be present in the request except for ConfigMap/Secret. The file should have the resource definition in YAML format.
           - `resourceGVK` : A reference to the Kubernetes object, in this example ConfigMap.
             - `apiVersion` : A string that identifies the version of the schema the object should have, in this example v1.
             - `kind` : A string that identifies the schema this object should have, in this example ConfigMap.
@@ -144,7 +144,7 @@ GAC is an action controller registered with the central orchestrator.
                   }
                 }
               }
-            ```  
+            ```
         - `KEY - files`
             [data-game.yaml](../../examples/test-gac/data-game.yaml)
             [data-userinterface.yaml](../../examples/test-gac/data-userinterface.yaml)
@@ -171,9 +171,9 @@ GAC is an action controller registered with the central orchestrator.
 
 ## Creating Kubernetes Objects
 
-GAC allows you to create a new Kubernetes object and deploy it with a specific application. You can create a template file with all the required configurations for the resource and upload it. GAC reads the configurations and applies them to the resource. A resource template file is mandatory except for ConfigMap/Secret. 
+GAC allows you to create a new Kubernetes object and deploy it with a specific application. You can create a template file with all the required configurations for the resource and upload it. GAC reads the configurations and applies them to the resource. A resource template file is mandatory except for ConfigMap/Secret.
 
-For example, if you want to create a cluster-specific `NetworkPolicy` 
+For example, if you want to create a cluster-specific `NetworkPolicy`
   - Create a `GenericK8sIntent`
   - Add a `Resource` to the intent with the `resourceGVK` details and the resource template file
   - Create the `Customization` for the `NetworkPolicy`
@@ -189,7 +189,7 @@ This example illustrates the creation of the `NetworkPolicy` with the configurat
       resourceContext:
         anchor: projects/proj1/composite-apps/gac-composite-app/v1/deployment-intent-groups/collection-deployment-intent-group/generic-k8s-intents
       metadata:
-        name: operator-gac-intent       
+        name: operator-gac-intent
     ```
   * ##### Add resource to GAC intent
 
@@ -212,7 +212,7 @@ This example illustrates the creation of the `NetworkPolicy` with the configurat
     ```
   * ##### Add customization for the resource
 
-    The next step is to create cluster-specific `Customization`. You want to deploy the `NetworkPolicy` on clusters with label `label_a`.    
+    The next step is to create cluster-specific `Customization`. You want to deploy the `NetworkPolicy` on clusters with label `label_a`.
     ```shell
       version: emco/v2
       resourceContext:
@@ -242,7 +242,7 @@ You can create a ConfigMap/Secret in multiple ways. You can create a resource te
 
   ### Using Customization Files
 
-  GAC supports the creation of ConfigMap/Secrets using customization files. A resource template file is not mandatory for a ConfigMap/Secret. GAC will create the base struct for the ConfigMap/Secret using the values provided in the resourceGVK (`APIVersion, Kind, Name`) and apply the configuration data provided in the JSON patch or Customization files. For example, if you want to create a cluster-specific ConfigMap, and the configuration data for the ConfigMap comes from an external JSON file like info.json, you can accomplish that using GAC. 
+  GAC supports the creation of ConfigMap/Secrets using customization files. A resource template file is not mandatory for a ConfigMap/Secret. GAC will create the base struct for the ConfigMap/Secret using the values provided in the resourceGVK (`APIVersion, Kind, Name`) and apply the configuration data provided in the JSON patch or Customization files. For example, if you want to create a cluster-specific ConfigMap, and the configuration data for the ConfigMap comes from an external JSON file like info.json, you can accomplish that using GAC.
    - Create a `GenericK8sIntent`
    - Add a `Resource` to the intent with the `resourceGVK` details
    - Create the `Customization` for the ConfigMap with all the customization files
@@ -276,7 +276,7 @@ You can create a ConfigMap/Secret in multiple ways. You can create a resource te
   ```
   ### Using JSON patch
 
-  You can create a ConfigMap/Secret using the JSON patch. You can pass the JSON patch data in the customization. GAC will create the base struct for the ConfigMap/Secret using the values provided in the resourceGVK(`APIVersion, Kind, Name`) and apply the configuration data provided in the JSON patch. For example, if you want to create a cluster-specific ConfigMap, and the configuration data for the ConfigMap comes from JSON patch, you can accomplish that using GAC. 
+  You can create a ConfigMap/Secret using the JSON patch. You can pass the JSON patch data in the customization. GAC will create the base struct for the ConfigMap/Secret using the values provided in the resourceGVK(`APIVersion, Kind, Name`) and apply the configuration data provided in the JSON patch. For example, if you want to create a cluster-specific ConfigMap, and the configuration data for the ConfigMap comes from JSON patch, you can accomplish that using GAC.
    - Create a `GenericK8sIntent`
    - Add a `Resource` to the intent with the `resourceGVK` details
    - Create the `Customization` for the ConfigMap with the JSON patch
@@ -288,7 +288,7 @@ You can create a ConfigMap/Secret in multiple ways. You can create a resource te
         {
           "op": "add",
           "path": "/data/istioingressgatewayaddress",
-          "value": "$(http://1.2.3.4:56789/v2/cluster-providers/provider1/clusters/cluster1/kv-pairs/istioingressgatewaykvpairs?key=istioingressgatewayaddress)$" 
+          "value": "$(http://1.2.3.4:56789/v2/cluster-providers/provider1/clusters/cluster1/kv-pairs/istioingressgatewaykvpairs?key=istioingressgatewayaddress)$"
         },
       ]
   ```
@@ -297,10 +297,10 @@ You can create a ConfigMap/Secret in multiple ways. You can create a resource te
     {
       "op": "add",
       "path": "/data/istioingressgatewayaddress",
-      "value": "10.10.10.1" 
+      "value": "10.10.10.1"
     },
   ```
-  GAC can also replace the `cluster-providers` and `clusters` in the URL at runtime. You can have a placeholder for `cluster-providers` and `clusters` in the URL and pass the `clusterProvider` and `cluster` in the customization. 
+  GAC can also replace the `cluster-providers` and `clusters` in the URL at runtime. You can have a placeholder for `cluster-providers` and `clusters` in the URL and pass the `clusterProvider` and `cluster` in the customization.
   ```shell
     clusterInfo:
       scope: "label"
@@ -313,7 +313,7 @@ You can create a ConfigMap/Secret in multiple ways. You can create a resource te
       {
         "op": "add",
         "path": "/data/istioingressgatewayport",
-        "value": "$(http://1.2.3.4:56789/v2/cluster-providers/{clusterProvider}/clusters/{cluster}/kv-pairs/istioingressgatewaykvpairs?key=istioingressgatewayport)$"  
+        "value": "$(http://1.2.3.4:56789/v2/cluster-providers/{clusterProvider}/clusters/{cluster}/kv-pairs/istioingressgatewaykvpairs?key=istioingressgatewayport)$"
       }
     ]
   ```
@@ -322,10 +322,10 @@ You can create a ConfigMap/Secret in multiple ways. You can create a resource te
     {
       "op": "add",
       "path": "/data/istioingressgatewayport",
-      "value": "1234" 
+      "value": "1234"
     },
   ```
-  The URL in the JSON patch value will be used as the patch value if it does not follow the format (has prefix `$(http` and suffix `)$`). 
+  The URL in the JSON patch value will be used as the patch value if it does not follow the format (has prefix `$(http` and suffix `)$`).
  ```shell
     {
       "op": "add",
@@ -337,7 +337,7 @@ You can create a ConfigMap/Secret in multiple ways. You can create a resource te
 
   > **NOTE**: The materials are available in [test-gac](../../examples/test-gac/). Please follow the [Readme.md](../../examples/test-gac/Readme.md) to execute the tests.
   This example illustrates the creation of the `ConfigMap` with the configuration data using the resource template file, JSON patch, and customization files.
-  
+
    * ##### Add the GAC intent
       ```shell
         version: emco/v2
@@ -469,7 +469,7 @@ Creating/Updating/Deleting a GenericK8sIntent/Resource/Customization will modify
       resourceContext:
         anchor: projects/proj1/composite-apps/gac-composite-app/v1/deployment-intent-groups/collection-deployment-intent-group/generic-k8s-intents/instantiate
     ```
-You can further create/update Kubernetes objects after instantiating a deployment intent. For example, assume that you have a statefulset resource in one of the clusters, with the name, `etcd`. You want to update the replica count of this statefulset. You can use GAC to update the replica count. We assume you have created this statefulset using GAC, and a resource and customization are already available in GAC. 
+You can further create/update Kubernetes objects after instantiating a deployment intent. For example, assume that you have a statefulset resource in one of the clusters, with the name, `etcd`. You want to update the replica count of this statefulset. You can use GAC to update the replica count. We assume you have created this statefulset using GAC, and a resource and customization are already available in GAC.
 
 > **NOTE**: The materials are available in [test-gac](../../examples/test-gac/). Please follow the [Readme.md](../../examples/test-gac/Readme.md) to execute the tests.
 This example illustrates the update/rollback of a deployment intent.
@@ -523,4 +523,4 @@ You can also rollback the statefulset state to a previous version. For example, 
         revision: "1"
     ```
   Once the deployment is updated successfully, we can see that the replica count of etcd statefulset is now back to one. Please see [test-update](../../examples/test-update/) for more details.
-   
+

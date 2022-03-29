@@ -474,7 +474,7 @@ alertmanager:
 ## Using default values from https://github.com/helm/charts/blob/master/stable/grafana/values.yaml
 ##
 grafana:
-  enabled: true 
+  enabled: true
 
   ## Deploy default dashboards.
   ##
@@ -1729,7 +1729,7 @@ prometheus:
 
     ## The remote_write spec configuration for Prometheus.
     ## ref: https://github.com/coreos/prometheus-operator/blob/master/Documentation/api.md#remotewritespec
-    remoteWrite: 
+    remoteWrite:
     # - url: http://remote1/push
       - url: "http://192.168.121.15:32701/api/v1/prom/remote/write"
         writeRelabelConfigs:
@@ -1772,7 +1772,7 @@ prometheus:
     additionalScrapeConfigs:
       - job_name: 'm3'
         static_configs:
-          - targets: ['192.168.121.15:32701'] 
+          - targets: ['192.168.121.15:32701']
             #- job_name: 'm3db'
             #static_configs:
             #- targets: ['m3db-cluster-rep0-0.m3dbnode-m3db-cluster.training.svc.cluster.local:9004','m3db-cluster-rep1-0.m3dbnode-m3db-cluster.training.svc.cluster.local:9004', 'm3db-cluster-rep2-0.m3dbnode-m3db-cluster.training.svc.cluster.local:9004']

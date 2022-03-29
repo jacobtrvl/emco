@@ -38,4 +38,4 @@ spec:
           periodSeconds: 15
         resources: {{- toYaml .Values.adservice.server.resources | nindent 10 }}
       serviceAccountName: default
-      terminationGracePeriodSeconds: 5 
+      terminationGracePeriodSeconds: 5

@@ -62,7 +62,7 @@ spec:
 ---
 version: emco/v2
 resourceContext:
-  anchor: cluster-providers/{{.ClusterProvider}}/clusters/{{.Cluster1}}/apply 
+  anchor: cluster-providers/{{.ClusterProvider}}/clusters/{{.Cluster1}}/apply
 
 ---
 #creating vfw composite app entry

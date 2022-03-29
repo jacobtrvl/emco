@@ -8,7 +8,7 @@ Refer to [EMCO Documentation](docs/design/emco-design.md) for details on EMCO ar
 
 ## EMCO Controllers
 
-The EMCO orchestrator supports `placement` and `action` controllers to control the deployment of applications. `Placement controllers` allow the orchestrator to choose the exact locations to place the application in the composite application. `Action controllers` can modify the state of a resource(create additional resources to be deployed, modify or delete the existing resources). You can define your packages and functionalities based on your need and expose these functionalities using the gRPC server. In EMCO, we have separate controllers for action and placement. 
+The EMCO orchestrator supports `placement` and `action` controllers to control the deployment of applications. `Placement controllers` allow the orchestrator to choose the exact locations to place the application in the composite application. `Action controllers` can modify the state of a resource(create additional resources to be deployed, modify or delete the existing resources). You can define your packages and functionalities based on your need and expose these functionalities using the gRPC server. In EMCO, we have separate controllers for action and placement.
 
 ## Writing a new controller
 
@@ -145,7 +145,7 @@ func UpdateAppContext(intentName, appContextId string) error {
 
 ```
 
-In the case of a `placement controller`, the controller allow the orchestrator to choose the exact locations to place the application in the composite application. 
+In the case of a `placement controller`, the controller allow the orchestrator to choose the exact locations to place the application in the composite application.
 
 ```
 
@@ -229,7 +229,7 @@ func StartGrpcServer() error {
 
 ### controller
 
-The other packages in `pkg/grpc` expose the gRPC server-specific functionalities of a controller. These functionalities and associated packages will change based on the requirement(s). As mentioned above, a controller can be either a placement or action controller. Placement controllers allow the orchestrator to choose the exact locations to place the application in the composite application. Action controllers can modify the state of a resource. You can define your packages and functionalities based on your need and expose these functionalities using the gRPC server. These functions are getting invoked by the application scheduler(orchestrator). 
+The other packages in `pkg/grpc` expose the gRPC server-specific functionalities of a controller. These functionalities and associated packages will change based on the requirement(s). As mentioned above, a controller can be either a placement or action controller. Placement controllers allow the orchestrator to choose the exact locations to place the application in the composite application. Action controllers can modify the state of a resource. You can define your packages and functionalities based on your need and expose these functionalities using the gRPC server. These functions are getting invoked by the application scheduler(orchestrator).
 
 The code structure is the same for both action and placement controllers. In this sample controller, we have defined two packages in grpc.
 
@@ -288,7 +288,7 @@ func NewPlacementControllerServer() *placementControllerServer {
 	return s
 }
 
-``` 
+```
 
 ### model
 
@@ -323,7 +323,7 @@ Package ```module``` implements all the business logic. It is a middleware/facad
 
 package module
 
-// Client combines different clients into a single type. Every handler is associated with a client. The handler then uses its associated client to perform the requested operation. 
+// Client combines different clients into a single type. Every handler is associated with a client. The handler then uses its associated client to perform the requested operation.
 // You can have different clients based on the requirement and its implementation. In this example, we only have one client.
 type Client struct {
 	SampleIntent *SampleIntentClient
@@ -361,7 +361,7 @@ func NewIntentClient() *SampleIntentClient {
 	}
 }
 
-// A manager is an interface for exposing the client's functionalities. You can have multiple managers based on the requirement and its implementation. 
+// A manager is an interface for exposing the client's functionalities. You can have multiple managers based on the requirement and its implementation.
 // In this example, SampleIntentManager exposes the SampleIntentClient functionalities.
 type SampleIntentManager interface {
 	CreateSampleIntent(intent model.SampleIntent, project, app, version, deploymentIntentGroup string, failIfExists bool) (model.SampleIntent, error)
@@ -471,7 +471,7 @@ RUN chown emco:emco . -R
 COPY --chown=emco ./sample ./
 COPY --chown=emco ./config.json ./
 COPY --chown=emco ./json-schemas ./json-schemas
-COPY --chown=emco ./ref-schemas ./ref-schemas 
+COPY --chown=emco ./ref-schemas ./ref-schemas
 
 USER emco
 
@@ -575,7 +575,7 @@ The mongo document of the new sample resource looks like this:
 	        }
 	    },
 	    "keyId" : "{compositeApp,compositeAppVersion,deploymentIntentGroup,project,sampleIntent,}",
-	    "references" : [ 
+	    "references" : [
 	        {
 	            "key" : {
 	                "compositeApp" : "compositevfw",
@@ -615,11 +615,11 @@ cat sample-controller.json
         "host": "10.10.10.3", // where the controller is running
         "port": 30425, // the grpc port
         "type": "action", // "placement" for the placement controller
-        "priority": 1 
+        "priority": 1
     }
 }
 
-curl -d @sample-controller.json http://10.10.10.3:30415/v2/controllers 
+curl -d @sample-controller.json http://10.10.10.3:30415/v2/controllers
 
 ```
 

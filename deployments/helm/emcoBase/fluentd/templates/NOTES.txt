@@ -8,7 +8,7 @@
   You can see all the logs by running this command:
 
     kubectl logs -l "app.kubernetes.io/component=aggregator"
-  
+
   You can mount your own configuration files to the aggregators and the forwarders. For example, this is useful if you want to forward the aggregated logs to Elasticsearch or another service.
 {{- else if and .Values.aggregator.enabled (not .Values.forwarder.enabled) }}
   You have deployed Fluentd in aggregator-only mode. Logs received by the aggregator will be thrown to the standard output by default.

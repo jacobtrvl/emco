@@ -11,7 +11,7 @@ service StatusNotify {
 	}
 
 	rpc StatusDeregister (StatusDeregistration) returns (StatusDeregistrationResponse){
-		
+
 	}
 }
 

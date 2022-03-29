@@ -257,7 +257,7 @@ $ flux bootstrap github --owner=$OWNER --repository=$REPO --branch=main --path=.
 On the edge cluster that supports Flux v2 install monitor like the example below. Note the name of the cluster. That name should match the name provided above.
 
 ```
-$ cd emco-base/deployments/helm/monitor 
+$ cd emco-base/deployments/helm/monitor
 ```
 ```
 $ helm  install --kubeconfig $KUBE_PATH  --set git.token=$GITHUB_TOKEN --set git.repo=SREPO --set git.username=$OWNER --set git.clustername="provider1flux+cluster2" --set git.enabled=true  -n emco monitor .
@@ -353,7 +353,7 @@ Run the example provided in https://gitlab.com/project-emco/core/emco-base/-/tre
 $ cd emco-base/examples/test-azurearc
 ```
 
-You can change the name of app in setup.sh as shown in "Installing monitor section", by default its collectd. 
+You can change the name of app in setup.sh as shown in "Installing monitor section", by default its collectd.
 
 ```
     Applist:

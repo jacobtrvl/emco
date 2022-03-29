@@ -11,7 +11,7 @@ import (
 	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 
 	kubeclient "gitlab.com/project-emco/core/emco-base/src/rsync/pkg/client"
-	"gitlab.com/project-emco/core/emco-base/src/rsync/pkg/internal/utils"	
+	"gitlab.com/project-emco/core/emco-base/src/rsync/pkg/internal/utils"
 )
 
 // Connection is for a cluster

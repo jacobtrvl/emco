@@ -29,7 +29,7 @@ Please see [generic-action-controller.md](../../docs/design/generic-action-contr
         5. `update.yaml` to update the deployment intent group
         6. `rollback.yaml` to rollback to a previous version
         7. `helm chart and profiles tar.gz files` for all the use cases
-      
+
     2. Cleanup artifacts generated above with the cleanup command
 
           ```shell
@@ -102,12 +102,12 @@ Once the deploymentIntentGroup is instantiated successfully, we can see the foll
         - m3db-operator
 
       ```shell
-        $ kubectl get statefulset 
+        $ kubectl get statefulset
         NAME            READY   AGE
         etcd            1/1     5s
         m3db-operator   1/1     5s
       ```
-    
+
 <b> Note: We are using the operator app in this example. You can create resources for different apps based on the use cases. <b>
 
 ## Test Kubernetes resource update/rollback
@@ -150,7 +150,7 @@ Once the deploymentIntentGroup is instantiated successfully, we can see the foll
 
 ### Cleanup
 
-1. Delete Resources 
+1. Delete Resources
 
     ```shell
       $ $bin/emcoctl delete --config emco-cfg.yaml -v values.yaml -f instantiate.yaml
@@ -206,7 +206,7 @@ Once the deployment intent group is instantiated successfully, we can see the fo
       ```
 
   2. `secret`
-  
+
         - m3db-operator-token-bxt65
         - secret-db
 
@@ -221,7 +221,7 @@ Once the deployment intent group is instantiated successfully, we can see the fo
 
 ### Cleanup
 
-1. Delete Resources 
+1. Delete Resources
 
     ```shell
       $ $bin/emcoctl delete --config emco-cfg.yaml -v values.yaml -f instantiate.yaml

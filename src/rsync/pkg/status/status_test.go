@@ -11,7 +11,7 @@ import (
 	"gitlab.com/project-emco/core/emco-base/src/rsync/pkg/status"
 	"gitlab.com/project-emco/core/emco-base/src/rsync/pkg/internal/utils"
 	. "gitlab.com/project-emco/core/emco-base/src/rsync/pkg/types"
-	
+
 	"k8s.io/api/core/v1"
 )
 

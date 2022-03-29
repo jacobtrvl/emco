@@ -193,7 +193,7 @@ Group5 – ClusterName5 and ClusterName6
 All the clusters where the deployment is to take place mandatorily are assigned an internal group number.
 * So, <b>ClusterName1, ClusterName2, ClusterName3, ClusterName4</b>, have been assigned separate group number.
 
-* Since <b>ClusterName5 and ClusterName6</b> have both been assigned the same group number, only 1 among shall be chosen for deployment. Each Placement controller gets to decide which clusters in a group doesn't fit its constraints and it removes those clusters from the group. 
+* Since <b>ClusterName5 and ClusterName6</b> have both been assigned the same group number, only 1 among shall be chosen for deployment. Each Placement controller gets to decide which clusters in a group doesn't fit its constraints and it removes those clusters from the group.
 
 ### Generic Placement Intent Internal Structures
 

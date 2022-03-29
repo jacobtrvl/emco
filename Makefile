@@ -129,7 +129,7 @@ test:
 	if [ ! -z "$$TESTFAILED" -a "$$TESTFAILED" != " " ]; then \
 	    echo "One or more test case(s) of $$TESTFAILED failed"; \
 	    exit 1; \
-	fi 
+	fi
 
 tidy:
 	@echo "Cleaning up dependencies"

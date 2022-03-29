@@ -9,7 +9,7 @@ metadata :
   name: {{ .DeploymentIntentGroup }}
   description: "description"
 spec:
-  compositeProfile: {{ .CompositeProfile }} 
+  compositeProfile: {{ .CompositeProfile }}
   version: r1
   logicalCloud: {{ .AdminCloud }}
   overrideValues: []

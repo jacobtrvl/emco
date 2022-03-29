@@ -94,7 +94,7 @@ rsynccontrollerdata="$(cat<<EOF
   },
   "spec": {
     "host": "${rsynccontrollername}",
-    "port": 9031 
+    "port": 9031
   }
 }
 EOF

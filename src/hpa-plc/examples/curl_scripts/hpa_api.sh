@@ -380,7 +380,7 @@ elif [ "$1" == "delete" ]; then
 
    printf "\nDeleting hpa-intent...\n\n"
    curl -X DELETE ${hpa_intent_url}/${hpa_intent_name_1}
-   
+
    printf "\nGetting all hpa-intent...\n\n"
    curl -X GET ${hpa_intent_url}
 
@@ -403,7 +403,7 @@ elif [ "$1" == "deleteall" ]; then
 
    printf "\nDeleting all hpa-intents...\n\n"
    curl -X DELETE ${hpa_intent_url}
-   
+
    printf "\nGetting all hpa-intent...\n\n"
    curl -X GET ${hpa_intent_url}
 

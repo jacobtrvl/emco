@@ -26,6 +26,6 @@ spec:
 	]
 files:
   - customization-dummy.yaml
-# the content in this file will be ignored 
+# the content in this file will be ignored
 # customization using files only supported for ConfigMap/Secret
 # emcoctl requires a file to create the multipart request

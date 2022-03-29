@@ -36,7 +36,7 @@ func InvokeUpdateApp(FromAppContextID, ToAppContextID string) error {
 		updateReq := new(updatepb.UpdateAppRequest)
 		updateReq.UpdateFromAppContext = FromAppContextID
 		updateReq.UpdateToAppContext = ToAppContextID
-		
+
 		updateAppRes, err = rpcClient.UpdateApp(ctx, updateReq)
 		if err == nil {
 			log.Info("Response from UpdateApp GRPC call", log.Fields{

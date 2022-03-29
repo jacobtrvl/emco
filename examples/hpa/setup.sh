@@ -31,7 +31,7 @@ function create {
 
         cat << NET > values.yaml
     ProjectName: proj1
-    
+
     # cluster info
     ClusterProvider: provider1
     Cluster1: cluster1
