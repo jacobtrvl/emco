@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
-// Copyright (c) 2020 Intel Corporation
+// Copyright (c) 2020-2022 Intel Corporation
 
-package module
+package dcm
 
 import (
 	"encoding/base64"
@@ -17,26 +17,6 @@ import (
 	rsync "gitlab.com/project-emco/core/emco-base/src/rsync/pkg/db"
 	"gopkg.in/yaml.v2"
 )
-
-// Cluster contains the parameters needed for a Cluster
-type Cluster struct {
-	MetaData      ClusterMeta `json:"metadata"`
-	Specification ClusterSpec `json:"spec"`
-}
-
-type ClusterMeta struct {
-	ClusterReference string `json:"name"`
-	Description      string `json:"description"`
-	UserData1        string `json:"userData1"`
-	UserData2        string `json:"userData2"`
-}
-
-type ClusterSpec struct {
-	ClusterProvider string `json:"clusterProvider"`
-	ClusterName     string `json:"cluster"`
-	LoadBalancerIP  string `json:"loadBalancerIP"`
-	Certificate     string `json:"certificate"`
-}
 
 type ClusterKey struct {
 	Project          string `json:"project"`
@@ -89,11 +69,11 @@ type KubeUserDef struct {
 // ClusterManager is an interface that exposes the connection
 // functionality
 type ClusterManager interface {
-	CreateCluster(project, logicalCloud string, c Cluster) (Cluster, error)
-	GetCluster(project, logicalCloud, name string) (Cluster, error)
-	GetAllClusters(project, logicalCloud string) ([]Cluster, error)
+	CreateCluster(project, logicalCloud string, c ClusterReference) (ClusterReference, error)
+	GetCluster(project, logicalCloud, name string) (ClusterReference, error)
+	GetAllClusters(project, logicalCloud string) ([]ClusterReference, error)
 	DeleteCluster(project, logicalCloud, name string) error
-	UpdateCluster(project, logicalCloud, name string, c Cluster) (Cluster, error)
+	UpdateCluster(project, logicalCloud, name string, c ClusterReference) (ClusterReference, error)
 	GetClusterConfig(project, logicalcloud, name string) (string, error)
 }
 
@@ -114,58 +94,53 @@ func NewClusterClient() *ClusterClient {
 }
 
 // Create entry for the cluster reference resource in the database
-func (v *ClusterClient) CreateCluster(project, logicalCloud string, c Cluster) (Cluster, error) {
+func (v *ClusterClient) CreateCluster(project, logicalCloud string, clusterReference ClusterReference) (ClusterReference, error) {
 
 	//Construct key consisting of name
 	key := ClusterKey{
 		Project:          project,
 		LogicalCloudName: logicalCloud,
-		ClusterReference: c.MetaData.ClusterReference,
+		ClusterReference: clusterReference.MetaData.ClusterReference,
 	}
 	lcClient := NewLogicalCloudClient()
 
 	s, err := lcClient.GetState(project, logicalCloud)
 	if err != nil {
-		return Cluster{}, err
+		return ClusterReference{}, err
 	}
 	cid := state.GetLastContextIdFromStateInfo(s)
 
 	if cid != "" {
 		ac, err := state.GetAppContextFromId(cid)
 		if err != nil {
-			return Cluster{}, err
+			return ClusterReference{}, err
 		}
 
-		// since there's a context associated, if the logical cloud isn't fully Terminated then prevent
-		// clusters from being added since this is a functional scenario not currently supported
+		// Since there's a context associated, if the logical cloud isn't fully
+		// Terminated or fully Instantiated, then prevent clusters from being added
 		acStatus, err := GetAppContextStatus(ac)
-		if err != nil {
-			return Cluster{}, err
-		}
-		switch acStatus.Status {
-		case appcontext.AppContextStatusEnum.Terminated:
-			break
-		default:
-			return Cluster{}, pkgerrors.New("Cluster References cannot be added/removed unless the Logical Cloud is not instantiated")
+		if acStatus.Status != appcontext.AppContextStatusEnum.Terminated && acStatus.Status != appcontext.AppContextStatusEnum.Instantiated {
+			return ClusterReference{}, pkgerrors.New("Cluster References cannot be added/removed unless the Logical Cloud is fully Instantiated or Terminated")
 		}
 	}
 
 	//Check if this Cluster Reference already exists
-	_, err = v.GetCluster(project, logicalCloud, c.MetaData.ClusterReference)
+	_, err = v.GetCluster(project, logicalCloud, clusterReference.MetaData.ClusterReference)
 	if err == nil {
-		return Cluster{}, pkgerrors.New("Cluster reference already exists")
+		return ClusterReference{}, pkgerrors.New("Cluster reference already exists")
 	}
 
-	err = db.DBconn.Insert(v.storeName, key, nil, v.tagMeta, c)
+	log.Info("Adding cluster-reference. Changes won't take effect until the respective Logical Cloud is updated.", log.Fields{"clusterreference": clusterReference, "logicalcloud": logicalCloud})
+	err = db.DBconn.Insert(v.storeName, key, nil, v.tagMeta, clusterReference)
 	if err != nil {
-		return Cluster{}, pkgerrors.Wrap(err, "Creating DB Entry")
+		return ClusterReference{}, pkgerrors.Wrap(err, "Creating DB Entry")
 	}
 
-	return c, nil
+	return clusterReference, nil
 }
 
 // Get returns  Cluster for corresponding cluster reference
-func (v *ClusterClient) GetCluster(project, logicalCloud, clusterReference string) (Cluster, error) {
+func (v *ClusterClient) GetCluster(project, logicalCloud, clusterReference string) (ClusterReference, error) {
 
 	//Construct the composite key to select the entry
 	key := ClusterKey{
@@ -176,48 +151,48 @@ func (v *ClusterClient) GetCluster(project, logicalCloud, clusterReference strin
 
 	value, err := db.DBconn.Find(v.storeName, key, v.tagMeta)
 	if err != nil {
-		return Cluster{}, err
+		return ClusterReference{}, err
 	}
 
 	if len(value) == 0 {
-		return Cluster{}, pkgerrors.New("Cluster reference not found")
+		return ClusterReference{}, pkgerrors.New("Cluster reference not found")
 	}
 
 	//value is a byte array
 	if value != nil {
-		cl := Cluster{}
+		cl := ClusterReference{}
 		err = db.DBconn.Unmarshal(value[0], &cl)
 		if err != nil {
-			return Cluster{}, err
+			return ClusterReference{}, err
 		}
 		return cl, nil
 	}
 
-	return Cluster{}, pkgerrors.New("Unknown Error")
+	return ClusterReference{}, pkgerrors.New("Unknown Error")
 }
 
 // GetAll returns all cluster references in the logical cloud
-func (v *ClusterClient) GetAllClusters(project, logicalCloud string) ([]Cluster, error) {
+func (v *ClusterClient) GetAllClusters(project, logicalCloud string) ([]ClusterReference, error) {
 	//Construct the composite key to select clusters
 	key := ClusterKey{
 		Project:          project,
 		LogicalCloudName: logicalCloud,
 		ClusterReference: "",
 	}
-	var resp []Cluster
+	var resp []ClusterReference
 	values, err := db.DBconn.Find(v.storeName, key, v.tagMeta)
 	if err != nil {
-		return []Cluster{}, err
+		return []ClusterReference{}, err
 	}
 	if len(values) == 0 {
-		return []Cluster{}, pkgerrors.New("No Cluster References associated")
+		return []ClusterReference{}, pkgerrors.New("No Cluster References associated")
 	}
 
 	for _, value := range values {
-		cl := Cluster{}
+		cl := ClusterReference{}
 		err = db.DBconn.Unmarshal(value, &cl)
 		if err != nil {
-			return []Cluster{}, err
+			return []ClusterReference{}, err
 		}
 		resp = append(resp, cl)
 	}
@@ -251,12 +226,13 @@ func (v *ClusterClient) DeleteCluster(project, logicalCloud, clusterReference st
 		return nil
 	}
 
-	// Make sure rsync status for this logical cloud is Terminated,
-	// otherwise prevent the clusters from being removed
 	ac, err := state.GetAppContextFromId(cid)
 	if err != nil {
 		return err
 	}
+
+	// Since there's a context associated, if the logical cloud isn't fully
+	// Terminated or fully Instantiated, then prevent clusters from being added
 	acStatus, err := GetAppContextStatus(ac)
 	if err != nil {
 		return pkgerrors.Wrap(err, "Error getting app context status")
@@ -265,9 +241,6 @@ func (v *ClusterClient) DeleteCluster(project, logicalCloud, clusterReference st
 	case appcontext.AppContextStatusEnum.Terminating:
 		log.Error("Can't remove Cluster Reference yet: the Logical Cloud is being terminated.", log.Fields{"clusterreference": clusterReference, "logicalcloud": logicalCloud})
 		return pkgerrors.New("Can't remove Cluster Reference: the Logical Cloud is being terminated.")
-	case appcontext.AppContextStatusEnum.Instantiated:
-		log.Error("Can't remove Cluster Reference: the Logical Cloud is instantiated, please terminate first.", log.Fields{"clusterreference": clusterReference, "logicalcloud": logicalCloud})
-		return pkgerrors.New("Can't remove Cluster Reference: the Logical Cloud is instantiated, please terminate first.")
 	case appcontext.AppContextStatusEnum.Instantiating:
 		log.Error("Can't remove Cluster Reference: the Logical Cloud is instantiating, please wait and then terminate.", log.Fields{"clusterreference": clusterReference, "logicalcloud": logicalCloud})
 		return pkgerrors.New("Can't remove Cluster Reference: the Logical Cloud is instantiating, please wait and then terminate.")
@@ -277,6 +250,9 @@ func (v *ClusterClient) DeleteCluster(project, logicalCloud, clusterReference st
 	case appcontext.AppContextStatusEnum.TerminateFailed:
 		log.Info("The Logical Cloud has failed terminating, proceeding with the delete operation.", log.Fields{"clusterreference": clusterReference, "logicalcloud": logicalCloud})
 		// try to delete anyway since termination failed
+		fallthrough
+	case appcontext.AppContextStatusEnum.Instantiated:
+		log.Error("Removing cluster-reference. Changes won't take effect until the respective Logical Cloud is updated.", log.Fields{"clusterreference": clusterReference, "logicalcloud": logicalCloud})
 		fallthrough
 	case appcontext.AppContextStatusEnum.Terminated:
 		err := db.DBconn.Remove(v.storeName, key)
@@ -293,7 +269,7 @@ func (v *ClusterClient) DeleteCluster(project, logicalCloud, clusterReference st
 }
 
 // Update an entry for the Cluster reference in the database
-func (v *ClusterClient) UpdateCluster(project, logicalCloud, clusterReference string, c Cluster) (Cluster, error) {
+func (v *ClusterClient) UpdateCluster(project, logicalCloud, clusterReference string, c ClusterReference) (ClusterReference, error) {
 
 	key := ClusterKey{
 		Project:          project,
@@ -303,16 +279,16 @@ func (v *ClusterClient) UpdateCluster(project, logicalCloud, clusterReference st
 
 	//Check for name mismatch in cluster reference
 	if c.MetaData.ClusterReference != clusterReference {
-		return Cluster{}, pkgerrors.New("Cluster Reference mismatch")
+		return ClusterReference{}, pkgerrors.New("Cluster Reference mismatch")
 	}
 	//Check if this Cluster reference exists
 	_, err := v.GetCluster(project, logicalCloud, clusterReference)
 	if err != nil {
-		return Cluster{}, err
+		return ClusterReference{}, err
 	}
 	err = db.DBconn.Insert(v.storeName, key, nil, v.tagMeta, c)
 	if err != nil {
-		return Cluster{}, pkgerrors.Wrap(err, "Updating DB Entry")
+		return ClusterReference{}, pkgerrors.Wrap(err, "Updating DB Entry")
 	}
 	return c, nil
 }
@@ -328,7 +304,7 @@ func (v *ClusterClient) GetClusterConfig(project, logicalCloud, clusterReference
 	if err != nil {
 		return "", err
 	}
-	cid := state.GetLastContextIdFromStateInfo(s)
+	cid := state.GetStatusContextIdFromStateInfo(s)
 
 	if cid == "" {
 		return "", pkgerrors.New("Logical Cloud hasn't been instantiated yet")
@@ -359,7 +335,7 @@ func (v *ClusterClient) GetClusterConfig(project, logicalCloud, clusterReference
 	// before attempting to generate a kubeconfig,
 	// check if certificate has been issued and copy it from etcd to mongodb
 	if cluster.Specification.Certificate == "" {
-		log.Info("Certificate not yet in MongoDB, checking etcd.", log.Fields{})
+		log.Info("Certificate not yet in MongoDB, checking etcd.", log.Fields{"logical cloud": logicalCloud, "cluster ref": clusterReference})
 
 		// access etcd
 		clusterName := strings.Join([]string{cluster.Specification.ClusterProvider, "+", cluster.Specification.ClusterName}, "")

@@ -6,17 +6,20 @@ package module
 import (
 	"encoding/json"
 	"fmt"
-	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
+
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/appcontext"
+	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
+
 	pkgerrors "github.com/pkg/errors"
+	"gitlab.com/project-emco/core/emco-base/src/common/pkg/dcm"
 	gpic "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/gpic"
 )
 
 type Instantiator struct {
-	project              string
-	compositeApp         string
-	compAppVersion       string
-	deploymentIntent     string
+	project             string
+	compositeApp        string
+	compAppVersion      string
+	deploymentIntent    string
 	deploymentIntentGrp DeploymentIntentGroup
 }
 
@@ -53,14 +56,14 @@ func (i *Instantiator) makeAppContextForCompositeApp(namespace, level string) (c
 		return contextForCompositeApp{}, pkgerrors.Wrap(err, "Error creating CompositeApp handle")
 	}
 	rName := i.deploymentIntentGrp.Spec.Version //rName is releaseName
-	err = context.AddCompositeAppMeta( appcontext.CompositeAppMeta {
-		Project: i.project,
-		CompositeApp: i.compositeApp,
-		Version: i.compAppVersion,
-		Release: rName,
+	err = context.AddCompositeAppMeta(appcontext.CompositeAppMeta{
+		Project:               i.project,
+		CompositeApp:          i.compositeApp,
+		Version:               i.compAppVersion,
+		Release:               rName,
 		DeploymentIntentGroup: i.deploymentIntent,
-		Namespace: namespace,
-		Level: level})
+		Namespace:             namespace,
+		Level:                 level})
 	if err != nil {
 		return contextForCompositeApp{}, pkgerrors.Wrap(err, "Error Adding CompositeAppMeta")
 	}
@@ -73,7 +76,7 @@ func (i *Instantiator) makeAppContextForCompositeApp(namespace, level string) (c
 
 }
 
-func (i *Instantiator)storeAppContextIntoRunTimeDB(cxtForCApp contextForCompositeApp, dcmClusters []Cluster, namespace string) error {
+func (i *Instantiator) storeAppContextIntoRunTimeDB(cxtForCApp contextForCompositeApp, dcmClusters []dcm.ClusterReference, namespace string) error {
 
 	ctx := cxtForCApp.context
 	// for recording the app order instruction
@@ -142,12 +145,12 @@ func (i *Instantiator)storeAppContextIntoRunTimeDB(cxtForCApp contextForComposit
 
 		//BEGIN: storing into etcd
 		// Add an app to the app context
-		ah := AppHandler {
-			appName: eachApp.Metadata.Name,
-			clusters: listOfClusters,
-			namespace: namespace,
-			ht: sortedTemplates,
-			hk: hookList,
+		ah := AppHandler{
+			appName:    eachApp.Metadata.Name,
+			clusters:   listOfClusters,
+			namespace:  namespace,
+			ht:         sortedTemplates,
+			hk:         hookList,
 			dependency: appDep,
 		}
 		err = ah.addAppToAppContext(cxtForCApp)

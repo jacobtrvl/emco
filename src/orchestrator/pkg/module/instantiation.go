@@ -11,6 +11,7 @@ import (
 	"time"
 
 	pkgerrors "github.com/pkg/errors"
+	"gitlab.com/project-emco/core/emco-base/src/common/pkg/dcm"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/appcontext"
 	gpic "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/gpic"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
@@ -276,7 +277,7 @@ func cleanTmpfiles(sortedTemplates []helm.KubernetesResourceTemplate) error {
 	return nil
 }
 
-func validateLogicalCloud(p string, lc string, dcmCloudClient *LogicalCloudClient) error {
+func validateLogicalCloud(p string, lc string, dcmCloudClient *dcm.LogicalCloudClient) error {
 	// check that specified logical cloud is already instantiated
 	logicalCloud, err := dcmCloudClient.Get(p, lc)
 	if err != nil {

@@ -1,14 +1,13 @@
 // SPDX-License-Identifier: Apache-2.0
-// Copyright (c) 2020 Intel Corporation
+// Copyright (c) 2020-2022 Intel Corporation
 
-package module
+package dcm
 
 import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/base64"
-	"encoding/json"
 	"encoding/pem"
 	"time"
 
@@ -20,40 +19,6 @@ import (
 
 	pkgerrors "github.com/pkg/errors"
 )
-
-// LogicalCloud contains the parameters needed for a Logical Cloud
-type LogicalCloud struct {
-	MetaData      MetaDataList `json:"metadata"`
-	Specification Spec         `json:"spec"`
-}
-
-// MetaData contains the parameters needed for metadata
-type MetaDataList struct {
-	LogicalCloudName string `json:"name"`
-	Description      string `json:"description"`
-	UserData1        string `json:"userData1"`
-	UserData2        string `json:"userData2"`
-}
-
-// Spec contains the parameters needed for spec
-type Spec struct {
-	NameSpace string            `json:"namespace"`
-	Labels    map[string]string `json:"labels"`
-	Level     string            `json:"level"`
-	User      UserData          `json:"user"`
-}
-
-// UserData contains the parameters needed for user
-type UserData struct {
-	UserName string `json:"userName"`
-	Type     string `json:"type"`
-}
-
-// LogicalCloudKey is the key structure that is used in the database
-type LogicalCloudKey struct {
-	Project          string `json:"project"`
-	LogicalCloudName string `json:"logicalCloud"`
-}
 
 // LogicalCloudManager is an interface that exposes the connection
 // functionality
@@ -87,6 +52,40 @@ func NewLogicalCloudClient() *LogicalCloudClient {
 		tagMeta:   "data",
 		tagState:  "stateInfo",
 	}
+}
+
+// LogicalCloud contains the parameters needed for a Logical Cloud
+type LogicalCloud struct {
+	MetaData      MetaDataList `json:"metadata"`
+	Specification Spec         `json:"spec"`
+}
+
+// MetaData contains the parameters needed for metadata
+type MetaDataList struct {
+	LogicalCloudName string `json:"name"`
+	Description      string `json:"description"`
+	UserData1        string `json:"userData1"`
+	UserData2        string `json:"userData2"`
+}
+
+// Spec contains the parameters needed for spec
+type Spec struct {
+	NameSpace string            `json:"namespace"`
+	Labels    map[string]string `json:"labels"`
+	Level     string            `json:"level"`
+	User      UserData          `json:"user"`
+}
+
+// UserData contains the parameters needed for user
+type UserData struct {
+	UserName string `json:"userName"`
+	Type     string `json:"type"`
+}
+
+// LogicalCloudKey is the key structure that is used in the database
+type LogicalCloudKey struct {
+	Project          string `json:"project"`
+	LogicalCloudName string `json:"logicalCloud"`
 }
 
 // Create entry for the logical cloud resource in the database
@@ -478,28 +477,6 @@ func (v *LogicalCloudClient) UpdateInstantiation(project, logicalCloudName strin
 	}
 
 	return c, nil
-}
-
-// GetAppContextStatus returns the Status for a particular AppContext
-func GetAppContextStatus(ac appcontext.AppContext) (*appcontext.AppContextStatus, error) {
-
-	h, err := ac.GetCompositeAppHandle()
-	if err != nil {
-		return nil, err
-	}
-	sh, err := ac.GetLevelHandle(h, "status")
-	if err != nil {
-		return nil, err
-	}
-	s, err := ac.GetValue(sh)
-	if err != nil {
-		return nil, err
-	}
-	acStatus := appcontext.AppContextStatus{}
-	js, _ := json.Marshal(s)
-	json.Unmarshal(js, &acStatus)
-
-	return &acStatus, nil
 }
 
 func (v *LogicalCloudClient) GenericStatus(p, lc, qStatusInstance, qType, qOutput string, fClusters, fResources []string) (status.StatusResult, error) {

@@ -6,6 +6,7 @@ replace (
 	github.com/docker/distribution => github.com/docker/distribution v0.0.0-20191216044856-a8371794149d
 	github.com/docker/docker => github.com/moby/moby v17.12.0-ce-rc1.0.20200618181300-9dc6525e6118+incompatible
 	gitlab.com/project-emco/core/emco-base/src/clm => ../clm
+	gitlab.com/project-emco/core/emco-base/src/common => ../common
 	gitlab.com/project-emco/core/emco-base/src/monitor => ../monitor
 	gitlab.com/project-emco/core/emco-base/src/orchestrator => ../orchestrator
 	gitlab.com/project-emco/core/emco-base/src/rsync => ../rsync
@@ -28,6 +29,7 @@ require (
 	github.com/xeipuuv/gojsonschema v1.2.0
 	github.com/yourbasic/graph v0.0.0-20210606180040-8ecfec1c2869
 	gitlab.com/project-emco/core/emco-base/src/clm v0.0.0-00010101000000-000000000000
+	gitlab.com/project-emco/core/emco-base/src/common v0.0.0-00010101000000-000000000000
 	gitlab.com/project-emco/core/emco-base/src/monitor v0.0.0-00010101000000-000000000000
 	gitlab.com/project-emco/core/emco-base/src/rsync v0.0.0-00010101000000-000000000000
 	go.etcd.io/etcd v3.3.25+incompatible

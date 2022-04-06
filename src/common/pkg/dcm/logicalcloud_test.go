@@ -1,4 +1,4 @@
-package module_test
+package dcm_test
 
 import (
 	"crypto/rand"
