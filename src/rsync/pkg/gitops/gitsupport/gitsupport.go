@@ -6,9 +6,10 @@ package gitsupport
 import (
 	"context"
 	"fmt"
-	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 	"strings"
 	"time"
+
+	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
 	pkgerrors "github.com/pkg/errors"
@@ -226,6 +227,7 @@ func (p *GitProvider) StartClusterWatcher() error {
 				// Check if AppContext doesn't exist then exit the thread
 				if _, err := utils.NewAppContextReference(p.Cid); err != nil {
 					// Delete the Status CR updated by Monitor running on the cluster
+					log.Info("Deleting cluster StatusCR", log.Fields{})
 					p.DeleteClusterStatusCR()
 					// AppContext deleted - Exit thread
 					return nil
@@ -265,5 +267,8 @@ func (p *GitProvider) DeleteClusterStatusCR() error {
 	ref := emcogit.Delete(path, rf, p.GitType)
 	err := emcogit.CommitFiles(context.Background(), p.Client, p.UserName, p.RepoName, p.Branch,
 		"Commit for Delete Status CR "+p.GetPath("status"), ref, p.GitType)
+	if err != nil {
+		log.Error("Error in Deleting Cluster StatusCR", log.Fields{"error": err})
+	}
 	return err
 }
