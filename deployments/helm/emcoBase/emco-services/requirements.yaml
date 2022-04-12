@@ -53,3 +53,7 @@ dependencies:
   - name: workflowmgr
     version: ~0.x-0
     repository: 'file://../workflowmgr'
+  - name: app-config
+    version: ~0.x-0
+    repository: 'file://../app-config'
+

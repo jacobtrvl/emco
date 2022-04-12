@@ -49,7 +49,7 @@ if [ "${BUILD_CAUSE}" == "RELEASE" ]; then
   fi
 fi
 
-[[ -z "$MODS" ]] && export MODS="clm dcm dtc nps gac monitor ncm orch ovn rsync"
+[[ -z "$MODS" ]] && export MODS="clm dcm dtc nps gac monitor ncm orch ovn rsync app-config"
 MODS=$(echo $MODS | sed 's;tools/emcoctl;;')
 
 for m in ${MODS}; do

@@ -131,3 +131,12 @@ resources:
 #emco-workflowmgr
   - name: workflowIntent
     parent: deploymentIntentGroup
+#emco-app-config
+  - name: restype
+    parent: compositeAppVersion
+    references:
+      - name: app
+  - name: appConfig
+    parent: deploymentIntentGroup
+    references:
+      - name: restype
