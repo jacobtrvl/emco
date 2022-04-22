@@ -21,20 +21,20 @@ $ cd emco-base/examples/test-azurearcv2
 $ ./setup.sh create
 ```
 
-## Creating the controllers
+## Applying the prerequisites
 
 Apply 00-controllers.yaml, this creates the controllers. This step is required to be done only once.
 
 ```
-$ emcoctl --config emco-cfg.yaml apply -f 00-controllers.yaml -v values.yaml
+$ emcoctl --config emco-cfg.yaml apply -f 00-prerequisites.yaml -v values.yaml
 ```
 
-## Applying the prerequisites
+## Instantiating the Logical Cloud
 
 Apply 01-prerequisites.yaml.
 
 ```
-$ emcoctl --config emco-cfg.yaml apply -f 01-prerequisites.yaml -v values.yaml
+$ emcoctl --config emco-cfg.yaml apply -f 01-logical-cloud.yaml -v values.yaml
 ```
 
 ## Create the deployment intent
@@ -68,20 +68,36 @@ After this step, we should see the resources created in the Azure Arc cluster.
     $ emcoctl --config emco-cfg.yaml delete -f 02-deployment-intent.yaml -v values.yaml
     ```
 
-3. Cleanup prerequisites
+3. Terminate Logical Cloud
 
     ```
-    $ emcoctl --config emco-cfg.yaml delete -f 01-prerequisites.yaml -v values.yaml
+    $ emcoctl --config emco-cfg.yaml delete -f 01-logical-cloud.yaml -v values.yaml
     ```
 
-4. Cleanup controllers
+4. Cleanup prerequisites
 
     ```
-    $ emcoctl --config emco-cfg.yaml delete -f 00-controllers.yaml -v values.yaml
+    $ emcoctl --config emco-cfg.yaml delete -f 00-prerequisites.yaml -v values.yaml
     ```
 
 5. Cleanup generated files
 
     ```
     $ ./setup.sh cleanup
+    ```
+
+## Running testcase using test-aio.sh script
+The test-aio.sh script can be used to simplify the process of running a test case. It makes use of the status query APIs to ensure that the logical cloud and deployment intent group are instantiated (During creation) or terminated (During deletion) before moving to the next step.
+
+To run the test case run the following commands after setting up the environment variables. There is no need to run the setup.sh script as it's taken care of by the test-aio.sh script.
+
+1. Apply the testcase
+
+    ```
+    $ ./test-aio.sh apply
+    ```
+2. Delete the testcase
+
+    ```
+    $ ./test-aio.sh delete
     ```
