@@ -10,6 +10,12 @@ import (
 	"gitlab.com/project-emco/core/emco-base/src/genericactioncontroller/pkg/module"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/appcontext"
 	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
+
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	strategicpatch "k8s.io/apimachinery/pkg/util/strategicpatch"
+	"sigs.k8s.io/yaml"
+
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 // SEPARATOR used while creating resourceNames to store in etcd
@@ -147,7 +153,7 @@ func (o *updateOptions) createK8sResource() error {
 			return err
 		}
 
-		modifiedPatch, err := applyPatch(o.customization.Spec.PatchJSON, value)
+		modifiedPatch, err := applyJSONPatch(o.customization.Spec.PatchJSON, value)
 		if err != nil {
 			return err
 		}
@@ -224,19 +230,15 @@ func (o *updateOptions) create(data []byte) error {
 
 // updateExistingResource update the existing k8s object
 func (o *updateOptions) updateExistingResource() error {
-	// make sure we have a valid JSON patch to update the resource
-	if strings.ToLower(o.customization.Spec.PatchType) != "json" ||
-		len(o.customization.Spec.PatchJSON) == 0 {
-		o.logUpdateError(
-			updateError{
-				message: "invalid json patch"})
-		return errors.New("invalid json patch")
+
+	if len(o.customization.Spec.PatchType) == 0 {
+		return errors.New("patch type not defined") // check this message
 	}
 
-	// validate the JSON patch value before applying
-	if err := o.validateJSONPatchValue(); err != nil {
-		return err
-	}
+	var (
+		modifiedPatch []byte
+		err           error
+	)
 
 	clusters, err := o.getClusterNames()
 	if err != nil {
@@ -282,9 +284,57 @@ func (o *updateOptions) updateExistingResource() error {
 			continue
 		}
 
-		modifiedPatch, err := applyPatch(o.customization.Spec.PatchJSON, []byte(val.(string)))
-		if err != nil {
-			return err
+		switch strings.ToLower(o.customization.Spec.PatchType) {
+		case "json":
+			// make sure we have a valid JSON patch to update the resource
+			if len(o.customization.Spec.PatchJSON) == 0 {
+				o.logUpdateError(
+					updateError{
+						message: "invalid json patch"})
+				return errors.New("invalid json patch")
+			}
+
+			// validate the JSON patch value before applying
+			if err := o.validateJSONPatchValue(); err != nil {
+				return err
+			}
+
+			modifiedPatch, err = applyJSONPatch(o.customization.Spec.PatchJSON, []byte(val.(string)))
+			if err != nil {
+				return err
+			}
+
+		case "merge":
+			// make sure we have the cutomization files
+			if len(o.customizationContent.Content) == 0 {
+				return errors.New("no patch file")
+			}
+
+			original := []byte(val.(string))
+
+			for _, c := range o.customizationContent.Content {
+				data, err := decodeString(c.Content)
+				if err != nil {
+					return err
+				}
+
+				patch, err := yaml.YAMLToJSON(data)
+				if err != nil {
+					return err
+				}
+
+				ds, err := getResourceStructFromGVK(o.resource.Spec.ResourceGVK.APIVersion, o.resource.Spec.ResourceGVK.Kind)
+				if err != nil {
+					return err
+				}
+
+				modifiedPatch, err = strategicpatch.StrategicMergePatch(original, patch, ds)
+				if err != nil {
+					return err
+				}
+
+				original = modifiedPatch
+			}
 		}
 
 		if err = o.updateResourceValue(handle, string(modifiedPatch)); err != nil {
@@ -293,4 +343,23 @@ func (o *updateOptions) updateExistingResource() error {
 	}
 
 	return nil
+}
+
+func getResourceStructFromGVK(apiVersion, kind string) (runtime.Object, error) {
+	resourceGVK := schema.GroupVersionKind{Kind: kind}
+	if gv, err := schema.ParseGroupVersion(apiVersion); err == nil {
+		resourceGVK = schema.GroupVersionKind{Group: gv.Group, Version: gv.Version, Kind: kind}
+	}
+
+	obj, err := runtime.NewScheme().New(resourceGVK)
+	if err != nil {
+		log.Error("Failed to get the resource struct type using the GVK details",
+			log.Fields{
+				"APIVersion": apiVersion,
+				"Kind":       kind,
+				"Error":      err.Error()})
+
+	}
+
+	return obj, err
 }

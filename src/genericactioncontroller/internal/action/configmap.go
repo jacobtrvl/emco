@@ -56,7 +56,7 @@ func (o *updateOptions) createConfigMap() error {
 		}
 
 		// apply the JSON patch associated with the ConfigMap customization
-		modifiedPatch, err := applyPatch(o.customization.Spec.PatchJSON, value)
+		modifiedPatch, err := applyJSONPatch(o.customization.Spec.PatchJSON, value)
 		if err != nil {
 			return err
 		}

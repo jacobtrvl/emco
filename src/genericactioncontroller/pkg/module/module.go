@@ -1,15 +1,7 @@
-package module
-
 // SPDX-License-Identifier: Apache-2.0
 // Copyright (c) 2020 Intel Corporation
 
-// Client for using the services
-type Client struct {
-	// Add Clients for API's here
-	Customization    *CustomizationClient
-	GenericK8sIntent *GenericK8sIntentClient
-	Resource         *ResourceClient
-}
+package module
 
 // ClientDbInfo holds the MongoDB collection and attributes info
 type ClientDbInfo struct {

@@ -57,7 +57,7 @@ func (o *updateOptions) createSecret() error {
 		}
 
 		// apply the JSON patch associated with the Secret customization
-		modifiedPatch, err := applyPatch(o.customization.Spec.PatchJSON, value)
+		modifiedPatch, err := applyJSONPatch(o.customization.Spec.PatchJSON, value)
 		if err != nil {
 			return err
 		}

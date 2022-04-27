@@ -328,7 +328,6 @@ func validateCustomizationData(customization module.Customization) error {
 							"Error": e.Error()})
 					err = append(err, e.Error())
 				}
-
 			}
 		}
 	}

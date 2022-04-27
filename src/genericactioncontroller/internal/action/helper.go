@@ -33,8 +33,8 @@ type updateError struct {
 	err              error
 }
 
-// applyPatch reconciles a modified configuration with an original configuration
-func applyPatch(patch []map[string]interface{}, original []byte) ([]byte, error) {
+// applyJSONPatch reconciles a modified configuration with an original configuration
+func applyJSONPatch(patch []map[string]interface{}, original []byte) ([]byte, error) {
 	patchData, err := json.MarshalIndent(patch, "", " ")
 	if err != nil {
 		log.Error("Failed to marshal the customization json patch",
