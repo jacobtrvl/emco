@@ -7,7 +7,7 @@ import (
 	"context"
 
 	emcogithub "gitlab.com/project-emco/core/emco-base/src/rsync/pkg/gitops/emcogithub"
-
+	gogithub "github.com/google/go-github/v41/github"
 	"github.com/fluxcd/go-git-providers/gitprovider"
 	pkgerrors "github.com/pkg/errors"
 )
@@ -36,6 +36,15 @@ func convertToCommitFile(ref interface{}) []gitprovider.CommitFile {
 }
 
 /*
+	Helper function to convert interface to gogithub.Client
+	params: files interface{}
+	return: *gogithub.Client
+*/
+func convertToGithubClient(c interface{}) *gogithub.Client {
+	return c.(*gogithub.Client)
+}
+
+/*
 	Helper function to convert interface to gitprovider.Client
 	params: files interface{}
 	return: gitprovider.Client
@@ -53,6 +62,24 @@ func CreateClient(gitToken string, gitType string) (interface{}, error) {
 	switch gitType {
 	case "github":
 		c, err := emcogithub.CreateClient(gitToken)
+		if err != nil {
+			return nil, err
+		}
+		return c, nil
+	}
+	//Add other types like gitlab, bitbucket etc
+	return nil, pkgerrors.New("Git Provider type not supported")
+}
+
+/*
+	Function to create gogit client
+	params : username, git token
+	return : go git client, error
+*/
+func CreateGoGitClient(userName, gitToken string, gitType string) (interface{}, error) {
+	switch gitType {
+	case "github":
+		c, err := emcogithub.CreateGoGitClient(userName, gitToken)
 		if err != nil {
 			return nil, err
 		}
@@ -158,4 +185,19 @@ func GetFiles(ctx context.Context, c interface{}, userName, repoName, branch, pa
 	}
 	//Add other types like gitlab, bitbucket etc
 	return nil, nil
+}
+
+/*
+	Function to obtaion the SHA of latest commit
+	params : context, go git client, User Name, Repo Name, Branch, Path
+	return : LatestCommit string, error
+*/
+func GetLatestCommitSHA(ctx context.Context, c interface{}, userName, repoName, branch, path, gitType string) (string, error) {
+	switch gitType {
+	case "github":
+		latestCommitSHA, err := emcogithub.GetLatestCommitSHA(ctx, convertToGithubClient(c), userName, repoName, branch, path)
+		return latestCommitSHA, err
+	}
+	//Add other types like gitlab, bitbucket etc
+	return "", nil
 }

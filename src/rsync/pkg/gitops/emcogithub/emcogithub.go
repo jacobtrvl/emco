@@ -8,6 +8,7 @@ import (
 
 	"github.com/fluxcd/go-git-providers/github"
 	"github.com/fluxcd/go-git-providers/gitprovider"
+	gogithub "github.com/google/go-github/v41/github"
 	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 )
 
@@ -25,6 +26,22 @@ func CreateClient(githubToken string) (gitprovider.Client, error) {
 	if err != nil {
 		return nil, err
 	}
+	return c, nil
+}
+
+/*
+	Function to create go githubClient
+	params : userName, github token
+	return : go github client, error
+*/
+func CreateGoGitClient(userName, githubToken string) (*gogithub.Client, error) {
+
+	tp := gogithub.BasicAuthTransport{
+		Username: userName,
+		Password: githubToken,
+	}
+	c := gogithub.NewClient(tp.Client())
+
 	return c, nil
 }
 
@@ -174,4 +191,39 @@ func GetFiles(ctx context.Context, c gitprovider.Client, userName string, repoNa
 		return nil, err
 	}
 	return cf, nil
+}
+
+
+/*
+	Function to obtaion the SHA of latest commit
+	params : context, go github client, User Name, Repo Name, Branch, Path
+	return : LatestCommit string, error
+*/
+func GetLatestCommitSHA(ctx context.Context, c *gogithub.Client, userName, repoName, branch, path string) (string, error) {
+
+	perPage := 1
+	page := 1
+
+	lcOpts := &gogithub.CommitsListOptions{
+		ListOptions: gogithub.ListOptions{
+			PerPage: perPage,
+			Page:    page,
+		},
+		SHA: branch,
+		Path: path,
+
+	}
+	//Get the latest SHA
+	resp, _, err := c.Repositories.ListCommits(ctx, userName, repoName, lcOpts)
+	if err != nil {
+		log.Error("Error in obtaining the list of commits",log.Fields{"err":err})
+		return "", err
+	}
+	if len(resp) == 0 {
+		log.Info("File not created yet.", log.Fields{"Latest Commit Array":resp})
+		return "", nil
+	}
+	latestCommitSHA := *resp[0].SHA
+
+	return latestCommitSHA, nil
 }

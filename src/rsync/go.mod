@@ -9,6 +9,7 @@ require (
 	github.com/ghodss/yaml v1.0.0
 	github.com/golang/mock v1.6.0
 	github.com/golang/protobuf v1.5.2
+	github.com/google/go-github/v41 v41.0.0
 	github.com/jonboulle/clockwork v0.2.2
 	github.com/pkg/errors v0.9.1
 	gitlab.com/project-emco/core/emco-base/src/monitor v0.0.0-00010101000000-000000000000

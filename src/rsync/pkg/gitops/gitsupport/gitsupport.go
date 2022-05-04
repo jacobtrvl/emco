@@ -217,6 +217,11 @@ func (p *GitProvider) StartClusterWatcher() error {
 	// Start thread to sync monitor CR
 	go func() error {
 		ctx := context.Background()
+		var lastCommitSHA string
+		c, err := emcogit.CreateGoGitClient(p.UserName, p.GitToken, p.GitType)
+		if err!= nil {
+			log.Error("Error in creating the go git client", log.Fields{"err":err})
+		}
 		for {
 			select {
 			case <-time.After(time.Duration(waitTime) * time.Second):
@@ -231,23 +236,35 @@ func (p *GitProvider) StartClusterWatcher() error {
 					return nil
 				}
 				path :=  p.GetPath("status")
-				// Read file
-				c, err := emcogit.GetFiles(ctx, p.Client, p.UserName, p.RepoName, p.Branch, path, p.GitType)
-				if err != nil {
-					log.Error("Status file not available", log.Fields{"error": err, "cluster": p.Cluster, "resource": path})
-					continue
+
+				latestCommitSHA, err := emcogit.GetLatestCommitSHA(ctx, c, p.UserName, p.RepoName, p.Branch, path, p.GitType)
+				if err!= nil {
+					log.Error("Error in obtaining latest commit SHA", log.Fields{"err":err})
 				}
-				cp := c.([]*gitprovider.CommitFile)
-				if len(cp) > 0 {
-					// Only one file expected in the location
-					content := &v1alpha1.ResourceBundleState{}
-					_, err := utils.DecodeYAMLData(*cp[0].Content, content)
+
+				if (lastCommitSHA != latestCommitSHA) {
+					// new commit get files
+					// Read file
+					log.Info("New Status File, pulling files",log.Fields{"LatestSHA":latestCommitSHA,"LastSHA":lastCommitSHA})
+					c, err := emcogit.GetFiles(ctx, p.Client, p.UserName, p.RepoName, p.Branch, path, p.GitType)
 					if err != nil {
-						log.Error("", log.Fields{"error": err, "cluster": p.Cluster, "resource": path})
-						return err
+						log.Error("Status file not available", log.Fields{"error": err, "cluster": p.Cluster, "resource": path})
+						continue
 					}
-					status.HandleResourcesStatus(p.Cid, p.App, p.Cluster, content)
+					cp := c.([]*gitprovider.CommitFile)
+					if len(cp) > 0 {
+						// Only one file expected in the location
+						content := &v1alpha1.ResourceBundleState{}
+						_, err := utils.DecodeYAMLData(*cp[0].Content, content)
+						if err != nil {
+							log.Error("", log.Fields{"error": err, "cluster": p.Cluster, "resource": path})
+							return err
+						}
+						status.HandleResourcesStatus(p.Cid, p.App, p.Cluster, content)
+					}
+					lastCommitSHA = latestCommitSHA
 				}
+
 			// Check if the context is canceled
 			case <-ctx.Done():
 				return ctx.Err()
