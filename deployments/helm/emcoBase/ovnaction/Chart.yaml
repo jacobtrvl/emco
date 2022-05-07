@@ -1,7 +1,14 @@
 # SPDX-License-Identifier: Apache-2.0
-# Copyright (c) 2020 Intel Corporation
+# Copyright (c) 2020-2022 Intel Corporation
 
-apiVersion: v1
-description: Ovn Action Controller
+apiVersion: v2
+description: OVN Action Controller
 name: ovnaction
-version: 0.1.0
+type: application
+version: 1.0.0
+appVersion: 22.03.1
+
+dependencies:
+  - name: common
+    version: ~1.x-0
+    repository: 'file://../common'

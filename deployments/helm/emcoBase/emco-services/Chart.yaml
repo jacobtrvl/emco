@@ -1,7 +1,60 @@
 # SPDX-License-Identifier: Apache-2.0
-# Copyright (c) 2020 Intel Corporation
+# Copyright (c) 2020-2022 Intel Corporation
 
-apiVersion: v1
-description: Multicluster Edge Orchestrator Services Package
+apiVersion: v2
+description: Edge Multi-Cloud Orchestrator Services Package
 name: emco-services
-version: 0.1.0
+version: 1.0.0
+
+dependencies:
+  - name: common
+    version: ~1.x-0
+    repository: file://../common
+  - name: orchestrator
+    version: ~1.x-0
+    repository: 'file://../orchestrator'
+  - name: ncm
+    version: ~1.x-0
+    repository: 'file://../ncm'
+  - name: rsync
+    version: ~1.x-0
+    repository: 'file://../rsync'
+  - name: clm
+    version: ~1.x-0
+    repository: 'file://../clm'
+  - name: ovnaction
+    version: ~1.x-0
+    repository: 'file://../ovnaction'
+  - name: dcm
+    version: ~1.x-0
+    repository: 'file://../dcm'
+  - name: dtc
+    version: ~1.x-0
+    repository: 'file://../dtc'
+  - name: nps
+    version: ~1.x-0
+    repository: 'file://../nps'
+  - name: sds
+    version: ~1.x-0
+    repository: 'file://../sds'
+  - name: its
+    version: ~1.x-0
+    repository: 'file://../its'
+  - name: gac
+    version: ~1.x-0
+    repository: 'file://../gac'
+  - name: sfc
+    version: ~1.x-0
+    repository: 'file://../sfc'
+  - name: sfcclient
+    version: ~1.x-0
+    repository: 'file://../sfcclient'
+  - name: hpa-ac
+    version: ~1.x-0
+    repository: 'file://../hpa-ac'
+  - name: hpa-plc
+    version: ~1.x-0
+    repository: 'file://../hpa-plc'
+  - name: workflowmgr
+    version: ~1.x-0
+    repository: 'file://../workflowmgr'

@@ -44,7 +44,7 @@ make-%:
 	@if [ -f $*/Makefile ]; then make -C $*; fi
 
 dep-%: make-%
-	@if [ -f $*/requirements.yaml ]; then helm dep up $*; fi
+	@if [ -f $*/Chart.yaml ]; then helm dep up $*; fi
 
 lint-%: dep-%
 	@if [ -f $*/Chart.yaml ]; then helm lint $*; fi

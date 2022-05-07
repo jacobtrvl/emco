@@ -1,19 +1,26 @@
-apiVersion: v1
-appVersion: 1.10.2
-description: Fluentd is an open source data collector for unified logging layer
+annotations:
+  category: Analytics
+apiVersion: v2
+appVersion: 1.14.6
+dependencies:
+  - name: common
+    version: ~1.x-0
+    repository: 'file://../common'
+description: Fluentd collects events from various data sources and writes them to files, RDBMS, NoSQL, IaaS, SaaS, Hadoop and so on.
 engine: gotpl
-home: https://www.fluentd.org/
-icon: https://bitnami.com/assets/stacks/fluentd/img/fluentd-stack-110x117.png
+home: https://github.com/bitnami/charts/tree/master/bitnami/fluentd
+icon: https://bitnami.com/assets/stacks/fluentd/img/fluentd-stack-220x234.png
 keywords:
-- fluentd
-- logging
-- logs
-- data
-- collector
+  - fluentd
+  - logging
+  - logs
+  - data
+  - collector
 maintainers:
-- email: containers@bitnami.com
-  name: Bitnami
+  - email: containers@bitnami.com
+    name: Bitnami
 name: fluentd
 sources:
-- https://github.com/bitnami/bitnami-docker-fluentd
-version: 1.0.3
+  - https://github.com/bitnami/bitnami-docker-fluentd
+  - https://www.fluentd.org/
+version: 5.0.99
