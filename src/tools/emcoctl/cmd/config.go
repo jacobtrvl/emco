@@ -24,6 +24,7 @@ type EmcoConfigurations struct {
 	Sfc          ControllerConfigurations
 	SfcClient    ControllerConfigurations
 	WorkflowMgr  ControllerConfigurations
+	CaCert       ControllerConfigurations
 }
 
 // ControllerConfigurations exported
@@ -65,6 +66,8 @@ func SetDefaultConfiguration() {
 	Configurations.SfcClient.Port = 9057
 	Configurations.WorkflowMgr.Host = "localhost"
 	Configurations.WorkflowMgr.Port = 9095
+	Configurations.CaCert.Host = "localhost"
+	Configurations.CaCert.Port = 9036
 }
 
 // GetIngressURL Url for Ingress
@@ -256,4 +259,20 @@ func GetDcmGrpcEndpoint() string {
 		os.Exit(1)
 	}
 	return Configurations.Dcm.Host + ":" + strconv.Itoa(Configurations.Dcm.StatusPort)
+}
+
+// GetCaCertUrl construct the baseUrl for CaCert controller
+func GetCaCertUrl() string {
+	// If Ingress is available use that url
+	if s := GetIngressURL(); s != "" {
+		return s
+	}
+
+	if Configurations.CaCert.Host == "" ||
+		Configurations.CaCert.Port == 0 {
+		fmt.Println("Fatal: No CA Cert Information in Config File!")
+		// Exit executing
+		os.Exit(1)
+	}
+	return urlPrefix + Configurations.CaCert.Host + ":" + strconv.Itoa(Configurations.CaCert.Port) + "/" + urlVersion
 }

@@ -41,6 +41,10 @@ case ${cmd} in
       ./sfcclient
       ;;
 
+   "ca-certs")
+     ./ca-certs
+      ;;
+
     *)
       echo "invalid command ${cmd}"
       sleep infinity

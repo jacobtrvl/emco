@@ -13,6 +13,7 @@ import (
 
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/grpc/installappclient"
 	rsyncclient "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/grpc/installappclient"
+	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/grpc/updateappclient"
 	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/rpc"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/module/controller"
@@ -63,6 +64,41 @@ func CallRsyncInstall(contextid interface{}) error {
 	if err != nil {
 		return err
 	}
+	return nil
+}
+
+/*
+CallRsyncUpdate method shall take in the new and existing appContextID and invokes the rsync service via grpc
+*/
+
+func CallRsyncUpdate(from, to interface{}) error {
+	if _, err := queryDBAndSetRsyncInfo(); err != nil {
+		return err
+	}
+
+	fromAppContextID := fmt.Sprintf("%v", from)
+	toAppContextID := fmt.Sprintf("%v", to)
+	if err := updateappclient.InvokeUpdateApp(fromAppContextID, toAppContextID); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+/*
+CallRsyncUninstall method shall take in the app context id and invokes the rsync service via grpc
+*/
+
+func CallRsyncUninstall(contextid interface{}) error {
+	if _, err := queryDBAndSetRsyncInfo(); err != nil {
+		return err
+	}
+
+	appContextID := fmt.Sprintf("%v", contextid)
+	if err := rsyncclient.InvokeUninstallApp(appContextID); err != nil {
+		return err
+	}
+
 	return nil
 }
 

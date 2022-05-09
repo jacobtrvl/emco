@@ -593,6 +593,7 @@ func getListOfApps(ac appcontext.AppContext) []string {
 const ClusterStatusQuery = "clusterStatus"
 const DeploymentIntentGroupStatusQuery = "digStatus"
 const LcStatusQuery = "lcStatus"
+const CertEnrollmentQuery = "CertEnrollmentStatus"
 
 // PrepareClusterStatusResult takes in a resource stateInfo object, the list of apps and the query parameters.
 // It then fills out the StatusResult structure appropriately from information in the AppContext
@@ -644,6 +645,12 @@ func PrepareStatusResult(stateInfo state.StateInfo, qInstance, qType, qOutput st
 func isNameInList(name string, namesList []string) bool {
 	_, ok := utils.GetSliceContains(namesList, name)
 	return ok
+}
+
+// PrepareStatusResult takes in a resource stateInfo object, the list of apps and the query parameters.
+// It then fills out the StatusResult structure appropriately from information in the AppContext
+func PrepareCertEnrollmentStatusResult(stateInfo state.StateInfo, qType string) (StatusResult, error) {
+	return prepareStatusResult(CertEnrollmentQuery, stateInfo, "", qType, "", make([]string, 0), make([]string, 0), make([]string, 0))
 }
 
 // prepareStatusResult takes in a resource stateInfo object, the list of apps and the query parameters.
@@ -716,7 +723,7 @@ func prepareStatusResult(statusType string, stateInfo state.StateInfo, qInstance
 	// Get the composite app meta
 	caMeta, err := sac.GetCompositeAppMeta()
 
-	if statusType != LcStatusQuery && statusType != ClusterStatusQuery {
+	if statusType != LcStatusQuery && statusType != ClusterStatusQuery && statusType != CertEnrollmentQuery {
 		if err != nil {
 			return StatusResult{}, pkgerrors.Wrap(err, "Error getting CompositeAppMeta")
 		}

@@ -53,3 +53,6 @@ dependencies:
   - name: workflowmgr
     version: ~0.x-0
     repository: 'file://../workflowmgr'
+  - name: ca-certs
+    version: ~0.x-0
+    repository: 'file://../ca-certs'

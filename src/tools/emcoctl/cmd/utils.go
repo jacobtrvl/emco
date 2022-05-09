@@ -120,8 +120,8 @@ func NewRestClientToken(token string) RestyClient {
 }
 
 // readResources reads all the resources in the file provided
+// TODO: Remove Assumption only one file
 func readResources() []Resources {
-	// TODO: Remove Assumption only one file
 	// Open file and Parse to get all resources
 	var resources []Resources
 	var buf bytes.Buffer
@@ -566,6 +566,9 @@ func GetURL(anchor string) (string, error) {
 		if len(s) >= 5 && (s[4] == "networks" || s[4] == "provider-networks" ||
 			s[4] == "apply" || s[4] == "terminate" || strings.HasPrefix(s[4], "status") || s[4] == "stop") {
 			baseUrl = GetNcmURL()
+		} else if len(s) >= 3 &&
+			s[2] == "ca-certs" {
+			baseUrl = GetCaCertUrl()
 		} else {
 			baseUrl = GetClmURL()
 		}
