@@ -3,7 +3,6 @@
 # Copyright (c) 2022 Intel Corporation
 
 apiVersion: v2
-description: Common templates for inclusion in other charts
+description: Common templates for other EMCO charts
 name: common
 version: 1.0.0
-appVersion: 1.0.0

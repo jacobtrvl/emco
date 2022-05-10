@@ -15,14 +15,14 @@ Make sure to add "/" in the end while defining the repository
 
 `$ make all`
 
-Pacakges helm charts in tar.gz format. All packages are in **dist/packages** directory and the package of intrest are:
+Packages helm charts in tar.gz format. All packages are in **dist/packages** directory and the package of intrest are:
 
-   File      | Description |
-  | ----------- | ----------- |
-  | **emco-db-0.1.0.tgz**      | Includes database packages for mongo & etcd       |
-  | **emco-services-0.1.0.tgz**   | Includes packages for all EMCO services like orchestrator, ncm, rsync etc        |
-  | **emco-tools-0.1.0.tgz**   | Tools like Fluentd to be used with EMCO        |
-  | **emco-0.1.0.tgz**   | Includes all charts including database, all services and tools        |
+  | File                        | Description                                                               |
+  | --------------------------- | ------------------------------------------------------------------------- |
+  | **emco-db-1.0.0.tgz**       | Includes database packages for mongo & etcd                               |
+  | **emco-services-1.0.0.tgz** | Includes packages for all EMCO services like orchestrator, ncm, rsync etc |
+  | **emco-tools-1.0.0.tgz**    | Tools like Fluentd to be used with EMCO                                   |
+  | **emco-1.0.0.tgz**          | Includes all charts including database, all services and tools            |
 
 
 **2. Deploy EMCO Packages for Databases and Services**
@@ -33,17 +33,17 @@ Create namespace "emco"
 
 Helm install
 
-`$  helm install --namespace emco emco-db ./dist/packages/emco-db-0.1.0.tgz `
+`$  helm install --namespace emco emco-db ./dist/packages/emco-db-1.0.0.tgz `
 
-`$  helm install --namespace emco emco-services ./dist/packages/emco-services-0.1.0.tgz `
+`$  helm install --namespace emco emco-services ./dist/packages/emco-services-1.0.0.tgz `
 
 **3. Deploy tools (Optional)**
 
-`$ helm install --namespace emco emco-tools ./dist/packages/emco-tools-0.1.0.tgz `
+`$ helm install --namespace emco emco-tools ./dist/packages/emco-tools-1.0.0.tgz `
 
-NOTE: Deploy the Chart emco-0.1.0.tgz to deploy all packages including database, services and tools.
+NOTE: Deploy the Chart emco-1.0.0.tgz to deploy all packages including database, services and tools.
 
-`$ helm install --namespace emco emco ./dist/packages/emco-0.1.0.tgz `
+`$ helm install --namespace emco emco ./dist/packages/emco-1.0.0.tgz `
 
 **4. Database Authentication**
 
@@ -67,32 +67,32 @@ database persistence enabled.
 
 Install with database authentication enabled and default (random) passwords, and disable persistence:
 
-**Note: when installing the *all-in-one* chart `emco-0.1.0.tgz`, prepend `emco-db` to the persistence enabled variables as shown in the example.**
+**Note: when installing the *all-in-one* chart `emco-1.0.0.tgz`, prepend `emco-db` to the persistence enabled variables as shown in the example.**
 
-`$ helm install --namespace emco --set emco-db.mongo.persistence.enabled=false --set emco-db.etcd.persistence.enabled=false emco ./dist/packages/emco-0.1.0.tgz`
+`$ helm install --namespace emco --set emco-db.mongo.persistence.enabled=false --set emco-db.etcd.persistence.enabled=false emco ./dist/packages/emco-1.0.0.tgz`
 
 Install with database and services separately with database authentication enabled and default (random) passwords, and disable persistence:
 
-`$ helm install --namespace emco --set mongo.persistence.enabled=false --set etcd.persistence.enabled=false emco-db ./dist/packages/emco-db-0.1.0.tgz`
-`$ helm install --namespace emco emco-services ./dist/packages/emco-services-0.1.0.tgz`
+`$ helm install --namespace emco --set mongo.persistence.enabled=false --set etcd.persistence.enabled=false emco-db ./dist/packages/emco-db-1.0.0.tgz`
+`$ helm install --namespace emco emco-services ./dist/packages/emco-services-1.0.0.tgz`
 
 Install with database authentication enabled and default (random) passwords:
 
-`$ helm install --namespace emco emco ./dist/packages/emco-0.1.0.tgz`
+`$ helm install --namespace emco emco ./dist/packages/emco-1.0.0.tgz`
 
 Install with database authentication enabled and override passwords:
 
-`$ helm install --namespace emco --set global.db.rootPassword=abc --set global.db.emcoPassword=def --set global.contextdb.rootPassword=xyz emco ./dist/packages/emco-0.1.0.tgz`
+`$ helm install --namespace emco --set global.db.rootPassword=abc --set global.db.emcoPassword=def --set global.contextdb.rootPassword=xyz emco ./dist/packages/emco-1.0.0.tgz`
 
 Install databases and services separately with database authentication enabled and override passwords:
 
-`$ helm install --namespace emco --set global.db.rootPassword=abc --set global.db.emcoPassword=def --set global.contextdb.rootPassword=xyz emco-db ./dist/packages/emco-db-0.1.0.tgz`
+`$ helm install --namespace emco --set global.db.rootPassword=abc --set global.db.emcoPassword=def --set global.contextdb.rootPassword=xyz emco-db ./dist/packages/emco-db-1.0.0.tgz`
 
-`$ helm install --namespace emco emco-services ./dist/packages/emco-services-0.1.0.tgz`
+`$ helm install --namespace emco emco-services ./dist/packages/emco-services-1.0.0.tgz`
 
 Install with database authentication disabled:
 
-`$ helm install --namespace emco --set global.disableDbAuth=true emco ./dist/packages/emco-0.1.0.tgz`
+`$ helm install --namespace emco --set global.disableDbAuth=true emco ./dist/packages/emco-1.0.0.tgz`
 
 **5. To check logs of the different Microservices check fluentd logs**
 
@@ -115,7 +115,7 @@ Optional if tools were installed
 
 `$ helm delete emco-tools --purge`
 
-NOTE: If the Chart emco-0.1.0.tgz was deployed
+NOTE: If the Chart emco-1.0.0.tgz was deployed
 
 `$ helm delete emco --purge`
 
@@ -147,12 +147,12 @@ Workarounds:
 
 - The quickest and simplest workaround is to uninstall EMCO and remove the host database data directories in the volume mount points.  Then reinstall.
   Using the default values in the EMCO helm charts, these will be as follows if db package was installed as helm release `emco-db`:
-    - `sudo rm -r /dockerdata-nfs/emco-db/emco/mongo/data`
-    - `sudo rm -r /dockerdata-nfs/emco-db/emco/etcd/data-0`
-    - Or, if the db package was installed with the all-in-one emco-0.1.0.tgz chart as helm release `emco`
-    - `sudo rm -r /dockerdata-nfs/emco/emco/mongo/data`
-    - `sudo rm -r /dockerdata-nfs/emco/emco/etcd/data-0`
+    - `sudo rm -r /opt/emco-db/emco/mongo/data`
+    - `sudo rm -r /opt/emco-db/emco/etcd/data-0`
+    - Or, if the db package was installed with the all-in-one emco-1.0.0.tgz chart as helm release `emco`
+    - `sudo rm -r /opt/emco/emco/mongo/data`
+    - `sudo rm -r /opt/emco/emco/etcd/data-0`
 - On a re-installation, use the same database authentication passwords that were used in the previous installation.  These can be found from the secrets
   `emco-mongo` and `emco-etcd` (before the previous installation is uninstalled)
 - Disable database persistence on installation:
-    - For example: `$ helm install --namespace emco --set mongo.persistence.enabled=false --set etcd.persistence.enabled=false emco-db ./dist/packages/emco-db-0.1.0.tgz`
+    - For example: `$ helm install --namespace emco --set mongo.persistence.enabled=false --set etcd.persistence.enabled=false emco-db ./dist/packages/emco-db-1.0.0.tgz`

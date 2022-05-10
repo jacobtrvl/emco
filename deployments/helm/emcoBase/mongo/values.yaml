@@ -17,13 +17,15 @@
 #################################################################
 
 global:
+  db:
+    emcoPassword:
+    rootPassword:
   nodePortPrefix: 304
   persistence: {}
   readinessRepository: oomk8s
   readinessImage: readiness-check:2.2.2
-  db:
-    emcoPassword:
-    rootPassword:
+  securityContext:
+    privileged: false
 
 
 #################################################################
@@ -31,7 +33,7 @@ global:
 #################################################################
 
 dockerHubRepository: registry.hub.docker.com
-image: library/mongo:4.4.1
+image: library/mongo:4.4
 pullPolicy: Always
 
 # application configuration
@@ -65,8 +67,7 @@ persistence:
   volumeReclaimPolicy: Retain
   accessMode: ReadWriteMany
   size: 1Gi
-  mountPath: /dockerdata-nfs
-  mountSubPath: "mongo/data"
+  mountPath: /opt
 
 service:
   name: emco-mongo
@@ -100,6 +101,8 @@ resources: {}
 #    cpu: 2
 #    memory: 4Gi
 
+securityContext:
+  privileged: false
 
 nfsprovisionerRepository: quay.io
 nfsprovisionerImage: kubernetes_incubator/nfs-provisioner:v2.3.0

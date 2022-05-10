@@ -31,7 +31,7 @@ spec:
         release: {{ .Release.Name }}
     spec:
       containers:
-      - image: "{{ include "common.repository" . }}{{ .Values.image }}:{{ .Values.imageTag }}"
+      - image: "{{ include "common.repository" . }}{{ .Values.image }}:{{ .Values.global.imageTag }}"
         imagePullPolicy: {{ .Values.global.pullPolicy | default .Values.pullPolicy }}
         name: {{ include "common.name" . }}
         env:

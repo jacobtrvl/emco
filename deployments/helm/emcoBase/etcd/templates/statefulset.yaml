@@ -57,10 +57,10 @@ spec:
       {{- if .Values.priorityClassName }}
       priorityClassName: {{ .Values.priorityClassName }}
       {{- end }}
-      {{- if .Values.securityContext.enabled }}
+      {{- if .Values.global.securityContext.enabled }}
       securityContext:
-        fsGroup: {{ .Values.securityContext.fsGroup }}
-        runAsUser: {{ .Values.securityContext.runAsUser }}
+        fsGroup: {{ .Values.global.securityContext.fsGroup }}
+        runAsUser: {{ .Values.global.securityContext.runAsUser }}
       {{- end }}
       {{- if and .Values.volumePermissions.enabled .Values.persistence.enabled }}
       initContainers:
@@ -71,9 +71,10 @@ spec:
             - /bin/bash
             - -ec
             - |
-              chown -R {{ .Values.securityContext.runAsUser }}:{{ .Values.securityContext.fsGroup }} /bitnami/etcd
+              chown -R {{ .Values.global.securityContext.runAsUser }}:{{ .Values.global.securityContext.fsGroup }} /bitnami/etcd
           securityContext:
             runAsUser: 0
+            privileged: {{.Values.global.securityContext.privileged }}
           {{- if .Values.volumePermissions.resources }}
           resources: {{- toYaml .Values.volumePermissions.resources | nindent 12 }}
           {{- end }}
@@ -97,6 +98,8 @@ spec:
           imagePullPolicy: {{ .Values.image.pullPolicy | quote }}
           command:
             - /scripts/setup.sh
+          securityContext:
+            privileged: {{.Values.global.securityContext.privileged }}
           lifecycle:
             preStop:
               exec:

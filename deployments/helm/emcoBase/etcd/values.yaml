@@ -12,6 +12,12 @@
 ## ref: https://hub.docker.com/r/bitnami/etcd/tags/
 ##
 global:
+  persistence: {}
+  securityContext:
+    enabled: true
+    privileged: false
+    fsGroup: 1001
+    runAsUser: 1001
   contextdb:
     rootPassword:
 
@@ -183,6 +189,7 @@ auth:
 ##
 securityContext:
   enabled: true
+  privileged: false
   fsGroup: 1001
   runAsUser: 1001
 
@@ -266,6 +273,8 @@ persistence:
   ## ref: https://kubernetes.io/docs/concepts/storage/persistent-volumes/#selector
   ##
   selector: {}
+  mountPath: /opt
+
 
 ## Define a disruption budget
 ## ref: https://kubernetes.io/docs/concepts/workloads/pods/disruptions/

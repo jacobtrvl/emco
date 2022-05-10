@@ -16,7 +16,7 @@
 # Global configuration default values that can be inherited by
 # all subcharts.
 #################################################################
-repository:
-imageTag: latest
+repository: registry.gitlab.com/project-emco/core/emco-base/
 global:
   loglevel: warn
+  imageTag: "latest" # can be overridden with $ helm install --set global.imageTag=22.03 emco (...)

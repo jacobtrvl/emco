@@ -17,7 +17,7 @@ description: MongoDB Server
 name: mongo
 type: application
 version: 4.0.99
-appVersion: 22.03.1
+appVersion: "4.4"
 
 dependencies:
   - name: common

@@ -50,16 +50,16 @@ EOF
 
   # emco base
   cp ${EMCOBUILDROOT}/deployments/helm/emco-base-helm-install.sh ${BIN_PATH}/helm/install_template
-  cat ${BIN_PATH}/helm/install_template | sed -e "s/emco-db-0.1.0.tgz/emco-db-${TAG}.tgz/" \
-                                              -e "s/emco-services-0.1.0.tgz/emco-services-${TAG}.tgz/" \
-                                              -e "s/emco-tools-0.1.0.tgz/emco-tools-${TAG}.tgz/" > ${BIN_PATH}/helm/emco-base-helm-install.sh
+  cat ${BIN_PATH}/helm/install_template | sed -e "s/emco-db-1.0.0.tgz/emco-db-${TAG}.tgz/" \
+                                              -e "s/emco-services-1.0.0.tgz/emco-services-${TAG}.tgz/" \
+                                              -e "s/emco-tools-1.0.0.tgz/emco-tools-${TAG}.tgz/" > ${BIN_PATH}/helm/emco-base-helm-install.sh
   chmod +x ${BIN_PATH}/helm/emco-base-helm-install.sh
   rm -f ${BIN_PATH}/helm/install_template
 
   make -C ${BIN_PATH}/helm/emcoBase all
-  mv ${BIN_PATH}/helm/emcoBase/dist/packages/emco-db-0.1.0.tgz ${BIN_PATH}/helm/emco-db-${TAG}.tgz
-  mv ${BIN_PATH}/helm/emcoBase/dist/packages/emco-services-0.1.0.tgz ${BIN_PATH}/helm/emco-services-${TAG}.tgz
-  mv ${BIN_PATH}/helm/emcoBase/dist/packages/emco-tools-0.1.0.tgz ${BIN_PATH}/helm/emco-tools-${TAG}.tgz
+  mv ${BIN_PATH}/helm/emcoBase/dist/packages/emco-db-1.0.0.tgz ${BIN_PATH}/helm/emco-db-${TAG}.tgz
+  mv ${BIN_PATH}/helm/emcoBase/dist/packages/emco-services-1.0.0.tgz ${BIN_PATH}/helm/emco-services-${TAG}.tgz
+  mv ${BIN_PATH}/helm/emcoBase/dist/packages/emco-tools-1.0.0.tgz ${BIN_PATH}/helm/emco-tools-${TAG}.tgz
   rm -rf ${BIN_PATH}/helm/emcoBase
 
   # monitor

@@ -21,8 +21,9 @@ mongo:
   nfsprovisionerPrefix: emco
   sdnctlPrefix: emco
   persistence:
-    mountSubPath: emco/mongo/data
     enabled: true
+    mountPath: /opt
+    mountSubPath: "emco/mongo/data"
   disableNfsProvisioner: true
 
 # etcd chart overrides for emco
@@ -33,10 +34,9 @@ etcd:
     accessModes:
       - ReadWriteMany
     size: 1Gi
-    mountPath: /dockerdata-nfs
-    mountSubPath: emco/etcd/data
+    mountPath: /opt
+    mountSubPath: "emco/etcd/data"
     volumeReclaimPolicy: Retain
-
   volumePermissions:
     enabled: true
 

@@ -2,11 +2,10 @@
 # Copyright (c) 2020-2022 Intel Corporation
 
 apiVersion: v2
-description: Distributed Traffic Controller
+description: EMCO Distributed Traffic Controller
 name: dtc
 type: application
 version: 1.0.0
-appVersion: 22.03.1
 
 dependencies:
   - name: common

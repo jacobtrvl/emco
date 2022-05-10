@@ -11,9 +11,10 @@ global:
 # Application configuration defaults.
 #################################################################
 # application image
-repository:
+repository: registry.gitlab.com/project-emco/core/emco-base/
 image: emco-hpa-ac
-imageTag:
+# imageTag: latest # uncomment to override default/inherited imageTag
+
 pullPolicy: Always
 command: "./hpa-ac"
 args: ""
@@ -40,10 +41,12 @@ liveness:
   # in debugger so K8s doesn't restart unresponsive container
   enabled: false
 
-# readiness not defined for action controller
-serviceName: hpaaction
+# readiness not defined for action controller?
+readiness:
+  initialDelaySeconds: 10
+  periodSeconds: 30
 
-serviceInternal:
+service:
   type: NodePort
   name: hpaac
   portName: hpaac-control

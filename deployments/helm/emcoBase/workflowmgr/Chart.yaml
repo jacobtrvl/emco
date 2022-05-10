@@ -2,11 +2,10 @@
 # Copyright (c) 2022 Intel Corporation
 
 apiVersion: v2
-description: Workflow Manager
+description: EMCO Workflow Manager
 name: workflowmgr
 type: application
 version: 1.0.0
-appVersion: 22.03.1
 
 dependencies:
   - name: common

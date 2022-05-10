@@ -3,10 +3,9 @@
 
 apiVersion: v2
 name: hpa-ac
-description: Hardware Platform Awareness Action Controller
+description: EMCO Hardware Platform Awareness Action Controller
 type: application
 version: 1.0.0
-appVersion: 22.03.1
 
 dependencies:
   - name: common

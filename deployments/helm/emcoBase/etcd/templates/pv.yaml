@@ -16,7 +16,7 @@ spec:
   {{- end }}
   {{ include "etcd.storageClass" $root }}
   hostPath:
-    path: {{ $root.Values.persistence.mountPath }}/{{ $root.Release.Name }}/{{ $root.Values.persistence.mountSubPath }}-{{ $i }}
+    path: {{ $root.Values.global.persistence.mountPath | default $root.Values.persistence.mountPath }}/{{ $root.Release.Name }}/{{ $root.Values.persistence.mountSubPath }}-{{ $i }}
   persistentVolumeReclaimPolicy: {{ $root.Values.persistence.volumeReclaimPolicy }}
 {{ end }}
 {{ end }}

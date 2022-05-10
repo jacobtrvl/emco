@@ -2,11 +2,10 @@
 # Copyright (c) 2022 Intel Corporation
 
 apiVersion: v2
-description: Edge Multi-Cloud Orchestrator
+description: EMCO (Edge Multi-Cloud Orchestrator)
 name: emco
 type: application
 version: 1.0.0
-appversion: 22.03.1
 
 dependencies:
   - name: emco-db

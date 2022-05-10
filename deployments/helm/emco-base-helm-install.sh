@@ -8,9 +8,9 @@ usage() {
 	echo "NOTES: -p [enable | disable] enable or disable mongo and etcd persistance, default is disable"
 }
 
-EMCO_DB_HELM_FILE="emco-db-0.1.0.tgz"
-EMCO_SERVICES_HELM_FILE="emco-services-0.1.0.tgz"
-EMCO_TOOLS_HELM_FILE="emco-tools-0.1.0.tgz"
+EMCO_DB_HELM_FILE="emco-db-1.0.0.tgz"
+EMCO_SERVICES_HELM_FILE="emco-services-1.0.0.tgz"
+EMCO_TOOLS_HELM_FILE="emco-tools-1.0.0.tgz"
 
 # Default is to override etcd and mongo persistence to be disabled
 PERSISTENCE="--set etcd.persistence.enabled=false --set mongo.persistence.enabled=false"

@@ -3,10 +3,9 @@
 
 apiVersion: v2
 name: hpa-plc
-description: Hardware Platform Awareness Placement Controller
+description: EMCO Hardware Platform Awareness Placement Controller
 type: application
 version: 1.0.0
-appVersion: 22.03.1
 
 dependencies:
   - name: common

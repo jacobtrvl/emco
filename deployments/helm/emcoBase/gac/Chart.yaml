@@ -2,11 +2,10 @@
 # Copyright (c) 2020-2022 Intel Corporation
 
 apiVersion: v2
-description: Generic Action Controller
+description: EMCO Generic Action Controller
 name: gac
 type: application
 version: 1.0.0
-appVersion: 22.03.1
 
 dependencies:
   - name: common

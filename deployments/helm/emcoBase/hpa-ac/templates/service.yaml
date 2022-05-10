@@ -3,7 +3,7 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ .Values.serviceName }}
+  name: {{ include "common.servicename" . }}
   namespace: {{ include "common.namespace" . }}
   labels:
     app: {{ include "common.fullname" . }}
@@ -11,15 +11,15 @@ metadata:
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
 spec:
-  type: {{ .Values.serviceInternal.type }}
+  type: {{ .Values.service.type }}
   ports:
-  - name: {{ .Values.serviceInternal.portName }}
-    {{if eq .Values.serviceInternal.type "NodePort" -}}
-    port: {{ .Values.serviceInternal.internalPort }}
-    nodePort: {{ .Values.global.nodePortPrefixExt | default "304" }}{{ .Values.serviceInternal.nodePort }}
+  - name: {{ .Values.service.portName }}
+    {{if eq .Values.service.type "NodePort" -}}
+    port: {{ .Values.service.internalPort }}
+    nodePort: {{ .Values.global.nodePortPrefixExt | default "304" }}{{ .Values.service.nodePort }}
     {{- else -}}
-    port: {{ .Values.serviceInternal.externalPort }}
-    targetPort: {{ .Values.serviceInternal.internalPort }}
+    port: {{ .Values.service.externalPort }}
+    targetPort: {{ .Values.service.internalPort }}
     {{- end}}
     protocol: TCP
   selector:

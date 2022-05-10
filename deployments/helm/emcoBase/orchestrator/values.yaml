@@ -11,9 +11,10 @@ global:
 # Application configuration defaults.
 #################################################################
 # application image
-repository:
+repository: registry.gitlab.com/project-emco/core/emco-base/
 image: emco-orch
-imageTag:
+# imageTag: latest # uncomment to override default/inherited imageTag
+
 pullPolicy: Always
 args: ""
 command: "./orchestrator"

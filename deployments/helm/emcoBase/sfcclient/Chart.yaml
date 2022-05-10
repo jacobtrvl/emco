@@ -2,11 +2,10 @@
 # Copyright (c) 2021-2022 Intel Corporation
 
 apiVersion: v2
-description: Service Function Chain Client Controller
+description: EMCO Service Function Chain Client Controller
 name: sfcclient
 type: application
 version: 1.0.0
-appVersion: 22.03.1
 
 dependencies:
   - name: common

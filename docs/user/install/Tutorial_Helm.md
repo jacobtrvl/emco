@@ -224,8 +224,8 @@ Workarounds:
 - Uninstall EMCO and then remove the host storage directories for the persistent volumes and then reinstall:
 
 ```
-    - `sudo rm -r /dockerdata-nfs/emco-db/emco/mongo/data`
-    - `sudo rm -r /dockerdata-nfs/emco-db/emco/etcd/data-0`
+    - `sudo rm -r /opt/emco-db/emco/mongo/data`
+    - `sudo rm -r /opt/emco-db/emco/etcd/data-0`
 ```
 
 - Or, disable database persistence on installation:

@@ -2,11 +2,10 @@
 # Copyright (c) 2020-2022 Intel Corporation
 
 apiVersion: v2
-description: Resource Synchronizer
+description: EMCO Resource Synchronizer
 name: rsync
 type: application
 version: 1.0.0
-appVersion: 22.03.1
 
 dependencies:
   - name: common
