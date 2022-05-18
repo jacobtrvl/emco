@@ -2,6 +2,6 @@
 # Copyright (c) 2020-2022 Intel Corporation
 apiVersion: v2
 name: monitor
-description: A Helm chart for monitor
+description: EMCO Status Monitoring
 type: application
 version: 1.0.0

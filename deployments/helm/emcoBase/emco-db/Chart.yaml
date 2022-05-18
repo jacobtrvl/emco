@@ -2,7 +2,7 @@
 # Copyright (c) 2020-2022 Intel Corporation
 
 apiVersion: v2
-description: Edge Multi-Cloud Orchestrator Database Package
+description: EMCO Database Package
 name: emco-db
 version: 1.0.0
 

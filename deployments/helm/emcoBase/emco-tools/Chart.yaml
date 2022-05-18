@@ -2,7 +2,7 @@
 # Copyright (c) 2020-2022 Intel Corporation
 
 apiVersion: v2
-description: Edge Multi-Cloud Orchestrator Tools Package
+description: EMCO Tools Package
 name: emco-tools
 version: 1.0.0
 
