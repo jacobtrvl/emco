@@ -20,7 +20,7 @@ spec:
         - name: monitor
           # Replace this with the built image name
           #image: emcov2/monitor:latest
-          image: {{ .Values.repository }}{{ .Values.image }}:{{ .Values.imageTag }}
+          image: {{ .Values.repository }}{{ .Values.image }}:{{ .Values.emcoTag }}
           command:
           - /opt/emco/monitor/monitor
           imagePullPolicy: Always

@@ -11,9 +11,10 @@ global:
 # Application configuration defaults.
 #################################################################
 # application image
-repository: myrepository.example.com/emco/
+# repository: registry.gitlab.com/project-emco/core/emco-base/ # uncomment to override default/inherited repository
+# emcoTag: latest # uncomment to override default/inherited emcoTag
 image: emco-sample
-imageTag: user-latest
+
 pullPolicy: Always
 command: "./sample"
 args: ""
@@ -30,7 +31,6 @@ replicaCount: 1
 nodeSelector: {}
 
 affinity: {}
-
 
 # probe configuration parameters
 liveness:

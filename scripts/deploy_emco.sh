@@ -13,13 +13,16 @@ create_helm_chart() {
   mkdir -p ${BIN_PATH}/helm
   cp -rf ${EMCOBUILDROOT}/deployments/helm/emcoBase ${EMCOBUILDROOT}/deployments/helm/monitor ${BIN_PATH}/helm/
   cat > ${BIN_PATH}/helm/emcoBase/common/values.yaml <<EOF
-repository: ${REGISTRY}
-imageTag: ${TAG}
-noProxyHosts: ${NO_PROXY}
+global:
+  repository: ${REGISTRY}
+  emcoTag: ${TAG}
+  noProxyHosts: ${NO_PROXY}
+  loglevel: warn
 EOF
   cat > ${BIN_PATH}/helm/monitor/values.yaml <<EOF
-registryPrefix: ${REGISTRY}
-tag: ${TAG}
+repository: ${REGISTRY}
+image: emco-monitor
+emcoTag: ${TAG}
 
 workingDir: /opt/emco/monitor
 git:
@@ -30,22 +33,14 @@ httpProxy: ${HTTP_PROXY}
 httpsProxy: ${HTTPS_PROXY}
 EOF
   cat > ${BIN_PATH}/helm/helm_value_overrides.yaml <<EOF
-#update proxies
-noProxyHosts: ${NO_PROXY}
-#update and uncomment if build tag to be changed
-#imageTag: latest
-#update and uncomment to override registry
-#repository: registry.docker.com/
 global:
+  #update and uncomment to override registry
+  #repository: registry.docker.com/
+  #update and uncomment if build tag to be changed
+  #emcoTag: latest
+  #update proxies
+  noProxyHosts: ${NO_PROXY}
   loglevel: info
-EOF
-
-  # Submodules to use evaluated values.yaml via common templates
-  cp -rf ${EMCOBUILDROOT}/deployments/helm/emcoBase/common ${EMCOBUILDROOT}/deployments/helm/
-  cat > ${EMCOBUILDROOT}/deployments/helm/common/values.yaml <<EOF
-repository: ${REGISTRY}
-imageTag: ${TAG}
-noProxyHosts: ${NO_PROXY}
 EOF
 
   # emco base

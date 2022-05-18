@@ -13,4 +13,4 @@ nodeSelector: {}
 affinity: {}
 
 global:
-  imageTag: "latest" # can be overridden with $ helm install --set global.imageTag=22.03 emco (...)
+  emcoTag: "latest" # can be overridden with $ helm install --set global.emcoTag=22.03 emco (...)

@@ -33,3 +33,5 @@ vgcore*
 *,PID
 coverage.out
 coverage.html
+deployments/helm/emcoBase/dist/
+Chart.lock

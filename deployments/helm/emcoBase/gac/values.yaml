@@ -11,9 +11,9 @@ global:
 # Application configuration defaults.
 #################################################################
 # application image
-repository: registry.gitlab.com/project-emco/core/emco-base/
+# repository: registry.gitlab.com/project-emco/core/emco-base/ # uncomment to override default/inherited repository
+# emcoTag: latest # uncomment to override default/inherited emcoTag
 image: emco-gac
-# imageTag: latest # uncomment to override default/inherited imageTag
 
 pullPolicy: Always
 command: "./genericactioncontroller"

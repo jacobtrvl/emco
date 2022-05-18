@@ -60,7 +60,7 @@ emco/emco-tools         1.0.0                           EMCO Tools Package
 emco/monitor            1.0.0                           EMCO Status Monitoring
 ```
 
-EMCO Helm charts don't contain an app version since the specific EMCO version can be specified using `global.imageTag` (for the main EMCO services) or simply `imageTag` (for EMCO Status Monitoring). More on this below.
+EMCO Helm charts don't contain an app version since the specific EMCO version can be specified using `global.emcoTag` (for the main EMCO services) or simply `emcoTag` (for EMCO Status Monitoring). More on this below.
 
 **Install EMCO on the Kubernetes cluster (on the `emco` namespace):**
 ```
@@ -69,7 +69,7 @@ helm install emco -n emco emco/emco \
   --set global.db.emcoPassword=SETPASS \
   --set global.db.rootPassword=SETPASS \
   --set global.contextdb.rootPassword=SETPASS \
-  --set global.imageTag=22.03.1
+  --set global.emcoTag=22.03.1
 ```
 
 Replace `SETPASS` with the your choice of passwords for MongoDB and etcd, respectively. You may also choose to not set custom passwords, in which case they will be randomized. If you choose random passwords, make sure to check the [Known issues](#known-issues).
@@ -126,11 +126,11 @@ Set your `KUBECONFIG` (or take equivalent actions) according to each of the clus
 ```
 kubectl create namespace emco
 helm install emco -n emco emco/monitor \
-  --set imageTag=22.03.1
+  --set emcoTag=22.03.1
 ```
 
 Replace `22.03.1` with the version of the EMCO Monitor you wish to deploy. This version must match the version of EMCO installed in the main EMCO cluster, or expect *unexpected* behavior. If you don't set this field, the `latest` EMCO Monitor container image will be installed. Typically, the `latest` tag is updated once a day.
-> Notice that for Monitor, the image tag version is specified with `imageTag` unlike in the main EMCO cluster, where it's specified with `global.imageTag`.
+> Notice that for Monitor, the image tag version is specified with `emcoTag` unlike in the main EMCO cluster, where it's specified with `global.emcoTag`.
 
 
 #### Tuning & Compatibility
@@ -152,7 +152,7 @@ helm install emco -n emco emco/emco \
   --set global.db.emcoPassword=SETPASS \
   --set global.db.rootPassword=SETPASS \
   --set global.contextdb.rootPassword=SETPASS \
-  --set global.imageTag=22.03.1
+  --set global.emcoTag=22.03.1
 ```
 
 #### Known issues

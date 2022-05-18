@@ -3,7 +3,7 @@
 
 repository: registry.gitlab.com/project-emco/core/emco-base/
 image: emco-monitor
-imageTag: "latest" # can be overridden with $ helm install --set imageTag=22.03 emco-monitor (...)
+emcoTag: "latest" # can be overridden with $ helm install --set emcoTag=22.03 emco-monitor (...)
 
 workingDir: /opt/emco/monitor
 git:

@@ -1,7 +1,13 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright (c) 2022 Intel Corporation
 
-apiVersion: v1
-description: Sample Controller
+apiVersion: v2
+description: EMCO Sample Controller
 name: sample
-version: 0.1.0
+type: application
+version: 1.0.0
+
+dependencies:
+  - name: common
+    version: ~1.x-0
+    repository: file://../common
