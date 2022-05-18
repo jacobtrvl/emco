@@ -3,39 +3,61 @@ This document provides high level features, fixes, and known issues and limitati
 
 - [Release Notes](#release-notes)
 	- [Compatibility](#compatibility)
-	- [EMCO 22.03](#emco-2203)
+	- [EMCO 22.03.1](#emco-22031)
 		- [Changelog](#changelog)
 		- [Known issues](#known-issues)
-	- [EMCO 21.12](#emco-2112)
+	- [EMCO 22.03](#emco-2203)
 		- [Changelog](#changelog-1)
 		- [Known issues](#known-issues-1)
-	- [LFN Seed Code](#lfn-seed-code)
+	- [EMCO 21.12](#emco-2112)
 		- [Changelog](#changelog-2)
 		- [Known issues](#known-issues-2)
-	- [EMCO 21.03.05](#emco-210305)
+	- [LFN Seed Code](#lfn-seed-code)
 		- [Changelog](#changelog-3)
 		- [Known issues](#known-issues-3)
-	- [EMCO 21.03](#emco-2103)
+	- [EMCO 21.03.05](#emco-210305)
 		- [Changelog](#changelog-4)
 		- [Known issues](#known-issues-4)
-	- [EMCO 20.12](#emco-2012)
+	- [EMCO 21.03](#emco-2103)
 		- [Changelog](#changelog-5)
 		- [Known issues](#known-issues-5)
+	- [EMCO 20.12](#emco-2012)
+		- [Changelog](#changelog-6)
+		- [Known issues](#known-issues-6)
 
 ## Compatibility
 
 The following table outlines EMCO's compatibility with other software projects, such as Kubernetes. It represents the versions that the team has decided to support and test, or use as part of the build process. Other versions not mentioned may also be compatible, but the project makes no promises or guarantees for such.
 
-| EMCO       | Kubernetes (EMCO)  | Kubernetes (edge)  | Helm    | Go (compile) | Alpine (containerize)
-| ---------- | ------------------ | ------------------ | ------- | ------------ | ---------------------
-| **22.03**  | 1.18.x - 1.23.x    | 1.21.x - 1.23.x    | 3.5.2   | 1.17.x       | 3.12
-| **21.12**  | 1.18.x - 1.19.x    | 1.18.x - 1.19.x    | 3.5.2   | 1.14.x       | 3.12
+| EMCO         | Kubernetes (EMCO)  | Kubernetes (edge)  | Helm    | Go (compile) | Alpine (containerize)
+| ------------ | ------------------ | ------------------ | ------- | ------------ | ---------------------
+| **22.03.1**  | 1.18.x - 1.23.x    | 1.21.x - 1.23.x    | 3.8.2   | 1.17.x       | 3.12
+| **22.03**    | 1.18.x - 1.23.x    | 1.21.x - 1.23.x    | 3.5.2   | 1.17.x       | 3.12
+| **21.12**    | 1.18.x - 1.19.x    | 1.18.x - 1.19.x    | 3.5.2   | 1.14.x       | 3.12
 
 Kubernetes (EMCO) represents the Kubernetes versions where the EMCO services themselves can run (with the exception of Monitor, which runs on the edge clusters).
 
 Kubernetes (edge) represents the Kubernetes versions that the edge clusters orchestrated by EMCO must be running, for the successful deployment of Logical Clouds and Composite Apps, as well as running the Monitor service.
 
 ------------------------------
+
+## EMCO 22.03.1
+
+**Released**: 2022-05-19
+
+------------------------------
+
+### Changelog
+- Updated all main EMCO Helm charts (emcoBase/* and monitor/) to apiVersion: v2
+- Updated EMCO Helm charts and the AIO Helm Package to correctly support parameterization of the EMCO version (container image tag) as well as the GitLab Container Registry.
+- Packaged and released the EMCO Helm charts publicly on the GitLab Package Registry
+- Updated documentation to reflect the new method of installing EMCO (via the public Helm charts)
+- Multiple fixes to the Helm charts which improve Kubernetes compatibility, including with OpenShift
+- Misc fixes and improvements in/to the Helm charts
+
+### Known issues
+- All known issues of 22.03 also apply to 22.03.1
+- Refer to [README.md](README.md), [BUILD.md](docs/BUILD.md) and [Tutorial_Helm.md](Tutorial_Helm.md) for additional issues related to deploying EMCO with Helm.
 
 ## EMCO 22.03
 
