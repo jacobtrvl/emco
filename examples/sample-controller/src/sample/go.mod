@@ -20,7 +20,6 @@ replace (
 	gitlab.com/project-emco/core/emco-base/src/rsync => ../../../../src/rsync //Please modify accordingly.
 	go.etcd.io/etcd => go.etcd.io/etcd v0.5.0-alpha.5.0.20200819165624-17cef6e3e9d5 // 17cef6e3e9d5 is the SHA for git tag v3.4.12
 	google.golang.org/grpc => google.golang.org/grpc v1.28.0
-	helm.sh/helm/v3 => helm.sh/helm/v3 v3.5.3
 )
 
 go 1.16
