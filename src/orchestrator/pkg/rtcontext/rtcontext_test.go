@@ -4,10 +4,11 @@
 package rtcontext
 
 import (
-	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/contextdb"
-	pkgerrors "github.com/pkg/errors"
 	"strings"
 	"testing"
+
+	pkgerrors "github.com/pkg/errors"
+	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/contextdb"
 )
 
 // MockContextDb for mocking contextdb
@@ -20,6 +21,19 @@ type MockContextDb struct {
 func (c *MockContextDb) Put(key string, val interface{}) error {
 	if c.Items == nil {
 		c.Items = make(map[string]interface{})
+	}
+	c.Items[key] = val
+	return c.Err
+}
+
+// Put function
+func (c *MockContextDb) PutWithCheck(key string, val interface{}) error {
+	if c.Items == nil {
+		c.Items = make(map[string]interface{})
+	}
+	_, ok := c.Items[key]
+	if ok {
+		return pkgerrors.Errorf("Key exists %v", string(key))
 	}
 	c.Items[key] = val
 	return c.Err
@@ -98,6 +112,46 @@ func TestRtcInit(t *testing.T) {
 	}
 }
 
+func TestRtcInitWithValue(t *testing.T) {
+	var rtc = RunTimeContext{}
+	testCases := []struct {
+		label         string
+		mockContextDb *MockContextDb
+		expectedError string
+		value         interface{}
+	}{
+		{
+			label:         "Failure case invalid value",
+			mockContextDb: &MockContextDb{},
+			value:         "abcd",
+			expectedError: "Valid values are of type int64",
+		},
+		{
+			label:         "Success case",
+			mockContextDb: &MockContextDb{},
+			value:         int64(1),
+		},
+		{
+			label:         "Init returns error case",
+			mockContextDb: &MockContextDb{Err: pkgerrors.Errorf("Client not intialized")},
+			expectedError: "Error, context already initialized",
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.label, func(t *testing.T) {
+			contextdb.Db = testCase.mockContextDb
+			_, err := rtc.RtcInitWithValue(testCase.value)
+			if err != nil {
+				if !strings.Contains(string(err.Error()), testCase.expectedError) {
+					t.Fatalf("Method returned an error (%s)", err)
+				}
+			}
+
+		})
+	}
+}
+
 func TestRtcLoad(t *testing.T) {
 	var rtc = RunTimeContext{"", ""}
 	testCases := []struct {
@@ -135,6 +189,7 @@ func TestRtcLoad(t *testing.T) {
 
 func TestRtcCreate(t *testing.T) {
 	var rtc = RunTimeContext{"/context/5345674458787728/", ""}
+	var mockDb = &MockContextDb{}
 	testCases := []struct {
 		label         string
 		mockContextDb *MockContextDb
@@ -142,7 +197,12 @@ func TestRtcCreate(t *testing.T) {
 	}{
 		{
 			label:         "Success case",
-			mockContextDb: &MockContextDb{},
+			mockContextDb: mockDb,
+		},
+		{
+			label:         "Key exists case",
+			mockContextDb: mockDb,
+			expectedError: "Key exists",
 		},
 		{
 			label:         "Create returns error case",

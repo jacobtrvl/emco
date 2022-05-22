@@ -1,0 +1,26 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2021 Intel Corporation
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: client
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: client
+  template:
+    metadata:
+      labels:
+        app: client
+    spec:
+      containers:
+      - name: client
+        image: {{ .Values.clientservice.image.repository }}:{{ .Values.clientservice.image.tag | default .Chart.AppVersion }}
+        command:
+          - sleep
+          - "3600"
+        imagePullPolicy: {{ .Values.clientservice.image.pullPolicy }}
+        resources: {{- toYaml .Values.clientservice.resources | nindent 10 }}
+      serviceAccountName: default
+      terminationGracePeriodSeconds: 5 

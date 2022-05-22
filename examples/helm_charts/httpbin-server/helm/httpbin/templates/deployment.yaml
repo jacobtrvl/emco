@@ -1,0 +1,28 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2021 Intel Corporation
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: httpbin
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: httpbin
+  template:
+    metadata:
+      labels:
+        app: httpbin
+    spec:
+      containers:
+      - env:
+        - name: PORT 
+          value: {{ .Values.httpbinservice.server.port | quote }}
+        image: {{ .Values.httpbinservice.server.image.repository }}:{{ .Values.httpbinservice.server.image.tag | default .Chart.AppVersion }}
+        imagePullPolicy: {{ .Values.httpbinservice.server.image.pullPolicy }}
+        name: server
+        ports:
+        - containerPort: {{ .Values.httpbinservice.server.port }}
+        resources: {{- toYaml .Values.httpbinservice.server.resources | nindent 10 }}
+      serviceAccountName: default
+      terminationGracePeriodSeconds: 5 

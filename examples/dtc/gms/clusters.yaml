@@ -51,9 +51,9 @@ metadata :
   name: {{ .Cluster1IstioIngressGatewayKvName }}
 spec:
   kv:
-    - istioingressgatewayaddress: "192.168.121.26" 
-    - istioingressgatewayport: "32001"
-    - istioingressgatewayinternalport: "15443" 
+    - istioIngressGatewayAddress: "172.16.16.100"
+    - istioIngressGatewayPort: "32001"
+    - istioIngressGatewayInternalPort: "15443"
 ---
 #Add label kvpair
 version: emco/v2
@@ -63,7 +63,7 @@ metadata :
   name: {{ .Cluster2IstioIngressGatewayKvName }}
 spec:
   kv:
-    - istioingressgatewayaddress: "192.168.121.15"
-    - istioingressgatewayport: "15443"
-    - istioingressgatewayinternalport: "15443"
+    - istioIngressGatewayAddress: "172.16.16.200"
+    - istioIngressGatewayPort: "32001"
+    - istioIngressGatewayInternalPort: "15443"
 

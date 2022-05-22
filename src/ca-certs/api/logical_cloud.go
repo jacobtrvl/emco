@@ -4,25 +4,28 @@
 package api
 
 import (
+	"errors"
 	"net/http"
+	"strings"
 
 	"github.com/gorilla/mux"
-	"gitlab.com/project-emco/core/emco-base/src/ca-certs/pkg/logicalcloud"
+	"gitlab.com/project-emco/core/emco-base/src/ca-certs/pkg/client/logicalcloud"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/apierror"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 )
 
-type logicalCloudHandler struct {
+type lcHandler struct {
 	manager logicalcloud.LogicalCloudManager
 }
 
-// handleLogicalCloudCreate
-func (h *logicalCloudHandler) handleLogicalCloudCreate(w http.ResponseWriter, r *http.Request) {
+// handleLogicalCloudCreate handles the route for creating a new logical cloud
+func (h *lcHandler) handleLogicalCloudCreate(w http.ResponseWriter, r *http.Request) {
 	h.createOrUpdateLogicalCloud(w, r)
 }
 
-// handleLogicalCloudDelete
-func (h *logicalCloudHandler) handleLogicalCloudDelete(w http.ResponseWriter, r *http.Request) {
+// handleLogicalCloudDelete handles the route for deleting a logical cloud
+func (h *lcHandler) handleLogicalCloudDelete(w http.ResponseWriter, r *http.Request) {
+	// get the route variables
 	vars := _lcVars(mux.Vars(r))
 	if err := h.manager.DeleteLogicalCloud(vars.logicalCloud, vars.cert, vars.project); err != nil {
 		apiErr := apierror.HandleErrors(mux.Vars(r), err, nil, apiErrors)
@@ -33,13 +36,14 @@ func (h *logicalCloudHandler) handleLogicalCloudDelete(w http.ResponseWriter, r 
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// handleLogicalCloudGet
-func (h *logicalCloudHandler) handleLogicalCloudGet(w http.ResponseWriter, r *http.Request) {
+// handleLogicalCloudGet handles the route for retrieving a logical cloud
+func (h *lcHandler) handleLogicalCloudGet(w http.ResponseWriter, r *http.Request) {
 	var (
 		logicalClouds interface{}
 		err           error
 	)
 
+	// get the route variables
 	vars := _lcVars(mux.Vars(r))
 	if len(vars.logicalCloud) == 0 {
 		logicalClouds, err = h.manager.GetAllLogicalClouds(vars.cert, vars.project)
@@ -56,19 +60,20 @@ func (h *logicalCloudHandler) handleLogicalCloudGet(w http.ResponseWriter, r *ht
 	sendResponse(w, logicalClouds, http.StatusOK)
 }
 
-// handleLogicalCloudUpdate
-func (h *logicalCloudHandler) handleLogicalCloudUpdate(w http.ResponseWriter, r *http.Request) {
+// handleLogicalCloudUpdate handles the route for updating a logical cloud
+func (h *lcHandler) handleLogicalCloudUpdate(w http.ResponseWriter, r *http.Request) {
 	h.createOrUpdateLogicalCloud(w, r)
 }
 
-// createOrUpdateLogicalCloud create/update the CA Cert based on the request method
-func (h *logicalCloudHandler) createOrUpdateLogicalCloud(w http.ResponseWriter, r *http.Request) {
+// createOrUpdateLogicalCloud create/update the logical cloud based on the request method
+func (h *lcHandler) createOrUpdateLogicalCloud(w http.ResponseWriter, r *http.Request) {
 	var logicalCloud logicalcloud.LogicalCloud
 	if code, err := validateRequestBody(r.Body, &logicalCloud, LogicalCloudSchemaJson); err != nil {
 		http.Error(w, err.Error(), code)
 		return
 	}
 
+	// get the route variables
 	vars := _lcVars(mux.Vars(r))
 
 	methodPost := false
@@ -82,7 +87,7 @@ func (h *logicalCloudHandler) createOrUpdateLogicalCloud(w http.ResponseWriter, 
 			logutils.Error("The logical-cloud name is not matching with the name in the request",
 				logutils.Fields{"LogicalCloud": logicalCloud,
 					"Name": vars.logicalCloud})
-			http.Error(w, "the intent name is not matching with the name in the request",
+			http.Error(w, "the logical-cloud name is not matching with the name in the request",
 				http.StatusBadRequest)
 			return
 		}
@@ -97,9 +102,31 @@ func (h *logicalCloudHandler) createOrUpdateLogicalCloud(w http.ResponseWriter, 
 
 	code := http.StatusCreated
 	if clrExists {
-		// cluster does have a current representation and that representation is successfully modified
+		// logical-cloud does have a current representation and that representation is successfully modified
 		code = http.StatusOK
 	}
 
 	sendResponse(w, clr, code)
+}
+
+// validateLogicalCloudData validate the logical cloud payload for the required values
+func validateLogicalCloudData(lc logicalcloud.LogicalCloud) error {
+	var err []string
+	if len(lc.MetaData.Name) == 0 {
+		logutils.Error("LogicalCloud name may not be empty",
+			logutils.Fields{})
+		err = append(err, "logicalCloud name may not be empty")
+	}
+
+	if len(lc.Spec.Name) == 0 {
+		logutils.Error("LogicalCloud may not be empty",
+			logutils.Fields{})
+		err = append(err, "logicalCloud may not be empty")
+	}
+
+	if len(err) > 0 {
+		return errors.New(strings.Join(err, "\n"))
+	}
+
+	return nil
 }

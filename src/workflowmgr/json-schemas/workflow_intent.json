@@ -1,0 +1,197 @@
+{
+    "$schema": "http://json-schema.org/schema#",
+    "type": "object",
+    "properties": {
+      "metadata": {
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "description": "Name of the resource",
+            "type": "string",
+            "maxLength": 128,
+            "pattern": "^([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]$"
+          },
+          "description": {
+            "description": "Description for the resource",
+            "type": "string",
+            "maxLength": 1024
+          },
+          "userData1": {
+            "description": "User relevant data for the resource",
+            "type": "string",
+            "maxLength": 512
+          },
+          "userData2": {
+            "description": "User relevant data for the resource",
+            "type": "string",
+            "maxLength": 512
+          }
+        }
+      },
+      "spec": {
+          "type": "object",
+          "required": [
+            "workflowClient",
+            "temporal"
+          ],
+          "properties": {
+            "workflowClient": {
+              "type": "object",
+              "properties": {
+                "clientEndpointName": {
+                  "description": "Endpoint for the client",
+                  "type": "string",
+                  "example": "demo-workflowclient.demo.svc.cluster.local"
+                },
+                "clientEndpointPort": {
+                  "description": "Port number of the client to use",
+                  "type": "integer",
+                  "example": "9090"
+                }
+              }
+            },
+            "temporal": {
+              "type": "object",
+              "properties": {
+                "workflowClientName": {
+                  "description": "Name of the workflow client to se",
+                  "type": "string",
+                  "example": "migrate_workflowclient"
+                },
+                "workflowStartOptions": {
+                  "type": "object",
+                  "required": [
+                    "TaskQueue"
+                  ],
+                  "properties": {
+                    "ID": {
+                      "description": "ID Of the workflow to start",
+                      "type":"string",
+                      "example": "migrate-apps-1"
+                    },
+                    "TaskQueue": {
+                      "description": "A Task Queue is a first-in, first-out queue that a Worker Process polls for Tasks.",
+                      "type": "string",
+                      "example": "MIGRATION_TASK_Q"
+                    },
+                    "WorkflowExecutionTimeout": {
+                      "description": "A Workflow Execution Timeout is the maximum time that a Workflow Execution can be executing (have an Open status) including retries and any usage of Continue As New.",
+                      "type": "integer"
+                    },
+                    "WorkflowRunTimeout": {
+                      "description": "This is the maximum amount of time that a single Workflow Run is restricted to.",
+                      "type": "integer"
+                    },
+                    "WorkflowTaskTimeout": {
+                      "description": "A Workflow Task Timeout is the maximum amount of time that the Temporal Server will wait for a Worker to start processing a Workflow Task after the Task has been pulled from the Task Queue.",
+                      "type": "integer"
+                    },
+                    "WorkflowIDReusePolicy": {
+                      "description": "A Workflow Id Reuse Policy determines whether a Workflow Execution is allowed to spawn with a particular Workflow Id, if that Workflow Id has been used with a previous, and now Closed, Workflow Execution.",
+                      "type": "integer"
+                    }
+                  }
+                },
+                "workflowParams": {
+                  "type": "object",
+                  "properties": {
+                  "activityOptions": {
+                  "type": "object",
+                  "additionalProperties": {
+                  "type": "object",
+                  "properties": {
+                  "activityid": {
+                  "type": "string"
+                  },
+                  "heartbeattimeout": {
+                  "type": "integer",
+                  "format": "int64"
+                  },
+                  "retrypolicy": {
+                  "type": "object",
+                  "properties": {
+                  "backoffcoefficient": {
+                  "type": "number",
+                  "format": "double"
+                  },
+                  "initialinterval": {
+                  "type": "integer",
+                  "format": "int64"
+                  },
+                  "maximumattempts": {
+                  "type": "integer",
+                  "format": "int32"
+                  },
+                  "maximuminterval": {
+                  "type": "integer",
+                  "format": "int64"
+                  },
+                  "nonretryableerrortypes": {
+                  "type": "array",
+                  "items": {
+                  "type": "string"
+                  }
+                  }
+                  },
+                  "additionalProperties": false,
+                  "required": [
+                  "initialinterval",
+                  "backoffcoefficient",
+                  "maximuminterval",
+                  "maximumattempts",
+                  "nonretryableerrortypes"
+                  ]
+                  },
+                  "scheduletoclosetimeout": {
+                  "type": "integer",
+                  "format": "int64"
+                  },
+                  "scheduletostarttimeout": {
+                  "type": "integer",
+                  "format": "int64"
+                  },
+                  "starttoclosetimeout": {
+                  "type": "integer",
+                  "format": "int64"
+                  },
+                  "taskqueue": {
+                  "type": "string"
+                  },
+                  "waitforcancellation": {
+                  "type": "boolean"
+                  }
+                  },
+                  "additionalProperties": false,
+                  "required": [
+                  "taskqueue",
+                  "scheduletoclosetimeout",
+                  "scheduletostarttimeout",
+                  "starttoclosetimeout",
+                  "heartbeattimeout",
+                  "waitforcancellation",
+                  "activityid",
+                  "retrypolicy"
+                  ]
+                  }
+                  },
+                  "activityParams": {
+                  "type": "object",
+                  "additionalProperties": {
+                  "type": "object",
+                  "additionalProperties": {
+                  "type": "string"
+                  }
+                  }
+                  }
+                  },
+                  "additionalProperties": false
+                  }
+              }
+            }
+          }
+      }
+    }
+}  

@@ -15,7 +15,7 @@ import (
 type MockConDb struct {
 	Items []sync.Map
 	sync.Mutex
-	Err   error
+	Err error
 }
 
 func (c *MockConDb) Put(key string, value interface{}) error {
@@ -25,18 +25,20 @@ func (c *MockConDb) Put(key string, value interface{}) error {
 	if vg != "" {
 		c.Delete(key)
 	}
-//	d := make(map[string][]byte)
 	v, err := json.Marshal(value)
 	if err != nil {
 		fmt.Println("Error during json marshal")
 	}
-//	d[key] = v
 	var d sync.Map
 	d.Store(key, v)
 	c.Lock()
 	defer c.Unlock()
 	c.Items = append(c.Items, d)
 	return c.Err
+}
+func (c *MockConDb) PutWithCheck(key string, value interface{}) error {
+
+	return c.Put(key, value)
 }
 func (c *MockConDb) HealthCheck() error {
 	return c.Err
@@ -61,7 +63,7 @@ func (c *MockConDb) Get(key string, value interface{}) error {
 		}
 	}
 
-	value =  nil
+	value = nil
 	return pkgerrors.Errorf("Key doesn't exist")
 }
 func (c *MockConDb) GetAllKeys(path string) ([]string, error) {

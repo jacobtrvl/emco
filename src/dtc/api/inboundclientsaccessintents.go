@@ -42,7 +42,7 @@ func (h inboundclientsaccessintentHandler) createHandler(w http.ResponseWriter, 
 	deploymentIntentGroupName := vars["deploymentIntentGroup"]
 	trafficIntentGroupName := vars["trafficGroupIntent"]
 	inboundIntentName := vars["inboundServerIntent"]
-	inboundClientIntentName := vars["inboundClientIntent"]
+	inboundClientIntentName := vars["inboundClientsIntent"]
 	// check if the deploymentIntentGrpName exists
 	_, err := orcmod.NewDeploymentIntentGroupClient().GetDeploymentIntentGroup(deploymentIntentGroupName, project, compositeApp, compositeAppVersion)
 	if err != nil {
@@ -104,14 +104,14 @@ func (h inboundclientsaccessintentHandler) createHandler(w http.ResponseWriter, 
 func (h inboundclientsaccessintentHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 	var icai module.InboundClientsAccessIntent
 	vars := mux.Vars(r)
-	name := vars["inboundClientsIntent"]
+	name := vars["inboundClientsAccessIntent"]
 	project := vars["project"]
 	compositeApp := vars["compositeApp"]
 	compositeAppVersion := vars["compositeAppVersion"]
 	deploymentIntentGroupName := vars["deploymentIntentGroup"]
 	trafficIntentGroupName := vars["trafficGroupIntent"]
 	inboundIntentName := vars["inboundServerIntent"]
-	inboundClientIntentName := vars["inboundClientIntent"]
+	inboundClientIntentName := vars["inboundClientsIntent"]
 
 	// check if the deploymentIntentGrpName exists
 	_, err := orcmod.NewDeploymentIntentGroupClient().GetDeploymentIntentGroup(deploymentIntentGroupName, project, compositeApp, compositeAppVersion)
@@ -173,14 +173,14 @@ func (h inboundclientsaccessintentHandler) putHandler(w http.ResponseWriter, r *
 
 func (h inboundclientsaccessintentHandler) getHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	name := vars["inboundClientsIntent"]
+	name := vars["inboundClientsAccessIntent"]
 	project := vars["project"]
 	compositeApp := vars["compositeApp"]
 	compositeAppVersion := vars["compositeAppVersion"]
 	deploymentIntentGroupName := vars["deploymentIntentGroup"]
 	trafficIntentGroupName := vars["trafficGroupIntent"]
 	inboundIntentName := vars["inboundServerIntent"]
-	inboundClientIntentName := vars["inboundClientIntent"]
+	inboundClientIntentName := vars["inboundClientsIntent"]
 
 	var ret interface{}
 	var err error
@@ -208,14 +208,14 @@ func (h inboundclientsaccessintentHandler) getHandler(w http.ResponseWriter, r *
 }
 func (h inboundclientsaccessintentHandler) deleteHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	name := vars["inboundClientsIntent"]
+	name := vars["inboundClientsAccessIntent"]
 	project := vars["project"]
 	compositeApp := vars["compositeApp"]
 	compositeAppVersion := vars["compositeAppVersion"]
 	deploymentIntentGroupName := vars["deploymentIntentGroup"]
 	trafficIntentGroupName := vars["trafficGroupIntent"]
 	inboundIntentName := vars["inboundServerIntent"]
-	inboundClientIntentName := vars["inboundClientIntent"]
+	inboundClientIntentName := vars["inboundClientsIntent"]
 
 	err := h.client.DeleteClientsAccessInboundIntent(name, project, compositeApp, compositeAppVersion, deploymentIntentGroupName, trafficIntentGroupName, inboundIntentName, inboundClientIntentName)
 	if err != nil {

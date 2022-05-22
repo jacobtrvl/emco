@@ -566,12 +566,13 @@ func GetURL(anchor string) (string, error) {
 		if len(s) >= 5 && (s[4] == "networks" || s[4] == "provider-networks" ||
 			s[4] == "apply" || s[4] == "terminate" || strings.HasPrefix(s[4], "status") || s[4] == "stop") {
 			baseUrl = GetNcmURL()
-		} else if len(s) >= 3 &&
-			s[2] == "ca-certs" {
-			baseUrl = GetCaCertUrl()
-		} else {
-			baseUrl = GetClmURL()
+			break
 		}
+		if len(s) >= 3 && s[2] == "ca-certs" {
+			baseUrl = GetCaCertUrl()
+			break
+		}
+		baseUrl = GetClmURL()
 	case "controllers":
 		baseUrl = GetOrchestratorURL()
 	case "clm-controllers":
@@ -581,6 +582,10 @@ func GetURL(anchor string) (string, error) {
 	case "projects":
 		if len(s) >= 3 && s[2] == "logical-clouds" {
 			baseUrl = GetDcmURL()
+			break
+		}
+		if len(s) >= 3 && s[2] == "ca-certs" {
+			baseUrl = GetCaCertUrl()
 			break
 		}
 		if len(s) >= 8 && s[7] == "network-chains" {

@@ -11,6 +11,7 @@ import (
 
 	"github.com/gorilla/mux"
 
+	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/validation"
 	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 	moduleLib "gitlab.com/project-emco/core/emco-base/src/workflowmgr/pkg/module"
 )
@@ -18,6 +19,9 @@ import (
 type workflowIntentHandler struct {
 	client moduleLib.WorkflowIntentManager
 }
+
+var wfiJSONFile string = "json-schema/workflow_intent.json"
+var crJSONFile string = "json-schema/cancel_request.json"
 
 func (h workflowIntentHandler) createHandler(w http.ResponseWriter, r *http.Request) {
 	var wfi moduleLib.WorkflowIntent
@@ -46,7 +50,13 @@ func (h workflowIntentHandler) createHandler(w http.ResponseWriter, r *http.Requ
 		"project": project, "cApp": cApp, "cAppVer": cAppVer, "dig": dig,
 	})
 
-	// TODO Add JSON schema validation
+	// Verify JSON Body
+	err, httpError := validation.ValidateJsonSchemaData(wfiJSONFile, wfi)
+	if err != nil {
+		log.Error(err.Error(), log.Fields{})
+		http.Error(w, err.Error(), httpError)
+		return
+	}	
 
 	ret, err := h.client.CreateWorkflowIntent(wfi, project, cApp, cAppVer, dig, false)
 	if err != nil {
@@ -312,6 +322,14 @@ func (h workflowIntentHandler) cancelHandler(w http.ResponseWriter, r *http.Requ
 		errmsg := ":: Error decoding workflow cancel request POST body ::"
 		log.Error(errmsg, log.Fields{"Error": err})
 		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
+		return
+	}
+
+	// Verify JSON Body
+	err, httpError := validation.ValidateJsonSchemaData(crJSONFile, cancelReq)
+	if err != nil {
+		log.Error(err.Error(), log.Fields{})
+		http.Error(w, err.Error(), httpError)
 		return
 	}
 

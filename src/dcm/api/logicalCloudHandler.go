@@ -311,6 +311,20 @@ func (h logicalCloudHandler) terminateHandler(w http.ResponseWriter, r *http.Req
 		return
 	}
 
+	// Check if any DIGs are associated to this logical cloud before attempting any termination
+	digClient := orch.NewDeploymentIntentGroupClient()
+	digs, _ := digClient.GetAllDeploymentIntentGroups(project, "", "")
+
+	// filter DIGs for given Logical Cloud
+	for _, dig := range digs {
+		if dig.Spec.LogicalCloud == name {
+			// found at least 1 logical cloud:
+			log.Error("Found at least one DIG associated with Logical Cloud attempted to be terminated", log.Fields{})
+			http.Error(w, "Found at least one DIG associated with Logical Cloud attempted to be terminated", http.StatusBadRequest)
+			return
+		}
+	}
+
 	// Get Clusters
 	clusters, err := h.clusterClient.GetAllClusters(project, name)
 	if err != nil {

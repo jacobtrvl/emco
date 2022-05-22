@@ -4,12 +4,24 @@
 package istiosubc
 
 type HTTPRoute struct {
+	Name    string `yaml:"name,omitempty"`
+	Match   []HTTPMatchRequest `yaml:"match,omitempty"`
 	Route   []HTTPRouteDestination   `yaml:"route,omitempty"`
+}
+
+type StringMatchPrefix struct {
+	Prefix string `yaml:"prefix,omitempty"`
+}
+type MatchPort struct {
+	Port uint32 `yaml:"port,omitempty"`
+}
+
+type HTTPMatchRequest struct {
+	Port uint32 `yaml:"port,omitempty"`
 }
 
 type HTTPRouteDestination struct {
 	Dest Destination `yaml:"destination,omitempty"`
-	Weight int32     `yaml:"weight,omitempty"`
 }
 
 type Destination struct {
@@ -35,19 +47,26 @@ func createDestination(host string, port PortSelector)(Destination) {
 		Port: port,
 	}
 	return dest
-
 }
 
-func createHTTPRouteDestination(dest Destination, weight int32)(HTTPRouteDestination) {
+func createHTTPMatchPrefix(value string)(StringMatchPrefix) {
+	var mprefix = StringMatchPrefix {
+		Prefix: value,
+	}
+	return mprefix
+}
+
+func createHTTPRouteDestination(dest Destination)(HTTPRouteDestination) {
 	var httpRoutedest = HTTPRouteDestination {
 		Dest:   dest,
-		Weight: weight,
 	}
 	return httpRoutedest
 }
 
-func createHTTPRoute(route []HTTPRouteDestination)(HTTPRoute) {
+func createHTTPRoute(name string, route []HTTPRouteDestination, match []HTTPMatchRequest)(HTTPRoute) {
 	var httpRoute = HTTPRoute {
+		Name: name,
+		Match: match,
 		Route: route,
 	}
 
