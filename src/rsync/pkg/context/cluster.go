@@ -5,6 +5,7 @@ package context
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"time"
 
@@ -48,6 +49,7 @@ func (r *resProvd) handleResources(ctx context.Context, op RsyncOperation, resou
 		handledRes = 0
 		// Handle all resources in order
 		for _, res := range resources {
+			fmt.Println("Resource: ", res)
 			ref, breakonError, err = r.handleResource(ctx, op, res, ref)
 			if err != nil {
 				log.Error("Error in resource", log.Fields{"error": err, "cluster": r.cluster, "resource": res})
@@ -194,6 +196,7 @@ func (r *resProvd) instantiateResource(name string, ref interface{}) (interface{
 		return nil, err
 	}
 	label := r.context.statusAcID + "-" + r.app
+	fmt.Println("instantiateResource: ", string(res), label)
 	b, err := r.cl.TagResource(res, label)
 	if err != nil {
 		log.Error("Error Tag Resoruce with label:", log.Fields{"err": err, "label": label, "resource": name})

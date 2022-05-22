@@ -22,6 +22,22 @@ type InbondServerIntentSpec struct {
 	Protocol        string `json:"protocol"`
 	ExternalSupport bool   `json:"externalSupport", default:false`
 	ServiceMesh     string `json:"serviceMesh", default:"none"`
+	Management      ServiceMeshManagement `json:"management"`
+	External        ExternalInfo `json:"external"`
+}
+
+type ServiceMeshManagement struct {
+	SidecarProxy string   `json:"sidecarProxy"`
+	TlsType      string   `json:"tlsType"`
+}
+
+type ExternalInfo struct {
+	ExternalCerts  ExternalCertInfo  `json:"externalCerts"`
+}
+type ExternalCertInfo struct {
+	ServiceCertificate string `json:"serviceCertificate"`
+	ServicePrivateKey  string `json:"servicePrivateKey"`
+	CaCertificate      string `json:"caCertificate"`
 }
 
 type InboundServerIntentManager interface {

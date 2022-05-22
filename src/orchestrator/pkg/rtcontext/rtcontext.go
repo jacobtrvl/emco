@@ -9,9 +9,9 @@ import (
 	"strings"
 	"time"
 
+	pkgerrors "github.com/pkg/errors"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/contextdb"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
-	pkgerrors "github.com/pkg/errors"
 )
 
 const maxrand = 0x7fffffffffffffff
@@ -24,6 +24,7 @@ type RunTimeContext struct {
 
 type Rtcontext interface {
 	RtcInit() (interface{}, error)
+	RtcInitWithValue(value interface{}) (interface{}, error)
 	RtcLoad(interface{}) (interface{}, error)
 	RtcCreate() (interface{}, error)
 	RtcAddMeta(meta interface{}) error
@@ -51,7 +52,24 @@ func (rtc *RunTimeContext) RtcInit() (interface{}, error) {
 	cid := (prefix + id + "/")
 	rtc.cid = interface{}(cid)
 	return interface{}(id), nil
+}
 
+//Intialize context by assiging a new id
+func (rtc *RunTimeContext) RtcInitWithValue(value interface{}) (interface{}, error) {
+	if rtc.cid != nil {
+		return nil, pkgerrors.Errorf("Error, context already initialized")
+	}
+	//Check if input is of type int or int64
+	xType := fmt.Sprintf("%T", value)
+	if xType != "int64" {
+		return nil, pkgerrors.Errorf("Valid values are of type int64: Not valid type %v", xType)
+	}
+
+	id := fmt.Sprintf("%v", value)
+	cid := (prefix + id + "/")
+	rtc.cid = interface{}(cid)
+
+	return interface{}(id), nil
 }
 
 //Load context using the given id
@@ -78,7 +96,9 @@ func (rtc *RunTimeContext) RtcCreate() (interface{}, error) {
 		return nil, pkgerrors.Errorf("Not a valid run time context prefix")
 	}
 	id := strings.SplitN(cid, "/", 4)[2]
-	err := contextdb.Db.Put(cid, id)
+	// Create context only if context doesn't exist
+	// Returns error if id is in database
+	err := contextdb.Db.PutWithCheck(cid, id)
 	if err != nil {
 		return nil, pkgerrors.Errorf("Error creating run time context: %s", err.Error())
 	}

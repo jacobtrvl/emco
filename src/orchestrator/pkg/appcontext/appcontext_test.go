@@ -50,6 +50,11 @@ func (c *MockRunTimeContext) RtcInit() (interface{}, error) {
 	return id, c.Err
 }
 
+func (c *MockRunTimeContext) RtcInitWithValue(i interface{}) (interface{}, error) {
+	var id string = fmt.Sprintf("%v", i)
+	return id, c.Err
+}
+
 func (c *MockRunTimeContext) RtcLoad(id interface{}) (interface{}, error) {
 	str := "/context/" + fmt.Sprintf("%v", id) + "/"
 	return interface{}(str), c.Err

@@ -1,0 +1,11 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2021 Intel Corporation
+apiVersion: v1
+kind: Service
+metadata:
+  name: httpbin
+spec:
+  type: {{ .Values.httpbinservice.type }}
+  selector:
+    app: httpbin
+  ports: {{- .Values.httpbinservice.ports | toYaml | nindent 2 -}}

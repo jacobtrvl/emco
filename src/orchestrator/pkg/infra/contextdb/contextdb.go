@@ -4,8 +4,8 @@
 package contextdb
 
 import (
-	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/config"
 	pkgerrors "github.com/pkg/errors"
+	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/config"
 )
 
 // Db interface used to talk a concrete Database connection
@@ -25,6 +25,8 @@ type ContextDb interface {
 	Get(key string, value interface{}) error
 	// Returns all keys with a prefix
 	GetAllKeys(path string) ([]string, error)
+	// Put values in Etcd DB and check if already present
+	PutWithCheck(key string, value interface{}) error
 }
 
 // createContextDBClient creates the DB client

@@ -8,14 +8,13 @@ import (
 	"encoding/json"
 	"fmt"
 	k8spluginv1alpha1 "gitlab.com/project-emco/core/emco-base/src/monitor/pkg/apis/k8splugin/v1alpha1"
-	"log"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	"log"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -303,7 +302,12 @@ func UpdateResourceStatusCR(cr *k8spluginv1alpha1.ResourceBundleState, item *uns
 		if (rstatus.Group == group) && (rstatus.Version == version) && (rstatus.Kind == kind) && (rstatus.Name == name) && (rstatus.Namespace == namespace) {
 			found = true
 			// Replace
-			res.DeepCopyInto(&rstatus)
+			resBytes, err := json.Marshal(item)
+			if err != nil {
+				log.Println("json Marshal error for resource::", item, err)
+				return found, err
+			}
+			rstatus.Res = resBytes
 			break
 		}
 	}

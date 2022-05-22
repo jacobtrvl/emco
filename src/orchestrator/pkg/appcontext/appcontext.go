@@ -105,6 +105,13 @@ func (ac *AppContext) InitAppContext() (interface{}, error) {
 	return ac.rtc.RtcInit()
 }
 
+// Init app context
+func (ac *AppContext) InitAppContextWithValue(cid interface{}) (interface{}, error) {
+	ac.rtcObj = rtcontext.RunTimeContext{}
+	ac.rtc = &ac.rtcObj
+	return ac.rtc.RtcInitWithValue(cid)
+}
+
 // Load app context that was previously created
 func (ac *AppContext) LoadAppContext(cid interface{}) (interface{}, error) {
 	ac.rtcObj = rtcontext.RunTimeContext{}

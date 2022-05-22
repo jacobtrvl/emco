@@ -64,10 +64,16 @@
                 "cert-manager.io"
               ],
               "default": "cert-manager.io"
+            },
+            "version": {
+              "description": "group of the issuer",
+              "type": "string"
             }
           },
           "required": [
-            "name"
+            "name",
+            "group",
+            "kind"
           ]
         },
         "duration" : {
@@ -97,7 +103,7 @@
             "clusterProvider"
           ]
         },
-        "template": {
+        "csrInfo": {
           "description": "represent the certificate signining request(CSR) template",
           "type": "object",
           "properties": {
@@ -222,7 +228,7 @@
                     }                      
                   }
                 },
-                "names": {
+                "commonNamePrefix": {
                   "description": "name details",
                   "type": "object",
                   "properties": {

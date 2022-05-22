@@ -1,0 +1,158 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2022 Intel Corporation
+
+#create deployment intent group
+version: emco/v2
+resourceContext:
+  anchor: projects/{{ .ProjectName }}/composite-apps/{{ .CompositeApp }}/{{ .CompositeAppVersion }}/deployment-intent-groups
+metadata :
+  name: {{ .DeploymentIntentGroup }}
+  description: "description"
+spec:
+  compositeProfile: {{ .CompositeProfile }} 
+  version: r1
+  logicalCloud: {{ .LogicalCloud }}
+  overrideValues: []
+
+---
+#create intent in deployment intent group
+version: emco/v2
+resourceContext:
+  anchor: projects/{{ .ProjectName }}/composite-apps/{{ .CompositeApp }}/{{ .CompositeAppVersion }}/deployment-intent-groups/{{ .DeploymentIntentGroup }}/intents
+metadata :
+  name: {{ .DeploymentIntent }}
+spec:
+  intent:
+    genericPlacementIntent: {{ .GenericPlacementIntent }}
+    dtc: {{ .DtcIntent }}
+
+---
+#create the generic placement intent
+version: emco/v2
+resourceContext:
+  anchor: projects/{{ .ProjectName }}/composite-apps/{{ .CompositeApp }}/{{ .CompositeAppVersion }}/deployment-intent-groups/{{ .DeploymentIntentGroup }}/generic-placement-intents
+metadata :
+  name: {{ .GenericPlacementIntent }}
+
+{{- range $index, $app := .AppsInCluster1 }}
+---
+#add the app placement intent to the generic placement intent for cluster1
+version: emco/v2
+resourceContext:
+  anchor: projects/{{ $.ProjectName }}/composite-apps/{{ $.CompositeApp }}/{{ $.CompositeAppVersion }}/deployment-intent-groups/{{ $.DeploymentIntentGroup }}/generic-placement-intents/{{ $.GenericPlacementIntent }}/app-intents
+metadata:
+  name: {{ $app }}-placement-intent
+spec:
+  app: {{ $app }}
+  intent:
+    allOf:
+    - clusterProvider: {{ $.ClusterProvider }}
+      clusterLabel: {{ $.Cluster1Label }}
+{{- end }}
+
+---
+#create the generic placement intent
+version: emco/v2
+resourceContext:
+  anchor: projects/{{ .ProjectName }}/composite-apps/{{ .CompositeApp }}/{{ .CompositeAppVersion }}/deployment-intent-groups/{{ .DeploymentIntentGroup }}/generic-placement-intents
+metadata :
+  name: {{ .GenericPlacementIntent2 }}
+
+{{- range $index, $app := .AppsInCluster2 }}
+---
+#add the app placement intent to the generic placement intent for cluster2
+version: emco/v2
+resourceContext:
+  anchor: projects/{{ $.ProjectName }}/composite-apps/{{ $.CompositeApp }}/{{ $.CompositeAppVersion }}/deployment-intent-groups/{{ $.DeploymentIntentGroup }}/generic-placement-intents/{{ $.GenericPlacementIntent }}/app-intents
+metadata:
+  name: {{ $app }}-placement-intent
+spec:
+  app: {{ $app }}
+  intent:
+    allOf:
+    - clusterProvider: {{ $.ClusterProvider }}
+      clusterLabel: {{ $.Cluster2Label }}
+{{- end }}
+
+---
+#add the traffic group intent
+version: emco/v2
+resourceContext:
+  anchor: projects/{{ .ProjectName }}/composite-apps/{{ .CompositeApp }}/{{ .CompositeAppVersion }}/deployment-intent-groups/{{ .DeploymentIntentGroup }}/traffic-group-intents
+metadata:
+  name: {{ .DtcIntent }}
+---
+#add the server intent
+version: emco/v2
+resourceContext:
+  anchor: projects/{{ .ProjectName }}/composite-apps/{{ .CompositeApp }}/{{ .CompositeAppVersion }}/deployment-intent-groups/{{ .DeploymentIntentGroup }}/traffic-group-intents/{{ .DtcIntent }}/inbound-intents
+metadata:
+  name: {{ .DtcHttpbinServerIntent }}
+spec:
+  app: httpbin
+  appLabel: app=httpbin
+  serviceName: httpbin
+  externalName: httpbin.example.com
+  port: 8000
+  protocol: TCP
+  serviceMesh: istio
+  externalSupport: true
+  management:
+    sidecarProxy: yes
+    tlsType: MUTUAL
+  external:
+    externalCerts:
+      serviceCertificate: {{ .ServiceCertificate }}
+      servicePrivateKey: {{ .ServicePrivateKey }}
+      caCertificate: {{ .CaCertificate }}
+
+---
+#add the server intent
+version: emco/v2
+resourceContext:
+  anchor: projects/{{ .ProjectName }}/composite-apps/{{ .CompositeApp }}/{{ .CompositeAppVersion }}/deployment-intent-groups/{{ .DeploymentIntentGroup }}/traffic-group-intents/{{ .DtcIntent }}/inbound-intents
+metadata:
+  name: {{ .DtcHttpbinServerIntentHTTP }}
+spec:
+  app: httpbin
+  appLabel: app=httpbin
+  serviceName: httpbin
+  externalName: httpbin.example.com
+  port: 8000
+  protocol: TCP
+  serviceMesh: istio
+  externalSupport: true
+  management:
+    sidecarProxy: yes
+    tlsType: NONE
+---
+#add the client intent
+version: emco/v2
+resourceContext:
+  anchor: projects/{{ .ProjectName }}/composite-apps/{{ .CompositeApp }}/{{ .CompositeAppVersion }}/deployment-intent-groups/{{ .DeploymentIntentGroup }}/traffic-group-intents/{{ .DtcIntent }}/inbound-intents/{{ .DtcHttpbinServerIntent }}/clients
+metadata:
+  name: {{ .DtcClientsIntent }}
+spec:
+  app: sleep
+  appLabel: app=sleep
+  serviceName: sleep
+  namespaces: []
+  cidrs: []
+
+---
+#add the client access intent
+version: emco/v2
+resourceContext:
+  anchor: projects/{{ .ProjectName }}/composite-apps/{{ .CompositeApp }}/{{ .CompositeAppVersion }}/deployment-intent-groups/{{ .DeploymentIntentGroup }}/traffic-group-intents/{{ .DtcIntent }}/inbound-intents/{{ .DtcHttpbinServerIntent }}/clients/{{ .DtcClientsIntent }}/access-points
+metadata:
+  name: {{ .DtcClientsAccessIntent }}
+spec:
+  action: "ALLOW"
+  url: ["/status/*", "/status/418"]
+  access: ["GET"]
+---
+#Approve
+version: emco/v2
+resourceContext:
+  anchor: projects/{{ .ProjectName }}/composite-apps/{{ .CompositeApp }}/{{ .CompositeAppVersion }}/deployment-intent-groups/{{ .DeploymentIntentGroup }}/approve
+

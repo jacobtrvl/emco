@@ -15,7 +15,7 @@ type InboundClientsAccessIntent struct {
 
 type InboundClientsAccessIntentSpec struct {
 	Action  string   `json:"action"`
-	Url     string   `json:"url"`
+	Url     []string `json:"url"`
 	Access  []string `json:"access"`
 }
 

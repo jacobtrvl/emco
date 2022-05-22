@@ -1,0 +1,8 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2022 Intel Corporation
+apiVersion: v2
+name: clientservice
+description: A Helm chart for clientservice
+type: application
+version: 0.1.0
+appVersion: "0.1.0"

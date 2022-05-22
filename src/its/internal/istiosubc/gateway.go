@@ -32,6 +32,7 @@ type Server struct {
 
 type ServerTLSSettings struct {
 	Mode string `yaml:"mode,omitempty"`
+	CredentialName string `yaml:"credentialName,omitempty"`
 }
 
 func createServerItem(port Port, bind string, hosts []string, tls ServerTLSSettings, name string) (Server){

@@ -575,6 +575,7 @@ func (c *Context) runCluster(ctx context.Context, op RsyncOperation, e RsyncEven
 		}
 		// Install main resources without wait
 		log.Info("Installing main resources", log.Fields{"App": app, "cluster": cluster, "resources": c.ca.Apps[app].Clusters[cluster].ResOrder})
+		fmt.Println("InstantiateEvent: ", ctx, op, c.ca.Apps[app].Clusters[cluster].ResOrder)
 		i, err := r.handleResources(ctx, op, c.ca.Apps[app].Clusters[cluster].ResOrder)
 		// handle status tracking before exiting if at least one resource got handled
 		if i > 0 {

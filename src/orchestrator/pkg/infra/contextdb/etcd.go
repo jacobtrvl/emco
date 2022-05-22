@@ -160,3 +160,32 @@ func (e *EtcdClient) Delete(key string) error {
 func (e *EtcdClient) HealthCheck() error {
 	return nil
 }
+
+// Put values in Etcd DB and check if already present
+func (e *EtcdClient) PutWithCheck(key string, value interface{}) error {
+	cli := getEtcd(e)
+	if cli == nil {
+		return pkgerrors.Errorf("Etcd Client not initialized")
+	}
+	if key == "" {
+		return pkgerrors.Errorf("Key is null")
+	}
+	if value == nil {
+		return pkgerrors.Errorf("Value is nil")
+	}
+	v, err := json.Marshal(value)
+	if err != nil {
+		return pkgerrors.Errorf("Json Marshal error: %s", err.Error())
+	}
+	opts := []clientv3.OpOption{}
+	opts = append(opts, clientv3.WithPrevKV())
+	resp, err := cli.Put(context.Background(), key, string(v), opts...)
+	if err != nil {
+		return pkgerrors.Errorf("Error creating etcd entry: %s", err.Error())
+	}
+	// Check if this key was already present
+	if resp.PrevKv != nil && len(resp.PrevKv.Key) > 0 {
+		return pkgerrors.Errorf("Key exists %v", string(resp.PrevKv.Key))
+	}
+	return nil
+}
