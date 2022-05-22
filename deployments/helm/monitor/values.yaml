@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright (c) 2020 Intel Corporation
-registryPrefix:
-tag:
+registryPrefix: nst1-08.jf.intel.com/emco/
+tag: latest
 
 workingDir: /opt/emco/monitor
 git:

@@ -6,10 +6,10 @@ package emcogit
 import (
 	"context"
 
-	emcogithub "gitlab.com/project-emco/core/emco-base/src/rsync/pkg/gitops/emcogithub"
-	gogithub "github.com/google/go-github/v41/github"
 	"github.com/fluxcd/go-git-providers/gitprovider"
+	gogithub "github.com/google/go-github/v41/github"
 	pkgerrors "github.com/pkg/errors"
+	emcogithub "gitlab.com/project-emco/core/emco-base/src/rsync/pkg/gitops/emcogithub"
 )
 
 /*
@@ -133,11 +133,11 @@ func DeleteRepo(ctx context.Context, c interface{}, userName string, repoName st
 	params : context, git client, User Name, Repo Name, Branch Name, Commit Message, files
 	return : nil/error
 */
-func CommitFiles(ctx context.Context, c interface{}, userName string, repoName string, branch string, commitMessage string, files interface{}, gitType string) error {
+func CommitFiles(ctx context.Context, c interface{}, userName string, repoName string, branch string, commitMessage string, appName string, files interface{}, gitType string) error {
 
 	switch gitType {
 	case "github":
-		err := emcogithub.CommitFiles(ctx, convertToClient(c), userName, repoName, branch, commitMessage, convertToCommitFile(files))
+		err := emcogithub.CommitFiles(ctx, convertToClient(c), userName, repoName, branch, commitMessage, appName, convertToCommitFile(files))
 		if err != nil {
 			return err
 		}
@@ -177,7 +177,7 @@ func Delete(path string, files interface{}, gitType string) interface{} {
 	return nil
 }
 
-func GetFiles(ctx context.Context, c interface{}, userName, repoName, branch, path, gitType string) ( interface{}, error) {
+func GetFiles(ctx context.Context, c interface{}, userName, repoName, branch, path, gitType string) (interface{}, error) {
 	switch gitType {
 	case "github":
 		ref, err := emcogithub.GetFiles(ctx, convertToClient(c), userName, repoName, branch, path)
@@ -200,4 +200,29 @@ func GetLatestCommitSHA(ctx context.Context, c interface{}, userName, repoName, 
 	}
 	//Add other types like gitlab, bitbucket etc
 	return "", nil
+}
+
+// Function to check if file exists
+func CheckIfFileExists(ctx context.Context, c interface{}, userName, repoName, branch, path, gitType string) (bool, error) {
+	switch gitType {
+	case "github":
+		check, err := emcogithub.CheckIfFileExists(ctx, convertToGithubClient(c), userName, repoName, branch, path)
+		return check, err
+	}
+	//Add other types like gitlab, bitbucket etc
+	return false, nil
+}
+
+// Function to delete the branch
+func DeleteBranch(ctx context.Context, c interface{}, userName, repoName, mergeBranch, gitType string) error {
+	switch gitType {
+	case "github":
+		err := emcogithub.DeleteBranch(ctx, convertToGithubClient(c), userName, repoName, mergeBranch)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+	//Add other types like gitlab, bitbucket etc
+	return pkgerrors.New("Git Provider type not supported")
 }
