@@ -5,9 +5,8 @@ package fluxv2
 
 import (
 	"context"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"gitlab.com/project-emco/core/emco-base/src/rsync/pkg/internal/utils"
-
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 // StartClusterWatcher watches for CR changes in git location

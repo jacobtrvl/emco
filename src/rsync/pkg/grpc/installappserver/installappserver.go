@@ -49,8 +49,7 @@ func (cs *installappServer) UninstallApp(ctx context.Context, req *installapp.Un
 	return &installapp.UninstallAppResponse{AppContextUninstalled: true}, nil
 }
 
-
-func (cs *installappServer) ReadAppContext(ctx context.Context, req *installapp.ReadAppContextRequest) (*installapp.ReadAppContextResponse, error){
+func (cs *installappServer) ReadAppContext(ctx context.Context, req *installapp.ReadAppContextRequest) (*installapp.ReadAppContextResponse, error) {
 	readAppContext, _ := json.Marshal(req)
 	log.Println("GRPC Server received ReadAppContext: ", string(readAppContext))
 

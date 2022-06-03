@@ -53,7 +53,6 @@ var TestCA CompositeApp = CompositeApp{
 
 func TestInstantiateTerminate(t *testing.T) {
 
-
 	cid, _ := CreateCompApp(TestCA)
 	con := NewProvider(cid)
 

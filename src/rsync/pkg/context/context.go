@@ -117,6 +117,7 @@ func (c *Context) EnqueueToAppContext(a interface{}, ucid interface{}, e RsyncEv
 	c.Lock.Unlock()
 	return nil
 }
+
 //
 func (c *Context) StopDeleteStatusCRTimer(key string) {
 	// Acquire Mutex
@@ -134,6 +135,7 @@ func (c *Context) UpdateDeleteStatusCRTimer(key string, timer *time.Timer) {
 	c.timerList[key] = timer
 
 }
+
 // RestartAppContext called in Restart scenario to handle an AppContext
 func RestartAppContext(a interface{}, con Connector) error {
 	var err error

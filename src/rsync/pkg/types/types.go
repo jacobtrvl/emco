@@ -227,7 +227,6 @@ type StatusProvider interface {
 type ReferenceProvider interface {
 	ApplyConfig(ctx context.Context, config interface{}) error
 	DeleteConfig(ctx context.Context, config interface{}) error
-
 }
 
 // Client Provider provides functionality to interface with the cluster

@@ -5,14 +5,13 @@ package utils
 
 import (
 	"encoding/base64"
-	"strings"
 	pkgerrors "github.com/pkg/errors"
+	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
+	mtypes "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/module/types"
+	"gitlab.com/project-emco/core/emco-base/src/rsync/pkg/db"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
-	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
-	"gitlab.com/project-emco/core/emco-base/src/rsync/pkg/db"
-	mtypes "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/module/types"
-
+	"strings"
 )
 
 // DecodeYAMLData reads a string to extract the Kubernetes object definition
@@ -43,7 +42,7 @@ var GetKubeConfig = func(clustername string, level string, namespace string) ([]
 	log.Info("Querying CloudConfig", log.Fields{"strs": strs, "level": level, "namespace": namespace})
 	cconfig, err := ccc.GetCloudConfig(strs[0], strs[1], level, namespace)
 	if err != nil {
-		return nil, pkgerrors.New("Get kubeconfig failed")
+		return nil, pkgerrors.Wrap(err, "Get kubeconfig failed")
 	}
 	log.Info("Successfully looked up CloudConfig", log.Fields{".Provider": cconfig.Provider, ".Cluster": cconfig.Cluster, ".Level": cconfig.Level, ".Namespace": cconfig.Namespace})
 

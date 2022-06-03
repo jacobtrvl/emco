@@ -340,18 +340,33 @@ func (v *ClusterClient) GetClusterConfig(project, logicalCloud, clusterReference
 	if err != nil {
 		return "", pkgerrors.Wrap(err, "Error getting logical cloud")
 	}
-	// get user's private key
-	privateKeyData, err := db.DBconn.Find(v.storeName, lckey, "privatekey")
-	if err != nil {
-		return "", pkgerrors.Wrap(err, "Error getting private key from logical cloud")
-	}
 
 	// get cluster from dcm (need provider/name)
 	cluster, err := v.GetCluster(project, logicalCloud, clusterReference)
 	if err != nil {
 		return "", pkgerrors.Wrap(err, "Error getting cluster")
 	}
+	ccc := rsync.NewCloudConfigClient()
+	gitOps, err := IsGitOpsCluster(strings.Join([]string{cluster.Specification.ClusterProvider, "+", cluster.Specification.ClusterName}, ""))
+	if err != nil {
+		return "", pkgerrors.Wrap(err, "Error reading admin cloud config")
+	}
+	if gitOps {
 
+		// Create a record in Rsync for logical cloud
+		_, err = ccc.CreateCloudConfig(
+			cluster.Specification.ClusterProvider,
+			cluster.Specification.ClusterName,
+			lc.Specification.Level,
+			lc.Specification.NameSpace,
+			"")
+		if err != nil {
+			if err.Error() != "CloudConfig already exists" {
+				return "", pkgerrors.Wrap(err, "Failed creating a new gitOps logical cloud in rsync's CloudConfig")
+			}
+		}
+		return "", nil
+	}
 	// before attempting to generate a kubeconfig,
 	// check if certificate has been issued and copy it from etcd to mongodb
 	if cluster.Specification.Certificate == "" {
@@ -424,7 +439,6 @@ func (v *ClusterClient) GetClusterConfig(project, logicalCloud, clusterReference
 	}
 
 	// get kubeconfig from L0 cloudconfig respective to the cluster referenced by this logical cloud
-	ccc := rsync.NewCloudConfigClient()
 	cconfig, err := ccc.GetCloudConfig(cluster.Specification.ClusterProvider, cluster.Specification.ClusterName, "0", "")
 	if err != nil {
 		return "", pkgerrors.New("Failed fetching kubeconfig from rsync's CloudConfig")
@@ -439,6 +453,12 @@ func (v *ClusterClient) GetClusterConfig(project, logicalCloud, clusterReference
 	err = yaml.Unmarshal(adminConfig, &adminKubeConfig)
 	if err != nil {
 		return "", pkgerrors.Wrap(err, "Failed parsing CloudConfig's kubeconfig yaml")
+	}
+
+	// get user's private key
+	privateKeyData, err := db.DBconn.Find(v.storeName, lckey, "privatekey")
+	if err != nil {
+		return "", pkgerrors.Wrap(err, "Error getting private key from logical cloud")
 	}
 
 	// all data needed for final kubeconfig:

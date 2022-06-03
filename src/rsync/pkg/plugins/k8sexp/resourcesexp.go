@@ -8,21 +8,22 @@ import (
 	"io/ioutil"
 	"os"
 
+	pkgerrors "github.com/pkg/errors"
 	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
+	"gitlab.com/project-emco/core/emco-base/src/rsync/pkg/internal/utils"
 	"gitlab.com/project-emco/core/emco-base/src/rsync/pkg/status"
 	. "gitlab.com/project-emco/core/emco-base/src/rsync/pkg/types"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	pkgerrors "github.com/pkg/errors"
-	"gitlab.com/project-emco/core/emco-base/src/rsync/pkg/internal/utils"
 	"strings"
 )
+
 type approval struct {
 	name string
-	res []byte
+	res  []byte
 }
 type reference struct {
-	op RsyncOperation 
-	filepath string
+	op          RsyncOperation
+	filepath    string
 	approveList []approval
 }
 
@@ -35,7 +36,7 @@ func appendRef(ref interface{}, b []byte, op RsyncOperation, apv ...approval) in
 	default:
 		exists = false
 
-	} 
+	}
 	var rf *reference
 	// Create rf is doesn't exist
 	if !exists {
@@ -45,7 +46,7 @@ func appendRef(ref interface{}, b []byte, op RsyncOperation, apv ...approval) in
 			return nil
 		}
 		rf = &reference{
-			op: op,
+			op:       op,
 			filepath: f.Name(),
 		}
 	} else {
@@ -54,17 +55,17 @@ func appendRef(ref interface{}, b []byte, op RsyncOperation, apv ...approval) in
 	// If the file doesn't exist, create it, or append to the file
 	f, err := os.OpenFile(rf.filepath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
-		log.Error("Error opening file",log.Fields{"err": err, "filepath": rf.filepath})
+		log.Error("Error opening file", log.Fields{"err": err, "filepath": rf.filepath})
 		return rf
 	}
 	defer f.Close()
 	// Write seperator
 	if _, err := f.Write([]byte("\n---\n")); err != nil {
-		log.Error("Error appending file",log.Fields{"err": err, "filepath": rf.filepath})
+		log.Error("Error appending file", log.Fields{"err": err, "filepath": rf.filepath})
 		return rf
 	}
 	if _, err := f.Write(b); err != nil {
-		log.Error("Error appending file",log.Fields{"err": err, "filepath": rf.filepath})
+		log.Error("Error appending file", log.Fields{"err": err, "filepath": rf.filepath})
 	}
 	rf.approveList = append(rf.approveList, apv...)
 	return rf
@@ -82,6 +83,7 @@ func (p *K8sProviderExp) Create(name string, ref interface{}, content []byte) (i
 	ref = appendRef(ref, b, OpCreate)
 	return ref, nil
 }
+
 // Apply resource to the cluster
 func (p *K8sProviderExp) Apply(name string, ref interface{}, content []byte) (interface{}, error) {
 	var apv approval
@@ -112,12 +114,14 @@ func (p *K8sProviderExp) Apply(name string, ref interface{}, content []byte) (in
 	}
 	return ref, nil
 }
+
 // Delete resource from the cluster
 func (p *K8sProviderExp) Delete(name string, ref interface{}, content []byte) (interface{}, error) {
 	ref = appendRef(ref, content, OpDelete)
 	return ref, nil
 
 }
+
 // Get resource from the cluster
 func (p *K8sProviderExp) Get(name string, gvkRes []byte) ([]byte, error) {
 	b, err := p.client.Get(gvkRes, p.namespace)
@@ -127,6 +131,7 @@ func (p *K8sProviderExp) Get(name string, gvkRes []byte) ([]byte, error) {
 	}
 	return b, nil
 }
+
 // Commit resources to the cluster
 func (p *K8sProviderExp) Commit(ctx context.Context, ref interface{}) error {
 	var exists bool
@@ -136,7 +141,7 @@ func (p *K8sProviderExp) Commit(ctx context.Context, ref interface{}) error {
 	default:
 		exists = false
 
-	} 
+	}
 	// Check for rf
 	if !exists {
 		log.Error("Commit: No ref found", log.Fields{})
@@ -167,7 +172,7 @@ func (p *K8sProviderExp) Commit(ctx context.Context, ref interface{}) error {
 				if err := p.client.Approve(apv.name, apv.res); err != nil {
 					log.Error("Failed to approve resources", log.Fields{"error": err})
 					return err
-				}		
+				}
 			}
 		}
 	case OpCreate:
@@ -176,13 +181,14 @@ func (p *K8sProviderExp) Commit(ctx context.Context, ref interface{}) error {
 				log.Warn("Resources is already present, Skipping", log.Fields{"error": err})
 				return nil
 			} else {
-				log.Error("Failed to create resources", log.Fields{"error": err, })
+				log.Error("Failed to create resources", log.Fields{"error": err})
 				return err
 			}
 		}
 	}
 	return nil
 }
+
 // IsReachable cluster reachablity test
 func (p *K8sProviderExp) IsReachable() error {
 	return p.client.IsReachable()

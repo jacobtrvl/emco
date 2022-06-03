@@ -217,6 +217,17 @@ func (a *AppContextReference) GetNamespace() (string, string) {
 	return namespace, level
 }
 
+//GetNamespace reads namespace from metadata
+func (a *AppContextReference) GetLogicalCloudInfo() (string, string, string, error) {
+
+	appmeta, err := a.ac.GetCompositeAppMeta()
+	if err != nil {
+		log.Error("Error GetLogicalCloudInfo", log.Fields{"err": err})
+		return "", "", "", err
+	}
+	return appmeta.Project, appmeta.LogicalCloud, appmeta.LogicalCloudNamespace, nil
+}
+
 // PutRes copies resource into appContext
 func (a *AppContextReference) PutRes(name string, app string, cluster string, data []byte) error {
 

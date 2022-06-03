@@ -68,9 +68,10 @@ type RoleRules struct {
 }
 
 type RoleSubjects struct {
-	Kind     string `yaml:"kind"`
-	Name     string `yaml:"name"`
-	ApiGroup string `yaml:"apiGroup"`
+	Kind      string `yaml:"kind"`
+	Name      string `yaml:"name"`
+	ApiGroup  string `yaml:"apiGroup"`
+	NameSpace string `yaml:"namespace"`
 }
 
 type RoleRef struct {
@@ -117,6 +118,29 @@ func createNamespace(logicalcloud LogicalCloud) (string, string, error) {
 	}
 
 	return string(nsData), strings.Join([]string{name, "+Namespace"}, ""), nil
+}
+
+func createServiceAccount(logicalcloud LogicalCloud) (string, string, error) {
+
+	name := logicalcloud.Specification.NameSpace
+	labels := logicalcloud.Specification.Labels
+
+	sa := Resource{
+		ApiVersion: "v1",
+		Kind:       "ServiceAccount",
+		MetaData: MetaDatas{
+			Name:      strings.Join([]string{logicalcloud.MetaData.LogicalCloudName, "-sa"}, ""),
+			Labels:    labels,
+			Namespace: logicalcloud.Specification.NameSpace,
+		},
+	}
+
+	nsData, err := yaml.Marshal(&sa)
+	if err != nil {
+		return "", "", err
+	}
+
+	return string(nsData), strings.Join([]string{name, "+ServiceAccount"}, ""), nil
 }
 
 func createRoles(logicalcloud LogicalCloud, userpermissions []UserPermission) ([]string, []string, error) {
@@ -168,7 +192,7 @@ func createRoles(logicalcloud LogicalCloud, userpermissions []UserPermission) ([
 	return datas, names, nil
 }
 
-func createRoleBindings(logicalcloud LogicalCloud, userpermissions []UserPermission) ([]string, []string, error) {
+func createRoleBindings(logicalcloud LogicalCloud, userpermissions []UserPermission, gitOpsSupport bool) ([]string, []string, error) {
 	var name string
 	var kind string
 	var kindbinding string
@@ -189,19 +213,29 @@ func createRoleBindings(logicalcloud LogicalCloud, userpermissions []UserPermiss
 			kind = "Role"
 			kindbinding = "RoleBinding"
 		}
+		var subjects []RoleSubjects
 
+		subjects = []RoleSubjects{RoleSubjects{
+			Kind:     "User",
+			Name:     logicalcloud.Specification.User.UserName,
+			ApiGroup: "",
+		},
+		}
+
+		if gitOpsSupport {
+			subjects = append(subjects, RoleSubjects{
+				Kind:      "ServiceAccount",
+				Name:      strings.Join([]string{logicalcloud.MetaData.LogicalCloudName, "-sa"}, ""),
+				NameSpace: up.Specification.Namespace,
+			})
+		}
 		roleBinding := Resource{
 			ApiVersion: "rbac.authorization.k8s.io/v1",
 			Kind:       kindbinding,
 			MetaData: MetaDatas{
 				Name: name,
 			},
-			Subjects: []RoleSubjects{RoleSubjects{
-				Kind:     "User",
-				Name:     logicalcloud.Specification.User.UserName,
-				ApiGroup: "",
-			},
-			},
+			Subjects: subjects,
 
 			RoleRefs: RoleRef{
 				Kind:     kind,
@@ -432,6 +466,11 @@ func prepL1ClusterAppContext(oldCid string, logicalcloud LogicalCloud, cluster C
 		return cleanupCompositeApp(context, err, "Error adding Cluster to AppContext", details)
 	}
 
+	gitOps, err := IsGitOpsCluster(clusterName)
+	if err != nil {
+		return pkgerrors.Wrap(err, "Error reading admin cloud config")
+	}
+
 	// Get resources to be added
 	namespace, namespaceName, err := createNamespace(logicalcloud)
 	if err != nil {
@@ -443,7 +482,7 @@ func prepL1ClusterAppContext(oldCid string, logicalcloud LogicalCloud, cluster C
 		return pkgerrors.Wrap(err, "Error Creating Roles/ClusterRoles YAMLs for logical cloud")
 	}
 
-	roleBindings, roleBindingNames, err := createRoleBindings(logicalcloud, userPermissionList)
+	roleBindings, roleBindingNames, err := createRoleBindings(logicalcloud, userPermissionList, gitOps)
 	if err != nil {
 		return pkgerrors.Wrap(err, "Error Creating RoleBindings/ClusterRoleBindings YAMLs for logical cloud")
 	}
@@ -453,39 +492,63 @@ func prepL1ClusterAppContext(oldCid string, logicalcloud LogicalCloud, cluster C
 		return pkgerrors.Wrap(err, "Error Creating Quota YAMLs for logical cloud")
 	}
 
-	// then use it to generate a CSR for the cluster being processed
-	csr, csrName, err := createUserCSR(logicalcloud, pkData)
-	if err != nil {
-		return pkgerrors.Wrap(err, "Error Creating User CSR and Key for logical cloud")
-	}
-
-	// check to see if - in case of an update - if the csr was already created for this logical cloud
-	gotCsr, oldCsr := alreadyGotCsr(oldCid, context, lcAppName, clusterName, csrName)
-	if gotCsr {
-		csr = oldCsr
-	}
-
-	approval, err := createApprovalSubresource(logicalcloud)
-	if err != nil {
-		return pkgerrors.Wrap(err, "Error Creating approval subresource for logical cloud")
-	}
-
 	// Add namespace resource to each cluster
 	_, err = context.AddResource(clusterHandle, namespaceName, namespace)
 	if err != nil {
 		return cleanupCompositeApp(context, err, "Error adding Namespace Resource to AppContext", details)
 	}
+	resorderList := []string{namespaceName}
+	if !gitOps {
+		// then use it to generate a CSR for the cluster being processed
+		csr, csrName, err := createUserCSR(logicalcloud, pkData)
+		if err != nil {
+			return pkgerrors.Wrap(err, "Error Creating User CSR and Key for logical cloud")
+		}
 
-	// Add csr resource to each cluster
-	csrHandle, err := context.AddResource(clusterHandle, csrName, csr)
-	if err != nil {
-		return cleanupCompositeApp(context, err, "Error adding CSR Resource to AppContext", details)
-	}
+		// check to see if - in case of an update - if the csr was already created for this logical cloud
+		gotCsr, oldCsr := alreadyGotCsr(oldCid, context, lcAppName, clusterName, csrName)
+		if gotCsr {
+			csr = oldCsr
+		}
 
-	// Add csr approval as a subresource of csr
-	_, err = context.AddLevelValue(csrHandle, "subresource/approval", approval)
-	if err != nil {
-		return cleanupCompositeApp(context, err, "Error approving CSR via AppContext", details)
+		approval, err := createApprovalSubresource(logicalcloud)
+		if err != nil {
+			return pkgerrors.Wrap(err, "Error Creating approval subresource for logical cloud")
+		}
+		// Add csr resource to each cluster
+		csrHandle, err := context.AddResource(clusterHandle, csrName, csr)
+		if err != nil {
+			return cleanupCompositeApp(context, err, "Error adding CSR Resource to AppContext", details)
+		}
+
+		// Add csr approval as a subresource of csr
+		_, err = context.AddLevelValue(csrHandle, "subresource/approval", approval)
+		if err != nil {
+			return cleanupCompositeApp(context, err, "Error approving CSR via AppContext", details)
+		}
+		resorderList = append(resorderList, csrName)
+
+		// Add Subresource Order and Subresource Dependency
+		subresOrder, err := json.Marshal(map[string][]string{"subresorder": []string{"approval"}})
+		if err != nil {
+			return pkgerrors.Wrap(err, "Error creating subresource order JSON")
+		}
+
+		_, err = context.AddInstruction(csrHandle, "subresource", "order", string(subresOrder))
+		if err != nil {
+			return cleanupCompositeApp(context, err, "Error adding instruction order to AppContext", details)
+		}
+	} else {
+		sa, saName, err := createServiceAccount(logicalcloud)
+		if err != nil {
+			return pkgerrors.Wrap(err, "Error Creating SA for logical cloud")
+		}
+		// Add sa resource to each cluster
+		_, err = context.AddResource(clusterHandle, saName, sa)
+		if err != nil {
+			return cleanupCompositeApp(context, err, "Error adding SA Resource to AppContext", details)
+		}
+		resorderList = append(resorderList, saName)
 	}
 
 	// Add [Cluster]Role resources to each cluster
@@ -512,14 +575,7 @@ func prepL1ClusterAppContext(oldCid string, logicalcloud LogicalCloud, cluster C
 		}
 	}
 
-	// Add Subresource Order and Subresource Dependency
-	subresOrder, err := json.Marshal(map[string][]string{"subresorder": []string{"approval"}})
-	if err != nil {
-		return pkgerrors.Wrap(err, "Error creating subresource order JSON")
-	}
-
 	// Add Resource Order
-	resorderList := []string{namespaceName, csrName}
 	resorderList = append(resorderList, quotaNames...)
 	resorderList = append(resorderList, roleNames...)
 	resorderList = append(resorderList, roleBindingNames...)
@@ -530,10 +586,6 @@ func prepL1ClusterAppContext(oldCid string, logicalcloud LogicalCloud, cluster C
 
 	// Add Resource-level Order
 	_, err = context.AddInstruction(clusterHandle, "resource", "order", string(resOrder))
-	if err != nil {
-		return cleanupCompositeApp(context, err, "Error adding instruction order to AppContext", details)
-	}
-	_, err = context.AddInstruction(csrHandle, "subresource", "order", string(subresOrder))
 	if err != nil {
 		return cleanupCompositeApp(context, err, "Error adding instruction order to AppContext", details)
 	}
@@ -735,10 +787,11 @@ func blindInstantiateL1(oldCid string, project string, logicalcloud LogicalCloud
 	// project name, logical cloud name, level="0" and namespace="default"
 	err = context.AddCompositeAppMeta(
 		appcontext.CompositeAppMeta{
-			Project:      project,
-			LogicalCloud: logicalCloudName,
-			Level:        "0",
-			Namespace:    "default"})
+			Project:               project,
+			LogicalCloud:          logicalCloudName,
+			LogicalCloudNamespace: logicalcloud.Specification.NameSpace,
+			Level:                 "0",
+			Namespace:             "default"})
 	if err != nil {
 		return context, "", cleanupCompositeApp(context, err, "Error Adding Logical Cloud Meta to AppContext", []string{logicalCloudName, cid})
 	}
@@ -1039,4 +1092,23 @@ func Stop(project string, logicalcloud LogicalCloud) error {
 	}
 
 	return nil
+}
+
+func IsGitOpsCluster(clustername string) (bool, error) {
+
+	if !strings.Contains(clustername, "+") {
+		return false, pkgerrors.New("Not a valid cluster name")
+	}
+	strs := strings.Split(clustername, "+")
+	if len(strs) != 2 {
+		return false, pkgerrors.New("Not a valid cluster name")
+	}
+
+	ccc := rsync.NewCloudConfigClient()
+
+	_, err := ccc.GetGitOpsConfig(strs[0], strs[1], "0", "")
+	if err != nil {
+		return false, nil
+	}
+	return true, nil
 }

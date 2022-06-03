@@ -38,16 +38,18 @@ func (p *Provider) GetClientProviders(app, cluster, level, namespace string) (Cl
 		log.Error("Invalid cluster name format::", log.Fields{"cluster": cluster})
 		return nil, pkgerrors.New("Invalid cluster name format")
 	}
-
 	kc, err := utils.GetKubeConfig(cluster, level, namespace)
 	if err != nil {
-		return nil, err
+		if !strings.Contains(err.Error(), "Invalid config") {
+			return nil, err
+		}
 	}
 
 	if len(kc) > 0 {
 		providerType = "k8s"
 	} else {
-		c, err := utils.GetGitOpsConfig(cluster, level, namespace)
+		// GitOps uses level "0" credentials at this time
+		c, err := utils.GetGitOpsConfig(cluster, "0", "default")
 		if err != nil {
 			return nil, err
 		}

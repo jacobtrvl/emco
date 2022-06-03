@@ -150,7 +150,7 @@ func Delete(path string, files interface{}, gitType string) interface{} {
 	return nil
 }
 
-func GetFiles(ctx context.Context, c interface{}, userName, repoName, branch, path, gitType string) ( interface{}, error) {
+func GetFiles(ctx context.Context, c interface{}, userName, repoName, branch, path, gitType string) (interface{}, error) {
 	switch gitType {
 	case "github":
 		ref, err := emcogithub.GetFiles(ctx, convertToClient(c), userName, repoName, branch, path)

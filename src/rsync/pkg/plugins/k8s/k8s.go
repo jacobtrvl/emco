@@ -10,8 +10,8 @@ import (
 
 	pkgerrors "github.com/pkg/errors"
 	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
-	"gitlab.com/project-emco/core/emco-base/src/rsync/pkg/internal/utils"
 	kubeclient "gitlab.com/project-emco/core/emco-base/src/rsync/pkg/client"
+	"gitlab.com/project-emco/core/emco-base/src/rsync/pkg/internal/utils"
 )
 
 // Connection is for a cluster
@@ -24,7 +24,6 @@ type K8sProvider struct {
 	fileName  string
 	client    *kubeclient.Client
 }
-
 
 func NewK8sProvider(cid, app, cluster, level, namespace string) (*K8sProvider, error) {
 	p := K8sProvider{

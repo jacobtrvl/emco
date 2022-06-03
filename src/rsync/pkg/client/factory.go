@@ -38,7 +38,7 @@ type factory struct {
 	Context               string
 	initOpenAPIGetterOnce sync.Once
 	openAPIGetter         *openapi.CachedOpenAPIGetter
-	openAPIParser 		  *openapi.CachedOpenAPIParser
+	openAPIParser         *openapi.CachedOpenAPIParser
 	parser                sync.Once
 }
 

@@ -264,10 +264,10 @@ func (c *Context) appContextRoutine() {
 					break
 				}
 				op = OpApply
-				// Enqueue Modify Phase for the AppContext that is being updated to
+				// Enqueue Delete Event for the AppContext that is being updated to
 				go HandleAppContext(ele.UCID, c.acID, UpdateDeleteEvent, c.con)
 			case UpdateDeleteEvent:
-				// Update AppContext to decide what needs update
+				// Update AppContext to decide what needs deleted
 				if err := c.updateDeletePhase(ele); err != nil {
 					break
 				}

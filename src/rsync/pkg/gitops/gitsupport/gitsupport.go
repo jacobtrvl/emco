@@ -6,18 +6,17 @@ package gitsupport
 import (
 	"context"
 	"fmt"
+	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 	"strings"
 	"time"
-	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
 	pkgerrors "github.com/pkg/errors"
+	v1alpha1 "gitlab.com/project-emco/core/emco-base/src/monitor/pkg/apis/k8splugin/v1alpha1"
 	"gitlab.com/project-emco/core/emco-base/src/rsync/pkg/db"
 	emcogit "gitlab.com/project-emco/core/emco-base/src/rsync/pkg/gitops/emcogit"
 	"gitlab.com/project-emco/core/emco-base/src/rsync/pkg/internal/utils"
-	v1alpha1 "gitlab.com/project-emco/core/emco-base/src/monitor/pkg/apis/k8splugin/v1alpha1"
 	"gitlab.com/project-emco/core/emco-base/src/rsync/pkg/status"
-
 )
 
 type GitProvider struct {
@@ -44,7 +43,7 @@ func NewGitProvider(cid, app, cluster, level, namespace string) (*GitProvider, e
 
 	result := strings.SplitN(cluster, "+", 2)
 
-	c, err := utils.GetGitOpsConfig(cluster, level, namespace)
+	c, err := utils.GetGitOpsConfig(cluster, "0", "default")
 	if err != nil {
 		return nil, err
 	}
@@ -210,6 +209,7 @@ func (p *GitProvider) IsReachable() error {
 
 // Wait time between reading git status (seconds)
 var waitTime int = 60
+
 // StartClusterWatcher watches for CR changes in git location
 // go routine starts and reads after waitTime
 // Thread exists when the AppContext is deleted
@@ -230,7 +230,7 @@ func (p *GitProvider) StartClusterWatcher() error {
 					// AppContext deleted - Exit thread
 					return nil
 				}
-				path :=  p.GetPath("status")
+				path := p.GetPath("status")
 				// Read file
 				c, err := emcogit.GetFiles(ctx, p.Client, p.UserName, p.RepoName, p.Branch, path, p.GitType)
 				if err != nil {
@@ -264,6 +264,6 @@ func (p *GitProvider) DeleteClusterStatusCR() error {
 	rf := []gitprovider.CommitFile{}
 	ref := emcogit.Delete(path, rf, p.GitType)
 	err := emcogit.CommitFiles(context.Background(), p.Client, p.UserName, p.RepoName, p.Branch,
-	"Commit for Delete Status CR "+p.GetPath("status"), ref, p.GitType)
+		"Commit for Delete Status CR "+p.GetPath("status"), ref, p.GitType)
 	return err
 }

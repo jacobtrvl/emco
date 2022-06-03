@@ -96,6 +96,7 @@ type CompositeAppMeta struct {
 	Level                 string   `json:"Level"`
 	ChildContextIDs       []string `json:"ChildContextIDs"`
 	LogicalCloud          string   `json:"LogicalCloud"`
+	LogicalCloudNamespace string  `json:"LogicalCloudNamespace"`
 }
 
 // Init app context
@@ -680,6 +681,7 @@ func (ac *AppContext) GetCompositeAppMeta() (CompositeAppMeta, error) {
 		}
 	}
 	lc := fmt.Sprintf("%v", datamap["LogicalCloud"])
+	lcn := fmt.Sprintf("%v", datamap["LogicalCloudNamespace"])
 
-	return CompositeAppMeta{Project: p, CompositeApp: ca, Version: v, Release: rn, DeploymentIntentGroup: dig, Namespace: namespace, Level: level, ChildContextIDs: childCtxs, LogicalCloud: lc}, nil
+	return CompositeAppMeta{Project: p, CompositeApp: ca, Version: v, Release: rn, DeploymentIntentGroup: dig, Namespace: namespace, Level: level, ChildContextIDs: childCtxs, LogicalCloud: lc, LogicalCloudNamespace: lcn}, nil
 }

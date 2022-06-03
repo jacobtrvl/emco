@@ -8,10 +8,10 @@ import (
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/appcontext"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/contextdb"
 	"gitlab.com/project-emco/core/emco-base/src/rsync/pkg/context"
-	"gitlab.com/project-emco/core/emco-base/src/rsync/pkg/status"
 	"gitlab.com/project-emco/core/emco-base/src/rsync/pkg/internal/utils"
+	"gitlab.com/project-emco/core/emco-base/src/rsync/pkg/status"
 	. "gitlab.com/project-emco/core/emco-base/src/rsync/pkg/types"
-	
+
 	"k8s.io/api/core/v1"
 )
 

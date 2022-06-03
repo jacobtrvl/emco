@@ -16,7 +16,6 @@ type updateappServer struct {
 	updateapp.UnimplementedUpdateappServer
 }
 
-
 func (cs *updateappServer) UpdateApp(ctx context.Context, req *updateapp.UpdateAppRequest) (*updateapp.UpdateAppResponse, error) {
 	updateAppReq, _ := json.Marshal(req)
 	log.Println("GRPC Server received UpdateAppRequest: ", string(updateAppReq))
@@ -30,7 +29,6 @@ func (cs *updateappServer) UpdateApp(ctx context.Context, req *updateapp.UpdateA
 	}
 	return &updateapp.UpdateAppResponse{AppContextUpdated: true}, nil
 }
-
 
 func (cs *updateappServer) RollbackApp(ctx context.Context, req *updateapp.RollbackAppRequest) (*updateapp.RollbackAppResponse, error) {
 	updateAppReq, _ := json.Marshal(req)

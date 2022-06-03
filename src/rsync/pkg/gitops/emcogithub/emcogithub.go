@@ -160,7 +160,7 @@ func Delete(path string, files []gitprovider.CommitFile) []gitprovider.CommitFil
 	params : context, github client, User Name, Repo Name, Branch Name, path)
 	return : []*gitprovider.CommitFile, nil/error
 */
-func GetFiles(ctx context.Context, c gitprovider.Client, userName string, repoName string, branch string, path string) ( []*gitprovider.CommitFile, error ){
+func GetFiles(ctx context.Context, c gitprovider.Client, userName string, repoName string, branch string, path string) ([]*gitprovider.CommitFile, error) {
 
 	// create repo reference
 	userRepoRef := getRepoRef(userName, repoName)

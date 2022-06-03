@@ -18,7 +18,7 @@ type Fluxv2Provider struct {
 
 func NewFluxv2Provider(cid, app, cluster, level, namespace string) (*Fluxv2Provider, error) {
 
-	c, err := utils.GetGitOpsConfig(cluster, level, namespace)
+	c, err := utils.GetGitOpsConfig(cluster, "0", "default")
 	if err != nil {
 		return nil, err
 	}

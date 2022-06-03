@@ -8,7 +8,6 @@ import (
 	"gitlab.com/project-emco/core/emco-base/src/rsync/pkg/plugins/k8s"
 )
 
-
 // StartClusterWatcher watches for CR
 // Same as K8s
 func (c *K8sProviderExp) StartClusterWatcher() error {
