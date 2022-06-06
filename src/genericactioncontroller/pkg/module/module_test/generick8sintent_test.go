@@ -1,7 +1,7 @@
-package module_test
-
 // SPDX-License-Identifier: Apache-2.0
 // Copyright (c) 2020 Intel Corporation
+
+package module_test
 
 import (
 	. "github.com/onsi/ginkgo"
@@ -9,6 +9,7 @@ import (
 	"github.com/pkg/errors"
 
 	"gitlab.com/project-emco/core/emco-base/src/genericactioncontroller/pkg/module"
+	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/module/types"
 )
 
 var (
@@ -131,7 +132,7 @@ func validateGenericK8sIntent(in, out module.GenericK8sIntent) {
 // mockGenericK8sIntent
 func mockGenericK8sIntent(name string) module.GenericK8sIntent {
 	return module.GenericK8sIntent{
-		Metadata: module.Metadata{
+		Metadata: types.Metadata{
 			Name:        name,
 			Description: "test intent",
 			UserData1:   "some user data 1",

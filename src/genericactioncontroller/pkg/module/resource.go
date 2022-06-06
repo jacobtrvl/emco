@@ -1,7 +1,7 @@
-package module
-
 // SPDX-License-Identifier: Apache-2.0
 // Copyright (c) 2020 Intel Corporation
+
+package module
 
 import (
 	"encoding/json"
@@ -9,12 +9,13 @@ import (
 
 	"github.com/pkg/errors"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
+	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/module/types"
 )
 
 // Resource holds the resource data
 type Resource struct {
-	Metadata Metadata     `json:"metadata"`
-	Spec     ResourceSpec `json:"spec"`
+	Metadata types.Metadata `json:"metadata"`
+	Spec     ResourceSpec   `json:"spec"`
 }
 
 // ResourceSpec holds the Kubernetes object details and the app using the object

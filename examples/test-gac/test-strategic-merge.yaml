@@ -1,0 +1,73 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2022 Intel Corporation
+
+# create Deployment netpol-web
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.CompositeAppGac}}/v1/deployment-intent-groups/{{.DeploymentIntent}}/generic-k8s-intents/{{.GacIntent}}/resources
+metadata:
+  name: deploy-web
+spec:
+  app: {{.App1}}
+  newObject: "true"
+  resourceGVK:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: deploy-web
+file:
+  deployment-web.yaml
+
+---
+# add customization for deploy-web
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.CompositeAppGac}}/v1/deployment-intent-groups/{{.DeploymentIntent}}/generic-k8s-intents/{{.GacIntent}}/resources/deploy-web/customizations
+metadata:
+  name: deploy-web-customization
+spec:
+  clusterSpecific: "false"
+  clusterInfo:
+    scope: label
+    clusterProvider: {{.ClusterProvider}}
+    cluster: "dummy"
+    clusterLabel: {{.ClusterLabel}}
+    mode: allow
+  patchType: "merge"
+files:
+  - container-patch.yaml
+---
+# create StatefulSet sts-etcd
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.CompositeAppGac}}/v1/deployment-intent-groups/{{.DeploymentIntent}}/generic-k8s-intents/{{.GacIntent}}/resources
+metadata:
+  name: sts-etcd
+spec:
+  app: {{.App1}}
+  newObject: "false"
+  resourceGVK:
+    apiVersion: apps/v1
+    kind: StatefulSet
+    name: etcd
+file:
+  statefulset-etcd.yaml
+
+---
+# add customization for etcd-statefulset
+# patch etcd-statefulset to add host alias
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.CompositeAppGac}}/v1/deployment-intent-groups/{{.DeploymentIntent}}/generic-k8s-intents/{{.GacIntent}}/resources/sts-etcd/customizations
+metadata:
+  name: sts-etcd-customization
+spec:
+  clusterSpecific: "true"
+  clusterInfo:
+    scope: label
+    clusterProvider: {{.ClusterProvider}}
+    cluster: ""
+    clusterLabel: {{.ClusterLabel}}
+    mode: allow
+  patchType: "merge"
+files:
+  - hostalias-patch.yaml

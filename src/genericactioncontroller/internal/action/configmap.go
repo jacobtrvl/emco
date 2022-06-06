@@ -1,7 +1,7 @@
-package action
-
 // SPDX-License-Identifier: Apache-2.0
 // Copyright (c) 2022 Intel Corporation
+
+package action
 
 import (
 	"encoding/base64"
@@ -25,16 +25,17 @@ type ConfigMap struct {
 
 // createConfigMap create the ConfigMap based on the JSON  patch,
 // content in the template file, and the customization file, if any
-func (o *updateOptions) createConfigMap() error {
+func (o *UpdateOptions) createConfigMap() error {
 	// create a new ConfigMap object based on the template file
-	configMap, err := newConfigMap(o.resourceContent.Content, o.resource.Spec.ResourceGVK.Name)
+	configMap, err := newConfigMap(o.resourceContent.Content, o.Resource.Spec.ResourceGVK.Name)
 	if err != nil {
 		return err
 	}
 
-	if len(o.customizationContent.Content) > 0 {
+	if len(o.CustomizationContent.Content) > 0 {
 		// apply the customization data to the ConfigMap
-		if err := handleConfigMapCustomization(configMap, o.customizationContent.Content); err != nil {
+		if err := handleConfigMapCustomization(configMap, o.CustomizationContent.Content,
+			o.Customization.Spec.ConfigMapOptions.DataKeyOptions); err != nil {
 			return err
 		}
 	}
@@ -48,19 +49,12 @@ func (o *updateOptions) createConfigMap() error {
 		return err
 	}
 
-	if strings.ToLower(o.customization.Spec.PatchType) == "json" &&
-		len(o.customization.Spec.PatchJSON) > 0 {
-		// validate the JSON patch value before applying
-		if err := o.validateJSONPatchValue(); err != nil {
-			return err
-		}
-
-		// apply the JSON patch associated with the ConfigMap customization
-		modifiedPatch, err := applyJSONPatch(o.customization.Spec.PatchJSON, value)
+	// apply the patch, if any
+	if len(o.Customization.Spec.PatchType) > 0 {
+		value, err = o.MergePatch(value)
 		if err != nil {
 			return err
 		}
-		value = modifiedPatch
 	}
 
 	// create the ConfigMap
@@ -113,9 +107,25 @@ func newConfigMap(template, name string) (*ConfigMap, error) {
 }
 
 // handleConfigMapCustomization adds the specified customization data to the ConfigMap
-func handleConfigMapCustomization(cm *ConfigMap, customizations []module.Content) error {
+func handleConfigMapCustomization(cm *ConfigMap, customizations []module.Content, dataKeyOptions []module.KeyOptions) error {
 	// the number of customization file contents and filenames should be equal and in the same order
 	for _, c := range customizations {
+		mergePatch := false
+		// exclude any patch content
+		if len(dataKeyOptions) > 0 {
+			for _, k := range dataKeyOptions {
+				if c.FileName == k.FileName && strings.ToLower(k.MergePatch) == "true" {
+					// this is a merge patch, not a customization data
+					mergePatch = true
+					break
+				}
+			}
+		}
+
+		if mergePatch {
+			continue // continue with the next customization
+		}
+
 		// check whether the key name is valid
 		if err := validateConfigMapDataKey(cm, c.KeyName); err != nil {
 			return err

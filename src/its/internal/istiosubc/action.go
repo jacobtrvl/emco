@@ -25,19 +25,41 @@ type clusterData struct {
 	GwAddress        string
 	GwExternalPort   uint32
 	GwInternalPort   uint32
+	GwHttpPort       uint32
+	GwHttpsPort      uint32
 }
 type client struct {
 	ClientName        string
 	ClientServiceName string
 	InstallClientRes  bool
 	ClusterData       []clusterData
+	AccessData        []clientAccessData
 }
 type serverData struct {
 	AppName		 string
 	ServiceName      string
 	ClusterData	 []clusterData
 	Clients		 []client
-	InstallServerRes bool
+	ExternalSvc      bool
+	AccessClients    bool
+	ExternalSvcData  externalSvcData
+}
+
+type clientAccessData struct {
+	Action		 string
+	Url              []string
+	Methods          []string
+	Hosts            []string
+}
+
+type externalSvcData struct {
+	TlsType          string
+	Certs            certs
+}
+type certs struct {
+	SvcCert          string
+	SvcKey           string
+	CaCert           string
 }
 
 // Action applies the supplied intent against the given AppContext ID
@@ -89,12 +111,27 @@ func UpdateAppContext(intentName, appContextId string) error {
 	}
 	ips := newIP{Ip: net.IP{b[0], b[1], b[2], b[3]},}
 	for _, is := range iss {
+		servers[index].ExternalSvc = false
 		if(is.Spec.ServiceMesh != "istio") {
 			log.Error("Error ISTIO not enabled for this server", log.Fields{
 				"error": err,
 				"app name": is.Spec.AppName,
 			})
 			return pkgerrors.Wrapf(err, "Error ISTIO not enabled for this server")
+		}
+		if (is.Spec.ExternalSupport && is.Spec.Management.SidecarProxy == "yes") {
+			servers[index].ExternalSvc = true
+			servers[index].ExternalSvcData.TlsType = is.Spec.Management.TlsType
+			if (servers[index].ExternalSvcData.TlsType == "MUTUAL" ||
+			    servers[index].ExternalSvcData.TlsType == "SIMPLE") {
+				servers[index].ExternalSvcData.Certs.SvcCert = is.Spec.External.ExternalCerts.ServiceCertificate
+				servers[index].ExternalSvcData.Certs.SvcKey = is.Spec.External.ExternalCerts.ServicePrivateKey
+				if (servers[index].ExternalSvcData.TlsType == "MUTUAL") {
+					servers[index].ExternalSvcData.Certs.CaCert = is.Spec.External.ExternalCerts.CaCertificate
+				} else {
+					servers[index].ExternalSvcData.Certs.CaCert = ""
+				}
+			}
 		}
 		clusters, err := ac.GetClusterNames(is.Spec.AppName)
 		if err != nil {
@@ -111,7 +148,7 @@ func UpdateAppContext(intentName, appContextId string) error {
 		lc := len(clusters)
 		servers[index].ClusterData = make([]clusterData, lc)
 		for ci, c := range clusters {
-			obj, err := getClusterKvPair(c, "istioingressgatewayaddress")
+			obj, err := getClusterKvPair(c, "istioIngressGatewayAddress")
 			if err != nil {
 				log.Error("Error getting istio ingress gateway address", log.Fields{
 					"error":    err,
@@ -120,7 +157,7 @@ func UpdateAppContext(intentName, appContextId string) error {
 					"Error getting istio ingress gateway address")
 			}
 			servers[index].ClusterData[ci].GwAddress = obj
-			obj, err = getClusterKvPair(c, "istioingressgatewayport")
+			obj, err = getClusterKvPair(c, "istioIngressGatewayPort")
 			if err != nil {
 				log.Error("Error getting istio ingress gateway port", log.Fields{
 					"error":    err,
@@ -137,7 +174,7 @@ func UpdateAppContext(intentName, appContextId string) error {
 					"Error converting port from string to uint32")
 			}
 			servers[index].ClusterData[ci].GwExternalPort = uint32(port)
-			obj, err = getClusterKvPair(c, "istioingressgatewayinternalport")
+			obj, err = getClusterKvPair(c, "istioIngressGatewayInternalPort")
 			if err != nil {
 				log.Error("Error getting istio ingress gateway internal port", log.Fields{
 					"error":    err,
@@ -154,6 +191,50 @@ func UpdateAppContext(intentName, appContextId string) error {
 					"Error converting port from string to uint32")
 			}
 			servers[index].ClusterData[ci].GwInternalPort = uint32(port)
+
+			if servers[index].ExternalSvc {
+
+				if (servers[index].ExternalSvcData.TlsType == "MUTUAL" ||
+				    servers[index].ExternalSvcData.TlsType == "SIMPLE") {
+
+					obj, err = getClusterKvPair(c, "istioIngressGatewayHttpsPort")
+					if err != nil {
+						log.Error("Error getting istio ingress gateway https port", log.Fields{
+							"error":    err,
+						})
+						return pkgerrors.Wrapf(err,
+							"Error getting istio ingress gateway https port")
+					}
+					port, err = strconv.Atoi(obj)
+					if err != nil {
+						log.Error("Error converting port from string to uint32", log.Fields{
+							"error":    err,
+						})
+						return pkgerrors.Wrapf(err,
+							"Error converting port from string to uint32")
+					}
+					servers[index].ClusterData[ci].GwHttpsPort = uint32(port)
+				} else {
+					obj, err = getClusterKvPair(c, "istioIngressGatewayHttpPort")
+					if err != nil {
+						log.Error("Error getting istio ingress gateway http port", log.Fields{
+							"error":    err,
+						})
+						return pkgerrors.Wrapf(err,
+							"Error getting istio ingress gateway http port")
+					}
+					port, err = strconv.Atoi(obj)
+					if err != nil {
+						log.Error("Error converting port from string to uint32", log.Fields{
+							"error":    err,
+						})
+						return pkgerrors.Wrapf(err,
+							"Error converting port from string to uint32")
+					}
+					servers[index].ClusterData[ci].GwHttpPort = uint32(port)
+				}
+			}
+
 			servers[index].ClusterData[ci].ClusterName = c
 			servers[index].ClusterData[ci].Reslist = make([]map[string][]byte, 0)
 		}
@@ -241,6 +322,53 @@ func UpdateAppContext(intentName, appContextId string) error {
 					return err
 				}
 			}
+			acs, err := module.NewClientsAccessInboundIntentClient().GetClientsAccessInboundIntents(project,
+				compositeapp,
+				compositeappversion,
+				deployIntentGroup,
+				intentName,
+				is.Metadata.Name,
+				ic.Metadata.Name)
+			if err != nil {
+				log.Error("Error getting access clients inbound intents", log.Fields{
+					"error": err,
+				})
+				return pkgerrors.Wrapf(err,
+					"Error getting access clients inbound intents %v under client inbound intent %v for %v/%v%v/%v not found",
+					ic.Metadata.Name, intentName, project, compositeapp, compositeappversion, deployIntentGroup)
+			}
+			la := len(acs)
+			servers[index].Clients[i].AccessData = make([]clientAccessData, la)
+			hosts := []string{}
+			for k, ac := range acs {
+				servers[index].AccessClients = true
+				servers[index].Clients[i].AccessData[k].Action = ac.Spec.Action
+				servers[index].Clients[i].AccessData[k].Url = ac.Spec.Url
+				servers[index].Clients[i].AccessData[k].Methods = ac.Spec.Access
+				h1 := is.Spec.ServiceName + "." + namespace
+				hosts = append(hosts, h1)
+				h2 := is.Spec.ServiceName + "." + namespace + "."+ "svc.cluster.local"
+				hosts = append(hosts, h2)
+				hosts = append(hosts, is.Spec.ServiceName)
+				if servers[index].ExternalSvc {
+					hosts = append(hosts, is.Spec.ExternalName)
+				}
+				servers[index].Clients[i].AccessData[k].Hosts = hosts
+			}
+		}
+		// check if external service
+		if servers[index].ExternalSvc {
+			for ci, scd := range servers[index].ClusterData {
+				err = createServerExternalResources(is, scd.ClusterName, servers, namespace, index, ci)
+				if err != nil {
+					log.Error("Error creating server external resources", log.Fields{
+						"error":    err,
+						"svc name": is.Spec.ServiceName,
+					})
+					return pkgerrors.Wrapf(err,
+						"Error creating server external resources")
+				}
+			}
 		}
 		// check if the server and clients are on the same cluster
 		for ci, scd := range servers[index].ClusterData {
@@ -265,8 +393,29 @@ func UpdateAppContext(intentName, appContextId string) error {
 					"error":    err,
 					"svc name": is.Spec.ServiceName,
 				})
-				return pkgerrors.Wrapf(err,
-					"Error creating server resources")
+				return pkgerrors.Wrapf(err, "Error creating server resources")
+			}
+		}
+		// check if the access res needs to be created
+		if servers[index].AccessClients {
+			for _, cli := range servers[index].Clients {
+				for k, acl := range cli.AccessData {
+					out, err := createAuthPolicy(is.Spec.AppName, namespace, acl.Action, acl.Methods, acl.Url, acl.Hosts)
+					if err != nil {
+						log.Error("Error creating auth policy resources", log.Fields{
+							"error":    err,
+							"svc name": is.Spec.ServiceName,
+						})
+						return pkgerrors.Wrapf(err,
+							"Error creating auth policy resources")
+					}
+					for m, _ := range servers[index].ClusterData {
+						resname := is.Spec.ServiceName + "-auth-" + strconv.Itoa(k) + strconv.Itoa(m)
+						res := make(map[string][]byte)
+						res[resname] = out
+						servers[index].ClusterData[m].Reslist = append(servers[index].ClusterData[m].Reslist, res)
+					}
+				}
 			}
 		}
 		index = index + 1
@@ -384,6 +533,80 @@ func getProviderAndCluster(c string) (string, string, error) {
 
 	return s[0], s[1], nil
 }
+
+func createServerExternalResources(is module.InboundServerIntent, c string, servers []serverData, namespace string,index, ci int)(error) {
+	host := is.Spec.ExternalName
+	hosts := []string{host}
+
+	var gwinp uint32
+	var proto, tlsmode, name string
+	switch servers[index].ExternalSvcData.TlsType {
+	case "MUTUAL":
+		gwinp = servers[index].ClusterData[ci].GwHttpsPort
+		proto = "HTTPS"
+		tlsmode = "MUTUAL"
+		name = "mutual"
+	case "SIMPLE":
+		gwinp = servers[index].ClusterData[ci].GwHttpsPort
+		proto = "HTTPS"
+		tlsmode = "SIMPLE"
+		name = "simple"
+	case "NONE":
+		gwinp = servers[index].ClusterData[ci].GwHttpPort
+		proto = "HTTP"
+		tlsmode = ""
+		name = "http"
+	default:
+		log.Error("Invalid tls type", log.Fields{
+                                        "tls type": servers[index].ExternalSvcData.TlsType,
+		})
+		return pkgerrors.New("Invalid tls type")
+	}
+	gwname := is.Spec.ServiceName + "-ext-" + name
+	res, err := createGateway("extsvc", proto, tlsmode, gwname, namespace, is.Spec.ServiceName + "-credential", hosts, gwinp)
+	if err != nil {
+		log.Error("Error creating Gateway", log.Fields{
+			"error":        err,
+			"app name":     is.Spec.ExternalName,
+			"cluster name": c,
+		})
+		return pkgerrors.Wrap(err, "Error creating Gateway")
+	}
+	servers[index].ClusterData[ci].Reslist = append(servers[index].ClusterData[ci].Reslist, res)
+
+	res, err = createVirtualService(is, hosts, namespace, gwname + "-gateway", gwinp)
+	if err != nil {
+		log.Error("Error creating Virtual Service", log.Fields{
+			"error":        err,
+			"svc name":     is.Spec.ServiceName,
+			"cluster name": c,
+		})
+		return pkgerrors.Wrap(err, "Error creating Virtual Service")
+	}
+	servers[index].ClusterData[ci].Reslist = append(servers[index].ClusterData[ci].Reslist, res)
+
+	if ( servers[index].ExternalSvcData.TlsType == "MUTUAL" ||
+	     servers[index].ExternalSvcData.TlsType == "SIMPLE") {
+
+		resname := is.Spec.ServiceName + "-credential"
+		meta := createGenericMetadata(resname, "istio-system", "")
+		data := createSecretData(servers[index].ExternalSvcData.Certs.CaCert, servers[index].ExternalSvcData.Certs.SvcCert, servers[index].ExternalSvcData.Certs.SvcKey)
+		out, err := createSecretResource(meta, "Opaque", data)
+		if err != nil {
+			log.Error("Error creating Secret resource", log.Fields{
+				"error":        err,
+				"svc name":     is.Spec.ServiceName,
+				"cluster name": c,
+			})
+			return pkgerrors.Wrap(err, "Error creating Secret resource")
+		}
+
+		res = make(map[string][]byte)
+		res[resname] = out
+		servers[index].ClusterData[ci].Reslist = append(servers[index].ClusterData[ci].Reslist, res)
+	}
+	return nil
+}
 func createServerResources(is module.InboundServerIntent, c string, servers []serverData, namespace string,index, ci int)(error) {
 	pro, clu, err := getProviderAndCluster(c)
 	if err != nil {
@@ -395,7 +618,7 @@ func createServerResources(is module.InboundServerIntent, c string, servers []se
 	host := is.Spec.ServiceName + "." + namespace + "." + pro + "." + clu
 	hosts := []string{host}
 	gwinp := servers[index].ClusterData[ci].GwInternalPort
-	res, err := createGateway(is.Spec.ServiceName, hosts, gwinp)
+	res, err := createGateway("tls", "TLS", "AUTO_PASSTHROUGH", is.Spec.ServiceName, "istio-system", "", hosts, gwinp)
 	if err != nil {
 		log.Error("Error creating Gateway", log.Fields{
 			"error":        err,
@@ -431,19 +654,20 @@ func createServerResources(is module.InboundServerIntent, c string, servers []se
 	return nil
 }
 
-func createGateway(svcname string, hosts []string, gwport uint32)(map[string][]byte, error){
+func createGateway(portname, portproto, tlsmode, svcname, namespace, credname string, hosts []string, gwport uint32)(map[string][]byte, error){
 	// Create gateway resource
 	smap := make(map[string]string)
 	smap["istio"] = "ingressgateway"
-	port := Port{Name: "tls", Number: gwport, Protocol: "TLS",}
+	port := Port{Name: portname, Number: gwport, Protocol: portproto,}
 	var sts  = ServerTLSSettings{
-		Mode:"AUTO_PASSTHROUGH",
+		Mode: tlsmode,
+		CredentialName: credname,
 	}
 	csr := createServerItem(port, "", hosts, sts, "tls")
 	var svs = []Server{csr}
 	gspec := createGatewaySpec(svs, smap)
 	resname := svcname + "-gateway"
-	meta := createGenericMetadata(resname, "istio-system", "")
+	meta := createGenericMetadata(resname, namespace, "")
 	out, err := createGatewayResource(meta, gspec)
 	if err != nil {
 		log.Error("Error creating Gateway Resource", log.Fields{
@@ -476,6 +700,37 @@ func createServerServiceEntry(is module.InboundServerIntent, hosts []string, nam
 			"svc name":     is.Spec.ServiceName,
 		})
 		return nil, pkgerrors.Wrap(err, "Error creating Servie Entry Resource")
+	}
+
+	res := make(map[string][]byte)
+	res[resname] = out
+
+	return res, nil
+}
+
+func createVirtualService(is module.InboundServerIntent, hosts []string, namespace, gatewayname string, secport uint32)(map[string][]byte, error){
+	gws := []string{gatewayname,}
+
+	resname := is.Spec.ServiceName + "-vs-" + gatewayname
+	meta := createGenericMetadata(resname, namespace, "")
+
+	port := createPortSelector(uint32(is.Spec.Port))
+	dest := createDestination(is.Spec.ServiceName, port)
+	routed := createHTTPRouteDestination(dest)
+	routeds := []HTTPRouteDestination{routed,}
+
+	routems := []HTTPMatchRequest{{Port: secport},}
+	route := createHTTPRoute(is.Spec.ServiceName + "-http-route", routeds, routems)
+
+	routes := []HTTPRoute{route,}
+	vsspec := createVirtualServiceSpec(hosts, gws, routes)
+	out, err := createVirtualServieResource(meta, vsspec)
+	if err != nil {
+		log.Error("Error creating Virtual Service Resource", log.Fields{
+			"error":        err,
+			"svc name":     is.Spec.ServiceName,
+		})
+		return nil, pkgerrors.Wrap(err, "Error creating Virtual Servie Resource")
 	}
 
 	res := make(map[string][]byte)

@@ -113,9 +113,9 @@ metadata :
   name: istioingresskvpairs
 spec:
   kv:
-    - istioingressgatewayaddress : "192.168.121.15"
-    - istioingressgatewayport: "15443"
-    - istioingressgatewayinternalport: "15443"
+    - istioIngressGatewayAddress : "192.168.121.15"
+    - istioIngressGatewayPort: "15443"
+    - istioIngressGatewayInternalPort: "15443"
 ---
 #create project
 version: emco/v2

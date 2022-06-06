@@ -18,17 +18,21 @@
         },
         "url": {
           "description": "API url",
-          "type": "string",
-          "example": "/status",
-          "maxLength": 4096,
-          "pattern": "^([/A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]$"
+          "type": "array",
+          "example": ["/status/*", "/status/418"],
+          "items": {
+            "type": "string",
+            "pattern": "^(\/)([A-Za-z0-9][-A-Za-z0-9_.\/]*)?[A-Za-z0-9*]$",
+            "maxLength": 4096
+          }
         },
         "access": {
           "description": "Access type",
           "type": "array",
           "example": ["GET", "PUT"],
           "items": {
-            "type": "string"
+            "type": "string",
+            "enum": ["GET", "PUT", "POST", "DELETE"]
           }
         }
       }

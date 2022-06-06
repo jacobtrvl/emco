@@ -1,4 +1,4 @@
-**Steps to deploy a Go application on kubernetes with helm:**
+**Steps to create server and client images **
 
 (1) Compile the code under app-code
 ```
@@ -32,5 +32,21 @@
     Note: The NodePort in values.yaml is the port exposed by the service running on K8s. Also update the tag of the image to be downloaded if required
 
 
+**Steps to create httpbin sleep with curl image **
 
+(1) Build the docker images
+```
+    cd examples/test-apps/
+    docker build -t httpbin-client -f Dockerfile_sleep .
+```
+
+(2) Tag the images with docker registry
+```
+    docker tag httpbin-:latest <docker-registry-url>/httpbin-client:1.0
+```
+
+(3) Push these images to docker registry
+```
+    docker push <docker-registry-url>/httpbin-client:1.0
+```
 

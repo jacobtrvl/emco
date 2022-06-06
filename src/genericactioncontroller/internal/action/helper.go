@@ -1,22 +1,21 @@
-package action
-
 // SPDX-License-Identifier: Apache-2.0
 // Copyright (c) 2020 Intel Corporation
+
+package action
 
 import (
 	"encoding/base64"
 	"encoding/json"
-	"fmt"
-	"net/http"
-	"net/url"
 	"strings"
 
-	jsonpatch "github.com/evanphx/json-patch"
-	"github.com/pkg/errors"
 	"gitlab.com/project-emco/core/emco-base/src/clm/pkg/cluster"
 	"gitlab.com/project-emco/core/emco-base/src/genericactioncontroller/pkg/module"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/appcontext"
+	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/yaml"
 )
 
@@ -31,55 +30,6 @@ type updateError struct {
 	message, cluster string
 	handle           interface{}
 	err              error
-}
-
-// applyJSONPatch reconciles a modified configuration with an original configuration
-func applyJSONPatch(patch []map[string]interface{}, original []byte) ([]byte, error) {
-	patchData, err := json.MarshalIndent(patch, "", " ")
-	if err != nil {
-		log.Error("Failed to marshal the customization json patch",
-			log.Fields{
-				"Patch": patch,
-				"Error": err.Error()})
-		return nil, err
-	}
-
-	originalData, err := yaml.YAMLToJSON(original)
-	if err != nil {
-		log.Error("Failed to convert the existing resource yaml to json document",
-			log.Fields{
-				"Error": err.Error(),
-			})
-		return []byte{}, err
-	}
-
-	decodedPatch, err := jsonpatch.DecodePatch([]byte(patchData))
-	if err != nil {
-		log.Error("Failed to decode the customization json patch data",
-			log.Fields{
-				"Error": err.Error(),
-			})
-		return []byte{}, err
-	}
-
-	modifiedData, err := decodedPatch.Apply(originalData)
-	if err != nil {
-		log.Error("Failed to apply the customization json patch data",
-			log.Fields{
-				"Error": err.Error()})
-		return []byte{}, err
-	}
-
-	modifiedPatch, err := yaml.JSONToYAML(modifiedData)
-	if err != nil {
-		log.Error("Failed to convert the updated json document to yaml",
-			log.Fields{
-				"Error": err.Error(),
-			})
-		return []byte{}, err
-	}
-
-	return modifiedPatch, nil
 }
 
 // isValidClusterToApplyByLabel checks if a given cluster falls under the given label and provider
@@ -143,8 +93,8 @@ func decodeString(s string) ([]byte, error) {
 }
 
 // getResourceContent retrieves the content of the Resource template from the db
-func (o *updateOptions) getResourceContent() error {
-	resourceContent, err := module.NewResourceClient().GetResourceContent(o.resource.Metadata.Name, o.appMeta.Project,
+func (o *UpdateOptions) getResourceContent() error {
+	resourceContent, err := module.NewResourceClient().GetResourceContent(o.Resource.Metadata.Name, o.appMeta.Project,
 		o.appMeta.CompositeApp, o.appMeta.Version, o.appMeta.DeploymentIntentGroup, o.intent)
 	if err != nil {
 		o.logUpdateError(
@@ -160,30 +110,32 @@ func (o *updateOptions) getResourceContent() error {
 }
 
 // getAllCustomization returns all the Customizations for the given Intent and Resource
-func (o *updateOptions) getAllCustomization() ([]module.Customization, error) {
+func (o *UpdateOptions) getAllCustomization() error {
 	customizations, err := module.NewCustomizationClient().GetAllCustomization(o.appMeta.Project,
-		o.appMeta.CompositeApp, o.appMeta.Version, o.appMeta.DeploymentIntentGroup, o.intent, o.resource.Metadata.Name)
+		o.appMeta.CompositeApp, o.appMeta.Version, o.appMeta.DeploymentIntentGroup, o.intent, o.Resource.Metadata.Name)
 	if err != nil {
 		o.logUpdateError(
 			updateError{
 				message: "Failed to get customizations",
 				err:     err})
-		return []module.Customization{}, err
+		return err
 	}
 
 	if len(customizations) == 0 {
 		log.Warn("No customization is available for the resource",
 			log.Fields{
-				"Resource": o.resource.Metadata.Name})
+				"Resource": o.Resource.Metadata.Name})
 	}
 
-	return customizations, nil
+	o.customizations = customizations
+
+	return nil
 }
 
 // getCustomizationContent retrieves the content of the Customization files from the db
-func (o *updateOptions) getCustomizationContent() error {
-	customizationContent, err := module.NewCustomizationClient().GetCustomizationContent(o.customization.Metadata.Name, o.appMeta.Project,
-		o.appMeta.CompositeApp, o.appMeta.Version, o.appMeta.DeploymentIntentGroup, o.intent, o.resource.Metadata.Name)
+func (o *UpdateOptions) getCustomizationContent() error {
+	customizationContent, err := module.NewCustomizationClient().GetCustomizationContent(o.Customization.Metadata.Name, o.appMeta.Project,
+		o.appMeta.CompositeApp, o.appMeta.Version, o.appMeta.DeploymentIntentGroup, o.intent, o.Resource.Metadata.Name)
 	if err != nil {
 		o.logUpdateError(
 			updateError{
@@ -192,14 +144,14 @@ func (o *updateOptions) getCustomizationContent() error {
 		return err
 	}
 
-	o.customizationContent = customizationContent
+	o.CustomizationContent = customizationContent
 
 	return nil
 }
 
 // getClusterNames returns a list of all clusters for a given app
-func (o *updateOptions) getClusterNames() ([]string, error) {
-	clusters, err := o.appContext.GetClusterNames(o.resource.Spec.AppName)
+func (o *UpdateOptions) getClusterNames() ([]string, error) {
+	clusters, err := o.appContext.GetClusterNames(o.Resource.Spec.AppName)
 	if err != nil {
 		o.logUpdateError(
 			updateError{
@@ -212,8 +164,8 @@ func (o *updateOptions) getClusterNames() ([]string, error) {
 }
 
 // getClusterHandle returns the handle for a given app and cluster
-func (o *updateOptions) getClusterHandle(cluster string) (interface{}, error) {
-	handle, err := o.appContext.GetClusterHandle(o.resource.Spec.AppName, cluster)
+func (o *UpdateOptions) getClusterHandle(cluster string) (interface{}, error) {
+	handle, err := o.appContext.GetClusterHandle(o.Resource.Spec.AppName, cluster)
 	if err != nil {
 		o.logUpdateError(
 			updateError{
@@ -227,7 +179,7 @@ func (o *updateOptions) getClusterHandle(cluster string) (interface{}, error) {
 }
 
 // addResource add the resource under the app and cluster
-func (o *updateOptions) addResource(handle interface{}, resource, value string) error {
+func (o *UpdateOptions) addResource(handle interface{}, resource, value string) error {
 	if _, err := o.appContext.AddResource(handle, resource, value); err != nil {
 		o.logUpdateError(
 			updateError{
@@ -241,8 +193,8 @@ func (o *updateOptions) addResource(handle interface{}, resource, value string) 
 }
 
 // getResourceInstruction returns the resource instruction for a given instruction type
-func (o *updateOptions) getResourceInstruction(cluster string) (interface{}, error) {
-	resorder, err := o.appContext.GetResourceInstruction(o.resource.Spec.AppName, cluster, "order")
+func (o *UpdateOptions) getResourceInstruction(cluster string) (interface{}, error) {
+	resorder, err := o.appContext.GetResourceInstruction(o.Resource.Spec.AppName, cluster, "order")
 	if err != nil {
 		o.logUpdateError(
 			updateError{
@@ -256,7 +208,7 @@ func (o *updateOptions) getResourceInstruction(cluster string) (interface{}, err
 }
 
 // addInstruction add instruction under the given handle and instruction type
-func (o *updateOptions) addInstruction(handle, resorder interface{}, cluster, resource string) error {
+func (o *UpdateOptions) addInstruction(handle, resorder interface{}, cluster, resource string) error {
 	v := make(map[string][]string)
 	json.Unmarshal([]byte(resorder.(string)), &v)
 	v["resorder"] = append(v["resorder"], resource)
@@ -275,8 +227,8 @@ func (o *updateOptions) addInstruction(handle, resorder interface{}, cluster, re
 }
 
 // getResourceHandle returns the handle for the given app, cluster, and resource
-func (o *updateOptions) getResourceHandle(cluster, resource string) (interface{}, error) {
-	handle, err := o.appContext.GetResourceHandle(o.resource.Spec.AppName, cluster, resource)
+func (o *UpdateOptions) getResourceHandle(cluster, resource string) (interface{}, error) {
+	handle, err := o.appContext.GetResourceHandle(o.Resource.Spec.AppName, cluster, resource)
 	if err != nil {
 		o.logUpdateError(
 			updateError{
@@ -290,7 +242,7 @@ func (o *updateOptions) getResourceHandle(cluster, resource string) (interface{}
 }
 
 // getValue returns the value for a given handle
-func (o *updateOptions) getValue(handle interface{}) (interface{}, error) {
+func (o *UpdateOptions) getValue(handle interface{}) (interface{}, error) {
 	val, err := o.appContext.GetValue(handle)
 	if err != nil {
 		o.logUpdateError(
@@ -303,14 +255,14 @@ func (o *updateOptions) getValue(handle interface{}) (interface{}, error) {
 
 	log.Info("Manifest file for the resource",
 		log.Fields{
-			"Resource":      o.resource.Spec.ResourceGVK.Name,
+			"Resource":      o.Resource.Spec.ResourceGVK.Name,
 			"Manifest-File": val.(string)})
 
 	return val, nil
 }
 
 // updateResourceValue updates the resource value using the given handle
-func (o *updateOptions) updateResourceValue(handle interface{}, value string) error {
+func (o *UpdateOptions) updateResourceValue(handle interface{}, value string) error {
 	if err := o.appContext.UpdateResourceValue(handle, value); err != nil {
 		o.logUpdateError(
 			updateError{
@@ -322,10 +274,10 @@ func (o *updateOptions) updateResourceValue(handle interface{}, value string) er
 
 	log.Info("Resource updated in appContext",
 		log.Fields{
-			"AppName":      o.resource.Spec.AppName,
+			"AppName":      o.Resource.Spec.AppName,
 			"AppMeta":      o.appMeta,
 			"Intent":       o.intent,
-			"resourceName": o.resource.Metadata.Name})
+			"resourceName": o.Resource.Metadata.Name})
 
 	return nil
 }
@@ -341,17 +293,17 @@ func logError(message, appContext, intent string, appMeta appcontext.CompositeAp
 }
 
 // logUpdateError writes the update errors to the log
-func (o *updateOptions) logUpdateError(uError updateError) {
+func (o *UpdateOptions) logUpdateError(uError updateError) {
 	fields := make(log.Fields)
 	fields["AppMeta"] = o.appMeta
-	if len(o.resource.Spec.AppName) > 0 {
-		fields["AppName"] = o.resource.Spec.AppName
+	if len(o.Resource.Spec.AppName) > 0 {
+		fields["AppName"] = o.Resource.Spec.AppName
 	}
 	if len(uError.cluster) > 0 {
 		fields["Clsuter"] = uError.cluster
 	}
-	if len(o.customization.Metadata.Name) > 0 {
-		fields["Customization"] = o.customization.Metadata.Name
+	if len(o.Customization.Metadata.Name) > 0 {
+		fields["Customization"] = o.Customization.Metadata.Name
 	}
 	if uError.err != nil {
 		fields["Error"] = uError.err.Error()
@@ -360,101 +312,67 @@ func (o *updateOptions) logUpdateError(uError updateError) {
 		fields["Handle"] = uError.handle
 	}
 	fields["Intent"] = o.intent
-	if len(o.resource.Spec.ResourceGVK.Kind) > 0 {
-		fields["Kind"] = o.resource.Spec.ResourceGVK.Kind
+	if len(o.Resource.Spec.ResourceGVK.Kind) > 0 {
+		fields["Kind"] = o.Resource.Spec.ResourceGVK.Kind
 	}
-	if len(o.resource.Metadata.Name) > 0 {
-		fields["Resource"] = o.resource.Metadata.Name
+	if len(o.Resource.Metadata.Name) > 0 {
+		fields["Resource"] = o.Resource.Metadata.Name
 	}
 
 	log.Error(uError.message, fields)
 
 }
 
-// validateJSONPatchValue looks for any HTTP URL in the JSON patch value
-// and replace it with the URL response, if needed
-func (o *updateOptions) validateJSONPatchValue() error {
-	var (
-		err          []string
-		placeholders = []string{"{clusterProvider}", "{cluster}"} // supported placeholders in the URL
-	)
-
-	for _, p := range o.customization.Spec.PatchJSON {
-		switch value := p["value"].(type) {
-		case string:
-			if strings.HasPrefix(value, "$(http") &&
-				strings.HasSuffix(value, ")$") {
-				// replace the patch value with the URL response
-				rawURL := strings.ReplaceAll(strings.ReplaceAll(value, "$(", ""), ")$", "")
-				if strings.Contains(rawURL, "/{") {
-					// look for placeholders in the URL and replace it, if needed
-					for _, ph := range placeholders {
-						if strings.Contains(rawURL, ph) {
-							switch {
-							case ph == "{clusterProvider}":
-								rawURL = strings.Replace(rawURL, ph, o.customization.Spec.ClusterInfo.ClusterProvider, -1) // -1-> replace all the instances
-							case ph == "{cluster}":
-								rawURL = strings.Replace(rawURL, ph, o.customization.Spec.ClusterInfo.ClusterName, -1) // -1-> replace all the instances
-							}
-						}
-					}
-				}
-
-				val, e := getJSONPatchValueFromExternalService(rawURL)
-				if e != nil {
-					err = append(err, e.Error())
-					continue // verify the value for all the patches and capture errors if there are any
-				}
-				// update the patch value with the response
-				p["value"] = val
-			}
-		}
+// getResourceStructFromGVK returns the resource object struct
+func getResourceStructFromGVK(apiVersion, kind string) (runtime.Object, error) {
+	resourceGVK := schema.GroupVersionKind{Kind: kind}
+	gv, err := schema.ParseGroupVersion(apiVersion)
+	if err != nil {
+		log.Error("Failed to get the group version struct",
+			log.Fields{
+				"APIVersion": apiVersion,
+				"Kind":       kind,
+				"Error":      err.Error()})
 	}
 
-	if len(err) > 0 {
-		return errors.New(strings.Join(err, "\n"))
+	resourceGVK = schema.GroupVersionKind{Group: gv.Group, Version: gv.Version, Kind: kind}
+	obj, err := scheme.Scheme.New(resourceGVK)
+	if err != nil {
+		log.Error("Failed to get the resource object struct using the resource GVK",
+			log.Fields{
+				"APIVersion": apiVersion,
+				"Kind":       kind,
+				"Error":      err.Error()})
+
 	}
 
-	return nil
+	return obj, err
 }
 
-// getJSONPatchValueFromExternalService invoke the URL and returns the value
-func getJSONPatchValueFromExternalService(rawURL string) (interface{}, error) {
-	u, err := url.ParseRequestURI(rawURL)
+// yamlToJson convert yaml document to json
+func yamlToJson(y []byte) ([]byte, error) {
+	data, err := yaml.YAMLToJSON(y)
 	if err != nil {
-		log.Error("Failed to parse the raw URL into a URL structure",
-			log.Fields{
-				"URL":   rawURL,
-				"Error": err.Error()})
-		return nil, err
+		logutils.Error("Failed to convert yaml to json document",
+			logutils.Fields{
+				"Error": err.Error(),
+			})
+		return []byte{}, err
 	}
 
-	resp, err := http.Get(u.String())
+	return data, nil
+}
+
+// jsonToYaml convert json document to yaml
+func jsonToYaml(j []byte) ([]byte, error) {
+	data, err := yaml.JSONToYAML(j)
 	if err != nil {
-		log.Error("Failed to get the URL response",
-			log.Fields{
-				"URL":   u.String(),
-				"Error": err.Error()})
-		return nil, err
+		logutils.Error("Failed to convert json to yaml document",
+			logutils.Fields{
+				"Error": err.Error(),
+			})
+		return []byte{}, err
 	}
 
-	if resp.StatusCode != http.StatusOK {
-		log.Error("Unexpected status code when reading patch value from the URL",
-			log.Fields{
-				"URL":        u.String(),
-				"Status":     resp.Status,
-				"StatusCode": resp.StatusCode})
-		return nil, fmt.Errorf("unexpected status code when reading patch value from %s. response: %v, code: %d", u.String(), resp.Status, resp.StatusCode)
-	}
-
-	var v map[string]interface{}
-	if err := json.NewDecoder(resp.Body).Decode(&v); err != nil {
-		return nil, err
-	}
-
-	if _, exist := v["value"]; !exist {
-		return nil, fmt.Errorf("unexpected patch value from %s. response: %v", u.String(), v)
-	}
-
-	return v["value"], nil
+	return data, nil
 }

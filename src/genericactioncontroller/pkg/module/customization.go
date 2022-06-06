@@ -1,7 +1,7 @@
-package module
-
 // SPDX-License-Identifier: Apache-2.0
 // Copyright (c) 2020 Intel Corporation
+
+package module
 
 import (
 	"encoding/json"
@@ -9,11 +9,12 @@ import (
 
 	"github.com/pkg/errors"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
+	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/module/types"
 )
 
 // Customization holds the customization data
 type Customization struct {
-	Metadata Metadata          `json:"metadata"`
+	Metadata types.Metadata    `json:"metadata"`
 	Spec     CustomizationSpec `json:"spec"`
 }
 
@@ -48,8 +49,9 @@ type SecretOptions struct {
 
 // KeyOptions holds properties for customizing ConfigMap/Secret configuration data keys
 type KeyOptions struct {
-	FileName string `json:"fileName,omitempty"`
-	KeyName  string `json:"keyName,omitempty"`
+	FileName   string `json:"fileName,omitempty"`
+	KeyName    string `json:"keyName,omitempty"`
+	MergePatch string `json:"mergePatch,omitempty"` // indicates whether the customization files contain merge patch data
 }
 
 // Content holds the configuration data for a ConfigMap/Secret

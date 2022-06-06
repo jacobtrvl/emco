@@ -244,3 +244,104 @@ Once the deployment intent group is instantiated successfully, we can see the fo
     ```shell
       $ ./setup.sh cleanup
     ```
+
+## Test Strategic Merge
+
+1. Create Prerequisites
+
+    ```shell
+      $ $bin/emcoctl apply --config emco-cfg.yaml -v values.yaml -f prerequisites.yaml
+    ```
+
+2. Create Resources and Customization in the GAC
+
+    ```shell
+      $ $bin/emcoctl apply --config emco-cfg.yaml -v values.yaml -f test-strategic-merge.yaml
+    ```
+
+3. Instantiate the GAC compositeApp deploymentIntentGroup
+
+    ```shell
+      $ $bin/emcoctl apply --config emco-cfg.yaml -v values.yaml -f instantiate.yaml
+    ```
+
+Once the deployment intent group is instantiated successfully, we can see the following resources on the edge cluster.
+
+  1. `deployment`
+
+        - deploy-web
+
+      ```shell
+        $ kubectl get deploy
+        NAME              READY   UP-TO-DATE   AVAILABLE   AGE
+        deploy-web        1/1     1            1           91s
+      ```
+
+     `The deployment will have the new container, redis, on the list`
+
+      ```shell
+        $ kubectl edit deploy deploy-web
+
+          spec:
+            template:
+              spec:
+                containers:
+                - image: redis
+                  imagePullPolicy: Always
+                  name: redis-ctr
+                  resources: {}
+                  terminationMessagePath: /dev/termination-log
+                  terminationMessagePolicy: File
+      ```
+
+  2. `statefulset`
+  
+        - etcd
+
+      ```shell
+        $ kubectl get statefulset
+        NAME            READY   AGE
+        etcd            3/3     7m25s
+      ```
+
+    `The statefulset, etcd, will have the hostAliases details`
+    
+    ```shell
+      $ kubectl edit statefulset etcd
+
+        spec:
+          template:
+            spec:
+              hostAliases:
+              - hostnames:
+                - host1
+                ip: 1.2.3.4
+    ```
+
+<b> Note: We are using the operator app in this example. You can create resources for different apps based on the use cases. <b>
+
+### Cleanup
+
+1. Delete Resources 
+
+    ```shell
+      $ $bin/emcoctl delete --config emco-cfg.yaml -v values.yaml -f instantiate.yaml
+
+      $ $bin/emcoctl delete --config emco-cfg.yaml -v values.yaml -f test-strategic-merge.yaml
+    ```
+
+    <b> Note: You cannot delete a record without deleting the dependent records (referential integrity). Please retry deleting the records if it fails. <b>
+
+2. Delete Prerequisites
+
+    ```shell
+      $ $bin/emcoctl delete --config emco-cfg.yaml -v values.yaml -f prerequisites.yaml
+    ```
+
+    <b> Note: You cannot delete a record without deleting the dependent records (referential integrity). Please retry deleting the records if it fails. <b>
+
+3. Cleanup generated files
+
+    ```shell
+      $ ./setup.sh cleanup
+    ```

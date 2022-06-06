@@ -1,7 +1,7 @@
-package module
-
 // SPDX-License-Identifier: Apache-2.0
 // Copyright (c) 2020 Intel Corporation
+
+package module
 
 import (
 	"encoding/json"
@@ -9,11 +9,12 @@ import (
 
 	"github.com/pkg/errors"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
+	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/module/types"
 )
 
 // GenericK8sIntent holds the intent data
 type GenericK8sIntent struct {
-	Metadata Metadata `json:"metadata"`
+	Metadata types.Metadata `json:"metadata"`
 }
 
 // GenericK8sIntentKey represents the resources associated with a GenericK8sIntent

@@ -156,7 +156,7 @@ GAC is an action controller registered with the central orchestrator.
             - `cluster`         : Name of the cluster. Required only if the scope is set to `name`.
             - `clusterLabel`    : A label on the cluster. Required only if the scope is set to `label`.
             - `mode`            : Determines whether the customization is allowed on a cluster or not. Set the value to `allow` to apply the customizations only to the specified set of clusters. Set the value to `deny` to apply the customizations to all clusters except those specified.
-          - `patchType`         : Specifies the patch type to modify a Kubernetes object. Set the value to `json` to modify a Kubernetes object using JSON patch.
+          - `patchType`         : Specifies the patch type to modify a Kubernetes object. Set the value to `json` to modify a Kubernetes object using JSON patch. Set the value to `merge` to update an object using Kubernetes strategic merge patch.
           - `patchJson`         : Provides the format for describing changes to a Kubernetes object. Please refer to [JSON Patch](https://github.com/evanphx/json-patch)
             - `op`              : Indicates the operation to perform. Its value MUST be one of `"add", "remove", "replace", "move", "copy", or test"`; other values are errors.
             - `path`            : References a location within the YAML definition of the Kubernetes object where the operation is performed. e.g. you can find the replica count at `/spec/replicas`
@@ -166,6 +166,7 @@ GAC is an action controller registered with the central orchestrator.
             - `dataKeyOptions`  : Maps the customization values with the configuration data key for the ConfigMap/Secret. Please refer to [Create ConfigMap/Secret](#using-customization-files)
               - `fileName`      : Name of the customization file. e.g. gameproperties.yaml
               - `keyName`       : Data key name for the ConfigMap/Secret configurations in the customization file. e.g game.properties for all the values in gameproperties.yaml
+              - `mergePatch`    : Indicates whether the customization files contain strategic merge patch data.
 
   > **NOTE**: Please see the `Generic Controller Intent` section in the [OpenAPI](../../docs/swagger-specs-for-APIs/emco_apis.yaml) for the detailed definition of APIs exposed by GAC.
 
@@ -452,6 +453,54 @@ GAC supports modifying an existing Kubernetes object. For example, you have an `
         - customization-dummy.yaml
     ```
     **NOTE**: The emcoctl requires a file to identify the request as a multipart request. You don't have to upload any customization files if you are using postman or any other direct API call (like curl). GAC will ignore the content of the customization files if it's not a ConfigMap/Secret. Customizations using files are currently supported only for ConfigMap/Secret.
+
+GAC also supports Kubernetes `strategic merge patch`. Set your patch type as `merge` in your resource customization. You can pass the patch content in the customization file. GAC will utilize the Kubernetes strategic merge patch to update the resource document with the patch data. For example, if you want to modify your Deployment container list using a strategic merge patch, 
+
+  * ##### Add the GAC intent
+    ```shell
+      version: emco/v2
+      resourceContext:
+        anchor: projects/proj1/composite-apps/gac-composite-app/v1/deployment-intent-groups/collection-deployment-intent-group/generic-k8s-intents
+      metadata:
+        name: operator-gac-intent
+    ```
+  * ##### Add resources to GAC intent
+    ```shell
+      version: emco/v2
+      resourceContext:
+        anchor: projects/proj1/composite-apps/gac-composite-app/v1/deployment-intent-groups/collection-deployment-intent-group/generic-k8s-intents/operator-gac-intent/resources
+      metadata:
+        name: "deploy-web"
+      spec:
+        app: "operator"
+        newObject: "true"
+        resourceGVK:
+          apiVersion: "apps/v1"
+          kind: "Deployment"
+          name: "deploy-web"
+      file:
+        deployment-web.yaml
+    ```
+  * ##### Create a customization to add a new container
+    ```shell
+      version: emco/v2
+      resourceContext:
+        anchor: projects/proj1/composite-apps/gac-composite-app/v1/deployment-intent-groups/collection-deployment-intent-group/generic-k8s-intents/operator-gac-intent/resources/deploy-web/customizations
+      metadata:
+        name: deploy-web-customization
+      spec:
+        clusterSpecific: "true"
+        clusterInfo:
+          scope: "label"
+          clusterProvider: "provider_1"
+          cluster: "cluster_1"
+          clusterLabel: "label_a"
+          mode: "allow"
+        patchType: "merge"
+      files:
+        - container-patch.yaml
+    ```
+    **NOTE**: The materials are available in [test-gac](../../examples/test-gac/). Please refer to the official [Kubernetes documentation](https://kubernetes.io/docs/tasks/manage-kubernetes-objects/update-api-object-kubectl-patch/) for more details.
 
 ## Kubernetes Objects Lifecycle And Status
 

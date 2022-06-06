@@ -18,6 +18,7 @@ import (
 	"github.com/pkg/errors"
 	"gitlab.com/project-emco/core/emco-base/src/genericactioncontroller/api"
 	"gitlab.com/project-emco/core/emco-base/src/genericactioncontroller/pkg/module"
+	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/module/types"
 )
 
 type mockResourceManager struct {
@@ -371,7 +372,7 @@ func populateResourceTestData() []mockResource {
 	return []mockResource{
 		{
 			Resource: module.Resource{
-				Metadata: module.Metadata{
+				Metadata: types.Metadata{
 					Name:        "testResource-1",
 					Description: "test resource",
 					UserData1:   "some user data 1",
@@ -390,7 +391,7 @@ func populateResourceTestData() []mockResource {
 		},
 		{
 			Resource: module.Resource{
-				Metadata: module.Metadata{
+				Metadata: types.Metadata{
 					Name:        "testResource-2",
 					Description: "test resource",
 					UserData1:   "some user data 1",
@@ -409,7 +410,7 @@ func populateResourceTestData() []mockResource {
 		},
 		{
 			Resource: module.Resource{
-				Metadata: module.Metadata{
+				Metadata: types.Metadata{
 					Name:        "testResource-3",
 					Description: "test resource",
 					UserData1:   "some user data 1",
@@ -431,7 +432,7 @@ func populateResourceTestData() []mockResource {
 		},
 		{
 			Resource: module.Resource{
-				Metadata: module.Metadata{
+				Metadata: types.Metadata{
 					Name:        "testResource-4",
 					Description: "",
 					UserData1:   "",
@@ -492,7 +493,7 @@ func resourceInput(name string) io.Reader {
 func resourceResult(name string) mockResource {
 	return mockResource{
 		Resource: module.Resource{
-			Metadata: module.Metadata{
+			Metadata: types.Metadata{
 				Name:        name,
 				Description: "test resource",
 				UserData1:   "some user data 1",
@@ -515,7 +516,7 @@ func resourceResult(name string) mockResource {
 func resourceWithFileContent(name string) mockResource {
 	return mockResource{
 		Resource: module.Resource{
-			Metadata: module.Metadata{
+			Metadata: types.Metadata{
 				Name:        name,
 				Description: "test resource",
 				UserData1:   "some user data 1",

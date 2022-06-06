@@ -54,16 +54,20 @@ For testing an application (collectd) deployed on 2 clusters - a Flux v2 based c
 
 ## Create all resources and instantiate
 
-1. Apply 00-controllers.yaml and 01-prerequisites.yaml. This is required for all the tests. This creates controllers, one project, number of  clusters and default admin logical cloud. Create deployment resources and then run instantiation:
+1. Apply 00-prerequisites.yaml and 01-logical-cloud.yaml. This is required for all the tests. This creates controllers, one project, number of  clusters and default admin logical cloud. Create deployment resources and then run instantiation:
 
-    `$ $bin/emcoctl --config emco-cfg.yaml apply -f 00-controllers.yaml -v values.yaml`
-
-    `$ $bin/emcoctl --config emco-cfg.yaml apply -f 01-prerequisites.yaml -v values.yaml`
-
-    `$ $bin/emcoctl --config emco-cfg.yaml apply -f 02-deployment-intent.yaml  -v values.yaml`
-
-    `$ $bin/emcoctl --config emco-cfg.yaml apply -f 03-instantiation.yaml  -v values.yaml`
-
+    ```
+    $ emcoctl --config emco-cfg.yaml apply -f 00-prerequisites.yaml -v values.yaml
+    ```
+    ```
+    $ emcoctl --config emco-cfg.yaml apply -f 01-logical-cloud.yaml -v values.yaml
+    ```
+    ```
+    $ emcoctl --config emco-cfg.yaml apply -f 02-deployment-intent.yaml  -v values.yaml
+    ```
+    ```
+    $ emcoctl --config emco-cfg.yaml apply -f 03-instantiation.yaml  -v values.yaml
+    ```
 
     **Expected outcome:**
     * Collectd app gets deployed on direct access cluster.
@@ -71,17 +75,38 @@ For testing an application (collectd) deployed on 2 clusters - a Flux v2 based c
 
 2. Cleanup
 
-    `$ $bin/emcoctl --config emco-cfg.yaml delete -f 03-instantiation.yaml  -v values.yaml`
-
-    `$ $bin/emcoctl --config emco-cfg.yaml delete -f 02-deployment-intent.yaml  -v values.yaml`
-
-    `$ $bin/emcoctl --config emco-cfg.yaml delete -f 01-prerequisites.yaml -v values.yaml`
-
-    `$ $bin/emcoctl --config emco-cfg.yaml delete -f 00-controllers.yaml -v values.yaml`
-
+    ```
+    $ emcoctl --config emco-cfg.yaml delete -f 03-instantiation.yaml  -v values.yaml
+    ```
+    ```
+    $ emcoctl --config emco-cfg.yaml delete -f 02-deployment-intent.yaml  -v values.yaml
+    ```
+    ```
+    $ emcoctl --config emco-cfg.yaml delete -f 01-logical-cloud.yaml -v values.yaml
+    ```
+    ```
+    $ emcoctl --config emco-cfg.yaml delete -f 00-prerequisites.yaml -v values.yaml
+    ```
 
 3. Cleanup generated files
 
-    `$ ./setup.sh cleanup`
+    ```
+    $ ./setup.sh cleanup
+    ```
 
     > NOTE: Known issue with the test cases: Deletion of the resources fails sometimes as some resources can't be deleted before others are deleted. This can happen due to timing issue. In that case try deleting again and the deletion should succeed.
+
+## Running testcase using test-aio.sh script
+The test-aio.sh script can be used to simplify the process of running a test case. It makes use of the status query APIs to ensure that the logical cloud and deployment intent group are instantiated (During creation) or terminated (During deletion) before moving to the next step.
+
+To run the test case run the following commands after setting up the environment variables. There is no need to run the setup.sh script as it's taken care of by the test-aio.sh script.
+
+1. Apply the testcase
+
+    ```
+    $ ./test-aio.sh apply
+    ```
+2. Delete the testcase
+
+    ```
+    $ ./test-aio.sh delete

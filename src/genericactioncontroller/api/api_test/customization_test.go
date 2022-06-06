@@ -18,6 +18,7 @@ import (
 	"github.com/pkg/errors"
 	"gitlab.com/project-emco/core/emco-base/src/genericactioncontroller/api"
 	"gitlab.com/project-emco/core/emco-base/src/genericactioncontroller/pkg/module"
+	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/module/types"
 )
 
 type mockCustomization struct {
@@ -390,7 +391,7 @@ func populateCustomizationTestData() []mockCustomization {
 	return []mockCustomization{
 		{
 			Customization: module.Customization{
-				Metadata: module.Metadata{
+				Metadata: types.Metadata{
 					Name:        "testCustomization-1",
 					Description: "test customization",
 					UserData1:   "some user data 1",
@@ -426,7 +427,7 @@ func populateCustomizationTestData() []mockCustomization {
 		},
 		{
 			Customization: module.Customization{
-				Metadata: module.Metadata{
+				Metadata: types.Metadata{
 					Name:        "testCustomization-2",
 					Description: "test customization",
 					UserData1:   "some user data 1",
@@ -466,7 +467,7 @@ func populateCustomizationTestData() []mockCustomization {
 		},
 		{
 			Customization: module.Customization{
-				Metadata: module.Metadata{
+				Metadata: types.Metadata{
 					Name:        "testCustomization-3",
 					Description: "test customization",
 					UserData1:   "some user data 1",
@@ -520,7 +521,7 @@ func populateCustomizationTestData() []mockCustomization {
 		},
 		{
 			Customization: module.Customization{
-				Metadata: module.Metadata{
+				Metadata: types.Metadata{
 					Name:        "testCustomization-4",
 					Description: "",
 					UserData1:   "",
@@ -618,7 +619,7 @@ func customizationInput(name string) io.Reader {
 func customizationResult(name string) mockCustomization {
 	return mockCustomization{
 		Customization: module.Customization{
-			Metadata: module.Metadata{
+			Metadata: types.Metadata{
 				Name:        name,
 				Description: "test customization",
 				UserData1:   "some user data 1",
@@ -658,7 +659,7 @@ func customizationResult(name string) mockCustomization {
 func customizationWithFileContent(name string) mockCustomization {
 	return mockCustomization{
 		Customization: module.Customization{
-			Metadata: module.Metadata{
+			Metadata: types.Metadata{
 				Name:        name,
 				Description: "test customization",
 				UserData1:   "some user data 1",

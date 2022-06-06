@@ -18,7 +18,7 @@ type IstioVirtualSericeResource struct {
 
 type VSSpec struct {
 	Hosts      []string    `yaml:"hosts"`
-	ExportTo   []string    `yaml:"exportTo,omitempty"`
+	Gateways   []string    `yaml:"gateways,omitempty"`
 	Http       []HTTPRoute `yaml:"http,omitempty"`
 }
 
@@ -35,11 +35,11 @@ func createVirtualServieResource(meta Metadata, spec VSSpec) ([]byte, error) {
 	return y, err
 
 }
-func createVirtualServiceSpec(hosts []string, exportTo []string, http []HTTPRoute) (VSSpec){
+func createVirtualServiceSpec(hosts []string, gateways []string, route []HTTPRoute) (VSSpec){
 	var vsspec = VSSpec {
 		Hosts:    hosts,
-		ExportTo: exportTo,
-		Http:     http,
+		Gateways: gateways,
+		Http:     route,
 	}
 	return vsspec
 

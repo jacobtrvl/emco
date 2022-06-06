@@ -1,7 +1,7 @@
-package module_test
-
 // SPDX-License-Identifier: Apache-2.0
 // Copyright (c) 2020 Intel Corporation
+
+package module_test
 
 import (
 	"errors"
@@ -10,6 +10,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"gitlab.com/project-emco/core/emco-base/src/genericactioncontroller/pkg/module"
+	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/module/types"
 )
 
 var (
@@ -158,7 +159,7 @@ func validateResource(in, out module.Resource) {
 // mockResource
 func mockResource(name string) module.Resource {
 	return module.Resource{
-		Metadata: module.Metadata{
+		Metadata: types.Metadata{
 			Name:        name,
 			Description: "test resource",
 			UserData1:   "some user data 1",

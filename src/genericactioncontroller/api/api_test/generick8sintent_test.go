@@ -17,6 +17,7 @@ import (
 	"github.com/pkg/errors"
 	"gitlab.com/project-emco/core/emco-base/src/genericactioncontroller/api"
 	"gitlab.com/project-emco/core/emco-base/src/genericactioncontroller/pkg/module"
+	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/module/types"
 )
 
 type mockGenericK8sIntentManager struct {
@@ -286,7 +287,7 @@ var _ = Describe("Test delete genericK8sIntent handler",
 func populateGenericK8sIntentTestData() []module.GenericK8sIntent {
 	return []module.GenericK8sIntent{
 		{
-			Metadata: module.Metadata{
+			Metadata: types.Metadata{
 				Name:        "testGenericK8sIntent-1",
 				Description: "test genericK8sIntent",
 				UserData1:   "some user data 1",
@@ -294,7 +295,7 @@ func populateGenericK8sIntentTestData() []module.GenericK8sIntent {
 			},
 		},
 		{
-			Metadata: module.Metadata{
+			Metadata: types.Metadata{
 				Name:        "testGenericK8sIntent-2",
 				Description: "test genericK8sIntent",
 				UserData1:   "some user data 1",
@@ -302,7 +303,7 @@ func populateGenericK8sIntentTestData() []module.GenericK8sIntent {
 			},
 		},
 		{
-			Metadata: module.Metadata{
+			Metadata: types.Metadata{
 				Name:        "testGenericK8sIntent-3",
 				Description: "test genericK8sIntent",
 				UserData1:   "some user data 1",
@@ -310,7 +311,7 @@ func populateGenericK8sIntentTestData() []module.GenericK8sIntent {
 			},
 		},
 		{
-			Metadata: module.Metadata{
+			Metadata: types.Metadata{
 				Name:        "testGenericK8sIntent-4",
 				Description: "",
 				UserData1:   "",
@@ -341,7 +342,7 @@ func genericK8sIntentInput(name string) io.Reader {
 
 func genericK8sIntentResult(name string) module.GenericK8sIntent {
 	return module.GenericK8sIntent{
-		Metadata: module.Metadata{
+		Metadata: types.Metadata{
 			Name:        name,
 			Description: "test genericK8sIntent",
 			UserData1:   "some user data 1",
