@@ -1,0 +1,42 @@
+syntax = "proto3";
+
+option go_package = "gitlab.com/project-emco/core/emco-base/src/policy/events";
+
+package events;
+
+service events{
+  rpc EventUpdate(EventInitiate) returns (stream Event) {}
+}
+
+message Event {
+  string eventId = 1;
+  Spec spec = 2;
+  Metrics metrics = 3;
+  CustomEventDetails custom = 4;
+}
+
+message Spec {
+  ClusterSpec cluster = 1;
+  AppSpec application = 2;
+  CustomSpec customSpec = 3;
+}
+message ClusterSpec{
+  string placeHolder = 1;
+}
+message AppSpec {
+  string placeHolder = 1;
+}
+message CustomSpec {
+  string placeHolder = 1;
+}
+message Metrics {
+  string placeHolder = 1;
+}
+message CustomEventDetails{
+  string placeHolder = 1;
+}
+
+message EventInitiate {
+  int32 serverId = 1;
+}
+

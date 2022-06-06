@@ -131,3 +131,6 @@ resources:
 #emco-workflowmgr
   - name: workflowIntent
     parent: deploymentIntentGroup
+  #emco-policy
+  - name: policyIntent
+    parent: deploymentIntentGroup
