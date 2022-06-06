@@ -16,7 +16,7 @@ type ResourceBundleStateStatus struct {
 	ResourceStatuses []ResourceStatus `json:"resourceStatuses,omitempty" protobuf:"varint,14,opt,name=resourceStatuses"`
 }
 
-// Resoureces
+// Resources
 type ResourceStatus struct {
 	Group     string `json:"group"`
 	Version   string `json:"version"`

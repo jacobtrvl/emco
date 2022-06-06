@@ -73,7 +73,7 @@ func validateData(i interface{}) error {
 	case *module.Cert:
 		return validateCertData(*p)
 	case *module.ClusterGroup:
-		return validateClusterGrouptData(*p)
+		return validateClusterGroupData(*p)
 	case *logicalcloud.LogicalCloud:
 		return validateLogicalCloudData(*p)
 	default:
@@ -142,8 +142,8 @@ func validateCertData(cert module.Cert) error {
 	return nil
 }
 
-// validateClusterGrouptData validate the cluster group payload for the required values
-func validateClusterGrouptData(group module.ClusterGroup) error {
+// validateClusterGroupData validate the cluster group payload for the required values
+func validateClusterGroupData(group module.ClusterGroup) error {
 	var err []string
 	if len(group.MetaData.Name) == 0 {
 		logutils.Error("ClusterGroup name may not be empty",

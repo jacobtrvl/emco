@@ -14,8 +14,8 @@ import (
 
 // createSecret creates a secret to store the certificate
 func (ctx *DistributionContext) createSecret(cr certmanagerissuer.CertificateRequest, name, namespace string) error {
-	// retrive the Private Key from mongo
-	key, err := ctx.retrivePrivateKey()
+	// retrieve the Private Key from mongo
+	key, err := ctx.retrievePrivateKey()
 	if err != nil {
 		return err
 	}
@@ -78,8 +78,8 @@ func (ctx *DistributionContext) createProxyConfig(issuer certmanagerissuer.Clust
 	return nil
 }
 
-// retrivePrivateKey
-func (ctx *DistributionContext) retrivePrivateKey() (string, error) {
+// retrievePrivateKey
+func (ctx *DistributionContext) retrievePrivateKey() (string, error) {
 	dbKey := module.DBKey{
 		Cert:            ctx.CaCert.MetaData.Name,
 		Cluster:         ctx.Cluster,

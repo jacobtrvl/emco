@@ -9,7 +9,6 @@ type EnrollmentKey struct {
 	Enrollment string `json:"enrollment"`
 }
 
-// StateKey
 type DistributionKey struct {
 	Cert         string `json:"cert"`
 	Project      string `json:"project"`

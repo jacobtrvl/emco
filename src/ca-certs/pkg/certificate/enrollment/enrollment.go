@@ -38,7 +38,7 @@ func (ctx *EnrollmentContext) Instantiate() error {
 			return err
 		}
 		// Enrollment involve creating the intermdiate certificate for each cluster in the cluster group
-		// Create a certitifcate request for each cluster in the clustergroup
+		// Create a certificate request for each cluster in the clustergroup
 		// The resources required to generate the certificate may vary based on the issuer type
 		for _, ctx.Cluster = range clusters {
 			// create resources for each clsuters based on the issuer
@@ -98,7 +98,7 @@ func (ctx *EnrollmentContext) Terminate() error {
 		if err != nil {
 			return err
 		}
-		// delete all the resources assocaited with enrollment instantiation
+		// delete all the resources associated with enrollment instantiation
 		for _, ctx.Cluster = range clusters {
 			// delete the primary key
 			// TODO: Verify the return on errors

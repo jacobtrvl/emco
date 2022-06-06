@@ -179,7 +179,7 @@ func (ctx *DistributionContext) validateCertificateRequest() error {
 
 			// TODO : verify the logic here
 			if !available {
-				return errors.New("certificate request is not ready for cluster %s. Update the enrollement")
+				return errors.New("certificate request is not ready for cluster %s. Update the enrollment")
 			}
 		}
 	}
