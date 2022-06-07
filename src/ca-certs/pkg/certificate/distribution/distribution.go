@@ -104,8 +104,11 @@ func (ctx *DistributionContext) createCertManagerIssuerResources() error {
 		return err
 	}
 
+<<<<<<< HEAD
 	// TODO: Verify the logic
 	// Shoudl we check the edge cluster issuer type here, like we check for service type?
+=======
+>>>>>>> 5011c92ffd9bba3572bf697c087746c92dc145d3
 	for _, ctx.ClusterGroup = range ctx.ClusterGroups {
 		// get all the clusters in this cluster group
 		clusters, err := module.GetClusters(ctx.ClusterGroup)
