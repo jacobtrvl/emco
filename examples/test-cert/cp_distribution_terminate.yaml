@@ -1,0 +1,18 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2022 Intel Corporation
+
+# terminate cert intent 1
+version: emco/v2
+resourceContext:
+  anchor: cluster-providers/{{.ClusterProvider}}/ca-certs/{{.CertIntent1}}/distribution/terminate
+---
+# terminate cert intent 2
+version: emco/v2
+resourceContext:
+  anchor: cluster-providers/{{.ClusterProvider}}/ca-certs/{{.CertIntent2}}/distribution/terminate
+---
+# terminate cert intent 3
+version: emco/v2
+resourceContext:
+  anchor: cluster-providers/{{.ClusterProvider}}/ca-certs/{{.CertIntent3}}/distribution/terminate
+

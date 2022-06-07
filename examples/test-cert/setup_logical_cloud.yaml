@@ -1,0 +1,167 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2022 Intel Corporation
+
+#create admin logical cloud
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/logical-clouds
+metadata:
+  name: {{.AdminCloud}}
+spec:
+  level: "0"
+---
+#add cluster reference to logical cloud
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/logical-clouds/{{.AdminCloud}}/cluster-references
+metadata:
+  name: lc-cl-1
+spec:
+  clusterProvider: {{.ClusterProvider}}
+  cluster: {{.IssuingCluster}}
+  loadbalancerIp: "0.0.0.0"
+---
+#create foo logical cloud without admin permissions
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/logical-clouds
+metadata:
+  name: {{.FooLogicalCloud}}
+spec:
+  namespace: {{.FooCloud}}
+---
+#create cluster quotas
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/logical-clouds/{{.FooLogicalCloud}}/cluster-quotas
+metadata:
+    name: foo-quota
+spec:
+    requests.ephemeral-storage: '500'
+    limits.ephemeral-storage: '500'
+    persistentvolumeclaims: '500'
+    pods: '500'
+    configmaps: '1000'
+    replicationcontrollers: '500'
+    resourcequotas: '500'
+    services: '500'
+    services.loadbalancers: '500'
+    services.nodeports: '500'
+    secrets: '500'
+    count/replicationcontrollers: '500'
+    count/deployments.apps: '500'
+    count/replicasets.apps: '500'
+    count/statefulsets.apps: '500'
+    count/jobs.batch: '500'
+    count/cronjobs.batch: '500'
+    count/deployments.extensions: '500'
+---
+#create foo logical cloud without admin permissions
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/logical-clouds/{{.FooLogicalCloud}}/user-permissions
+metadata:
+  name: foo-permission
+spec:
+    namespace: {{.FooCloud}}
+    apiGroups:
+    - ""
+    - "apps"
+    - "k8splugin.io"
+    resources:
+    - secrets
+    - pods
+    - configmaps
+    - services
+    - deployments
+    - resourcebundlestates
+    verbs:
+    - get
+    - watch
+    - list
+    - create
+    - delete
+---
+#add cluster reference to foo logical cloud
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/logical-clouds/{{.FooLogicalCloud}}/cluster-references
+metadata:
+  name: lc-cl-foo
+spec:
+  clusterProvider: {{.ClusterProvider}}
+  cluster: {{.IssuingCluster}}
+  loadbalancerIp: "0.0.0.0"
+---
+#create bar logical cloud without admin permissions
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/logical-clouds
+metadata:
+  name: {{.BarLogicalCloud}}
+spec:
+  namespace: {{.BarCloud}}
+---
+#create cluster quotas
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/logical-clouds/{{.BarLogicalCloud}}/cluster-quotas
+metadata:
+    name: bar-quota
+spec:
+    requests.ephemeral-storage: '500'
+    limits.ephemeral-storage: '500'
+    persistentvolumeclaims: '500'
+    pods: '500'
+    configmaps: '1000'
+    replicationcontrollers: '500'
+    resourcequotas: '500'
+    services: '500'
+    services.loadbalancers: '500'
+    services.nodeports: '500'
+    secrets: '500'
+    count/replicationcontrollers: '500'
+    count/deployments.apps: '500'
+    count/replicasets.apps: '500'
+    count/statefulsets.apps: '500'
+    count/jobs.batch: '500'
+    count/cronjobs.batch: '500'
+    count/deployments.extensions: '500'
+---
+#create foo logical cloud without admin permissions
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/logical-clouds/{{.BarLogicalCloud}}/user-permissions
+metadata:
+  name: bar-permission
+spec:
+    namespace: {{.BarCloud}}
+    apiGroups:
+    - ""
+    - "apps"
+    - "k8splugin.io"
+    resources:
+    - secrets
+    - pods
+    - configmaps
+    - services
+    - deployments
+    - resourcebundlestates
+    verbs:
+    - get
+    - watch
+    - list
+    - create
+    - delete
+---
+#add cluster reference to foo logical cloud
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/logical-clouds/{{.BarLogicalCloud}}/cluster-references
+metadata:
+  name: lc-cl-bar
+spec:
+  clusterProvider: {{.ClusterProvider}}
+  cluster: {{.IssuingCluster}}
+  loadbalancerIp: "0.0.0.0"
+

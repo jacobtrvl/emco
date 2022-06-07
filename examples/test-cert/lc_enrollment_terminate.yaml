@@ -1,0 +1,18 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2022 Intel Corporation
+
+#instantiate logical cloud
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/ca-certs/{{.CertIntent1}}/enrollment/terminate
+---
+#instantiate logical cloud
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/ca-certs/{{.CertIntent2}}/enrollment/terminate
+---
+#instantiate logical cloud
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/ca-certs/{{.CertIntent3}}/enrollment/terminate
+

@@ -1,0 +1,52 @@
+ProjectName: proj1
+ClusterProvider: provider1
+
+# Issuing Cluster
+IssuingCluster: issuer1
+IssuingClusterConfig: /home/vagrant/github.com/cluster-configs/issuing-cluster-config
+
+# Clsuters
+Cluster1: cluster1
+# KubeConfig1: /home/vagrant/github.com/cluster-configs/edge01-1-config
+Cluster2: cluster2
+# KubeConfig2: /home/vagrant/github.com/cluster-configs/edge02-1-config
+Cluster3: cluster3
+KubeConfig3: /home/vagrant/github.com/cluster-configs/cluster-1-config
+Cluster4: cluster4
+KubeConfig4: /home/vagrant/github.com/cluster-configs/cluster-2-config
+Cluster5: cluster5
+KubeConfig5: /home/vagrant/github.com/cluster-configs/cluster-3-config
+
+# Cluster Label
+ClusterLabel: cluster3
+GroupLabel1: group1
+GroupLabel2: group2
+
+# Cert
+CertIntent1: cert1
+CertIntent2: cert2
+CertIntent3: cert3
+
+# Cluster Issuer
+ClusterIssuer: foo
+Kind: ClusterIssuer
+Group: cert-manager.io
+
+# CSR Info
+KeySize: 4096
+CommonNamePrefix: foo
+
+# Cluster Group
+EdgeClusters: edge
+EdgeClusters1: edge1
+EdgeClusters2: edge2
+RsyncPort: 30431
+HostIP: 192.168.121.3
+
+# Logical-Cloud
+AdminCloud: default
+FooLogicalCloud: foo
+BarLogicalCloud: bar
+Cluster1Ref: cluster1-ref
+FooCloud: foo-ns
+BarCloud: bar-ns
