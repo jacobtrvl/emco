@@ -24,7 +24,7 @@ type LogicalCloud struct {
 }
 
 type LogicalCloudSpec struct {
-	Name string `json:"name"` // name of the logical-cloud
+	Name string `json:"logicalCloud"` // name of the logical-cloud
 }
 
 // LogicalCloudKey

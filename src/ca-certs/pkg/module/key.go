@@ -22,9 +22,9 @@ type Key struct {
 }
 
 type DBKey struct {
-	Cert            string `json:"cert"`
-	Cluster         string `json:"cluster"`
-	ClusterProvider string `json:"clusterProvider"`
+	Cert            string `json:"caCert"`
+	Cluster         string `json:"caCluster"`
+	ClusterProvider string `json:"caClusterProvider"`
 	ContextID       string `json:"contextID"`
 }
 

@@ -17,7 +17,7 @@ type ClusterManager interface {
 // ClusterGroupKey
 type ClusterGroupKey struct {
 	Cert         string `json:"logicalCloudCert"`
-	ClusterGroup string `json:"logicalCloudCertCluster"`
+	ClusterGroup string `json:"logicalCloudClusterGroup"`
 	LogicalCloud string `json:"caLogicalCloud"`
 	Project      string `json:"project"`
 }

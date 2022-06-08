@@ -22,12 +22,12 @@ type ClusterGroupKey struct {
 	ClusterProvider string `json:"clusterProvider"`
 }
 
-type ClusterKey struct {
-	Cert            string `json:"clusterProviderCert"`
-	Cluster         string `json:"clusterProviderCluster"`
-	ClusterGroup    string `json:"clusterProviderClusterGroup"`
-	ClusterProvider string `json:"clusterProvider"`
-}
+// type ClusterKey struct {
+// 	Cert            string `json:"clusterProviderCert"`
+// 	Cluster         string `json:"clusterProviderCluster"`
+// 	ClusterGroup    string `json:"clusterProviderClusterGroup"`
+// 	ClusterProvider string `json:"clusterProvider"`
+// }
 
 // ClusterClient
 type ClusterClient struct {
