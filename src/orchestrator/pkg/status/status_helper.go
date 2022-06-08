@@ -593,7 +593,7 @@ func getListOfApps(ac appcontext.AppContext) []string {
 const ClusterStatusQuery = "clusterStatus"
 const DeploymentIntentGroupStatusQuery = "digStatus"
 const LcStatusQuery = "lcStatus"
-const CertEnrollmentQuery = "CertEnrollmentStatus"
+const CaCertQuery = "CaCertStatus"
 
 // PrepareClusterStatusResult takes in a resource stateInfo object, the list of apps and the query parameters.
 // It then fills out the StatusResult structure appropriately from information in the AppContext
@@ -649,8 +649,25 @@ func isNameInList(name string, namesList []string) bool {
 
 // PrepareStatusResult takes in a resource stateInfo object, the list of apps and the query parameters.
 // It then fills out the StatusResult structure appropriately from information in the AppContext
-func PrepareCertEnrollmentStatusResult(stateInfo state.StateInfo, qType string) (StatusResult, error) {
-	return prepareStatusResult(CertEnrollmentQuery, stateInfo, "", qType, "", make([]string, 0), make([]string, 0), make([]string, 0))
+func PrepareCaCertStatusResult(stateInfo state.StateInfo, qInstance, qType, qOutput string, fApps, fClusters, fResources []string) (CaCertStatusResult, error) {
+	status, err := prepareStatusResult(CaCertQuery, stateInfo, qInstance, qType, qOutput, fApps, fClusters, fResources)
+	if err != nil {
+		return CaCertStatusResult{}, err
+	} else {
+		rval := CaCertStatusResult{
+			Name:           status.Name,
+			State:          status.State,
+			DeployedStatus: status.DeployedStatus,
+			ReadyStatus:    status.ReadyStatus,
+			DeployedCounts: status.DeployedCounts,
+			ReadyCounts:    status.ReadyCounts,
+		}
+		//if len(status.Apps) > 0 && len(status.Apps[0].Clusters) > 0 && qOutput != "summary" {
+		if len(status.Apps) > 0 {
+			rval.Clusters = status.Apps[0].Clusters
+		}
+		return rval, nil
+	}
 }
 
 // prepareStatusResult takes in a resource stateInfo object, the list of apps and the query parameters.
@@ -723,7 +740,7 @@ func prepareStatusResult(statusType string, stateInfo state.StateInfo, qInstance
 	// Get the composite app meta
 	caMeta, err := sac.GetCompositeAppMeta()
 
-	if statusType != LcStatusQuery && statusType != ClusterStatusQuery && statusType != CertEnrollmentQuery {
+	if statusType != LcStatusQuery && statusType != ClusterStatusQuery && statusType != CaCertQuery {
 		if err != nil {
 			return StatusResult{}, pkgerrors.Wrap(err, "Error getting CompositeAppMeta")
 		}

@@ -49,6 +49,15 @@ func (r *route) setClusterProviderRoutes() {
 	cpCertEnrollment := cpCertEnrollmentHandler{
 		manager: setClient(r.client.ClusterProviderCertEnrollment, r.mock).(clusterprovider.CertEnrollmentManager)}
 	r.router.HandleFunc(clusterProviderCertEnrollmentURL+"/status", cpCertEnrollment.handleStatus).Methods("GET")
+	r.router.HandleFunc(clusterProviderCertEnrollmentURL+"/status",
+		cpCertEnrollment.handleStatus).Queries(
+		"instance", "{instance}",
+		"status", "{status}",
+		"output", "{output}",
+		"cluster", "{cluster}",
+		"resource", "{resource}",
+		"clusters", "{clusters}",
+		"resources", "{resources}")
 	r.router.HandleFunc(clusterProviderCertEnrollmentURL+"/instantiate", cpCertEnrollment.handleInstantiate).Methods("POST")
 	r.router.HandleFunc(clusterProviderCertEnrollmentURL+"/terminate", cpCertEnrollment.handleTerminate).Methods("POST")
 	r.router.HandleFunc(clusterProviderCertEnrollmentURL+"/update", cpCertEnrollment.handleUpdate).Methods("POST")
@@ -57,6 +66,15 @@ func (r *route) setClusterProviderRoutes() {
 	cpCertDistribution := cpCertDistributionHandler{
 		manager: setClient(r.client.ClusterProviderCertDistribution, r.mock).(clusterprovider.CertDistributionManager)}
 	r.router.HandleFunc(clusterProviderCertDistributionURL+"/status", cpCertDistribution.handleStatus).Methods("GET")
+	r.router.HandleFunc(clusterProviderCertDistributionURL+"/status",
+		cpCertDistribution.handleStatus).Queries(
+		"instance", "{instance}",
+		"status", "{status}",
+		"output", "{output}",
+		"cluster", "{cluster}",
+		"resource", "{resource}",
+		"clusters", "{clusters}",
+		"resources", "{resources}")
 	r.router.HandleFunc(clusterProviderCertDistributionURL+"/instantiate", cpCertDistribution.handleInstantiate).Methods("POST")
 	r.router.HandleFunc(clusterProviderCertDistributionURL+"/terminate", cpCertDistribution.handleTerminate).Methods("POST")
 	r.router.HandleFunc(clusterProviderCertDistributionURL+"/update", cpCertDistribution.handleUpdate).Methods("POST")
@@ -95,6 +113,15 @@ func (r *route) setLogicalCloudRoutes() {
 	lcCertEnrollment := lcCertEnrollmentHandler{
 		manager: setClient(r.client.LogicalCloudCertEnrollment, r.mock).(logicalcloud.CertEnrollmentManager)}
 	r.router.HandleFunc(logicalCloudCertEnrollmentURL+"/status", lcCertEnrollment.handleStatus).Methods("GET")
+	r.router.HandleFunc(logicalCloudCertEnrollmentURL+"/status",
+		lcCertEnrollment.handleStatus).Queries(
+		"instance", "{instance}",
+		"status", "{status}",
+		"output", "{output}",
+		"cluster", "{cluster}",
+		"resource", "{resource}",
+		"clusters", "{clusters}",
+		"resources", "{resources}")
 	r.router.HandleFunc(logicalCloudCertEnrollmentURL+"/instantiate", lcCertEnrollment.handleInstantiate).Methods("POST")
 	r.router.HandleFunc(logicalCloudCertEnrollmentURL+"/terminate", lcCertEnrollment.handleTerminate).Methods("POST")
 	r.router.HandleFunc(logicalCloudCertEnrollmentURL+"/update", lcCertEnrollment.handleUpdate).Methods("POST")
@@ -103,6 +130,15 @@ func (r *route) setLogicalCloudRoutes() {
 	lcCertDistribution := lcCertDistributionHandler{
 		manager: setClient(r.client.LogicalCloudCertDistribution, r.mock).(logicalcloud.CertDistributionManager)}
 	r.router.HandleFunc(logicalCloudCertDistributionURL+"/status", lcCertDistribution.handleStatus).Methods("GET")
+	r.router.HandleFunc(logicalCloudCertDistributionURL+"/status",
+		lcCertDistribution.handleStatus).Queries(
+		"instance", "{instance}",
+		"status", "{status}",
+		"output", "{output}",
+		"cluster", "{cluster}",
+		"resource", "{resource}",
+		"clusters", "{clusters}",
+		"resources", "{resources}")
 	r.router.HandleFunc(logicalCloudCertDistributionURL+"/instantiate", lcCertDistribution.handleInstantiate).Methods("POST")
 	r.router.HandleFunc(logicalCloudCertDistributionURL+"/terminate", lcCertDistribution.handleTerminate).Methods("POST")
 	r.router.HandleFunc(logicalCloudCertDistributionURL+"/update", lcCertDistribution.handleUpdate).Methods("POST")

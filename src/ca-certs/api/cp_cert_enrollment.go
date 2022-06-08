@@ -32,7 +32,20 @@ func (h *cpCertEnrollmentHandler) handleInstantiate(w http.ResponseWriter, r *ht
 func (h *cpCertEnrollmentHandler) handleStatus(w http.ResponseWriter, r *http.Request) {
 	// get the route variables
 	vars := _cpVars(mux.Vars(r))
-	stat, err := h.manager.Status(vars.cert, vars.clusterProvider)
+
+	qParams, err := _statusQueryParams(r)
+	if err != nil {
+		apiErr := apierror.HandleErrors(mux.Vars(r), err, nil, apiErrors)
+		http.Error(w, apiErr.Message, apiErr.Status)
+	}
+
+	stat, err := h.manager.Status(vars.cert, vars.clusterProvider,
+		qParams.qInstance,
+		qParams.qType,
+		qParams.qOutput,
+		qParams.fApps,
+		qParams.fClusters,
+		qParams.fResources)
 	if err != nil {
 		apiErr := apierror.HandleErrors(mux.Vars(r), err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)

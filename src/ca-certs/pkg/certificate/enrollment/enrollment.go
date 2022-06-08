@@ -58,36 +58,23 @@ func (ctx *EnrollmentContext) Instantiate() error {
 }
 
 // Status
-func Status(stateInfo state.StateInfo) (module.ResourceStatus, error) {
-	status, err := status.PrepareCertEnrollmentStatusResult(stateInfo, "ready")
+func Status(stateInfo state.StateInfo, qInstance, qType, qOutput string, fApps, fClusters, fResources []string) (module.CaCertStatus, error) {
+	//	status, err := status.PrepareCertEnrollmentStatusResult(stateInfo, "ready")
+	statusResult, err := status.PrepareCaCertStatusResult(stateInfo, qInstance, qType, qOutput, fApps, fClusters, fResources)
 	if err != nil {
 		fmt.Println(err.Error())
 	}
 
-	certEnrollmentStatus := module.ResourceStatus{
-		DeployedStatus: status.DeployedStatus,
-		ReadyStatus:    status.ReadyStatus,
-		ReadyCounts:    status.ReadyCounts}
+	caCertStatus := module.CaCertStatus{}
+	caCertStatus.Name = statusResult.Name
+	caCertStatus.State = statusResult.State
+	caCertStatus.DeployedStatus = statusResult.DeployedStatus
+	caCertStatus.ReadyStatus = statusResult.ReadyStatus
+	caCertStatus.DeployedCounts = statusResult.DeployedCounts
+	caCertStatus.ReadyCounts = statusResult.ReadyCounts
+	caCertStatus.Clusters = statusResult.Clusters
 
-	for _, app := range status.Apps {
-		certEnrollmentStatus.App = app.Name
-	}
-
-	for _, cluster := range status.Apps[0].Clusters {
-		certEnrollmentStatus.Cluster = cluster.Cluster
-		certEnrollmentStatus.Connectivity = cluster.Connectivity
-	}
-
-	for _, resource := range status.Apps[0].Clusters[0].Resources {
-		r := module.Resource{
-			Gvk:         resource.Gvk,
-			Name:        resource.Name,
-			ReadyStatus: resource.ReadyStatus,
-		}
-		certEnrollmentStatus.Resources = append(certEnrollmentStatus.Resources, r)
-	}
-
-	return certEnrollmentStatus, nil
+	return caCertStatus, nil
 }
 
 // Terminate
@@ -198,7 +185,7 @@ func VerifyEnrollmentState(stateInfo state.StateInfo) (enrollmentContextID strin
 // ValidateEnrollmentStatus
 func ValidateEnrollmentStatus(stateInfo state.StateInfo) (readyCount int, err error) {
 	//  verify the status of the enrollemnt
-	certEnrollmentStatus, err := Status(stateInfo)
+	certEnrollmentStatus, err := Status(stateInfo, "", "ready", "all", make([]string, 0), make([]string, 0), make([]string, 0))
 	if err != nil {
 		return readyCount, err
 	}
@@ -208,15 +195,6 @@ func ValidateEnrollmentStatus(stateInfo state.StateInfo) (readyCount int, err er
 	}
 	if strings.ToLower(certEnrollmentStatus.ReadyStatus) != "ready" {
 		return readyCount, errors.New("Enrollment is not ready")
-	}
-	if strings.ToLower(certEnrollmentStatus.Connectivity) != "available" {
-		return readyCount, errors.New("Enrollment is not ready")
-	}
-
-	for _, resource := range certEnrollmentStatus.Resources {
-		if strings.ToLower(resource.ReadyStatus) != "ready" {
-			return readyCount, errors.New("Enrollment is not ready")
-		}
 	}
 
 	return certEnrollmentStatus.ReadyCounts["Ready"], nil

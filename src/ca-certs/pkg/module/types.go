@@ -5,8 +5,7 @@ package module
 
 import (
 	"gitlab.com/project-emco/core/emco-base/src/ca-certs/pkg/certissuer"
-	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/appcontext"
-	"k8s.io/apimachinery/pkg/runtime/schema"
+	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/status"
 )
 
 // MetaData holds the data
@@ -32,21 +31,11 @@ type ClusterGroupSpec struct {
 	Provider string `json:"clusterProvider"`
 }
 
-// ResourceStatus
-type ResourceStatus struct {
-	DeployedStatus appcontext.StatusValue `json:"deployedStatus,omitempty,inline"`
-	ReadyStatus    string                 `json:"readyStatus,omitempty,inline"`
-	ReadyCounts    map[string]int         `json:"readyCounts,omitempty,inline"`
-	App            string                 `json:"app,omitempty,inline"`
-	Project        string                 `json:"project,omitempty"`
-	Cluster        string                 `json:"cluster,omitempty"`
-	Connectivity   string                 `json:"connectivity,omitempty"`
-	Resources      []Resource             `json:"resources,omitempty"`
-}
-type Resource struct {
-	Gvk         schema.GroupVersionKind `json:"GVK,omitempty"`
-	Name        string                  `json:"name,omitempty"`
-	ReadyStatus string                  `json:"readyStatus,omitempty"`
+// CaCertStatus
+type CaCertStatus struct {
+	ClusterProvider           string `json:"clusterProvider,omitempty"`
+	Project                   string `json:"project,omitempty"`
+	status.CaCertStatusResult `json:",inline"`
 }
 
 type Cert struct {

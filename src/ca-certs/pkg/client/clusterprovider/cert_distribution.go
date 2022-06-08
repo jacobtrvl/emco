@@ -14,7 +14,7 @@ import (
 // CertDistributionManager exposes all the functionalities related to CA cert distribution
 type CertDistributionManager interface {
 	Instantiate(cert, clusterProvider string) error
-	Status(cert, clusterProvider string) (module.ResourceStatus, error)
+	Status(cert, clusterProvider, qInstance, qType, qOutput string, fApps, fClusters, fResources []string) (module.CaCertStatus, error)
 	Terminate(cert, clusterProvider string) error
 	Update(cert, clusterProvider string) error
 }
@@ -111,7 +111,7 @@ func (c *CertDistributionClient) Instantiate(cert, clusterProvider string) error
 }
 
 // Status
-func (c *CertDistributionClient) Status(cert, clusterProvider string) (module.ResourceStatus, error) {
+func (c *CertDistributionClient) Status(cert, clusterProvider, qInstance, qType, qOutput string, fApps, fClusters, fResources []string) (module.CaCertStatus, error) {
 	// get the current state of the
 	dk := DistributionKey{
 		Cert:            cert,
@@ -119,10 +119,12 @@ func (c *CertDistributionClient) Status(cert, clusterProvider string) (module.Re
 		Distribution:    distribution.AppName}
 	stateInfo, err := module.NewStateClient(dk).Get()
 	if err != nil {
-		return module.ResourceStatus{}, err
+		return module.CaCertStatus{}, err
 	}
 
-	return enrollment.Status(stateInfo)
+	sval, err := enrollment.Status(stateInfo, qInstance, qType, qOutput, fApps, fClusters, fResources)
+	sval.ClusterProvider = clusterProvider
+	return sval, err
 }
 
 // Terminate

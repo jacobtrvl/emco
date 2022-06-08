@@ -15,7 +15,7 @@ const clientName string = "cacert"
 // CertEnrollmentManager
 type CertEnrollmentManager interface {
 	Instantiate(cert, clusterProvider string) error
-	Status(cert, clusterProvider string) (module.ResourceStatus, error)
+	Status(cert, clusterProvider, qInstance, qType, qOutput string, fApps, fClusters, fResources []string) (module.CaCertStatus, error)
 	Terminate(cert, clusterProvider string) error
 	Update(cert, clusterProvider string) error
 }
@@ -102,7 +102,7 @@ func (c *CertEnrollmentClient) Instantiate(cert, clusterProvider string) error {
 }
 
 // Status
-func (c *CertEnrollmentClient) Status(cert, clusterProvider string) (module.ResourceStatus, error) {
+func (c *CertEnrollmentClient) Status(cert, clusterProvider, qInstance, qType, qOutput string, fApps, fClusters, fResources []string) (module.CaCertStatus, error) {
 	// get the enrollment stateInfo
 	ek := EnrollmentKey{
 		Cert:            cert,
@@ -110,10 +110,12 @@ func (c *CertEnrollmentClient) Status(cert, clusterProvider string) (module.Reso
 		Enrollment:      enrollment.AppName}
 	stateInfo, err := module.NewStateClient(ek).Get()
 	if err != nil {
-		return module.ResourceStatus{}, err
+		return module.CaCertStatus{}, err
 	}
 
-	return enrollment.Status(stateInfo)
+	sval, err := enrollment.Status(stateInfo, qInstance, qType, qOutput, fApps, fClusters, fResources)
+	sval.ClusterProvider = clusterProvider
+	return sval, err
 }
 
 // Terminate

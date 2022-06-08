@@ -8,6 +8,7 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"gitlab.com/project-emco/core/emco-base/src/ca-certs/pkg/client/logicalcloud"
@@ -31,6 +32,18 @@ type lcVars struct {
 	cluster,
 	logicalCloud,
 	project string
+}
+
+type qParams struct {
+	qInstance,
+	qType,
+	qOutput string
+	fApps,
+	fClusters,
+	fResources []string
+	qApps,
+	qClusters,
+	qResources bool
 }
 
 // validateRequestBody validate the request body before storing it in the database
@@ -199,4 +212,86 @@ func _lcVars(vars map[string]string) lcVars {
 		cluster:      vars["cluster"],
 		logicalCloud: vars["logicalCloud"],
 		project:      vars["project"]}
+}
+
+func _statusQueryParams(r *http.Request) (qParams, error) {
+	params, err := url.ParseQuery(r.URL.RawQuery)
+	if err != nil {
+		return qParams{}, err
+	}
+
+	// initialize qParams with defaults
+	qp := qParams{
+		qInstance:  "",
+		qType:      "ready",
+		qOutput:    "all",
+		fApps:      make([]string, 0),
+		fClusters:  make([]string, 0),
+		fResources: make([]string, 0),
+		qApps:      false,
+		qClusters:  false,
+		qResources: false,
+	}
+
+	if o, found := params["instance"]; found {
+		if o[0] == "" {
+			return qParams{}, errors.New("Invalid query instance")
+		}
+		qp.qInstance = o[0]
+	}
+
+	if t, found := params["status"]; found {
+		if t[0] != "ready" && t[0] != "deployed" {
+			return qParams{}, errors.New("Invalid query status")
+		}
+		qp.qType = t[0]
+	}
+
+	if o, found := params["output"]; found {
+		if o[0] != "summary" && o[0] != "all" && o[0] != "detail" {
+			return qParams{}, errors.New("Invalid query output")
+		}
+		qp.qOutput = o[0]
+	}
+
+	// Not needed for ca certs
+	// if _, found := params["apps"]; found {
+	// 	qp.qApps = true
+	// }
+
+	if _, found := params["clusters"]; found {
+		qp.qClusters = true
+	}
+
+	if _, found := params["resources"]; found {
+		qp.qResources = true
+	}
+
+	if c, found := params["cluster"]; found {
+		for _, cl := range c {
+			parts := strings.Split(cl, "+")
+			if len(parts) != 2 {
+				return qParams{}, errors.New("Invalid cluster query")
+			}
+			for _, p := range parts {
+				errs := validation.IsValidName(p)
+				if len(errs) > 0 {
+					return qParams{}, errors.New("Invalid cluster query")
+				}
+			}
+		}
+		qp.fClusters = c
+	}
+
+	if r, found := params["resource"]; found {
+		for _, res := range r {
+			errs := validation.IsValidName(res)
+			if len(errs) > 0 {
+				return qParams{}, errors.New("Invalid resources query")
+			}
+		}
+		qp.fResources = r
+	}
+
+	return qp, nil
 }
