@@ -8,8 +8,8 @@ resourceContext:
 metadata :
   name: rsync
 spec:
-  host:  {{.HostIP}}
-  port: {{.RsyncPort}}
+  host:  rsync
+  port: 9031
 ---
 # create project
 version: emco/v2
@@ -41,7 +41,7 @@ resourceContext:
 metadata :
   name: {{.Cluster1}}
 file:
-  {{.IssuingClusterConfig}}
+  {{.KubeConfig1}}
 ---
 # add cluster 2 label
 version: emco/v2
@@ -56,7 +56,7 @@ resourceContext:
 metadata :
   name: {{.Cluster2}}
 file:
-  {{.IssuingClusterConfig}}
+  {{.KubeConfig2}}
 ---
 # add cluster 3 label
 version: emco/v2
@@ -71,36 +71,12 @@ resourceContext:
 metadata :
   name: {{.Cluster3}}
 file:
-  {{.IssuingClusterConfig}}
----
-# create cluster 4
-version: emco/v2
-resourceContext:
-  anchor: cluster-providers/{{.ClusterProvider}}/clusters
-metadata :
-  name: {{.Cluster4}}
-file:
-  {{.IssuingClusterConfig}}
----
-# add cluster 4 label
-version: emco/v2
-resourceContext:
-  anchor: cluster-providers/{{.ClusterProvider}}/clusters/{{.Cluster4}}/labels
-clusterLabel: {{.GroupLabel1}}
----
-# create cluster 4
-version: emco/v2
-resourceContext:
-  anchor: cluster-providers/{{.ClusterProvider}}/clusters
-metadata :
-  name: {{.Cluster5}}
-file:
-  {{.IssuingClusterConfig}}
+  {{.KubeConfig3}}
 ---
 # add cluster 3 label
 version: emco/v2
 resourceContext:
-  anchor: cluster-providers/{{.ClusterProvider}}/clusters/{{.Cluster5}}/labels
+  anchor: cluster-providers/{{.ClusterProvider}}/clusters/{{.Cluster3}}/labels
 clusterLabel: {{.GroupLabel2}}
 ---
 # add the cert intent1
@@ -179,53 +155,6 @@ spec:
         names: []
         units: []
 ---
-# add the cert intent3
-version: emco/v2
-resourceContext:
-  anchor: projects/{{.ProjectName}}/ca-certs
-metadata:
-  name: {{.CertIntent3}}
-spec:
-  isCA: true
-  issuerRef:
-    name: {{.ClusterIssuer}}
-    kind: {{.Kind}}
-    group: {{.Group}}
-  duration: "8760h"
-  issuingCluster: 
-    cluster: {{.IssuingCluster}}
-    clusterProvider: {{.ClusterProvider}}
-  csrInfo: 
-    keySize: {{.KeySize}}
-    version: 1
-    dnsNames: []
-    emailAddresses: []
-    keyUsages: []
-    algorithm: 
-      publicKeyAlgorithm: RSA
-      signatureAlgorithm: SHA512WithRSA
-    subject:
-      locale: 
-        country: []
-        locality: []
-        postalCode: []
-        province: []
-        streetAddress: []
-      names:
-        commonNamePrefix: {{.CommonNamePrefix}}
-      organization:
-        names: []
-        units: []
----
-# add logical cloud part of the cert intent1
-version: emco/v2
-resourceContext:
-  anchor: projects/{{.ProjectName}}/ca-certs/{{.CertIntent3}}/logical-clouds
-metadata :
-  name: {{.AdminCloud}}
-spec:
-  name: {{.AdminCloud}}
----
 # add logical cloud part of the cert intent2
 version: emco/v2
 resourceContext:
@@ -247,24 +176,11 @@ spec:
 # add the cluster part of the cert intent
 version: emco/v2
 resourceContext:
-  anchor: projects/{{.ProjectName}}/ca-certs/{{.CertIntent3}}/logical-clouds/{{.AdminCloud}}/clusters
-metadata :
-  name: {{.EdgeClusters}}
-spec:
-  scope: name
-  label: {{.ClusterLabel}}
-  name: {{.Cluster3}}
-  clusterProvider: {{.ClusterProvider}}
----
-# add the cluster part of the cert intent
-version: emco/v2
-resourceContext:
   anchor: projects/{{.ProjectName}}/ca-certs/{{.CertIntent1}}/logical-clouds/{{.FooLogicalCloud}}/clusters
 metadata :
   name: {{.EdgeClusters1}}
 spec:
-  scope: label
-  label: {{.GroupLabel1}}
+  scope: name
   name: {{.Cluster1}}
   clusterProvider: {{.ClusterProvider}}
 ---
@@ -277,5 +193,4 @@ metadata :
 spec:
   scope: label
   label: {{.GroupLabel2}}
-  name: {{.Cluster2}}
   clusterProvider: {{.ClusterProvider}}

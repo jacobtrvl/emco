@@ -10,9 +10,3 @@ resourceContext:
 version: emco/v2
 resourceContext:
   anchor: projects/{{.ProjectName}}/ca-certs/{{.CertIntent2}}/enrollment/instantiate
----
-#instantiate logical cloud
-version: emco/v2
-resourceContext:
-  anchor: projects/{{.ProjectName}}/ca-certs/{{.CertIntent3}}/enrollment/instantiate
-
