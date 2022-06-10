@@ -5,8 +5,8 @@ package certificate
 
 import "crypto/x509"
 
-// signatureAlgorithm
-func signatureAlgorithm(algorithm string) x509.SignatureAlgorithm {
+// SignatureAlgorithm
+func SignatureAlgorithm(algorithm string) x509.SignatureAlgorithm {
 	switch algorithm {
 	case "MD5WithRSA":
 		return x509.MD5WithRSA
@@ -39,8 +39,8 @@ func signatureAlgorithm(algorithm string) x509.SignatureAlgorithm {
 	}
 }
 
-// publicKeyAlgorithm
-func publicKeyAlgorithm(algorithm string) x509.PublicKeyAlgorithm {
+// PublicKeyAlgorithm
+func PublicKeyAlgorithm(algorithm string) x509.PublicKeyAlgorithm {
 	switch algorithm {
 	case "RSA":
 		return x509.RSA

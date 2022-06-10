@@ -7,7 +7,7 @@ type IssuerRef struct {
 	Name    string `json:"name"`  // name of the issuer
 	Kind    string `json:"kind"`  // kind of the issuer
 	Group   string `json:"group"` // group of the issuer
-	Version string `json:"version"`
+	Version string `json:"version,omitempty"`
 }
 
 type ResourceBundleStateStatus struct {
@@ -16,7 +16,7 @@ type ResourceBundleStateStatus struct {
 	ResourceStatuses []ResourceStatus `json:"resourceStatuses,omitempty" protobuf:"varint,14,opt,name=resourceStatuses"`
 }
 
-// Resoureces
+// Resources
 type ResourceStatus struct {
 	Group     string `json:"group"`
 	Version   string `json:"version"`

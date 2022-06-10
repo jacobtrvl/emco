@@ -46,6 +46,7 @@
               "description": "name of the issuer",
               "type": "string",
               "maxLength": 128,
+              "pattern": "^([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]$",
               "example": "ca-issuer"
             },
             "kind": {
@@ -67,7 +68,10 @@
             },
             "version": {
               "description": "group of the issuer",
-              "type": "string"
+              "type": "string",
+              "maxLength": 128,
+              "pattern": "^([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]$",
+              "example": "v1"
             }
           },
           "required": [
@@ -78,8 +82,8 @@
         },
         "duration" : {
           "description": "duration of the certificate validity",
-          "type": "string",
-          "default": "8760h" 
+          "type": "integer",
+          "default": 8760 
         },
         "issuingCluster": {
           "description": "a string that uniquely identifies the resource",
@@ -89,12 +93,14 @@
               "description": "name of the cluster",
               "type": "string",
               "maxLength": 128,
+              "pattern": "^([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]$",
               "example": "ca-issuer"
             },
             "clusterProvider": {
               "description": "name of the clusterProvider",
               "type": "string",
               "maxLength": 128,
+              "pattern": "^([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]$",
               "example": "ca-issuer"
             }
           },
@@ -183,7 +189,7 @@
               "type": "object",
               "properties": {
                 "locale": {
-                  "description": "supported algorithms",
+                  "description": "location details",
                   "type": "object",
                   "properties": {
                     "country": {

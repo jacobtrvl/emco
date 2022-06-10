@@ -8,11 +8,12 @@ import (
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 )
 
+// getCertificate
 func getCertificate(cert, project string) (module.Cert, error) {
 	// verify the ca cert
 	caCert, err := NewCertClient().GetCert(cert, project)
 	if err != nil {
-		logutils.Error("Failed to instantiate the enrollment", logutils.Fields{
+		logutils.Error("Failed to retrieve the caCert", logutils.Fields{
 			"Cert":    cert,
 			"Project": project,
 			"Error":   err.Error()})
@@ -21,11 +22,12 @@ func getCertificate(cert, project string) (module.Cert, error) {
 	return caCert, nil
 }
 
+// getAllLogicalClouds
 func getAllLogicalClouds(cert, project string) ([]LogicalCloud, error) {
 	// verify the ca cert
 	lcs, err := NewLogicalCloudClient().GetAllLogicalClouds(cert, project)
 	if err != nil {
-		logutils.Error("Failed to instantiate the enrollment", logutils.Fields{
+		logutils.Error("Failed to retrieve the logicalCloud(s)", logutils.Fields{
 			"Cert":    cert,
 			"Project": project,
 			"Error":   err.Error()})
@@ -34,11 +36,12 @@ func getAllLogicalClouds(cert, project string) ([]LogicalCloud, error) {
 	return lcs, nil
 }
 
+// getAllClusterGroup
 func getAllClusterGroup(logicalCloud, cert, project string) ([]module.ClusterGroup, error) {
 	// get all the clusters within the ca cert and cluster provider
 	clusters, err := NewClusterClient().GetAllClusterGroups(logicalCloud, cert, project)
 	if err != nil {
-		logutils.Error("Failed to instantiate the enrollment", logutils.Fields{
+		logutils.Error("Failed to retrieve the clusterGroup(s)", logutils.Fields{
 			"Cert":         cert,
 			"LogicalCloud": logicalCloud,
 			"Project":      project,

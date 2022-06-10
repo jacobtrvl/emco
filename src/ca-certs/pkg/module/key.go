@@ -10,22 +10,17 @@ import (
 
 // KeyManager
 type KeyManager interface {
-	// Key
 	Save(pk string) error
 	Delete(key interface{}) error
 	Get(key interface{}) (Cert, error)
 }
 
-type Key struct {
-	Name string
-	Val  string
-}
-
+// DBKey
 type DBKey struct {
 	Cert            string `json:"caCert"`
-	Cluster         string `json:"caCluster"`
-	ClusterProvider string `json:"caClusterProvider"`
-	ContextID       string `json:"contextID"`
+	Cluster         string `json:"caCertCluster"`
+	ClusterProvider string `json:"caCertClusterProvider"`
+	ContextID       string `json:"caCertContextID"`
 }
 
 // KeyClient

@@ -132,19 +132,15 @@ resources:
   - name: workflowIntent
     parent: deploymentIntentGroup
 #emco-clusterProviderCertificate
-  - name: clusterProviderCert # caCertIntent
+  - name: caCertCp # caCert Intent
     parent: clusterProvider
-  - name: clusterProviderClusterGroup # clusterProvider cluster
-    parent: clusterProviderCert
-  - name: clusterProviderCertRequest
-    parent: clusterProviderCluster
-  - name: clusterProviderCluster
-    parent: clusterProviderClusterGroup
-  
+  - name: caCertClusterGroupCp # cluster group
+    parent: caCertCp
+
 #emco-logicalCloudCertificate
-  - name: logicalCloudCert # caCertIntent
+  - name: caCertLc # caCert Intent
     parent: project
-  - name: caLogicalCloud  # logical-clouds
-    parent: logicalCloudCert
-  - name: logicalCloudCertCluster # logical-clouds cluster
-    parent: caLogicalCloud
+  - name: caCertLogicalCloud  # logical-clouds
+    parent: caCertLc
+  - name: caCertClusterGroupLc # logical cloud cluster group
+    parent: caCertLogicalCloud

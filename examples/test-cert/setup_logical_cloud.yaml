@@ -1,26 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright (c) 2022 Intel Corporation
 
-#create admin logical cloud
-version: emco/v2
-resourceContext:
-  anchor: projects/{{.ProjectName}}/logical-clouds
-metadata:
-  name: {{.AdminCloud}}
-spec:
-  level: "0"
----
-#add cluster reference to logical cloud
-version: emco/v2
-resourceContext:
-  anchor: projects/{{.ProjectName}}/logical-clouds/{{.AdminCloud}}/cluster-references
-metadata:
-  name: lc-cl-1
-spec:
-  clusterProvider: {{.ClusterProvider}}
-  cluster: {{.IssuingCluster}}
-  loadbalancerIp: "0.0.0.0"
----
 #create foo logical cloud without admin permissions
 version: emco/v2
 resourceContext:
@@ -90,7 +70,7 @@ metadata:
   name: lc-cl-foo
 spec:
   clusterProvider: {{.ClusterProvider}}
-  cluster: {{.IssuingCluster}}
+  cluster: {{.Cluster1}}
   loadbalancerIp: "0.0.0.0"
 ---
 #create bar logical cloud without admin permissions
@@ -159,9 +139,21 @@ version: emco/v2
 resourceContext:
   anchor: projects/{{.ProjectName}}/logical-clouds/{{.BarLogicalCloud}}/cluster-references
 metadata:
-  name: lc-cl-bar
+  name: lc-cl-bar1
 spec:
   clusterProvider: {{.ClusterProvider}}
-  cluster: {{.IssuingCluster}}
+  cluster: {{.Cluster2}}
   loadbalancerIp: "0.0.0.0"
+---
+#add cluster reference to foo logical cloud
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/logical-clouds/{{.BarLogicalCloud}}/cluster-references
+metadata:
+  name: lc-cl-bar2
+spec:
+  clusterProvider: {{.ClusterProvider}}
+  cluster: {{.Cluster3}}
+  loadbalancerIp: "0.0.0.0"
+
 

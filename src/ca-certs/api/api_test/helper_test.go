@@ -27,7 +27,7 @@ package api_test
 // 				UserData2:   "some user data 2",
 // 			},
 // 			Spec: module.CertSpec{
-// 				CertificateAuthority: true,
+// 				IsCA: true,
 // 				IssuerRef: certissuer.IssuerRef{
 // 					Name:  "foo",
 // 					Kind:  "ClusterIssuer",
@@ -63,7 +63,7 @@ package api_test
 // 				UserData2:   "some user data 2",
 // 			},
 // 			Spec: module.CertSpec{
-// 				CertificateAuthority: true,
+// 				IsCA: true,
 // 				IssuerRef: certissuer.IssuerRef{
 // 					Name:  "foo",
 // 					Kind:  "ClusterIssuer",
@@ -99,7 +99,7 @@ package api_test
 // 				UserData2:   "some user data 2",
 // 			},
 // 			Spec: module.CertSpec{
-// 				CertificateAuthority: true,
+// 				IsCA: true,
 // 				IssuerRef: certissuer.IssuerRef{
 // 					Name:  "foo",
 // 					Kind:  "ClusterIssuer",
@@ -135,7 +135,7 @@ package api_test
 // 				UserData2:   "",
 // 			},
 // 			Spec: module.CertSpec{
-// 				CertificateAuthority: true,
+// 				IsCA: true,
 // 				IssuerRef: certissuer.IssuerRef{
 // 					Name:  "foo",
 // 					Kind:  "ClusterIssuer",
@@ -277,7 +277,7 @@ package api_test
 // 			UserData2:   "some user data 2",
 // 		},
 // 		Spec: module.CertSpec{
-// 			CertificateAuthority: true,
+// 			IsCA: true,
 // 			IssuerRef: certissuer.IssuerRef{
 // 				Name:  "foo",
 // 				Kind:  "ClusterIssuer",

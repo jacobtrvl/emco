@@ -19,7 +19,7 @@ type CertManager interface {
 
 // CertKey
 type CertKey struct {
-	Cert    string `json:"logicalCloudCert"`
+	Cert    string `json:"caCertLc"`
 	Project string `json:"project"`
 }
 

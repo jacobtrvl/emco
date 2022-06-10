@@ -20,7 +20,7 @@ type CertManager interface {
 
 // CertKey
 type CertKey struct {
-	Cert            string `json:"clusterProviderCert"`
+	Cert            string `json:"caCertCp"`
 	ClusterProvider string `json:"clusterProvider"`
 }
 

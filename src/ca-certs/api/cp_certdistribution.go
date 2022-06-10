@@ -7,19 +7,19 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
-	"gitlab.com/project-emco/core/emco-base/src/ca-certs/pkg/client/logicalcloud"
+	"gitlab.com/project-emco/core/emco-base/src/ca-certs/pkg/client/clusterprovider"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/apierror"
 )
 
-type lcCertDistributionHandler struct {
-	manager logicalcloud.CertDistributionManager
+type cpCertDistributionHandler struct {
+	manager clusterprovider.CertDistributionManager
 }
 
 // handleInstantiate handles the route for instantiating the cert distribution
-func (h *lcCertDistributionHandler) handleInstantiate(w http.ResponseWriter, r *http.Request) {
+func (h *cpCertDistributionHandler) handleInstantiate(w http.ResponseWriter, r *http.Request) {
 	// get the route variables
-	vars := _lcVars(mux.Vars(r))
-	if err := h.manager.Instantiate(vars.cert, vars.project); err != nil {
+	vars := _cpVars(mux.Vars(r))
+	if err := h.manager.Instantiate(vars.cert, vars.clusterProvider); err != nil {
 		apiErr := apierror.HandleErrors(mux.Vars(r), err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
 		return
@@ -29,10 +29,23 @@ func (h *lcCertDistributionHandler) handleInstantiate(w http.ResponseWriter, r *
 }
 
 // handleStatus handles the route for getting the status of the cert distribution
-func (h *lcCertDistributionHandler) handleStatus(w http.ResponseWriter, r *http.Request) {
+func (h *cpCertDistributionHandler) handleStatus(w http.ResponseWriter, r *http.Request) {
 	// get the route variables
-	vars := _lcVars(mux.Vars(r))
-	stat, err := h.manager.Status(vars.cert, vars.project)
+	vars := _cpVars(mux.Vars(r))
+
+	qParams, err := _statusQueryParams(r)
+	if err != nil {
+		apiErr := apierror.HandleErrors(mux.Vars(r), err, nil, apiErrors)
+		http.Error(w, apiErr.Message, apiErr.Status)
+	}
+
+	stat, err := h.manager.Status(vars.cert, vars.clusterProvider,
+		qParams.qInstance,
+		qParams.qType,
+		qParams.qOutput,
+		qParams.fApps,
+		qParams.fClusters,
+		qParams.fResources)
 	if err != nil {
 		apiErr := apierror.HandleErrors(mux.Vars(r), err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -43,10 +56,10 @@ func (h *lcCertDistributionHandler) handleStatus(w http.ResponseWriter, r *http.
 }
 
 // handleTerminate handles the route for terminating the cert distribution
-func (h *lcCertDistributionHandler) handleTerminate(w http.ResponseWriter, r *http.Request) {
+func (h *cpCertDistributionHandler) handleTerminate(w http.ResponseWriter, r *http.Request) {
 	// get the route variables
-	vars := _lcVars(mux.Vars(r))
-	if err := h.manager.Terminate(vars.cert, vars.project); err != nil {
+	vars := _cpVars(mux.Vars(r))
+	if err := h.manager.Terminate(vars.cert, vars.clusterProvider); err != nil {
 		apiErr := apierror.HandleErrors(mux.Vars(r), err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
 		return
@@ -56,10 +69,10 @@ func (h *lcCertDistributionHandler) handleTerminate(w http.ResponseWriter, r *ht
 }
 
 // handleUpdate handles the route for updating the cert distribution
-func (h *lcCertDistributionHandler) handleUpdate(w http.ResponseWriter, r *http.Request) {
+func (h *cpCertDistributionHandler) handleUpdate(w http.ResponseWriter, r *http.Request) {
 	// get the route variables
-	vars := _lcVars(mux.Vars(r))
-	if err := h.manager.Update(vars.cert, vars.project); err != nil {
+	vars := _cpVars(mux.Vars(r))
+	if err := h.manager.Update(vars.cert, vars.clusterProvider); err != nil {
 		apiErr := apierror.HandleErrors(mux.Vars(r), err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
 		return

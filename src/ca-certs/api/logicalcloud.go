@@ -118,7 +118,7 @@ func validateLogicalCloudData(lc logicalcloud.LogicalCloud) error {
 		err = append(err, "logicalCloud name may not be empty")
 	}
 
-	if len(lc.Spec.Name) == 0 {
+	if len(lc.Spec.LogicalCloud) == 0 {
 		logutils.Error("LogicalCloud may not be empty",
 			logutils.Fields{})
 		err = append(err, "logicalCloud may not be empty")

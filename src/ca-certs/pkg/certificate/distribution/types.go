@@ -4,7 +4,7 @@
 package distribution
 
 import (
-	"gitlab.com/project-emco/core/emco-base/src/ca-certs/pkg/certissuer/certmanagerissuer"
+	cmv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	"gitlab.com/project-emco/core/emco-base/src/ca-certs/pkg/module"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/appcontext"
 )
@@ -17,7 +17,7 @@ type DistributionContext struct {
 	ContextID           string
 	ResOrder            []string
 	EnrollmentContextID string
-	CertificateRequests []certmanagerissuer.CertificateRequest // Holds the retrived CSR(s) from the issuing cluster
+	CertificateRequests []cmv1.CertificateRequest // Holds the retrived CSR(s) from the issuing cluster
 	Resources           DistributionResource
 	ClusterGroups       []module.ClusterGroup
 	ClusterGroup        module.ClusterGroup
@@ -28,5 +28,5 @@ type DistributionContext struct {
 }
 
 type DistributionResource struct {
-	ClusterIssuer []certmanagerissuer.ClusterIssuer
+	ClusterIssuer []cmv1.ClusterIssuer
 }

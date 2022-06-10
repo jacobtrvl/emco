@@ -10,6 +10,7 @@ import (
 	"reflect"
 	"strings"
 
+	cmv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/pkg/errors"
 	"gitlab.com/project-emco/core/emco-base/src/ca-certs/pkg/certissuer"
 	"gitlab.com/project-emco/core/emco-base/src/ca-certs/pkg/module"
@@ -99,13 +100,8 @@ func (ctx *DistributionContext) createCertManagerIssuerResources() error {
 
 	ctx.CertificateRequests = crs
 
-	// validate that the certificates are available for all the clusters in the cluster groups
-	if err := ctx.validateCertificateRequest(); err != nil {
-		return err
-	}
-
 	// TODO: Verify the logic
-	// Should we check the edge cluster issuer type here, like we check for service type?
+	// Shoudl we check the edge cluster issuer type here, like we check for service type?
 	for _, ctx.ClusterGroup = range ctx.ClusterGroups {
 		// get all the clusters in this cluster group
 		clusters, err := module.GetClusters(ctx.ClusterGroup)
@@ -121,10 +117,16 @@ func (ctx *DistributionContext) createCertManagerIssuerResources() error {
 				return err
 			}
 
+			available := false
+
+			// TODO: this needs to be a unique name, check the format
+			crName := certmanagerissuer.CertificateRequestName(ctx.EnrollmentContextID, ctx.CaCert.MetaData.Name, ctx.ClusterGroup.Spec.Provider, ctx.Cluster)
 			for _, cr := range ctx.CertificateRequests {
-				// TODO: this needs to be a unique name, check the format
-				crName := certmanagerissuer.CertificateRequestName(ctx.EnrollmentContextID, ctx.CaCert.MetaData.Name, ctx.ClusterGroup.Spec.Provider, ctx.Cluster)
-				if cr.MetaData.Name == crName { // to make sure we are creating the resource(s) in the same cluster
+				if cr.ObjectMeta.Name == crName { // to make sure we are creating the resource(s) in the same cluster
+					if err := certmanagerissuer.ValidateCertificateRequest(cr); err != nil {
+						return err
+					}
+
 					// Create a Secret
 					sName := certmanagerissuer.SecretName(ctx.ContextID, ctx.CaCert.MetaData.Name, ctx.ClusterGroup.Spec.Provider, ctx.Cluster)
 					if err := ctx.createSecret(cr, sName, "cert-manager"); err != nil {
@@ -135,40 +137,7 @@ func (ctx *DistributionContext) createCertManagerIssuerResources() error {
 					if err := ctx.createClusterIssuer(sName); err != nil {
 						return err
 					}
-				}
-			}
 
-			// Create service specific resources for this issuer
-			ctx.createServiceResources()
-
-			if err := module.AddInstruction(ctx.AppContext, ctx.ClusterHandle, ctx.ResOrder); err != nil {
-				return err
-			}
-		}
-	}
-
-	return nil
-}
-
-// validateCertificateRequest validates the certificates in the CertificateRequest status
-func (ctx *DistributionContext) validateCertificateRequest() error {
-	for _, ctx.ClusterGroup = range ctx.ClusterGroups {
-		// get all the clusters in this cluster group
-		clusters, err := module.GetClusters(ctx.ClusterGroup)
-		if err != nil {
-			return err
-		}
-
-		// verify cr is generated for all the clusters in the cluster group
-		for _, cluster := range clusters {
-			available := false
-			// TODO: this needs to be a unique name, check the format
-			crName := certmanagerissuer.CertificateRequestName(ctx.EnrollmentContextID, ctx.CaCert.MetaData.Name, ctx.ClusterGroup.Spec.Provider, cluster)
-			for _, cr := range ctx.CertificateRequests { // to make sure the cr is for the same cluster
-				if cr.MetaData.Name == crName {
-					if err := certmanagerissuer.ValidateCertificateRequest(cr); err != nil {
-						return err
-					}
 					available = true
 					break
 				}
@@ -176,7 +145,14 @@ func (ctx *DistributionContext) validateCertificateRequest() error {
 
 			// TODO : verify the logic here
 			if !available {
-				return errors.New("certificate request is not ready for cluster %s. Update the enrollement")
+				return errors.New("certificate request is not ready for cluster %s. Update the enrollment")
+			}
+
+			// Create service specific resources for this issuer
+			ctx.createServiceResources()
+
+			if err := module.AddInstruction(ctx.AppContext, ctx.ClusterHandle, ctx.ResOrder); err != nil {
+				return err
 			}
 		}
 	}
@@ -215,7 +191,7 @@ func (ctx *DistributionContext) createServiceResources() error {
 func (ctx *DistributionContext) createIstioServiceResourcess() error {
 	switch ctx.CaCert.Spec.IssuerRef.Group {
 	case "cert-manager.io":
-		if issuer := ctx.retrieveClusterIssuer(ctx.Cluster); !reflect.DeepEqual(issuer, certmanagerissuer.ClusterIssuer{}) {
+		if issuer := ctx.retrieveClusterIssuer(ctx.Cluster); !reflect.DeepEqual(issuer, cmv1.ClusterIssuer{}) {
 			if err := ctx.createProxyConfig(issuer); err != nil {
 				return err
 			}
@@ -301,7 +277,7 @@ func TestValidateDistribution(contextID string) {
 			// for each resource make sure the certificate request is created and the status is available
 			for _, resource := range resources {
 				for _, rStatus := range s.ResourceStatuses {
-					if rStatus.ResourceName() == resource {
+					if module.ResourceName(rStatus.Name, rStatus.Kind) == resource {
 						if len(rStatus.Res) == 0 {
 							logutils.Warn(fmt.Sprintf("Cluster status does not contain the certificate details for %s", rStatus.Name),
 								logutils.Fields{})

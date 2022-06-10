@@ -107,7 +107,7 @@ func GetClusters(group ClusterGroup) (clusters []string, err error) {
 	clusters = []string{}
 	switch strings.ToLower(group.Spec.Scope) {
 	case "name":
-		// TODO: Confirm if we need to veirfy the cluster exists or not
+		// TODO: Confirm if we need to verify the cluster exists or not
 		// get cluster by provider and the name
 		if _, err = clm.NewClusterClient().GetCluster(group.Spec.Provider, group.Spec.Name); err != nil {
 			return clusters, err

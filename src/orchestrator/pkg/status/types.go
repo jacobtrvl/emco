@@ -40,6 +40,16 @@ var StatusQueryEnum = &queryparams{
 	Resources: "resources",
 }
 
+type CaCertStatusResult struct {
+	Name           string                 `json:"name,omitempty,inline"`
+	State          state.StateInfo        `json:"states,omitempty,inline"`
+	DeployedStatus appcontext.StatusValue `json:"deployedStatus,omitempty,inline"`
+	ReadyStatus    string                 `json:"readyStatus,omitempty,inline"`
+	DeployedCounts map[string]int         `json:"deployedCounts,omitempty,inline"`
+	ReadyCounts    map[string]int         `json:"readyCounts,omitempty,inline"`
+	Clusters       []ClusterStatus        `json:"clusters,omitempty,inline"`
+}
+
 type ClusterStatusResult struct {
 	Name           string                 `json:"name,omitempty,inline"`
 	State          state.StateInfo        `json:"states,omitempty,inline"`

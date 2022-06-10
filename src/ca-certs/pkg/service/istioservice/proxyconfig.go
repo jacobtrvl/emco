@@ -22,11 +22,6 @@ func ProxyConfigName(contextID, cert, clusterProvider, cluster string) string {
 	return fmt.Sprintf("%s-%s-%s-%s-%s", contextID, cert, clusterProvider, cluster, "pc")
 }
 
-// ResourceName
-func (pc *ProxyConfig) ResourceName() string {
-	return fmt.Sprintf("%s+%s", pc.MetaData.Name, "proxyconfig")
-}
-
 // CreateProxyConfig
 func CreateProxyConfig(name, namespace string, environmentVariables map[string]string) *ProxyConfig {
 	pc := newProxyConfig()

@@ -6,13 +6,14 @@ package enrollment
 import (
 	"context"
 	"crypto/rsa"
+	"crypto/x509"
+	"crypto/x509/pkix"
 	"encoding/base64"
 	"encoding/pem"
 	"fmt"
 	"strings"
 
 	"github.com/pkg/errors"
-	"gopkg.in/yaml.v2"
 
 	"gitlab.com/project-emco/core/emco-base/src/ca-certs/pkg/certificate"
 	"gitlab.com/project-emco/core/emco-base/src/ca-certs/pkg/certissuer/certmanagerissuer"
@@ -38,7 +39,7 @@ func (ctx *EnrollmentContext) Instantiate() error {
 			return err
 		}
 		// Enrollment involve creating the intermdiate certificate for each cluster in the cluster group
-		// Create a certitifcate request for each cluster in the clustergroup
+		// Create a certificate request for each cluster in the clustergroup
 		// The resources required to generate the certificate may vary based on the issuer type
 		for _, ctx.Cluster = range clusters {
 			// create resources for each clsuters based on the issuer
@@ -58,36 +59,23 @@ func (ctx *EnrollmentContext) Instantiate() error {
 }
 
 // Status
-func Status(stateInfo state.StateInfo) (module.ResourceStatus, error) {
-	status, err := status.PrepareCertEnrollmentStatusResult(stateInfo, "ready")
+func Status(stateInfo state.StateInfo, qInstance, qType, qOutput string, fApps, fClusters, fResources []string) (module.CaCertStatus, error) {
+	//	status, err := status.PrepareCertEnrollmentStatusResult(stateInfo, "ready")
+	statusResult, err := status.PrepareCaCertStatusResult(stateInfo, qInstance, qType, qOutput, fApps, fClusters, fResources)
 	if err != nil {
 		fmt.Println(err.Error())
 	}
 
-	certEnrollmentStatus := module.ResourceStatus{
-		DeployedStatus: status.DeployedStatus,
-		ReadyStatus:    status.ReadyStatus,
-		ReadyCounts:    status.ReadyCounts}
+	caCertStatus := module.CaCertStatus{}
+	caCertStatus.Name = statusResult.Name
+	caCertStatus.State = statusResult.State
+	caCertStatus.DeployedStatus = statusResult.DeployedStatus
+	caCertStatus.ReadyStatus = statusResult.ReadyStatus
+	caCertStatus.DeployedCounts = statusResult.DeployedCounts
+	caCertStatus.ReadyCounts = statusResult.ReadyCounts
+	caCertStatus.Clusters = statusResult.Clusters
 
-	for _, app := range status.Apps {
-		certEnrollmentStatus.App = app.Name
-	}
-
-	for _, cluster := range status.Apps[0].Clusters {
-		certEnrollmentStatus.Cluster = cluster.Cluster
-		certEnrollmentStatus.Connectivity = cluster.Connectivity
-	}
-
-	for _, resource := range status.Apps[0].Clusters[0].Resources {
-		r := module.Resource{
-			Gvk:         resource.Gvk,
-			Name:        resource.Name,
-			ReadyStatus: resource.ReadyStatus,
-		}
-		certEnrollmentStatus.Resources = append(certEnrollmentStatus.Resources, r)
-	}
-
-	return certEnrollmentStatus, nil
+	return caCertStatus, nil
 }
 
 // Terminate
@@ -98,7 +86,7 @@ func (ctx *EnrollmentContext) Terminate() error {
 		if err != nil {
 			return err
 		}
-		// delete all the resources assocaited with enrollment instantiation
+		// delete all the resources associated with enrollment instantiation
 		for _, ctx.Cluster = range clusters {
 			// delete the primary key
 			// TODO: Verify the return on errors
@@ -198,7 +186,7 @@ func VerifyEnrollmentState(stateInfo state.StateInfo) (enrollmentContextID strin
 // ValidateEnrollmentStatus
 func ValidateEnrollmentStatus(stateInfo state.StateInfo) (readyCount int, err error) {
 	//  verify the status of the enrollemnt
-	certEnrollmentStatus, err := Status(stateInfo)
+	certEnrollmentStatus, err := Status(stateInfo, "", "ready", "all", make([]string, 0), make([]string, 0), make([]string, 0))
 	if err != nil {
 		return readyCount, err
 	}
@@ -208,15 +196,6 @@ func ValidateEnrollmentStatus(stateInfo state.StateInfo) (readyCount int, err er
 	}
 	if strings.ToLower(certEnrollmentStatus.ReadyStatus) != "ready" {
 		return readyCount, errors.New("Enrollment is not ready")
-	}
-	if strings.ToLower(certEnrollmentStatus.Connectivity) != "available" {
-		return readyCount, errors.New("Enrollment is not ready")
-	}
-
-	for _, resource := range certEnrollmentStatus.Resources {
-		if strings.ToLower(resource.ReadyStatus) != "ready" {
-			return readyCount, errors.New("Enrollment is not ready")
-		}
 	}
 
 	return certEnrollmentStatus.ReadyCounts["Ready"], nil
@@ -256,18 +235,24 @@ func (ctx *EnrollmentContext) createCertManagerResources() error {
 	if err != nil {
 		return err
 	}
-	value, err := yaml.Marshal(cr)
-	if err != nil {
-		return err
-	}
+
+	// value, err := json.Marshal(cr)
+	// value, err := yaml.Marshal(cr)
+	// if err != nil {
+	// 	return err
+	// }
 
 	// add the CertificateRequest resource in to the app context
-	_, err = ctx.AppContext.AddResource(ctx.IssuerHandle, cr.ResourceName(), string(value))
-	if err != nil {
+	if err := module.AddResource(ctx.AppContext, cr, ctx.IssuerHandle, module.ResourceName(cr.ObjectMeta.Name, cr.TypeMeta.Kind)); err != nil {
 		return err
 	}
 
-	ctx.ResOrder = append(ctx.ResOrder, cr.ResourceName())
+	// _, err = ctx.AppContext.AddResource(ctx.IssuerHandle, module.ResourceName(cr.ObjectMeta.Name, cr.TypeMeta.Kind), string(value))
+	// if err != nil {
+	// 	return err
+	// }
+
+	ctx.ResOrder = append(ctx.ResOrder, module.ResourceName(cr.ObjectMeta.Name, cr.TypeMeta.Kind))
 
 	// save the PK in mongo
 	ctx.savePrivateKey(name, base64.StdEncoding.EncodeToString(pem.EncodeToMemory(pemBlock)))
@@ -277,22 +262,21 @@ func (ctx *EnrollmentContext) createCertManagerResources() error {
 
 // createCertificateSigningRequest
 func (ctx *EnrollmentContext) createCertificateSigningRequest(pk *rsa.PrivateKey) ([]byte, error) {
-	return certificate.CreateCertificateSigningRequest(certificate.CertificateRequestInfo{
+	return certificate.CreateCertificateSigningRequest(x509.CertificateRequest{
 		Version:            ctx.CaCert.Spec.CertificateSigningInfo.Version,
-		SignatureAlgorithm: ctx.CaCert.Spec.CertificateSigningInfo.Algorithm.SignatureAlgorithm,
-		PublicKeyAlgorithm: ctx.CaCert.Spec.CertificateSigningInfo.Algorithm.PublicKeyAlgorithm,
-		DNSNames:           ctx.CaCert.Spec.CertificateSigningInfo.DNSNames,
-		EmailAddresses:     ctx.CaCert.Spec.CertificateSigningInfo.EmailAddresses,
-		Subject: certificate.SubjectInfo{
-			CommonName:         ctx.CaCert.Spec.CertificateSigningInfo.Subject.Names.CommonName,
+		SignatureAlgorithm: certificate.SignatureAlgorithm(ctx.CaCert.Spec.CertificateSigningInfo.Algorithm.SignatureAlgorithm),
+		PublicKeyAlgorithm: certificate.PublicKeyAlgorithm(ctx.CaCert.Spec.CertificateSigningInfo.Algorithm.PublicKeyAlgorithm),
+		Subject: pkix.Name{
 			Country:            ctx.CaCert.Spec.CertificateSigningInfo.Subject.Locale.Country,
 			Locality:           ctx.CaCert.Spec.CertificateSigningInfo.Subject.Locale.Locality,
 			PostalCode:         ctx.CaCert.Spec.CertificateSigningInfo.Subject.Locale.PostalCode,
 			Province:           ctx.CaCert.Spec.CertificateSigningInfo.Subject.Locale.Province,
 			StreetAddress:      ctx.CaCert.Spec.CertificateSigningInfo.Subject.Locale.StreetAddress,
+			CommonName:         ctx.CaCert.Spec.CertificateSigningInfo.Subject.Names.CommonName,
 			Organization:       ctx.CaCert.Spec.CertificateSigningInfo.Subject.Organization.Names,
 			OrganizationalUnit: ctx.CaCert.Spec.CertificateSigningInfo.Subject.Organization.Units},
-	}, pk)
+		DNSNames:       ctx.CaCert.Spec.CertificateSigningInfo.DNSNames,
+		EmailAddresses: ctx.CaCert.Spec.CertificateSigningInfo.EmailAddresses}, pk)
 }
 
 // savePrivateKey

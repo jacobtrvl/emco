@@ -14,7 +14,6 @@ import (
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/state"
 	"gitlab.com/project-emco/core/emco-base/src/rsync/pkg/grpc/readynotify"
-	"gopkg.in/yaml.v2"
 )
 
 type CertAppContext struct {
@@ -152,7 +151,7 @@ func (ctx *CertAppContext) CallRsyncUninstall() error {
 
 // AddResource
 func AddResource(appContext appcontext.AppContext, resource, handle interface{}, name string) error {
-	value, err := yaml.Marshal(resource)
+	value, err := json.Marshal(resource)
 	if err != nil {
 		return err
 	}

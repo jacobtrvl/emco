@@ -3,15 +3,27 @@
 
 package logicalcloud
 
+import "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/module/types"
+
 type EnrollmentKey struct {
-	Cert       string `json:"cert"`
+	Cert       string `json:"caCert"`
 	Project    string `json:"project"`
-	Enrollment string `json:"enrollment"`
+	Enrollment string `json:"caCertEnrollment"`
 }
 
-// StateKey
 type DistributionKey struct {
-	Cert         string `json:"cert"`
+	Cert         string `json:"caCert"`
 	Project      string `json:"project"`
-	Distribution string `json:"distribution"`
+	Distribution string `json:"caCertDistribution"`
+}
+
+// LogicalCloud
+type LogicalCloud struct {
+	MetaData types.Metadata   `json:"metadata"`
+	Spec     LogicalCloudSpec `json:"spec"`
+}
+
+// LogicalCloudSpec
+type LogicalCloudSpec struct {
+	LogicalCloud string `json:"caCertLogicalCloud"` // name of the logicalCloud
 }

@@ -12,7 +12,6 @@ import (
 
 // CertManager
 type CertManager interface {
-	// Certificates
 	CreateCert(cert Cert, failIfExists bool) (Cert, bool, error)
 	DeleteCert() error
 	GetAllCert() ([]Cert, error)

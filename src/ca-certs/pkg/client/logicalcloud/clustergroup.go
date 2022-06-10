@@ -7,6 +7,7 @@ import (
 	"gitlab.com/project-emco/core/emco-base/src/ca-certs/pkg/module"
 )
 
+// ClusterManager
 type ClusterManager interface {
 	CreateClusterGroup(cluster module.ClusterGroup, logicalCloud, cert, project string, failIfExists bool) (module.ClusterGroup, bool, error)
 	DeleteClusterGroup(cluster, logicalCloud, cert, project string) error
@@ -16,9 +17,9 @@ type ClusterManager interface {
 
 // ClusterGroupKey
 type ClusterGroupKey struct {
-	Cert         string `json:"logicalCloudCert"`
-	ClusterGroup string `json:"logicalCloudClusterGroup"`
-	LogicalCloud string `json:"caLogicalCloud"`
+	Cert         string `json:"caCertLc"`
+	ClusterGroup string `json:"caCertClusterGroupLc"`
+	LogicalCloud string `json:"caCertLogicalCloud"`
 	Project      string `json:"project"`
 }
 

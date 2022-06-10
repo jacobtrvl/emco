@@ -17,7 +17,7 @@ import (
 // CertDistributionManager
 type CertDistributionManager interface {
 	Instantiate(cert, project string) error
-	Status(cert, project string) (module.ResourceStatus, error)
+	Status(cert, project, qInstance, qType, qOutput string, fApps, fClusters, fResources []string) (module.CaCertStatus, error)
 	Terminate(cert, project string) error
 	Update(cert, project string) error
 }
@@ -135,7 +135,7 @@ func (c *CertDistributionClient) Instantiate(cert, project string) error {
 }
 
 // Status
-func (c *CertDistributionClient) Status(cert, project string) (module.ResourceStatus, error) {
+func (c *CertDistributionClient) Status(cert, project, qInstance, qType, qOutput string, fApps, fClusters, fResources []string) (module.CaCertStatus, error) {
 	dk := DistributionKey{
 		Cert:         cert,
 		Project:      project,
@@ -144,10 +144,12 @@ func (c *CertDistributionClient) Status(cert, project string) (module.ResourceSt
 	// get the current state of the
 	stateInfo, err := module.NewStateClient(dk).Get()
 	if err != nil {
-		return module.ResourceStatus{}, err
+		return module.CaCertStatus{}, err
 	}
 
-	return enrollment.Status(stateInfo)
+	sval, err := enrollment.Status(stateInfo, qInstance, qType, qOutput, fApps, fClusters, fResources)
+	sval.Project = project
+	return sval, err
 }
 
 // Terminate

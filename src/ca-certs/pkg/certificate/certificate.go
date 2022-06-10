@@ -7,30 +7,13 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
-	"crypto/x509/pkix"
 	"encoding/pem"
 	"errors"
 )
 
 // CreateCertificateSigningRequest
-func CreateCertificateSigningRequest(info CertificateRequestInfo, pk interface{}) ([]byte, error) {
-	csrInfo := x509.CertificateRequest{
-		Version:            info.Version,
-		SignatureAlgorithm: signatureAlgorithm(info.SignatureAlgorithm),
-		PublicKeyAlgorithm: publicKeyAlgorithm(info.PublicKeyAlgorithm),
-		Subject: pkix.Name{
-			Country:            info.Subject.Country,
-			Locality:           info.Subject.Locality,
-			PostalCode:         info.Subject.PostalCode,
-			Province:           info.Subject.Province,
-			StreetAddress:      info.Subject.StreetAddress,
-			CommonName:         info.Subject.CommonName,
-			Organization:       info.Subject.Organization,
-			OrganizationalUnit: info.Subject.OrganizationalUnit},
-		DNSNames:       info.DNSNames,
-		EmailAddresses: info.EmailAddresses}
-
-	csr, err := x509.CreateCertificateRequest(rand.Reader, &csrInfo, pk)
+func CreateCertificateSigningRequest(info x509.CertificateRequest, pk interface{}) ([]byte, error) {
+	csr, err := x509.CreateCertificateRequest(rand.Reader, &info, pk)
 	if err != nil {
 		return []byte{}, err
 	}
@@ -48,7 +31,7 @@ func CreateCertificateSigningRequest(info CertificateRequestInfo, pk interface{}
 func GeneratePrivateKey(keySize int) (*pem.Block, error) {
 	key, err := rsa.GenerateKey(rand.Reader, keySize)
 	if err != nil {
-		return nil, errors.New("Failed to generate the certitifcate signing key")
+		return nil, errors.New("failed to generate the certitifcate signing key")
 	}
 
 	pemBlock, _ := pem.Decode([]byte(pem.EncodeToMemory(
@@ -56,7 +39,7 @@ func GeneratePrivateKey(keySize int) (*pem.Block, error) {
 			Type:  "RSA PRIVATE KEY",
 			Bytes: x509.MarshalPKCS1PrivateKey(key)})))
 	if pemBlock == nil {
-		return nil, errors.New("Failed to decode the private key")
+		return nil, errors.New("failed to decode the private key")
 	}
 
 	return pemBlock, nil

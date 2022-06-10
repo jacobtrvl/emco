@@ -5,13 +5,24 @@ package certmanagerissuer
 
 import (
 	"fmt"
+
+	cmv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // newClusterIssuer returns an instance of the ClusterIssuer
-func newClusterIssuer() *ClusterIssuer {
-	return &ClusterIssuer{
-		APIVersion: "cert-manager.io/v1",
-		Kind:       "ClusterIssuer"}
+func newClusterIssuer() *cmv1.ClusterIssuer {
+	return &cmv1.ClusterIssuer{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "cert-manager.io/v1",
+			Kind:       "ClusterIssuer",
+		},
+		Spec: cmv1.IssuerSpec{
+			IssuerConfig: cmv1.IssuerConfig{
+				CA: &cmv1.CAIssuer{},
+			},
+		},
+	}
 }
 
 // ClusterIssuerName retun the ClusterIssuer name
@@ -19,22 +30,17 @@ func ClusterIssuerName(contextID, cert, clusterProvider, cluster string) string 
 	return fmt.Sprintf("%s-%s-%s-%s-%s", contextID, cert, clusterProvider, cluster, "issuer")
 }
 
-// ResourceName returns the ClusterIssuer resource name, used by the rsync
-func (i *ClusterIssuer) ResourceName() string {
-	return fmt.Sprintf("%s+%s", i.MetaData.Name, "clusterissuer")
-}
-
 // CreateClusterIssuer retun the cert-manager ClusterIssuer object
-func CreateClusterIssuer(name, namespace, secret string) *ClusterIssuer {
+func CreateClusterIssuer(name, namespace, secret string) *cmv1.ClusterIssuer {
 	i := newClusterIssuer()
 
-	i.MetaData.Name = name
+	i.ObjectMeta.Name = name
 
 	if len(namespace) > 0 {
-		i.MetaData.Namespace = namespace
+		i.ObjectMeta.Namespace = namespace
 	}
 
-	i.Spec.CA.SecretName = secret
+	i.Spec.IssuerConfig.CA.SecretName = secret
 
 	return i
 }

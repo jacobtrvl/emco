@@ -3,16 +3,23 @@
 
 package istioservice
 
-import "gitlab.com/project-emco/core/emco-base/src/ca-certs/pkg/module"
-
 // ProxyConfig holds secret data of a certain type
 type ProxyConfig struct {
 	APIVersion string          `yaml:"apiVersion" json:"apiVersion"`
 	Kind       string          `yaml:"kind" json:"kind"`
-	MetaData   module.MetaData `yaml:"metadata" json:"metadata"`
+	MetaData   Metadata        `yaml:"metadata" json:"metadata"`
 	Spec       ProxyConfigSpec `yaml:"spec" json:"spec"`
 }
 
 type ProxyConfigSpec struct {
-	EnvironmentVariables map[string]string
+	EnvironmentVariables map[string]string `yaml:"environmentVariables" json:"environmentVariables"`
+}
+
+// MetaData holds the data
+type Metadata struct {
+	Name        string `json:"name" yaml:"name"`
+	Namespace   string `json:"namespace,omitempty" yaml:"namespace,omitempty"`
+	Description string `json:"description,omitempty" yaml:"description,omitempty"`
+	UserData1   string `json:"userData1,omitempty" yaml:"userData1,omitempty"`
+	UserData2   string `json:"userData2,omitempty" yaml:"userData2,omitempty"`
 }

@@ -11,12 +11,12 @@ import (
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/apierror"
 )
 
-type lcCertEnrollmentHandler struct {
-	manager logicalcloud.CertEnrollmentManager
+type lcCertDistributionHandler struct {
+	manager logicalcloud.CertDistributionManager
 }
 
-// handleInstantiate handles the route for instantiating the cert enrollment
-func (h *lcCertEnrollmentHandler) handleInstantiate(w http.ResponseWriter, r *http.Request) {
+// handleInstantiate handles the route for instantiating the cert distribution
+func (h *lcCertDistributionHandler) handleInstantiate(w http.ResponseWriter, r *http.Request) {
 	// get the route variables
 	vars := _lcVars(mux.Vars(r))
 	if err := h.manager.Instantiate(vars.cert, vars.project); err != nil {
@@ -28,11 +28,24 @@ func (h *lcCertEnrollmentHandler) handleInstantiate(w http.ResponseWriter, r *ht
 	w.WriteHeader(http.StatusAccepted)
 }
 
-// handleStatus handles the route for getting the status of the cert enrollment
-func (h *lcCertEnrollmentHandler) handleStatus(w http.ResponseWriter, r *http.Request) {
+// handleStatus handles the route for getting the status of the cert distribution
+func (h *lcCertDistributionHandler) handleStatus(w http.ResponseWriter, r *http.Request) {
 	// get the route variables
 	vars := _lcVars(mux.Vars(r))
-	stat, err := h.manager.Status(vars.cert, vars.project)
+
+	qParams, err := _statusQueryParams(r)
+	if err != nil {
+		apiErr := apierror.HandleErrors(mux.Vars(r), err, nil, apiErrors)
+		http.Error(w, apiErr.Message, apiErr.Status)
+	}
+
+	stat, err := h.manager.Status(vars.cert, vars.project,
+		qParams.qInstance,
+		qParams.qType,
+		qParams.qOutput,
+		qParams.fApps,
+		qParams.fClusters,
+		qParams.fResources)
 	if err != nil {
 		apiErr := apierror.HandleErrors(mux.Vars(r), err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -42,8 +55,8 @@ func (h *lcCertEnrollmentHandler) handleStatus(w http.ResponseWriter, r *http.Re
 	sendResponse(w, stat, http.StatusOK)
 }
 
-// handleTerminate handles the route for terminating the cert enrollment
-func (h *lcCertEnrollmentHandler) handleTerminate(w http.ResponseWriter, r *http.Request) {
+// handleTerminate handles the route for terminating the cert distribution
+func (h *lcCertDistributionHandler) handleTerminate(w http.ResponseWriter, r *http.Request) {
 	// get the route variables
 	vars := _lcVars(mux.Vars(r))
 	if err := h.manager.Terminate(vars.cert, vars.project); err != nil {
@@ -55,8 +68,8 @@ func (h *lcCertEnrollmentHandler) handleTerminate(w http.ResponseWriter, r *http
 	w.WriteHeader(http.StatusAccepted)
 }
 
-// handleUpdate handles the route for updating the cert enrollment
-func (h *lcCertEnrollmentHandler) handleUpdate(w http.ResponseWriter, r *http.Request) {
+// handleUpdate handles the route for updating the cert distribution
+func (h *lcCertDistributionHandler) handleUpdate(w http.ResponseWriter, r *http.Request) {
 	// get the route variables
 	vars := _lcVars(mux.Vars(r))
 	if err := h.manager.Update(vars.cert, vars.project); err != nil {

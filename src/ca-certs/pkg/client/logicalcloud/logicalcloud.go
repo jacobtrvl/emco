@@ -7,10 +7,10 @@ import (
 	"reflect"
 
 	"github.com/pkg/errors"
-	"gitlab.com/project-emco/core/emco-base/src/ca-certs/pkg/module"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
 )
 
+// LogicalCloudManager
 type LogicalCloudManager interface {
 	CreateLogicalCloud(logicalCloud LogicalCloud, cert, project string, failIfExists bool) (LogicalCloud, bool, error)
 	DeleteLogicalCloud(logicalCloud, cert, project string) error
@@ -18,19 +18,10 @@ type LogicalCloudManager interface {
 	GetLogicalCloud(logicalCloud, cert, project string) (LogicalCloud, error)
 }
 
-type LogicalCloud struct {
-	MetaData module.MetaData  `json:"metadata"`
-	Spec     LogicalCloudSpec `json:"spec"`
-}
-
-type LogicalCloudSpec struct {
-	Name string `json:"logicalCloud"` // name of the logical-cloud
-}
-
 // LogicalCloudKey
 type LogicalCloudKey struct {
-	Cert         string `json:"logicalCloudCert"`
-	LogicalCloud string `json:"caLogicalCloud"`
+	Cert         string `json:"caCertLc"`
+	LogicalCloud string `json:"caCertLogicalCloud"`
 	Project      string `json:"project"`
 }
 

@@ -3,15 +3,15 @@ ClusterProvider: provider1
 
 # Issuing Cluster
 IssuingCluster: issuer1
-IssuingClusterConfig: /home/vagrant/github.com/cluster-configs/issuing-cluster-config
+IssuingClusterConfig: /home/vagrant/git/multicloud-k8s/cluster-configs/config-edge02
 
 # Clsuters
 Cluster1: cluster1
-# KubeConfig1: /home/vagrant/github.com/cluster-configs/edge01-1-config
+KubeConfig1: /home/vagrant/git/multicloud-k8s/cluster-configs/config-edge01
 Cluster2: cluster2
-# KubeConfig2: /home/vagrant/github.com/cluster-configs/edge02-1-config
+KubeConfig2: /home/vagrant/git/multicloud-k8s/cluster-configs/config-edge01
 Cluster3: cluster3
-KubeConfig3: /home/vagrant/github.com/cluster-configs/cluster-1-config
+KubeConfig3: /home/vagrant/git/multicloud-k8s/cluster-configs/config-edge01
 Cluster4: cluster4
 KubeConfig4: /home/vagrant/github.com/cluster-configs/cluster-2-config
 Cluster5: cluster5
@@ -40,8 +40,8 @@ CommonNamePrefix: foo
 EdgeClusters: edge
 EdgeClusters1: edge1
 EdgeClusters2: edge2
-RsyncPort: 30431
-HostIP: 192.168.121.3
+RsyncPort: 9031
+HostIP: 10.10.10.6
 
 # Logical-Cloud
 AdminCloud: default

@@ -17,17 +17,10 @@ type ClusterManager interface {
 
 // ClusterGroupKey
 type ClusterGroupKey struct {
-	Cert            string `json:"clusterProviderCert"`
-	ClusterGroup    string `json:"clusterProviderClusterGroup"`
+	Cert            string `json:"caCertCp"`
+	ClusterGroup    string `json:"caCertClusterGroupCp"`
 	ClusterProvider string `json:"clusterProvider"`
 }
-
-// type ClusterKey struct {
-// 	Cert            string `json:"clusterProviderCert"`
-// 	Cluster         string `json:"clusterProviderCluster"`
-// 	ClusterGroup    string `json:"clusterProviderClusterGroup"`
-// 	ClusterProvider string `json:"clusterProvider"`
-// }
 
 // ClusterClient
 type ClusterClient struct {
