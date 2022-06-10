@@ -14,5 +14,5 @@ type ProxyConfig struct {
 }
 
 type ProxyConfigSpec struct {
-	EnvironmentVariables map[string]string
+	EnvironmentVariables map[string]string `yaml:"environmentVariables" json:"environmentVariables"`
 }

@@ -25,9 +25,9 @@ type ClusterGroup struct {
 
 // ClusterGroupSpec
 type ClusterGroupSpec struct {
-	Label    string `json:"label"` // select all the clusters with the specific label within the cluster-provider
-	Name     string `json:"name"`  // select the specific cluster within the cluster-provider
-	Scope    string `json:"scope"` // indicates label or name should be used to select the cluster from cluster-provider
+	Label    string `json:"label,omitempty"` // select all the clusters with the specific label within the cluster-provider
+	Name     string `json:"name,omitempty"`  // select the specific cluster within the cluster-provider
+	Scope    string `json:"scope"`           // indicates label or name should be used to select the cluster from cluster-provider
 	Provider string `json:"clusterProvider"`
 }
 
