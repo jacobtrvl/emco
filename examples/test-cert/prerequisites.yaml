@@ -1,0 +1,80 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2022 Intel Corporation
+
+# register rsync controller
+version: emco/v2
+resourceContext:
+  anchor: controllers
+metadata :
+  name: rsync
+spec:
+  host:  rsync
+  port: 9031
+---
+# create project
+version: emco/v2
+resourceContext:
+  anchor: projects
+metadata :
+  name: {{.ProjectName}}
+---
+# create cluster provider
+version: emco/v2
+resourceContext:
+  anchor: cluster-providers
+metadata :
+  name: {{.ClusterProvider}}
+---
+# create issuing cluster
+version: emco/v2
+resourceContext:
+  anchor: cluster-providers/{{.ClusterProvider}}/clusters
+metadata :
+  name: {{.IssuingCluster}}
+file:
+  {{.IssuingClusterConfig}}
+---
+# create cluster 1
+version: emco/v2
+resourceContext:
+  anchor: cluster-providers/{{.ClusterProvider}}/clusters
+metadata :
+  name: {{.Cluster1}}
+file:
+  {{.KubeConfig1}}
+---
+# add cluster 1 label
+version: emco/v2
+resourceContext:
+  anchor: cluster-providers/{{.ClusterProvider}}/clusters/{{.Cluster1}}/labels
+clusterLabel: {{.GroupLabel1}}
+---
+# create cluster 2
+version: emco/v2
+resourceContext:
+  anchor: cluster-providers/{{.ClusterProvider}}/clusters
+metadata :
+  name: {{.Cluster2}}
+file:
+  {{.KubeConfig2}}
+---
+# add cluster 23 label to cluster 2
+version: emco/v2
+resourceContext:
+  anchor: cluster-providers/{{.ClusterProvider}}/clusters/{{.Cluster2}}/labels
+clusterLabel: {{.GroupLabel23}}
+---
+# create cluster 3
+version: emco/v2
+resourceContext:
+  anchor: cluster-providers/{{.ClusterProvider}}/clusters
+metadata :
+  name: {{.Cluster3}}
+file:
+  {{.KubeConfig3}}
+---
+# add cluster 23 label to cluster 3
+version: emco/v2
+resourceContext:
+  anchor: cluster-providers/{{.ClusterProvider}}/clusters/{{.Cluster3}}/labels
+clusterLabel: {{.GroupLabel23}}

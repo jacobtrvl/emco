@@ -1,84 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright (c) 2022 Intel Corporation
 
-# register rsync controller
-version: emco/v2
-resourceContext:
-  anchor: controllers
-metadata :
-  name: rsync
-spec:
-  host:  rsync
-  port: 9031
----
-# create project
-version: emco/v2
-resourceContext:
-  anchor: projects
-metadata :
-  name: {{.ProjectName}}
----
-# create cluster provider
-version: emco/v2
-resourceContext:
-  anchor: cluster-providers
-metadata :
-  name: {{.ClusterProvider}}
----
-# create issuing cluster
-version: emco/v2
-resourceContext:
-  anchor: cluster-providers/{{.ClusterProvider}}/clusters
-metadata :
-  name: {{.IssuingCluster}}
-file:
-  {{.IssuingClusterConfig}}
----
-# create cluster 1
-version: emco/v2
-resourceContext:
-  anchor: cluster-providers/{{.ClusterProvider}}/clusters
-metadata :
-  name: {{.Cluster1}}
-file:
-  {{.KubeConfig1}}
----
-# add cluster 2 label
-version: emco/v2
-resourceContext:
-  anchor: cluster-providers/{{.ClusterProvider}}/clusters/{{.Cluster1}}/labels
-clusterLabel: {{.GroupLabel1}}
----
-# create cluster 2
-version: emco/v2
-resourceContext:
-  anchor: cluster-providers/{{.ClusterProvider}}/clusters
-metadata :
-  name: {{.Cluster2}}
-file:
-  {{.KubeConfig2}}
----
-# add cluster 3 label
-version: emco/v2
-resourceContext:
-  anchor: cluster-providers/{{.ClusterProvider}}/clusters/{{.Cluster2}}/labels
-clusterLabel: {{.GroupLabel2}}
----
-# create cluster 3
-version: emco/v2
-resourceContext:
-  anchor: cluster-providers/{{.ClusterProvider}}/clusters
-metadata :
-  name: {{.Cluster3}}
-file:
-  {{.KubeConfig3}}
----
-# add cluster 3 label
-version: emco/v2
-resourceContext:
-  anchor: cluster-providers/{{.ClusterProvider}}/clusters/{{.Cluster3}}/labels
-clusterLabel: {{.GroupLabel2}}
----
 # add the cert intent1
 version: emco/v2
 resourceContext:
@@ -88,7 +10,7 @@ metadata:
 spec:
   isCA: true
   issuerRef:
-    name: {{.ClusterIssuer}}
+    name: {{.ClusterIssuer1}}
     kind: {{.Kind}}
     group: {{.Group}}
   duration: 8760
@@ -126,7 +48,7 @@ metadata:
 spec:
   isCA: true
   issuerRef:
-    name: {{.ClusterIssuer}}
+    name: {{.ClusterIssuer2}}
     kind: {{.Kind}}
     group: {{.Group}}
   duration: 8760
@@ -155,7 +77,7 @@ spec:
         names: []
         units: []
 ---
-# add logical cloud part of the cert intent2
+# add logical cloud part of the cert intent1
 version: emco/v2
 resourceContext:
   anchor: projects/{{.ProjectName}}/ca-certs/{{.CertIntent1}}/logical-clouds
@@ -164,33 +86,75 @@ metadata :
 spec:
   logicalCloud: {{.FooLogicalCloud}}
 ---
-# add logical cloud part of the cert intent3
+# add logical cloud part of the cert intent1
 version: emco/v2
 resourceContext:
-  anchor: projects/{{.ProjectName}}/ca-certs/{{.CertIntent2}}/logical-clouds
+  anchor: projects/{{.ProjectName}}/ca-certs/{{.CertIntent1}}/logical-clouds
 metadata :
   name: {{.BarLogicalCloud}}
 spec:
   logicalCloud: {{.BarLogicalCloud}}
 ---
-# add the cluster part of the cert intent
+# add logical cloud part of the cert intent2
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/ca-certs/{{.CertIntent2}}/logical-clouds
+metadata :
+  name: {{.FooBarLogicalCloud}}
+spec:
+  logicalCloud: {{.FooBarLogicalCloud}}
+---
+# add cluster from logical cloud by name
 version: emco/v2
 resourceContext:
   anchor: projects/{{.ProjectName}}/ca-certs/{{.CertIntent1}}/logical-clouds/{{.FooLogicalCloud}}/clusters
 metadata :
-  name: {{.EdgeClusters1}}
+  name: {{.ClusterGroup1a}}
 spec:
   scope: name
   cluster: {{.Cluster1}}
   clusterProvider: {{.ClusterProvider}}
 ---
-# add the cluster part of the cert intent
+# add cluster from logical cloud by label
 version: emco/v2
 resourceContext:
-  anchor: projects/{{.ProjectName}}/ca-certs/{{.CertIntent2}}/logical-clouds/{{.BarLogicalCloud}}/clusters
+  anchor: projects/{{.ProjectName}}/ca-certs/{{.CertIntent1}}/logical-clouds/{{.FooLogicalCloud}}/clusters
 metadata :
-  name: {{.EdgeClusters2}}
+  name: {{.ClusterGroup1b}}
 spec:
   scope: label
-  label: {{.GroupLabel2}}
+  label: {{.GroupLabel23}}
+  clusterProvider: {{.ClusterProvider}}
+---
+# add cluster clusters from logical cloud by label
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/ca-certs/{{.CertIntent1}}/logical-clouds/{{.BarLogicalCloud}}/clusters
+metadata :
+  name: {{.ClusterGroup1c}}
+spec:
+  scope: label
+  label: {{.GroupLabel23}}
+  clusterProvider: {{.ClusterProvider}}
+---
+# add cluster clusters from logical cloud by label
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/ca-certs/{{.CertIntent2}}/logical-clouds/{{.FooBarLogicalCloud}}/clusters
+metadata :
+  name: {{.ClusterGroup2a}}
+spec:
+  scope: label
+  label: {{.GroupLabel23}}
+  clusterProvider: {{.ClusterProvider}}
+---
+# add cluster clusters from logical cloud by label
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/ca-certs/{{.CertIntent2}}/logical-clouds/{{.FooBarLogicalCloud}}/clusters
+metadata :
+  name: {{.ClusterGroup2b}}
+spec:
+  scope: label
+  label: {{.GroupLabel1}}
   clusterProvider: {{.ClusterProvider}}
