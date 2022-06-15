@@ -91,7 +91,7 @@ spec:
     name: {{.ClusterIssuer}}
     kind: {{.Kind}}
     group: {{.Group}}
-  duration: "8760h"
+  duration: 8760
   issuingCluster: 
     cluster: {{.IssuingCluster}}
     clusterProvider: {{.ClusterProvider}}
@@ -129,7 +129,7 @@ spec:
     name: {{.ClusterIssuer}}
     kind: {{.Kind}}
     group: {{.Group}}
-  duration: "8760h"
+  duration: 8760
   issuingCluster: 
     cluster: {{.IssuingCluster}}
     clusterProvider: {{.ClusterProvider}}
@@ -162,7 +162,7 @@ resourceContext:
 metadata :
   name: {{.FooLogicalCloud}}
 spec:
-  name: {{.FooLogicalCloud}}
+  logicalCloud: {{.FooLogicalCloud}}
 ---
 # add logical cloud part of the cert intent3
 version: emco/v2
@@ -171,7 +171,7 @@ resourceContext:
 metadata :
   name: {{.BarLogicalCloud}}
 spec:
-  name: {{.BarLogicalCloud}}
+  logicalCloud: {{.BarLogicalCloud}}
 ---
 # add the cluster part of the cert intent
 version: emco/v2
@@ -181,7 +181,7 @@ metadata :
   name: {{.EdgeClusters1}}
 spec:
   scope: name
-  name: {{.Cluster1}}
+  cluster: {{.Cluster1}}
   clusterProvider: {{.ClusterProvider}}
 ---
 # add the cluster part of the cert intent

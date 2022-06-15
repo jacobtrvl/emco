@@ -85,7 +85,7 @@ spec:
     name: {{.ClusterIssuer}}
     kind: {{.Kind}}
     group: {{.Group}}
-  duration: "8760h"
+  duration: 8760
   issuingCluster: 
     cluster: {{.IssuingCluster}}
     clusterProvider: {{.ClusterProvider}}
@@ -123,7 +123,7 @@ spec:
     name: {{.ClusterIssuer}}
     kind: {{.Kind}}
     group: {{.Group}}
-  duration: "8760h"
+  duration: 8760
   issuingCluster: 
     cluster: {{.IssuingCluster}}
     clusterProvider: {{.ClusterProvider}}
@@ -161,7 +161,7 @@ spec:
     name: {{.ClusterIssuer}}
     kind: {{.Kind}}
     group: {{.Group}}
-  duration: "8760h"
+  duration: 8760
   issuingCluster: 
     cluster: {{.IssuingCluster}}
     clusterProvider: {{.ClusterProvider}}
@@ -196,7 +196,7 @@ metadata :
 spec:
   scope: name
   label: {{.ClusterLabel}}
-  name: {{.Cluster3}}
+  cluster: {{.Cluster3}}
   clusterProvider: {{.ClusterProvider}}
 ---
 # add the cluster part of the cert intent2
@@ -208,7 +208,7 @@ metadata :
 spec:
   scope: label
   label: {{.GroupLabel1}}
-  name: {{.Cluster1}}
+  cluster: {{.Cluster1}}
   clusterProvider: {{.ClusterProvider}}
 ---
 # add the cluster part of the cert intent3
@@ -220,5 +220,5 @@ metadata :
 spec:
   scope: label
   label: {{.GroupLabel2}}
-  name: {{.Cluster2}}
+  cluster: {{.Cluster2}}
   clusterProvider: {{.ClusterProvider}}
