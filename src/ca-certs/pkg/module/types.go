@@ -19,10 +19,10 @@ type ClusterGroup struct {
 
 // ClusterGroupSpec
 type ClusterGroupSpec struct {
-	Label    string `json:"label,omitempty"` // select all the clusters with the specific label within the cluster-provider
-	Name     string `json:"name,omitempty"`  // select the specific cluster within the cluster-provider
-	Scope    string `json:"scope"`           // indicates label or name should be used to select the cluster from cluster-provider
+	Label    string `json:"label,omitempty"`   // select all the clusters with the specific label within the cluster-provider
+	Cluster  string `json:"cluster,omitempty"` // select the specific cluster within the cluster-provider
 	Provider string `json:"clusterProvider"`
+	Scope    string `json:"scope"` // indicates label or name should be used to select the cluster from cluster-provider
 }
 
 // CaCertStatus
@@ -40,12 +40,11 @@ type Cert struct {
 
 // CertSpec
 type CertSpec struct {
-	IsCA                   bool                   `json:"isCA,omitempty" yaml:"isCA,omitempty"` // specifies the cert is a CA or not
-	CertificateSigningInfo CertificateSigningInfo `json:"csrInfo" yaml:"csrInfo"`               // represent the certificate signining request(CSR) csrInfo
-	IssuerRef              certissuer.IssuerRef   `json:"issuerRef"`                            // the details of the issuer for signing the certificate request
+	CertificateSigningInfo CertificateSigningInfo `json:"csrInfo" yaml:"csrInfo"`               // represent the certificate signining request(CSR) info
 	Duration               time.Duration          `json:"duration,omitempty"`                   // duration of the certificate
+	IsCA                   bool                   `json:"isCA,omitempty" yaml:"isCA,omitempty"` // specifies the cert is a CA or not
+	IssuerRef              certissuer.IssuerRef   `json:"issuerRef"`                            // the details of the issuer for signing the certificate request
 	IssuingCluster         IssuingClusterInfo     `json:"issuingCluster"`                       // the details of the issuing cluster
-	Request                string                 `json:"request,omitempty"`
 }
 
 // CertificateSigningInfo

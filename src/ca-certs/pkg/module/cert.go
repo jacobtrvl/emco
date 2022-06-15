@@ -7,7 +7,9 @@ import (
 	"reflect"
 
 	"github.com/pkg/errors"
+	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/appcontext"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
+	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/state"
 )
 
 // CertManager
@@ -99,6 +101,78 @@ func (c *CertClient) GetCert() (Cert, error) {
 	}
 
 	return Cert{}, errors.New("Unknown Error")
+}
+
+func (c *CertClient) UpdateCert(cert Cert) error {
+	return db.DBconn.Insert(c.dbInfo.StoreName, c.dbKey, nil, c.dbInfo.TagMeta, cert)
+}
+
+// VerifyStateBeforeDelete
+func (c *CertClient) VerifyStateBeforeDelete(cert, lifecycle string) error {
+	sc := NewStateClient(c.dbKey)
+	stateInfo, err := sc.Get()
+	if err != nil {
+		return err
+	}
+
+	cState, err := state.GetCurrentStateFromStateInfo(stateInfo)
+	if err != nil {
+		return err
+	}
+
+	if cState == state.StateEnum.Instantiated ||
+		cState == state.StateEnum.InstantiateStopped {
+		return errors.Errorf(
+			"%s must be terminated for CaCert %s before it can be deleted", lifecycle, cert)
+	}
+
+	if cState == state.StateEnum.Terminated ||
+		cState == state.StateEnum.TerminateStopped {
+		// verify that the appcontext has completed terminating
+		ctxID := state.GetLastContextIdFromStateInfo(stateInfo)
+
+		acStatus, err := state.GetAppContextStatus(ctxID)
+		if err == nil &&
+			!(acStatus.Status == appcontext.AppContextStatusEnum.Terminated ||
+				acStatus.Status == appcontext.AppContextStatusEnum.TerminateFailed) {
+			return errors.Errorf("%s termination has not completed for CaCert %s", lifecycle, cert)
+		}
+
+		for _, id := range state.GetContextIdsFromStateInfo(stateInfo) {
+			context, err := state.GetAppContextFromId(id)
+			if err != nil {
+				return err
+			}
+			err = context.DeleteCompositeApp()
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+// VerifyStateBeforeUpdate
+func (c *CertClient) VerifyStateBeforeUpdate(cert, lifecycle string) error {
+	sc := NewStateClient(c.dbKey)
+	stateInfo, err := sc.Get()
+	if err != nil {
+		return err
+	}
+
+	cState, err := state.GetCurrentStateFromStateInfo(stateInfo)
+	if err != nil {
+		return err
+	}
+
+	// TODO: What if, the state is Terminated?
+	if cState != state.StateEnum.Created {
+		return errors.Errorf(
+			"failed to update the CaCert. %s for the CaCert %s is in %s state", lifecycle, cert, cState)
+	}
+
+	return nil
 }
 
 // // Convert the key to string to preserve the underlying structure

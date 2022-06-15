@@ -4,6 +4,9 @@
 package clusterprovider
 
 import (
+	"reflect"
+
+	"github.com/pkg/errors"
 	"gitlab.com/project-emco/core/emco-base/src/ca-certs/pkg/certificate/distribution"
 	"gitlab.com/project-emco/core/emco-base/src/ca-certs/pkg/certificate/enrollment"
 	"gitlab.com/project-emco/core/emco-base/src/ca-certs/pkg/module"
@@ -39,8 +42,33 @@ func (c *CertClient) CreateCert(cert module.Cert, clusterProvider string, failIf
 	ck := CertKey{
 		Cert:            cert.MetaData.Name,
 		ClusterProvider: clusterProvider}
+	cc := module.NewCertClient(ck)
 
-	_, certExists, err := module.NewCertClient(ck).CreateCert(cert, failIfExists)
+	if cer, err := cc.GetCert(); err == nil &&
+		!reflect.DeepEqual(cer, module.Cert{}) {
+		certExists = true
+	}
+
+	if certExists &&
+		failIfExists {
+		return module.Cert{}, certExists, errors.New("Certificate already exists")
+	}
+
+	if certExists {
+		// check the enrollment state
+		if err := verifyEnrollmentStateBeforeUpdate(cert.MetaData.Name, clusterProvider); err != nil {
+			return module.Cert{}, certExists, err
+		}
+
+		// check the distribution state
+		if err := verifyDistributionStateBeforeUpdate(cert.MetaData.Name, clusterProvider); err != nil {
+			return module.Cert{}, certExists, err
+		}
+
+		return cert, certExists, cc.UpdateCert(cert)
+	}
+
+	_, certExists, err := cc.CreateCert(cert, failIfExists)
 	if err != nil {
 		return module.Cert{}, certExists, err
 	}
@@ -70,7 +98,23 @@ func (c *CertClient) CreateCert(cert module.Cert, clusterProvider string, failIf
 
 // DeleteCert
 func (c *CertClient) DeleteCert(cert, clusterProvider string) error {
-	// delete enrollemnt stateInfo object
+	// check the enrollment state
+	if err := verifyEnrollmentStateBeforeDelete(cert, clusterProvider); err != nil {
+		// if the StateInfo cannot be found, then a caCert record may not present
+		if err.Error() != "StateInfo not found" {
+			return err
+		}
+	}
+
+	// check the distribution state
+	if err := verifyDistributionStateBeforeDelete(cert, clusterProvider); err != nil {
+		// if the StateInfo cannot be found, then a caCert record may not present
+		if err.Error() != "StateInfo not found" {
+			return err
+		}
+	}
+
+	// delete enrollment stateInfo
 	ek := EnrollmentKey{
 		Cert:            cert,
 		ClusterProvider: clusterProvider,
@@ -90,6 +134,7 @@ func (c *CertClient) DeleteCert(cert, clusterProvider string) error {
 		return err
 	}
 
+	// delete caCert
 	ck := CertKey{
 		Cert:            cert,
 		ClusterProvider: clusterProvider}
@@ -112,6 +157,48 @@ func (c *CertClient) GetCert(cert, clusterProvider string) (module.Cert, error) 
 		ClusterProvider: clusterProvider}
 
 	return module.NewCertClient(ck).GetCert()
+}
+
+// verifyEnrollmentStateBeforeDelete
+func verifyEnrollmentStateBeforeDelete(cert, clusterProvider string) error {
+	k := EnrollmentKey{
+		Cert:            cert,
+		ClusterProvider: clusterProvider,
+		Enrollment:      enrollment.AppName}
+
+	return module.NewCertClient(k).VerifyStateBeforeDelete(cert, enrollment.AppName)
+}
+
+// verifyDistributionStateBeforeDelete
+func verifyDistributionStateBeforeDelete(cert, clusterProvider string) error {
+	k := DistributionKey{
+		Cert:            cert,
+		ClusterProvider: clusterProvider,
+		Distribution:    distribution.AppName}
+
+	return module.NewCertClient(k).VerifyStateBeforeDelete(cert, distribution.AppName)
+
+}
+
+// verifyEnrollmentStateBeforeUpdate
+func verifyEnrollmentStateBeforeUpdate(cert, clusterProvider string) error {
+	k := EnrollmentKey{
+		Cert:            cert,
+		ClusterProvider: clusterProvider,
+		Enrollment:      enrollment.AppName}
+
+	return module.NewCertClient(k).VerifyStateBeforeUpdate(cert, enrollment.AppName)
+}
+
+// verifyDistributionStateBeforeUpdate
+func verifyDistributionStateBeforeUpdate(cert, clusterProvider string) error {
+	k := DistributionKey{
+		Cert:            cert,
+		ClusterProvider: clusterProvider,
+		Distribution:    distribution.AppName}
+
+	return module.NewCertClient(k).VerifyStateBeforeUpdate(cert, distribution.AppName)
+
 }
 
 // // Convert the key to string to preserve the underlying structure

@@ -109,11 +109,11 @@ func GetClusters(group ClusterGroup) (clusters []string, err error) {
 	case "name":
 		// TODO: Confirm if we need to verify the cluster exists or not
 		// get cluster by provider and the name
-		if _, err = clm.NewClusterClient().GetCluster(group.Spec.Provider, group.Spec.Name); err != nil {
+		if _, err = clm.NewClusterClient().GetCluster(group.Spec.Provider, group.Spec.Cluster); err != nil {
 			return clusters, err
 		}
 
-		clusters = append(clusters, group.Spec.Name)
+		clusters = append(clusters, group.Spec.Cluster)
 	case "label":
 		// get clusters by label
 		list, err := clm.NewClusterClient().GetClustersWithLabel(group.Spec.Provider, group.Spec.Label)

@@ -18,12 +18,12 @@ type DistributionKey struct {
 }
 
 // LogicalCloud
-type LogicalCloud struct {
-	MetaData types.Metadata   `json:"metadata"`
-	Spec     LogicalCloudSpec `json:"spec"`
+type CaCertLogicalCloud struct {
+	MetaData types.Metadata         `json:"metadata"`
+	Spec     CaCertLogicalCloudSpec `json:"spec"`
 }
 
 // LogicalCloudSpec
-type LogicalCloudSpec struct {
-	LogicalCloud string `json:"caCertLogicalCloud"` // name of the logicalCloud
+type CaCertLogicalCloudSpec struct {
+	LogicalCloud string `json:"logicalCloud"` // name of the logicalCloud
 }

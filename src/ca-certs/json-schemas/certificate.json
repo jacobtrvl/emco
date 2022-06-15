@@ -234,12 +234,12 @@
                     }                      
                   }
                 },
-                "commonNamePrefix": {
-                  "description": "name details",
+                "names": {
+                  "description": "common name details",
                   "type": "object",
                   "properties": {
-                    "commonName": {
-                      "description": "common Name",
+                    "commonNamePrefix": {
+                      "description": "prefix for the commonName",
                       "type": "string",
                       "maxLength": 128
                     }

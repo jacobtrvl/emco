@@ -74,7 +74,7 @@ func (h *cpClusterHandler) createOrUpdateCluster(w http.ResponseWriter, r *http.
 		return
 	}
 
-	if len(cluster.Spec.Label) == 0 && len(cluster.Spec.Name) == 0 {
+	if len(cluster.Spec.Label) == 0 && len(cluster.Spec.Cluster) == 0 {
 		logutils.Error("The cluster label or name should be provided",
 			logutils.Fields{"Cluster": cluster})
 		http.Error(w, "the cluster label or name should be provided",

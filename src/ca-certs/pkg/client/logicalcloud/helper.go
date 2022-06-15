@@ -23,7 +23,7 @@ func getCertificate(cert, project string) (module.Cert, error) {
 }
 
 // getAllLogicalClouds
-func getAllLogicalClouds(cert, project string) ([]LogicalCloud, error) {
+func getAllLogicalClouds(cert, project string) ([]CaCertLogicalCloud, error) {
 	// verify the ca cert
 	lcs, err := NewLogicalCloudClient().GetAllLogicalClouds(cert, project)
 	if err != nil {
@@ -31,7 +31,7 @@ func getAllLogicalClouds(cert, project string) ([]LogicalCloud, error) {
 			"Cert":    cert,
 			"Project": project,
 			"Error":   err.Error()})
-		return []LogicalCloud{}, err
+		return []CaCertLogicalCloud{}, err
 	}
 	return lcs, nil
 }

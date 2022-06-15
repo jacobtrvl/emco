@@ -5,7 +5,6 @@ package status
 
 import (
 	"encoding/json"
-	"fmt"
 
 	yaml "github.com/ghodss/yaml"
 	rb "gitlab.com/project-emco/core/emco-base/src/monitor/pkg/apis/k8splugin/v1alpha1"
@@ -242,7 +241,6 @@ func TagResource(res []byte, label string) ([]byte, error) {
 
 	//Decode the yaml to create a runtime.Object
 	unstruct := &unstructured.Unstructured{}
-	fmt.Println("TagResource: ", string(res))
 	//Ignore the returned obj as we expect the data in unstruct
 	_, err := utils.DecodeYAMLData(string(res), unstruct)
 	if err != nil {

@@ -4,6 +4,9 @@
 package logicalcloud
 
 import (
+	"reflect"
+
+	"github.com/pkg/errors"
 	"gitlab.com/project-emco/core/emco-base/src/ca-certs/pkg/certificate/distribution"
 	"gitlab.com/project-emco/core/emco-base/src/ca-certs/pkg/certificate/enrollment"
 	"gitlab.com/project-emco/core/emco-base/src/ca-certs/pkg/module"
@@ -39,7 +42,33 @@ func (c *CertClient) CreateCert(cert module.Cert, project string, failIfExists b
 		Cert:    cert.MetaData.Name,
 		Project: project}
 
-	_, certExists, err := module.NewCertClient(ck).CreateCert(cert, failIfExists)
+	cc := module.NewCertClient(ck)
+
+	if cer, err := cc.GetCert(); err == nil &&
+		!reflect.DeepEqual(cer, module.Cert{}) {
+		certExists = true
+	}
+
+	if certExists &&
+		failIfExists {
+		return module.Cert{}, certExists, errors.New("Certificate already exists")
+	}
+
+	if certExists {
+		// check the enrollment state
+		if err := verifyEnrollmentStateBeforeUpdate(cert.MetaData.Name, project); err != nil {
+			return module.Cert{}, certExists, err
+		}
+
+		// check the distribution state
+		if err := verifyDistributionStateBeforeUpdate(cert.MetaData.Name, project); err != nil {
+			return module.Cert{}, certExists, err
+		}
+
+		return cert, certExists, cc.UpdateCert(cert)
+	}
+
+	_, certExists, err := cc.CreateCert(cert, failIfExists)
 	if err != nil {
 		return module.Cert{}, certExists, err
 	}
@@ -69,7 +98,23 @@ func (c *CertClient) CreateCert(cert module.Cert, project string, failIfExists b
 
 // DeleteCertificates
 func (c *CertClient) DeleteCert(cert, project string) error {
-	// delete the enrollment stateInfo resource
+	// check the enrollment state
+	if err := verifyEnrollmentStateBeforeDelete(cert, project); err != nil {
+		// if the StateInfo cannot be found, then a caCert record may not present
+		if err.Error() != "StateInfo not found" {
+			return err
+		}
+	}
+
+	// check the distribution state
+	if err := verifyDistributionStateBeforeDelete(cert, project); err != nil {
+		// if the StateInfo cannot be found, then a caCert record may not present
+		if err.Error() != "StateInfo not found" {
+			return err
+		}
+	}
+
+	// delete enrollment stateInfo
 	ek := EnrollmentKey{
 		Cert:       cert,
 		Project:    project,
@@ -79,7 +124,7 @@ func (c *CertClient) DeleteCert(cert, project string) error {
 		return err
 	}
 
-	// delete the distribution stateInfo resource
+	// delete distribution stateInfo
 	dk := DistributionKey{
 		Cert:         cert,
 		Project:      project,
@@ -89,6 +134,7 @@ func (c *CertClient) DeleteCert(cert, project string) error {
 		return err
 	}
 
+	// delete caCert
 	ck := CertKey{
 		Cert:    cert,
 		Project: project}
@@ -111,6 +157,48 @@ func (c *CertClient) GetCert(cert, project string) (module.Cert, error) {
 		Project: project}
 
 	return module.NewCertClient(ck).GetCert()
+}
+
+// verifyEnrollmentState
+func verifyEnrollmentStateBeforeDelete(cert, project string) error {
+	k := EnrollmentKey{
+		Cert:       cert,
+		Project:    project,
+		Enrollment: enrollment.AppName}
+
+	return module.NewCertClient(k).VerifyStateBeforeDelete(cert, enrollment.AppName)
+}
+
+// verifyDistributionState
+func verifyDistributionStateBeforeDelete(cert, project string) error {
+	k := DistributionKey{
+		Cert:         cert,
+		Project:      project,
+		Distribution: distribution.AppName}
+
+	return module.NewCertClient(k).VerifyStateBeforeDelete(cert, distribution.AppName)
+
+}
+
+// verifyEnrollmentStateBeforeUpdate
+func verifyEnrollmentStateBeforeUpdate(cert, project string) error {
+	k := EnrollmentKey{
+		Cert:       cert,
+		Project:    project,
+		Enrollment: enrollment.AppName}
+
+	return module.NewCertClient(k).VerifyStateBeforeUpdate(cert, enrollment.AppName)
+}
+
+// verifyDistributionStateBeforeUpdate
+func verifyDistributionStateBeforeUpdate(cert, project string) error {
+	k := DistributionKey{
+		Cert:         cert,
+		Project:      project,
+		Distribution: distribution.AppName}
+
+	return module.NewCertClient(k).VerifyStateBeforeUpdate(cert, distribution.AppName)
+
 }
 
 // // Convert the key to string to preserve the underlying structure

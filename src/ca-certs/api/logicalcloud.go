@@ -67,7 +67,7 @@ func (h *lcHandler) handleLogicalCloudUpdate(w http.ResponseWriter, r *http.Requ
 
 // createOrUpdateLogicalCloud create/update the logical cloud based on the request method
 func (h *lcHandler) createOrUpdateLogicalCloud(w http.ResponseWriter, r *http.Request) {
-	var logicalCloud logicalcloud.LogicalCloud
+	var logicalCloud logicalcloud.CaCertLogicalCloud
 	if code, err := validateRequestBody(r.Body, &logicalCloud, LogicalCloudSchemaJson); err != nil {
 		http.Error(w, err.Error(), code)
 		return
@@ -110,7 +110,7 @@ func (h *lcHandler) createOrUpdateLogicalCloud(w http.ResponseWriter, r *http.Re
 }
 
 // validateLogicalCloudData validate the logical cloud payload for the required values
-func validateLogicalCloudData(lc logicalcloud.LogicalCloud) error {
+func validateLogicalCloudData(lc logicalcloud.CaCertLogicalCloud) error {
 	var err []string
 	if len(lc.MetaData.Name) == 0 {
 		logutils.Error("LogicalCloud name may not be empty",

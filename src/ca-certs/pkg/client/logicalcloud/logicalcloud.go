@@ -12,17 +12,17 @@ import (
 
 // LogicalCloudManager
 type LogicalCloudManager interface {
-	CreateLogicalCloud(logicalCloud LogicalCloud, cert, project string, failIfExists bool) (LogicalCloud, bool, error)
+	CreateLogicalCloud(logicalCloud CaCertLogicalCloud, cert, project string, failIfExists bool) (CaCertLogicalCloud, bool, error)
 	DeleteLogicalCloud(logicalCloud, cert, project string) error
-	GetAllLogicalClouds(cert, project string) ([]LogicalCloud, error)
-	GetLogicalCloud(logicalCloud, cert, project string) (LogicalCloud, error)
+	GetAllLogicalClouds(cert, project string) ([]CaCertLogicalCloud, error)
+	GetLogicalCloud(logicalCloud, cert, project string) (CaCertLogicalCloud, error)
 }
 
 // LogicalCloudKey
 type LogicalCloudKey struct {
-	Cert         string `json:"caCertLc"`
-	LogicalCloud string `json:"caCertLogicalCloud"`
-	Project      string `json:"project"`
+	Cert               string `json:"caCertLc"`
+	CaCertLogicalCloud string `json:"caCertLogicalCloud"`
+	Project            string `json:"project"`
 }
 
 // LogicalCloudClient
@@ -39,25 +39,25 @@ func NewLogicalCloudClient() *LogicalCloudClient {
 }
 
 // CreateLogicalCloud
-func (c *LogicalCloudClient) CreateLogicalCloud(logicalCloud LogicalCloud, cert, project string, failIfExists bool) (LogicalCloud, bool, error) {
+func (c *LogicalCloudClient) CreateLogicalCloud(logicalCloud CaCertLogicalCloud, cert, project string, failIfExists bool) (CaCertLogicalCloud, bool, error) {
 	lcExists := false
 	key := LogicalCloudKey{
-		Cert:         cert,
-		Project:      project,
-		LogicalCloud: logicalCloud.MetaData.Name}
+		Cert:               cert,
+		Project:            project,
+		CaCertLogicalCloud: logicalCloud.MetaData.Name}
 
 	if lc, err := c.GetLogicalCloud(logicalCloud.MetaData.Name, cert, project); err == nil &&
-		!reflect.DeepEqual(lc, LogicalCloud{}) {
+		!reflect.DeepEqual(lc, CaCertLogicalCloud{}) {
 		lcExists = true
 	}
 
 	if lcExists &&
 		failIfExists {
-		return LogicalCloud{}, lcExists, errors.New("LogicalCloud already exists")
+		return CaCertLogicalCloud{}, lcExists, errors.New("LogicalCloud already exists")
 	}
 
 	if err := db.DBconn.Insert(c.dbInfo.StoreName, key, nil, c.dbInfo.TagMeta, logicalCloud); err != nil {
-		return LogicalCloud{}, lcExists, err
+		return CaCertLogicalCloud{}, lcExists, err
 	}
 
 	return logicalCloud, lcExists, nil
@@ -66,29 +66,29 @@ func (c *LogicalCloudClient) CreateLogicalCloud(logicalCloud LogicalCloud, cert,
 // DeleteLogicalCloud
 func (c *LogicalCloudClient) DeleteLogicalCloud(logicalCloud, cert, project string) error {
 	key := LogicalCloudKey{
-		Cert:         cert,
-		LogicalCloud: logicalCloud,
-		Project:      project}
+		Cert:               cert,
+		CaCertLogicalCloud: logicalCloud,
+		Project:            project}
 
 	return db.DBconn.Remove(c.dbInfo.StoreName, key)
 }
 
 // GetAllLogicalClouds
-func (c *LogicalCloudClient) GetAllLogicalClouds(cert, project string) ([]LogicalCloud, error) {
+func (c *LogicalCloudClient) GetAllLogicalClouds(cert, project string) ([]CaCertLogicalCloud, error) {
 	key := LogicalCloudKey{
 		Cert:    cert,
 		Project: project}
 
 	values, err := db.DBconn.Find(c.dbInfo.StoreName, key, c.dbInfo.TagMeta)
 	if err != nil {
-		return []LogicalCloud{}, err
+		return []CaCertLogicalCloud{}, err
 	}
 
-	var logicalClouds []LogicalCloud
+	var logicalClouds []CaCertLogicalCloud
 	for _, value := range values {
-		lc := LogicalCloud{}
+		lc := CaCertLogicalCloud{}
 		if err = db.DBconn.Unmarshal(value, &lc); err != nil {
-			return []LogicalCloud{}, err
+			return []CaCertLogicalCloud{}, err
 		}
 		logicalClouds = append(logicalClouds, lc)
 	}
@@ -97,30 +97,30 @@ func (c *LogicalCloudClient) GetAllLogicalClouds(cert, project string) ([]Logica
 }
 
 // GetLogicalCloud
-func (c *LogicalCloudClient) GetLogicalCloud(logicalCloud, cert, project string) (LogicalCloud, error) {
+func (c *LogicalCloudClient) GetLogicalCloud(logicalCloud, cert, project string) (CaCertLogicalCloud, error) {
 	key := LogicalCloudKey{
-		Cert:         cert,
-		LogicalCloud: logicalCloud,
-		Project:      project}
+		Cert:               cert,
+		CaCertLogicalCloud: logicalCloud,
+		Project:            project}
 
 	value, err := db.DBconn.Find(c.dbInfo.StoreName, key, c.dbInfo.TagMeta)
 	if err != nil {
-		return LogicalCloud{}, err
+		return CaCertLogicalCloud{}, err
 	}
 
 	if len(value) == 0 {
-		return LogicalCloud{}, errors.New("LogicalCloud not found")
+		return CaCertLogicalCloud{}, errors.New("LogicalCloud not found")
 	}
 
 	if value != nil {
-		lc := LogicalCloud{}
+		lc := CaCertLogicalCloud{}
 		if err = db.DBconn.Unmarshal(value[0], &lc); err != nil {
-			return LogicalCloud{}, err
+			return CaCertLogicalCloud{}, err
 		}
 		return lc, nil
 	}
 
-	return LogicalCloud{}, errors.New("Unknown Error")
+	return CaCertLogicalCloud{}, errors.New("Unknown Error")
 }
 
 // // Convert the key to string to preserve the underlying structure

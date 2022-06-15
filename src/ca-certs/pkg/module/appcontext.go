@@ -80,7 +80,14 @@ func (ctx *CertAppContext) InitAppContext() error {
 func (ctx *CertAppContext) CallRsyncInstall() error {
 	// invokes the rsync service
 	if err := notifyclient.CallRsyncInstall(ctx.ContextID); err != nil {
-		// return stream, client, err
+		if er := ctx.AppContext.DeleteCompositeApp(); er != nil {
+			fmt.Println("Failed to delete the compositeApp", ctx.ContextID, err)
+		}
+
+		logutils.Error("Failed to call rsync install",
+			logutils.Fields{
+				"Error": err.Error()})
+
 		return err
 	}
 
@@ -157,6 +164,11 @@ func AddResource(appContext appcontext.AppContext, resource, handle interface{},
 	}
 
 	if _, err = appContext.AddResource(handle, name, string(value)); err != nil {
+		if er := appContext.DeleteCompositeApp(); er != nil {
+			logutils.Warn("Failed to delete the compositeApp", logutils.Fields{
+				"Error": err.Error()})
+		}
+
 		logutils.Error("Failed to add resource",
 			logutils.Fields{
 				"Error": err.Error()})
@@ -178,6 +190,10 @@ func AddInstruction(appContext appcontext.AppContext, handle interface{}, resOrd
 			logutils.Warn("Failed to delete the compositeApp", logutils.Fields{
 				"Error": err.Error()})
 		}
+
+		logutils.Error("Failed to add resource instruction",
+			logutils.Fields{
+				"Error": err.Error()})
 
 		return err
 	}

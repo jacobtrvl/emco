@@ -30,13 +30,13 @@
         "type": "object",
         "properties": {
           "label": {
-            "description": "a string that identifies all the cluster",
+            "description": "a string that identifies a set of cluster(s)",
             "type": "string",
             "maxLength": 128,
             "pattern": "^([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]$",
             "example": "edge-cluster"
           },
-          "name": {
+          "cluster": {
             "description": "a string that identifies the specific cluster",
             "type": "string",
             "maxLength": 128,
@@ -44,7 +44,7 @@
             "example": "edge-cluster"
           },
           "scope": {
-            "description": "specifies which field should be used to identify the clusters",
+            "description": "specifies which field should be used to identify the cluster(s)",
             "type": "string",
             "enum": [
               "label",

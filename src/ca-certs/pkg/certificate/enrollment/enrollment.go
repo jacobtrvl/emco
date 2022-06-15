@@ -136,6 +136,7 @@ func (ctx *EnrollmentContext) IssuingClusterHandle() (handle interface{}, err er
 	handle, err = ctx.AppContext.AddCluster(ctx.AppHandle,
 		strings.Join([]string{ctx.CaCert.Spec.IssuingCluster.ClusterProvider, ctx.CaCert.Spec.IssuingCluster.Cluster}, "+"))
 	if err != nil {
+		ctx.AppContext.DeleteCompositeApp()
 		fmt.Println(err)
 
 	}
@@ -236,21 +237,10 @@ func (ctx *EnrollmentContext) createCertManagerResources() error {
 		return err
 	}
 
-	// value, err := json.Marshal(cr)
-	// value, err := yaml.Marshal(cr)
-	// if err != nil {
-	// 	return err
-	// }
-
 	// add the CertificateRequest resource in to the app context
 	if err := module.AddResource(ctx.AppContext, cr, ctx.IssuerHandle, module.ResourceName(cr.ObjectMeta.Name, cr.TypeMeta.Kind)); err != nil {
 		return err
 	}
-
-	// _, err = ctx.AppContext.AddResource(ctx.IssuerHandle, module.ResourceName(cr.ObjectMeta.Name, cr.TypeMeta.Kind), string(value))
-	// if err != nil {
-	// 	return err
-	// }
 
 	ctx.ResOrder = append(ctx.ResOrder, module.ResourceName(cr.ObjectMeta.Name, cr.TypeMeta.Kind))
 

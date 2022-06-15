@@ -87,7 +87,7 @@ func validateData(i interface{}) error {
 		return validateCertData(*p)
 	case *module.ClusterGroup:
 		return validateClusterGroupData(*p)
-	case *logicalcloud.LogicalCloud:
+	case *logicalcloud.CaCertLogicalCloud:
 		return validateLogicalCloudData(*p)
 	default:
 		return nil
@@ -177,7 +177,7 @@ func validateClusterGroupData(group module.ClusterGroup) error {
 	}
 
 	if group.Spec.Scope == "name" &&
-		len(group.Spec.Name) == 0 {
+		len(group.Spec.Cluster) == 0 {
 		logutils.Error("Name may not be empty",
 			logutils.Fields{})
 		err = append(err, "name may not be empty")
