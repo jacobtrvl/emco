@@ -5,6 +5,7 @@ package distribution
 
 import (
 	"encoding/base64"
+	"fmt"
 	"strings"
 
 	cmv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
@@ -12,6 +13,7 @@ import (
 	"gitlab.com/project-emco/core/emco-base/src/ca-certs/pkg/certissuer/certmanagerissuer"
 	"gitlab.com/project-emco/core/emco-base/src/ca-certs/pkg/module"
 	"gitlab.com/project-emco/core/emco-base/src/ca-certs/pkg/service/istioservice"
+	"gitlab.com/project-emco/core/emco-base/src/ca-certs/pkg/service/knccservice"
 	v1 "k8s.io/api/core/v1"
 )
 
@@ -33,6 +35,10 @@ func (ctx *DistributionContext) createSecret(cr cmv1.CertificateRequest, name, n
 	}
 
 	ctx.ResOrder = append(ctx.ResOrder, module.ResourceName(s.ObjectMeta.Name, s.Kind))
+
+	ctx.Resources.Secret = append(ctx.Resources.Secret, v1.Secret{
+		ObjectMeta: s.ObjectMeta,
+		Data:       s.Data}) // this is needed to create the kncc config
 
 	return nil
 }
@@ -112,4 +118,34 @@ func (ctx *DistributionContext) retrieveClusterIssuer(cluster string) cmv1.Clust
 	}
 
 	return cmv1.ClusterIssuer{}
+}
+
+// retrieveSecret
+func (ctx *DistributionContext) retrieveSecret(cluster string) v1.Secret {
+	var sName string
+	for _, s := range ctx.Resources.Secret {
+		sName = certmanagerissuer.SecretName(ctx.ContextID, ctx.CaCert.MetaData.Name, ctx.ClusterGroup.Spec.Provider, cluster)
+		if s.ObjectMeta.Name == sName {
+			return s
+		}
+	}
+
+	return v1.Secret{}
+}
+
+// createKnccConfig
+func (ctx *DistributionContext) createKnccConfig(namespace, resourceName, resourceNamespace string,
+	patch []map[string]string) error {
+	cName := knccservice.KnccConfigName(ctx.ContextID, ctx.CaCert.MetaData.Name, ctx.ClusterGroup.Spec.Provider, ctx.Cluster)
+	c := knccservice.CreateKnccConfig(cName, namespace, resourceName, resourceNamespace, patch)
+
+	fmt.Println(c)
+
+	if err := module.AddResource(ctx.AppContext, c, ctx.ClusterHandle, module.ResourceName(c.ObjectMeta.Name, c.TypeMeta.Kind)); err != nil {
+		return err
+	}
+
+	ctx.ResOrder = append(ctx.ResOrder, module.ResourceName(c.ObjectMeta.Name, c.TypeMeta.Kind))
+
+	return nil
 }

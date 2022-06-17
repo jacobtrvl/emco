@@ -21,6 +21,8 @@ import (
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/grpc/notifyclient"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/state"
+
+	v1 "k8s.io/api/core/v1"
 )
 
 const (
@@ -149,7 +151,9 @@ func (ctx *DistributionContext) createCertManagerIssuerResources() error {
 			}
 
 			// Create service specific resources for this issuer
-			ctx.createServiceResources()
+			if err := ctx.createServiceResources(); err != nil {
+				return err
+			}
 
 			if err := module.AddInstruction(ctx.AppContext, ctx.ClusterHandle, ctx.ResOrder); err != nil {
 				return err
@@ -178,13 +182,12 @@ func (ctx *DistributionContext) createServiceResources() error {
 
 	switch serviceType {
 	case "istio":
-		ctx.createIstioServiceResourcess()
+		return ctx.createIstioServiceResourcess()
 
 	default:
-		ctx.createIstioServiceResourcess()
+		return ctx.createIstioServiceResourcess()
 	}
 
-	return nil
 }
 
 // createIstioServiceResourcess
@@ -195,15 +198,28 @@ func (ctx *DistributionContext) createIstioServiceResourcess() error {
 			if err := ctx.createProxyConfig(issuer); err != nil {
 				return err
 			}
-		} else {
-			return errors.New("Unsupported Issuer")
+			// create a kncc patch config
+			if s := ctx.retrieveSecret(ctx.Cluster); !reflect.DeepEqual(s, v1.Secret{}) {
+				pem := strings.Replace(string(s.Data[v1.TLSCertKey]), "\n", "\n    ", -1)
+				key := "mesh:\n  caCertificates\n"
+				value := fmt.Sprintf("- certSigners:\n  - clusterissuers.cert-manager.io/%s\n  pem: |\n    %s",
+					issuer.ObjectMeta.Name, pem)
+				if err := ctx.createKnccConfig("istio-system", "istio", "istio-system",
+					[]map[string]string{{key: value}}); err != nil {
+					return err
+				}
+
+				return nil
+			}
+
+			return errors.New("a secret is not available for this cluster")
 		}
+
+		return errors.New("a clusterIssuer is not available for this cluster")
 
 	default:
 		return errors.New("Unsupported Issuer")
 	}
-
-	return nil
 }
 
 // TODO: Remove this

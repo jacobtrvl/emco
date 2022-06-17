@@ -7,6 +7,7 @@ import (
 	cmv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	"gitlab.com/project-emco/core/emco-base/src/ca-certs/pkg/module"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/appcontext"
+	v1 "k8s.io/api/core/v1"
 )
 
 type DistributionContext struct {
@@ -29,4 +30,6 @@ type DistributionContext struct {
 
 type DistributionResource struct {
 	ClusterIssuer []cmv1.ClusterIssuer
+	// IstioPatchConfig []map[string]string
+	Secret []v1.Secret
 }
