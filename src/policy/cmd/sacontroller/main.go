@@ -1,25 +1,26 @@
 package main
 
 import (
-	"emcopolicy/api"
-	"emcopolicy/internal/sacontroller"
+	"emcopolicy/internal/controller"
+	"emcopolicy/pkg/http"
 	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 	"sync"
 )
 
-var unitTest bool
-
 func main() {
-	log.Info("Starting Policy SA controller", log.Fields{})
+	log.Info("Starting Policy Controller", log.Fields{})
 	wg := new(sync.WaitGroup)
-	//Create controller context
-	// TODO Remove unitTest part after initial dev
-	controller := sacontroller.InitTestController()
-	if !unitTest {
-		controller = sacontroller.InitController()
+	//Create Controller context and start scheduler.
+	//Scheduler should start before the api & event server
+	c := controller.Init()
+	err := c.StartScheduler()
+	if err != nil {
+		log.Error("Scheduler failed to start", log.Fields{"err": err})
+		return
 	}
+
 	//HTTP Server Initialization
 	wg.Add(1)
-	go api.StartHTTPServer(controller, wg)
+	go http.StartHTTPServer(c, wg)
 	wg.Wait()
 }

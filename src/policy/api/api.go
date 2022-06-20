@@ -1,9 +1,8 @@
 package api
 
 import (
-	event "emcopolicy/internal/events"
-	"emcopolicy/internal/policy"
-	"emcopolicy/internal/sacontroller"
+	"emcopolicy/internal/controller"
+	"emcopolicy/internal/intent"
 	"github.com/gorilla/mux"
 	"net/http"
 )
@@ -19,40 +18,14 @@ const (
 
 type HandleFunc func(string, func(http.ResponseWriter, *http.Request)) *mux.Route
 
-func NewRouter(c *sacontroller.Controller) *mux.Router {
+func NewRouter(c *controller.Controller) *mux.Router {
 	r := mux.NewRouter().PathPrefix("/" + Version).Subrouter()
 	r.HandleFunc("/health", c.Health).Methods(http.MethodGet)
-	registerEventHandlers(r.HandleFunc, c.EventClient())
-	registerPolicyHandlers(r.HandleFunc, c.PolicyClient())
 	registerPolicyIntentHandlers(r.HandleFunc, c.PolicyClient())
 	return r
 }
 
-func registerEventHandlers(handle HandleFunc, client *event.Client) {
-	handle(eventBaseUrl, func(w http.ResponseWriter, r *http.Request) {
-		client.CreateEventHandler(r.Context(), w, r)
-	}).Methods(http.MethodPost)
-	handle(eventBaseUrl, func(w http.ResponseWriter, r *http.Request) {
-		client.GetEventHandler(r.Context(), w, r)
-	}).Methods(http.MethodGet)
-	handle(eventBaseUrl, func(w http.ResponseWriter, r *http.Request) {
-		client.DeleteEventHandler(r.Context(), w, r)
-	}).Methods(http.MethodDelete)
-}
-
-func registerPolicyHandlers(handle HandleFunc, client *policy.Client) {
-	handle(policyBaseUrl, func(w http.ResponseWriter, r *http.Request) {
-		client.CreatePolicyHandler(r.Context(), w, r)
-	}).Methods(http.MethodPost)
-	handle(policyBaseUrl, func(w http.ResponseWriter, r *http.Request) {
-		client.GetPolicyHandler(r.Context(), w, r)
-	}).Methods(http.MethodGet)
-	handle(policyBaseUrl, func(w http.ResponseWriter, r *http.Request) {
-		client.DeletePolicyHandler(r.Context(), w, r)
-	}).Methods(http.MethodDelete)
-}
-
-func registerPolicyIntentHandlers(handle HandleFunc, client *policy.Client) {
+func registerPolicyIntentHandlers(handle HandleFunc, client *intent.Client) {
 	handle(policyIndentBaseUrl, func(w http.ResponseWriter, r *http.Request) {
 		client.CreatePolicyIntentHandler(r.Context(), w, r)
 	}).Methods(http.MethodPost)

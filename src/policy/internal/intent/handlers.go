@@ -1,4 +1,4 @@
-package policy
+package intent
 
 import (
 	"context"
@@ -8,65 +8,6 @@ import (
 	"net/http"
 )
 
-func (c Client) CreatePolicyHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-	v := mux.Vars(r)
-	policyData := new(Policy)
-	if err := json.NewDecoder(r.Body).Decode(policyData); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-	request := &PolicyRequest{
-		PolicyId: v["policyId"],
-		Policy:   policyData,
-	}
-	response, err := c.CreatePolicy(ctx, request)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	if err := json.NewEncoder(w).Encode(response); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	log.Info("Create Policy processed successfully", log.Fields{"IntentID": request.PolicyId})
-}
-
-func (c Client) DeletePolicyHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-	v := mux.Vars(r)
-	request := &PolicyRequest{
-		PolicyId: v["policyId"],
-	}
-	if err := c.DeletePolicy(ctx, request); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	w.WriteHeader(http.StatusOK)
-	log.Info("Delete Policy processed successfully", log.Fields{"IntentID": request.PolicyId})
-}
-
-func (c Client) GetPolicyHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-	v := mux.Vars(r)
-	request := &PolicyRequest{
-		PolicyId: v["policyId"],
-	}
-	response, err := c.GetPolicy(ctx, request)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	if err := json.NewEncoder(w).Encode(response); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	log.Info("Get Policy processed successfully", log.Fields{"IntentID": request.PolicyId})
-
-}
-
 func (c Client) CreatePolicyIntentHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 	v := mux.Vars(r)
 	intentData := new(Intent)
@@ -75,7 +16,18 @@ func (c Client) CreatePolicyIntentHandler(ctx context.Context, w http.ResponseWr
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	request := &IntentRequest{
+	// Copying key information to Policy Spec
+	// This is a redundant information in database
+	// orchestrator/pkg/infra/db library's find() method limits the fields that it returns
+	// It takes 'tag' as parameter and set projection to include only 'tag'
+	// But we need whole record when building reverse map during the boot. Hence, this workaround.
+	intentData.Spec.Project = v["project"]
+	intentData.Spec.CompositeApp = v["compositeApp"]
+	intentData.Spec.CompositeAppVersion = v["compositeAppVersion"]
+	intentData.Spec.DeploymentIntentGroup = v["deploymentIntentGroup"]
+	intentData.Spec.PolicyIntentID = v["policyIntentId"]
+
+	request := &Request{
 		Project:               v["project"],
 		CompositeApp:          v["compositeApp"],
 		CompositeAppVersion:   v["compositeAppVersion"],
@@ -83,14 +35,21 @@ func (c Client) CreatePolicyIntentHandler(ctx context.Context, w http.ResponseWr
 		PolicyIntentId:        v["policyIntentId"],
 		IntentData:            intentData,
 	}
-	response, err := c.CreateIntent(ctx, request)
+	intent, err := c.CreateIntent(ctx, request)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	// Mark for appending to the in-memory list
+	c.updateStream <- StreamData{
+		Operation: "APPEND",
+		Intent:    *intent,
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	if err := json.NewEncoder(w).Encode(response); err != nil {
+	if err := json.NewEncoder(w).Encode(intent); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -99,7 +58,7 @@ func (c Client) CreatePolicyIntentHandler(ctx context.Context, w http.ResponseWr
 
 func (c Client) GetPolicyIntentHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 	v := mux.Vars(r)
-	request := &IntentRequest{
+	request := &Request{
 		Project:               v["project"],
 		CompositeApp:          v["compositeApp"],
 		CompositeAppVersion:   v["compositeAppVersion"],
@@ -127,17 +86,31 @@ func (c Client) GetPolicyIntentHandler(ctx context.Context, w http.ResponseWrite
 
 func (c Client) DeletePolicyIntentHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 	v := mux.Vars(r)
-	request := &IntentRequest{
+	request := &Request{
 		Project:               v["project"],
 		CompositeApp:          v["compositeApp"],
 		CompositeAppVersion:   v["compositeAppVersion"],
 		DeploymentIntentGroup: v["deploymentIntentGroup"],
 		PolicyIntentId:        v["policyIntentId"],
 	}
-
+	intent, err := c.GetIntent(ctx, request)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if intent == nil {
+		http.Error(w, "404 Policy Intent not found", http.StatusNotFound)
+		return
+	}
 	if err := c.DeleteIntent(ctx, request); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
+	}
+	// Deleting from in memory list can be a time-consuming operation.
+	// Hence, we will just mark for deletion and proceed
+	c.updateStream <- StreamData{
+		Operation: "DELETE",
+		Intent:    *intent,
 	}
 	w.WriteHeader(http.StatusOK)
 	log.Info("Delete Policy intent processed successfully", log.Fields{"IntentID": request.PolicyIntentId})
