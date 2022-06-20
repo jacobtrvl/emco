@@ -5,18 +5,33 @@ import (
 )
 
 type Client struct {
-	db db.Store
+	db          db.Store
+	tag         string
+	storeName   string
+	eventStream chan Event
 }
 
 type Event struct {
-	Agent string `json:"agent"`
-	Id    string `json:"id"`
+	Id      string `json:"id"`
+	AgentID string `json:"agent,omitempty"`
 }
 
-func NewClient(db db.Store) *Client {
-	return &Client{db: db}
+func NewClient(config Config) *Client {
+	return &Client{
+		db:          config.Db,
+		tag:         config.Tag,
+		storeName:   config.StoreName,
+		eventStream: config.EventStream,
+	}
 }
 
 type Request struct {
 	Dummy string
+}
+
+type Config struct {
+	Db          db.Store
+	Tag         string
+	StoreName   string
+	EventStream chan Event
 }

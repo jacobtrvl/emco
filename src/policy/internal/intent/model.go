@@ -1,4 +1,4 @@
-package policy
+package intent
 
 import (
 	event "emcopolicy/internal/events"
@@ -7,26 +7,18 @@ import (
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
 )
 
-// Client holds
-// Do not declare any fields in Client with exported variables
 type Client struct {
-	db        db.Store
-	tag       string
-	storeName string
+	db           db.Store
+	tag          string
+	storeName    string
+	updateStream chan StreamData
 }
 
-type Policy struct {
-	Metadata Metadata   `json:"metadata"`
-	Spec     PolicySpec `json:"spec"`
-}
-
-type PolicyRequest struct {
-	PolicyId string
-	Policy   *Policy
-}
-
-type PolicyKey struct {
-	Id string
+type Config struct {
+	Db           db.Store
+	Tag          string
+	StoreName    string
+	UpdateStream chan StreamData
 }
 
 type PolicySpec struct {
@@ -35,7 +27,7 @@ type PolicySpec struct {
 	PolicyName string `json:"policyName"`
 }
 
-type IntentSpec struct {
+type Spec struct {
 	PolicyIntentID        string           `json:"policyIntentID"`
 	Project               string           `json:"project"`
 	CompositeApp          string           `json:"compositeApp"`
@@ -49,8 +41,8 @@ type IntentSpec struct {
 }
 
 type Intent struct {
-	Metadata Metadata   `json:"metadata"`
-	Spec     IntentSpec `json:"spec"`
+	Metadata Metadata `json:"metadata"`
+	Spec     Spec     `json:"spec"`
 }
 
 type Metadata struct {
@@ -60,14 +52,14 @@ type Metadata struct {
 	UserData2   string `json:"userData2" yaml:"-"`
 }
 
-type IntentData struct {
+type Data struct {
 	PolicyId   string
 	Actor      Actor
 	ActorParam any
 	Events     []events.Event
 }
 
-type IntentRequest struct {
+type Request struct {
 	Project               string
 	CompositeApp          string
 	CompositeAppVersion   string
@@ -76,10 +68,15 @@ type IntentRequest struct {
 	IntentData            *Intent
 }
 
-type IntentKey struct {
+type Key struct {
 	PolicyIntent        string `json:"policyIntent"`
 	Project             string `json:"project"`
 	CompositeApp        string `json:"compositeApp"`
 	CompositeAppVersion string `json:"compositeAppVersion"`
 	DigName             string `json:"deploymentIntentGroup"`
+}
+
+type StreamData struct {
+	Operation string
+	Intent    Intent
 }

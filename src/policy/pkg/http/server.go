@@ -1,10 +1,11 @@
-// HTTP Server related functions
-//TODO api package may not be right place for this. Need to refactor
-package api
+// Package api HTTP Server related functions
+
+package http
 
 import (
 	"context"
-	"emcopolicy/internal/sacontroller"
+	"emcopolicy/api"
+	"emcopolicy/internal/controller"
 	"github.com/gorilla/handlers"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/config"
 	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
@@ -14,13 +15,14 @@ import (
 	"sync"
 )
 
-func StartHTTPServer(ctrl *sacontroller.Controller, wg *sync.WaitGroup) {
+func StartHTTPServer(ctrl *controller.Controller, wg *sync.WaitGroup) {
 	defer wg.Done()
 	httpServer := &http.Server{
-		Handler: handlers.LoggingHandler(os.Stdout, NewRouter(ctrl)),
+		Handler: handlers.LoggingHandler(os.Stdout, api.NewRouter(ctrl)),
 		Addr:    ":" + config.GetConfiguration().ServicePort,
 	}
 	go func() {
+		log.Info("Starting HTTP Server", log.Fields{"port": httpServer.Addr})
 		if err := httpServer.ListenAndServe(); err != nil {
 			log.Warn("http server exit status", log.Fields{"Error": err})
 		}
