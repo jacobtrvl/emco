@@ -1,0 +1,62 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2022 Intel Corporation
+
+# add the cert intent1
+version: emco/v2
+resourceContext:
+  anchor: cluster-providers/{{.ClusterProvider}}/ca-certs
+metadata:
+  name: {{.CertIntent0}}
+spec:
+  isCA: true
+  issuerRef:
+    name: {{.ClusterIssuer0}}
+    kind: {{.Kind}}
+    group: {{.Group}}
+  duration: 8760
+  issuingCluster: 
+    cluster: {{.IssuingCluster}}
+    clusterProvider: {{.ClusterProvider}}
+  csrInfo: 
+    keySize: {{.KeySize}}
+    version: 1
+    dnsNames: []
+    emailAddresses: []
+    keyUsages: []
+    algorithm: 
+      publicKeyAlgorithm: RSA
+      signatureAlgorithm: SHA512WithRSA
+    subject:
+      locale: 
+        country: []
+        locality: []
+        postalCode: []
+        province: []
+        streetAddress: []
+      names:
+        commonNamePrefix: {{.CommonNamePrefix}}
+      organization:
+        names: []
+        units: []
+---
+# add a cluster by name to the cert intent
+version: emco/v2
+resourceContext:
+  anchor: cluster-providers/{{.ClusterProvider}}/ca-certs/{{.CertIntent0}}/clusters
+metadata :
+  name: {{.ClusterGroup0a}}
+spec:
+  scope: name
+  cluster: {{.Cluster1}}
+  clusterProvider: {{.ClusterProvider}}
+---
+# add clusters by label to the cert intent
+version: emco/v2
+resourceContext:
+  anchor: cluster-providers/{{.ClusterProvider}}/ca-certs/{{.CertIntent0}}/clusters
+metadata :
+  name: {{.ClusterGroup0b}}
+spec:
+  scope: label
+  label: {{.GroupLabel23}}
+  clusterProvider: {{.ClusterProvider}}

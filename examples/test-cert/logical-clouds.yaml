@@ -67,10 +67,21 @@ version: emco/v2
 resourceContext:
   anchor: projects/{{.ProjectName}}/logical-clouds/{{.FooLogicalCloud}}/cluster-references
 metadata:
-  name: lc-cl-foo
+  name: lc-cl-foo1
 spec:
   clusterProvider: {{.ClusterProvider}}
   cluster: {{.Cluster1}}
+  loadbalancerIp: "0.0.0.0"
+---
+#add cluster reference to foo logical cloud
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/logical-clouds/{{.FooLogicalCloud}}/cluster-references
+metadata:
+  name: lc-cl-foo2
+spec:
+  clusterProvider: {{.ClusterProvider}}
+  cluster: {{.Cluster2}}
   loadbalancerIp: "0.0.0.0"
 ---
 #create bar logical cloud without admin permissions
@@ -155,5 +166,86 @@ spec:
   clusterProvider: {{.ClusterProvider}}
   cluster: {{.Cluster3}}
   loadbalancerIp: "0.0.0.0"
-
-
+---
+#create foobar logical cloud
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/logical-clouds
+metadata:
+  name: {{.FooBarLogicalCloud}}
+spec:
+  namespace: {{.FooBarCloud}}
+---
+#create cluster quotas
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/logical-clouds/{{.FooBarLogicalCloud}}/cluster-quotas
+metadata:
+    name: foobar-quota
+spec:
+    requests.ephemeral-storage: '500'
+    limits.ephemeral-storage: '500'
+    persistentvolumeclaims: '500'
+    pods: '500'
+    configmaps: '1000'
+    replicationcontrollers: '500'
+    resourcequotas: '500'
+    services: '500'
+    services.loadbalancers: '500'
+    services.nodeports: '500'
+    secrets: '500'
+    count/replicationcontrollers: '500'
+    count/deployments.apps: '500'
+    count/replicasets.apps: '500'
+    count/statefulsets.apps: '500'
+    count/jobs.batch: '500'
+    count/cronjobs.batch: '500'
+    count/deployments.extensions: '500'
+---
+#create foo logical cloud without admin permissions
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/logical-clouds/{{.FooBarLogicalCloud}}/user-permissions
+metadata:
+  name: foobar-permission
+spec:
+    namespace: {{.FooBarCloud}}
+    apiGroups:
+    - ""
+    - "apps"
+    - "k8splugin.io"
+    resources:
+    - secrets
+    - pods
+    - configmaps
+    - services
+    - deployments
+    - resourcebundlestates
+    verbs:
+    - get
+    - watch
+    - list
+    - create
+    - delete
+---
+#add cluster reference to foo logical cloud
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/logical-clouds/{{.FooBarLogicalCloud}}/cluster-references
+metadata:
+  name: lc-cl-foobar1
+spec:
+  clusterProvider: {{.ClusterProvider}}
+  cluster: {{.Cluster1}}
+  loadbalancerIp: "0.0.0.0"
+---
+#add cluster reference to foo logical cloud
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/logical-clouds/{{.FooBarLogicalCloud}}/cluster-references
+metadata:
+  name: lc-cl-foobar2
+spec:
+  clusterProvider: {{.ClusterProvider}}
+  cluster: {{.Cluster3}}
+  loadbalancerIp: "0.0.0.0"
