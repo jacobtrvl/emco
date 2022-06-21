@@ -22,7 +22,7 @@ Logical clouds `Foo` and `Bar` are both specified in the `logical-cloud` variant
 `bar-ns` in all three clusters will be configured to have the common CA `CA 1`.  (note each cluster will have a common root but
 its own Intermediate CA certificate).
 
-Logical cloud `FooBar` is specified to use `CA 2` and results in namespace `foobar-ns` on Cluster1 and Cluster3 to be configured with a `CA 2`.
+Logical cloud `FooBar` is specified to use `CA 2` and results in namespace `foobar-ns` on Cluster1 and Cluster3 to be configured with CA certificates for `CA 2`.
 
 # Environment Setup and Assumptions
 
@@ -32,20 +32,53 @@ An issuing cluster is assumed to be configured by the administrator.  A cert-man
 each CA root chain that will serve as a source for CA Certificate Intents.  This example will expect three ClusterIssuers to be
 configured to provide the Intermediate CA Certs for `CA 0`, `CA 1` and `CA 2`.
 
-### TBD - example sequence to set up ClusterIssuers
+### Installing cert-manager on the Issuing Cluster
+
+Install cert-manager on the Issuing Cluster.  Following is an example sequence for installing cert-manager.
+Note, that if the Issuing Cluster will also function as an Edge Cluster (perhaps in a development setup), then cert-manager
+must be installed as described below in the [Installing Istio on the Edge Clusters](#installing-istio-on-the-edge-clusters) section.
+
+```
+helm repo add jetstack https://charts.jetstack.io
+helm repo update
+helm install cert-manager jetstack/cert-manager --namespace cert-manager --create-namespace --set installCRDs=true
+```
+
+Once cert-manager is installed, run the script [setup-ca-issuers.sh](ca-certs/setup-ca-issuers.sh) to generate the needed
+ClusterIssuers (and associated resources).
 
 ## Edge Cluster Setup
 
 The EMCO CA Certificate Distribution example currently supports distributing and configuring CA Certificates to clusters where
-Istio has been configured to use cert-manager as an external certificate signer.  This required cert-manager and Istio to be
+Istio has been configured to use cert-manager as an external certificate signer.  This requires cert-manager and Istio to be
 installed with specific features enabled and/or configured.
 
 Edge clusters which have been setup to satisfy these requirements will be labeled by EMCO `clm` (in the example).  These labels
 can then be specified in the CA Cert Intents to identify the clusters which will be covered by the Intents (i.e. get configured
 with CA Certificates).
 
-### TBD - example sequence for installing cert-manager and Istio
+### Installing cert-manager on the Edge Clusters
 
+Install cert-manager as follows:
+
+```
+helm repo add jetstack https://charts.jetstack.io
+helm repo update
+helm install cert-manager jetstack/cert-manager --namespace cert-manager --create-namespace --set featureGates="ExperimentalCertificateSigningRequestControllers=true" --set installCRDs=true
+```
+
+### Installing Istio on the Edge Clusters
+
+Install the Istio `istioctl` program.  See [Istio Getting Started](https://istio.io/latest/docs/setup/getting-started/#download) for details on how to do this.
+
+Then execute the script [setup-edge-cluster-istio.sh](ca-certs/setup-edge-cluster-istio.sh).  This will setup a default cert-manager
+ClusterIssuer for Istio and generate a yaml file (`istio-install.yaml`)for installing Istio.
+
+Then run:
+
+```
+istioctl install -y -f istio-install.yaml
+```
 
 # Running the examples
 
@@ -61,21 +94,21 @@ The following environment variables are expected to be set before running `setup
   - ``KUBE_PATH2``: points to where the kubeconfig for the edge cluster 2 is located
   - ``KUBE_PATH3``: points to where the kubeconfig for the edge cluster 3 is located
 
-The run the script:
+Then run the script:
 
-    ```
-    $ ./setup.sh create
-    ```
+```
+$ ./setup.sh create
+```
 
-    Output files of this command are:
-    * ``values.yaml``: specifies useful variables for the creation of EMCO resources
-    * ``emco_cfg.yaml``: defines the deployment details of EMCO (IP addresses and ports of each service)
+Output files of this command are:
+* ``values.yaml``: specifies useful variables for the creation of EMCO resources
+* ``emco_cfg.yaml``: defines the deployment details of EMCO (IP addresses and ports of each service)
 
-    ```
-    $ ./setup.sh cleanup
-    ```
+To removes the artifacts previously generated, run the following:
 
-    Removes the artifacts previously generated.
+```
+$ ./setup.sh cleanup
+```
 
 
 ## Description of the example resource files
@@ -132,7 +165,7 @@ $ emcoctl --config emco-cfg.yaml -v values.yaml apply -f logical-clouds.yaml
 $ emcoctl --config emco-cfg.yaml -v values.yaml apply -f logical-clouds-instantiate.yaml
 ```
 
-Apply the `cluster-provider` variant resource files to configure the default CA certs for the three clusters.
+Apply the `logical-cloud` variant resource files to configure the two CA cert intents for the three logical clouds.
 
 ```
 $ emcoctl --config emco-cfg.yaml -v values.yaml apply -f ca-certs-logical-cloud.yaml

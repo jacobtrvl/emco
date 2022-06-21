@@ -41,9 +41,9 @@ CertIntent1: cert1
 CertIntent2: cert2
 
 # Cluster Issuer identifier
-ClusterIssuer0: istio-system
+ClusterIssuer0: new-istio-system
 ClusterIssuer1: foo
-ClusterIssuer2: bar
+ClusterIssuer2: foobar
 Kind: ClusterIssuer
 Group: cert-manager.io
 
