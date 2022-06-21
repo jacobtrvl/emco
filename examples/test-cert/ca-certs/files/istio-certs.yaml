@@ -1,0 +1,234 @@
+apiVersion: install.istio.io/v1alpha1
+kind: IstioOperator
+spec:
+  meshConfig:
+    accessLogFile: /dev/stdout
+    accessLogEncoding: JSON
+    accessLogFormat: ""
+    defaultConfig: 
+      proxyMetadata:
+        ISTIO_META_CERT_SIGNER: istio-system
+    caCertificates:
+    - certSigners: 
+      - clusterissuers.cert-manager.io/bar
+      pem: |
+        -----BEGIN CERTIFICATE-----
+        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
+        -----END CERTIFICATE-----
+        -----BEGIN CERTIFICATE-----
+        MIIFGDCCAwCgAwIBAgIUCcQXDgPp8/ZExpk9oPEERQwzAPEwDQYJKoZIhvcNAQEL
+        BQAwJDEMMAoGA1UECgwDYmFyMRQwEgYDVQQDDAtiYXItcm9vdC1jYTAeFw0yMjA2
+        MTkxOTAxMDFaFw0zMjA2MTYxOTAxMDFaMCQxDDAKBgNVBAoMA2JhcjEUMBIGA1UE
+        AwwLYmFyLXJvb3QtY2EwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIKAoICAQDL
+        IvRK58JRoCVs8OHd1ra0x0xy4PD4SBCGTEOpicFb9by28Y7FPNyYlK+qnHZ+LCZR
+        KvzbLXYtI1TZ+kVD5dm89gi9NCGufMv8MCOKUIbYJeCWUpy/U8MdgInnMwcV+04q
+        Q1i8UjstAx3QHdpkcRy3QlJ3QtvVjALXTBwAY8GrvfP8TipkolaEmbGOE2NFLDld
+        gAXRVs6U0DdYjf24URdmwT1Onm7dn3UMSTjcKtkwNDjx8MTOro9ij/VxR3+9B8oY
+        Mp8vnJnY1GcgN9ilZRkPcQC654Z7ZwHQwTvvI4m3A6vxXIIcwTDiSSPFR7AA2ZRW
+        Vix4pmQxwwmPkNVyASy/rNclh95WYkxXmvolQQOdkUZy4PdnI2V1PngpuSDeHGa4
+        WOHCZs5eMdM5+tiTClm7dMa0mIWLlKGSWs/JEHAeRdgu5PfJXcI1qK4zdZqRMugT
+        zSl3uKwPeDWW5jARdpuXTlKMzMhNRbmpWBOXYqeB6c/dXhpp75suYpv71OpMYUkX
+        AvSIMSLBBHkysYLgcoh+atweKCxt3Q9ZKuful+O6nDdl4p81IwiGF9Pbi1//5hiW
+        Ozr+sMsz24rVOrF/bc+n5GTNTuNXUkc/55BdZ3Jv5+6INs37RfuWmNSq+rxY/D/2
+        WhBEYVvVkCdGPcYcpo57Ofd6DAFo0Q9sWeBSJUXvrQIDAQABo0IwQDAdBgNVHQ4E
+        FgQUBvI4onfy+srQ4z9vggGs3kGn6hcwDwYDVR0TAQH/BAUwAwEB/zAOBgNVHQ8B
+        Af8EBAMCAuQwDQYJKoZIhvcNAQELBQADggIBACWoohUbTP43NpSq6kXJzoEjwngZ
+        x4/v5h1cJ48PaZ5MaDOsP1+mevqoEsDlj3HCmnSnXbsho9kXOQG2/cSsNjHKtpYz
+        D0h3uHGzBc8q7vxLRef/7A/fzVAHZOYy6/0CpVCiAlull152UgRi5JU4ztTtXAt8
+        k+T1WTTwjjzyEKYTut5LJPyYskl3J79sKrr/zItRM1R7DJVLqXGGKVbWDhVdJZ57
+        CraQD0SXAFakRfLH6lupTjiYXGnaztCNpawM8rLr0N1+GkJTNdV4/ww0MTTr0944
+        4sJ2ujwrrce21gB5trl/JozZbXc8Mgna9z+kjVgcKkvwwqqzSAQIc7Ze1Ry+ZVRt
+        nN9AKPDh61vdm4Ij1/RJLkUEPoKtlMmZEo8uxbc4XEdTlXI391YSXCM7zXoTjwC6
+        a0KqOBtImrcNNwU7pUYGPs/2R1IrQ2JGxzZdrHtACFFejgUWqeKa4xTC1Zc5PGwy
+        wRHSBioXbWLuZISfeZcc5ll+2Lej19OcVIk+cCj4lL8pxMcd7Cc5TIeUmSrn5IDX
+        P1/bc/GWtXzscS3CWKMYmO/xou3Bs3EH4NMTpGadF3t7uzTXXPuVD48MzZLurOUc
+        ZNGYa01AupOmDv1MkMDo7jjnDdkpjazMUT/FA3/US3W5EyAPF2T47/uWEajQvI0s
+        wObSDNpsu3YdVQ1r
+        -----END CERTIFICATE-----
+    - certSigners: 
+      - clusterissuers.cert-manager.io/foo
+      pem: |    
+        -----BEGIN CERTIFICATE-----
+        MIIFNjCCAx6gAwIBAgIRAIlCJhiLVKoQKi4JUJo84HgwDQYJKoZIhvcNAQELBQAw
+        JDEMMAoGA1UECgwDZm9vMRQwEgYDVQQDDAtmb28tcm9vdC1jYTAeFw0yMjA2MTkx
+        OTAxMDFaFw0yMjA5MTcxOTAxMDFaMCQxDDAKBgNVBAoTA2ZvbzEUMBIGA1UEAxML
+        Zm9vLXJvb3QtY2EwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIKAoICAQD0VPJc
+        QVwXgg3+NhmMs4mnfb5oZ5NWV+Lt58XWlgXfMc2yl++ASEHPQalWInd9ISD0vewi
+        sVB7iS6t/OmQM2hFBF5PnnnqSD7NSBiyt8DHSU4J1WkGMd0A9K18YEfC9nBLcP/1
+        g3sw2oSasHlgffv/3KvsIMFEt3S2XX6Eb/4Q+NzsvE3DsAivEIZ/2k/dzXwBD1KX
+        qwoIIrItrFU3ZYZZQc9IS10HrmHjrbL/LKd77imRlmsMZtZawugD3ZPlzaji9gsa
+        +ZBgKLTfu6wmrRxmHwHx6byWhgX7tRdnbk33xw8R2n+PJiSBjwoU20WZC5Iziw+y
+        qoIFZ20AC23MZv1xrrJ7sTR4iwGZJq3034w8JvbqYlGFgoLP5ZPc0QxGscwX+MXP
+        o9wKsmRgNxmL6MWkrGM6eVYv4JDzZSrBQiz53b0lEm+VIhruwJsdwKUMlmZoOG/a
+        p0Cb0b4Zthwfrh0PRw+tOzhX5yeWdv5NlXVUsRAHDPvmHlzMaLjPe5460uTwrBa1
+        t7s9diKha6knPwfsILLYkCp5Tk9Qp2h8uALb9ckgVTaDx5CNFjOcPXpqpA3hIAKV
+        dOwgR+knL0Pp2svA7EGNB6FewJto3LAXJdM2KzSn/F0oRyd3LknxoWcui1sMvLEw
+        c244aDT9ROq2yUqO28+gUOmZJUoVZPRl1ZeZwQIDAQABo2MwYTAOBgNVHQ8BAf8E
+        BAMCAqQwDwYDVR0TAQH/BAUwAwEB/zAdBgNVHQ4EFgQUktXy7tt6Gxi1TPgztPjS
+        DSgtnCIwHwYDVR0jBBgwFoAU3VTe7lw1KxWGuRs0Y/eRoON06J0wDQYJKoZIhvcN
+        AQELBQADggIBAB4xrRBcBhDMu6L2th/6WGiTGwUVAPdf/s8ordmmoN8dKxDxxa6H
+        UaJOc2ijK3/9Bu4GT7FniEyzVqrAZUKWMQzGPudnxw1fAE7K5Gc/tn50JaWSO1FQ
+        omLas+JXYc+oh1LayR05b/l5UFJx1AR57aVOKH21VL8n2siTICf5rBIXqYcGko21
+        IrJCgu11kogLEzyCOqr5FUpKopRH26vT1hrmPGQn6uaOWqN6dE4P+LPhYerHFEqc
+        ecDcd9XAPhwbMqQCvEmR5WtYyWp4i40fHUhNT2bVCPYpqpchMFMKJN0/QulsuokP
+        +E9ygHuqwfhYLhdS4Aqhfg30OLEr6i8VyzcQcjuU8FUsrAnQ6FQnzhZ699s4+htL
+        B4bXSL0OXjD1qu2vhCZwyhsIFmbrMYr1x8qao/1fGZQWjTK+XbSCg+ju+Kn8RpVR
+        H1dplMyT5/gEZVdItutMhWcnb6wB4tr2h60bZb3JV0N8Ea1Mb2jf18QqpJuTv0oa
+        hRxp7hdFC1seMDc+Vgv/ryxpPZ1o3/S8gokAXtZX8qz2cxIwR8F10mIUH1PvZJFp
+        ljoKRtv4qSsRHkkAQsuhOQCrTH6cyWisPQjLeAmzG5T937bIMnAjO13Khy4K8DLD
+        o0snoEB20kJ9ZQO4bRNQeLyyAZh53Pn+vaKfZ/PW/l9ibhPqBIpL1ZxY
+        -----END CERTIFICATE-----
+        -----BEGIN CERTIFICATE-----
+        MIIFGDCCAwCgAwIBAgIUFRNy19J1SunoOFhC3kiZb+ugYp0wDQYJKoZIhvcNAQEL
+        BQAwJDEMMAoGA1UECgwDZm9vMRQwEgYDVQQDDAtmb28tcm9vdC1jYTAeFw0yMjA2
+        MTkxOTAwMjlaFw0zMjA2MTYxOTAwMjlaMCQxDDAKBgNVBAoMA2ZvbzEUMBIGA1UE
+        AwwLZm9vLXJvb3QtY2EwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIKAoICAQDk
+        ycOZn5H/ip4MEF96wgXfCJA7pOCcw+zeYF0GsE4F+/BjKtuelTttm5OMzF5qvUTV
+        rHXXE0GMOm6aOkuRGdt0YuqLyF/RhUr0jD2CZ/eToqfFtCESTTXR5gULZpIsncNb
+        BJZ6wsTTWBBleXFoj64SnI1vZBOgDYd9wvdXs+krBvCsXm+Xptz8vCWx4bZAt2Tc
+        5J4CEUTW93co5w7H+Rck55pX2FpBf7NkuFsRV9gMPIHI5t8odJUaIiw2qpO7j7jZ
+        JgCA5U72sHLQhqTbFORHxzPpUol/GePk3MyG4MPxd96xdv9q35AWdcoZdrm1NqT4
+        XO51mh3ws4I0B3MFYm7iY5H+7UZV0drBd4DgzYYhaXC823t74wUgUA0W17qfCJAg
+        J/R3YnLWdjF3On5mjWZz6gfbYTAaSHJ03NJaS9Kuew8WBO9XRv0J2tK6ujiL5tAM
+        Jox588pv9/UADHT0FwBfXlFSrOFdm1DH/gEb8jgL3/1qLJ+i390WpeTllh0McNwt
+        uV23Z5jNEyQ1sl4i7DvfNmVu1d66XAO5r8zu+BBCbKjaOPP7Ptx58qnaeUwmftrv
+        IP9YiwkF3fdXBgugNLNLMzegdbIabB6M18i22/W0MWa0r4qaxlDPgOaTJZExdsa1
+        pEKRwzQQRantt/rT63J2zcRZsnWbYGrBxA5kp6kulwIDAQABo0IwQDAdBgNVHQ4E
+        FgQU3VTe7lw1KxWGuRs0Y/eRoON06J0wDwYDVR0TAQH/BAUwAwEB/zAOBgNVHQ8B
+        Af8EBAMCAuQwDQYJKoZIhvcNAQELBQADggIBAIkOP89L8hvq32UznYJsWiLuN4L5
+        STF5Wi/EDDeZg33iszEM1P/GLBW/4RKqPYpT6O2SKt5aW8Ebwuv26TwWEN0xXFXq
+        zzZ36JS+4NlKvlDUVm/Etcu5y8DsyARTaZ/hDoUZ/qclyB9LLCVo3YxAQM0FcSCr
+        wlP2K7vOCAawelF2sTn1cddrJPSQI4CX3OII2Nqe5304+GOhK5G81yVn2Giw7BNn
+        hzK5Y3oQEjQfTGoUb+2IKi0JhU07QN+HIdKM04AHc9dPdw2FV/t+D7ehNlZ9ARtc
+        wW82Gk/W72n6iSsr2JpDxiJplmhAjAwJmFFMfiSGXxiaSnHEh9K1txxtWkoH7V6/
+        YHzFGjnyh9fWapRlrTAoh6qXn/rkPp61+Ml+P27G2s7ZuFdH/VAZzJNff/nx2kmi
+        fXtNBSiM4EGIDwJ6q8hqlMMbGJ9C0tP0DDqm0DT3D5ua88YE+QYmOueLTZ/kFZbN
+        m51wCWMeXkZSwrvJ2nZbjYA6Wao1vuhmIPbffz+hh1Tbv1MNKmhx9//0Cn0OwxXa
+        ivunKlfP1ITkjgKT+31NXLli840BJTu1Lam4FM31dc4xiKbDk3KbhQ4SiAa4uTL0
+        PA0CbQni7HFvCIeFyrM8KgKBKOFeZhbYaDaeRbErM7VrCsVmoa0Mb3QrNqP9Hznj
+        /DLFiVY44S2taug2
+        -----END CERTIFICATE-----
+    - certSigners: 
+      - clusterissuers.cert-manager.io/istio-system
+      pem: |
+        -----BEGIN CERTIFICATE-----
+        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
+        jouEgUoM2OZoxavo9Kd7eg==
+        -----END CERTIFICATE-----
+        -----BEGIN CERTIFICATE-----
+        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
+        -----END CERTIFICATE-----
+  components:
+    pilot:
+      k8s:
+        env:
+        - name: CERT_SIGNER_DOMAIN
+          value: clusterissuers.cert-manager.io
+        - name: EXTERNAL_CA
+          value: ISTIOD_RA_KUBERNETES_API
+        - name: PILOT_CERT_PROVIDER
+          value: k8s.io/clusterissuers.cert-manager.io/istio-system
+        overlays:
+          # Amend ClusterRole to add permission for istiod to approve certificate signing by custom signer
+          - kind: ClusterRole
+            name: istiod-clusterrole-istio-system
+            patches:
+              - path: rules[-1]
+                value: |
+                  apiGroups:
+                  - certificates.k8s.io
+                  resourceNames:
+                  - clusterissuers.cert-manager.io/*
+                  resources:
+                  - signers
+                  verbs:
+                  - approve
+  values:
+    pilot:
+      image: pilot
+    global:
+      proxy:
+        image: proxyv2
+
+# kubectl get secret -n cert-manager -o jsonpath='{.data.ca\.crt}' |base64 -d 

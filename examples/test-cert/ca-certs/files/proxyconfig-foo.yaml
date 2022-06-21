@@ -1,0 +1,9 @@
+apiVersion: networking.istio.io/v1beta1
+kind: ProxyConfig
+metadata:
+  name: foopc 
+  namespace: foo
+spec:
+  environmentVariables:
+    ISTIO_META_CERT_SIGNER: foo
+
