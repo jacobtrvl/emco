@@ -2,6 +2,7 @@
 // Copyright (c) 2020 Intel Corporation
 
 syntax = "proto3";
+option go_package = "./installapp";
 
 service installapp {
     // Sync
@@ -12,6 +13,9 @@ service installapp {
     }
 
     rpc ReadAppContext(ReadAppContextRequest) returns (ReadAppContextResponse){
+    }
+
+    rpc DependentAppContext(DependentAppContextRequest) returns (DependentAppContextResponse){
     }
 
 }
@@ -41,4 +45,21 @@ message ReadAppContextRequest {
 message ReadAppContextResponse {
     bool app_context_read_successful = 1;
     string app_context_read_message = 2;
+}
+
+// Event type for the event
+enum EventType{
+    INSTANTIATE = 0;
+    TERMINATE = 1;
+}
+
+message DependentAppContextRequest {
+    string app_context = 1;
+    string dep_app_context = 2;
+    EventType event_type = 3;
+}
+
+message DependentAppContextResponse {
+    bool app_context_dependent_successful = 1;
+    string app_context_dependent_message = 2;
 }

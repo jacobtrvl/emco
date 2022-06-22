@@ -58,11 +58,26 @@ func (cs *installappServer) ReadAppContext(ctx context.Context, req *installapp.
 	instca := con.CompositeAppContext{}
 	err := instca.ReadComApp(req.GetAppContext())
 	if err != nil {
-		log.Println("Termination failed: " + err.Error())
+		log.Println("ReadAppContext failed: " + err.Error())
 		return &installapp.ReadAppContextResponse{AppContextReadSuccessful: false, AppContextReadMessage: "AppContext read failed"}, err
 	}
 
 	return &installapp.ReadAppContextResponse{AppContextReadSuccessful: true, AppContextReadMessage: "AppContext read successfully"}, nil
+}
+
+func (cs *installappServer) DependentAppContext(ctx context.Context, req *installapp.DependentAppContextRequest) (*installapp.DependentAppContextResponse, error){
+	dependentAppContext, _ := json.Marshal(req)
+	log.Println("GRPC Server received ReadAppContext: ", string(dependentAppContext))
+
+	// Try instantiate the comp app
+	instca := con.CompositeAppContext{}
+	err := instca.DependentAppContext(req.AppContext, req.DepAppContext, req.EventType.String())
+	if err != nil {
+		log.Println("Dependent AppContext failed: " + err.Error())
+		return &installapp.DependentAppContextResponse{AppContextDependentSuccessful: false, AppContextDependentMessage: "DependentAppContext failed"}, err
+	}
+
+	return &installapp.DependentAppContextResponse{AppContextDependentSuccessful: true, AppContextDependentMessage: "AppContext dependent successfully"}, nil
 }
 
 // NewInstallAppServer exported

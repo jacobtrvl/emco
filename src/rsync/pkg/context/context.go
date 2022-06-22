@@ -229,3 +229,15 @@ func (instca *CompositeAppContext) ReadComApp(cid interface{}) error {
 	con := connector.NewProvider(instca.cid)
 	return HandleAppContext(instca.cid, nil, ReadEvent, &con)
 }
+
+// DependentAppContext instantiates or terminates dependent AppContext
+func (instca *CompositeAppContext) DependentAppContext(cid interface{}, dependentCid interface{}, event string) error {
+	instca.cid = cid
+	con := connector.NewProvider(instca.cid)
+	if event == "INSTANTIATE" {
+		return HandleAppContext(instca.cid, dependentCid, InstantiateDependentEvent, &con)
+	} else if event == "TERMINATE" {
+		return HandleAppContext(instca.cid, dependentCid, TerminateDependentEvent, &con)
+	}
+	return fmt.Errorf("Unsupported event")
+}

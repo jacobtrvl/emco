@@ -162,3 +162,50 @@ func InvokeUninstallApp(appContextId string) error {
 	}
 	return err
 }
+
+func InvokeDependentAppContext(appContextId, depAppContextId, eventType string) error {
+	var err error
+	var rpcClient installpb.InstallappClient
+	var depContextRes *installpb.DependentAppContextResponse
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	conn := rpc.GetRpcConn(rsyncName)
+	if conn == nil {
+		InitRsyncClient()
+		conn = rpc.GetRpcConn(rsyncName)
+	}
+
+	if conn != nil {
+		rpcClient = installpb.NewInstallappClient(conn)
+		depReq := new(installpb.DependentAppContextRequest)
+		depReq.AppContext = appContextId
+		depReq.DepAppContext = depAppContextId
+		if eventType != "INSTANTIATE" && eventType != "TERMINATE" {
+			return pkgerrors.Errorf("DependentAppContext Failed - Invalid Event Type: %v", eventType)
+		}
+		depReq.EventType = installpb.EventType( installpb.EventType_value[eventType])
+		depContextRes, err = rpcClient.DependentAppContext(ctx, depReq)
+		if err == nil {
+			log.Info("Response from  DependentAppContext GRPC call", log.Fields{
+				"Succeeded": depContextRes.AppContextDependentSuccessful,
+				"Message":   depContextRes.AppContextDependentMessage,
+			})
+		}
+	} else {
+		return pkgerrors.Errorf("DependentAppContext Failed - Could not get DependentAppContextClient: %v", "rsync")
+	}
+
+	if err == nil {
+		if depContextRes.AppContextDependentSuccessful {
+			log.Info("DependentAppContext Success", log.Fields{
+				"AppContext": appContextId,
+				"Message":    depContextRes.AppContextDependentMessage,
+			})
+			return nil
+		} else {
+			return pkgerrors.Errorf("DependentAppContext Failed: %v", depContextRes.AppContextDependentSuccessful)
+		}
+	}
+	return err
+}

@@ -44,7 +44,7 @@ func (c *Context) checkStateChange(e RsyncEvent) (StateChange, bool, error) {
 		return event, false, pkgerrors.Errorf("AppContext Error: %s:", err)
 	}
 
-	if tFlag && e != TerminateEvent {
+	if tFlag && !(e == TerminateEvent || e == TerminateDependentEvent) {
 		return event, false, pkgerrors.Errorf("Terminate Flag is set, Ignoring event: %s:", e)
 	}
 	// Update the desired state of the AppContext based on this event
@@ -272,10 +272,27 @@ func (c *Context) appContextRoutine() {
 					break
 				}
 				op = OpDelete
-			case AddChildContextEvent:
-				log.Error("Not Implemented", log.Fields{"event": e})
-				if err := c.UpdateQStatus(index, "Skip"); err != nil {
-					break
+			case InstantiateDependentEvent:
+				// Record last event on the dependent context
+				c.acRef.AddDependentAppContext(ele.UCID, fmt.Sprint(OpApply))
+				err := HandleAppContext(ele.UCID, nil, InstantiateEvent, c.con)
+				if err == nil {
+					_ = c.UpdateQStatus(index, "Done")
+				} else {
+					c.acRef.DeleteDependentAppContext(ele.UCID)
+					_ = c.UpdateQStatus(index, "Skip")
+				}
+				continue
+			case TerminateDependentEvent:
+				// Record last event on the dependent context
+				c.acRef.AddDependentAppContext(ele.UCID, fmt.Sprint(OpDelete))
+				err := HandleAppContext(ele.UCID, nil, TerminateEvent, c.con)
+				if err == nil {
+					_ = c.UpdateQStatus(index, "Done")
+					// Add to the tracked list
+				} else {
+					c.acRef.DeleteDependentAppContext(ele.UCID)
+					_ = c.UpdateQStatus(index, "Skip")
 				}
 				continue
 			default:
@@ -502,7 +519,17 @@ func (c *Context) runApp(ctx context.Context, g *errgroup.Group, op RsyncOperati
 		}
 		cluster := cluster.Name
 		g.Go(func() error {
-			return c.runCluster(ctx, op, e, app, cluster)
+			if op == OpDelete {
+				// Wait for the dependent AppContexts to complete terminating
+				dc := NewDependentCtx(c.acID)
+				dc.WaitToComplete(ctx, op, app, cluster)
+			}
+			err := c.runCluster(ctx, op, e, app, cluster)
+			// Add Resources State to AppContext for the cluster
+			if err == nil {
+				c.acRef.SetClusterResourcesState(app, cluster, op.String())
+			}
+			return err
 		})
 	}
 	return nil

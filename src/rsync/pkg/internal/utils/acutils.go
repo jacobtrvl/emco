@@ -470,3 +470,100 @@ func (a *AppContextReference) GetSubResApprove(name, app, cluster string) ([]byt
 	}
 	return byteRes, sh, nil
 }
+
+//AddDependentAppContext gets the statusappctxid
+func (a *AppContextReference) AddDependentAppContext(cid string, event string) (string, error) {
+	h, err := a.ac.GetCompositeAppHandle()
+	if err != nil {
+		log.Error("Error GetAppContextFlag", log.Fields{"err": err})
+		return "", err
+	}
+	ch := "dependentctx/" + cid
+	sh, err := a.ac.GetLevelHandle(h, ch)
+	if sh == nil {
+		a.ac.AddLevelValue(h, ch, string(event))
+	} else {
+		a.ac.UpdateStatusValue(sh, string(event))
+	}
+	return "", err
+}
+
+// DeleteDependentAppContext removes dependent app context
+func (a *AppContextReference) DeleteDependentAppContext(cid string) (string, error) {
+	h, err := a.ac.GetCompositeAppHandle()
+	if err != nil {
+		log.Error("Error GetAppContextFlag", log.Fields{"err": err})
+		return "", err
+	}
+	ch := "dependentctx/" + cid
+	sh, err := a.ac.GetLevelHandle(h, ch)
+	if sh != nil {
+		a.ac.DeleteLevel(ch)
+	}
+	return "", err
+}
+
+// SetClusterResourceReady sets the cluster ready status
+func (a *AppContextReference) SetClusterResourcesState(app, cluster string, value string) error {
+	ch, err := a.ac.GetClusterHandle(app, cluster)
+	if err != nil {
+		return err
+	}
+	rsh, _ := a.ac.GetLevelHandle(ch, "resourcestate")
+	// If resource ready handle was not found, then create it
+	if rsh == nil {
+		a.ac.AddLevelValue(ch, "resourcestate", value)
+	} else {
+		a.ac.UpdateStatusValue(rsh, value)
+	}
+	return nil
+}
+
+// GetClusterResourceReady gets the cluster ready status
+func (a *AppContextReference) GetClusterResourcesState(app, cluster string) (string, error) {
+	ch, err := a.ac.GetClusterHandle(app, cluster)
+	if err != nil {
+		return "", err
+	}
+	rsh, _ := a.ac.GetLevelHandle(ch, "resourcestate")
+	if rsh != nil {
+		status, err := a.ac.GetValue(rsh)
+		if err != nil {
+			return "", err
+		}
+		return status.(string), nil
+	}
+	return "", nil
+}
+
+// GetClusterResourceReady gets the cluster ready status
+func (a *AppContextReference) GetAllDependentCtx() (map[string]string, error) {
+	var cid string
+	l := make(map[string]string)
+	h, err := a.ac.GetCompositeAppHandle()
+	if err != nil {
+		return l, err
+	}
+	ch := fmt.Sprintf("%v", h) + "dependentctx"
+	handles, err := a.ac.GetAllHandles(ch)
+	if err != nil {
+		return l, err
+	}
+	for _, hs := range handles {
+		s := strings.Split(hs.(string), "/")
+		if len(s) > 1 {
+			cid = s[len(s)-2]
+			if cid == "" {
+				continue
+			}
+		} else {
+			continue
+		}
+		d, err := a.ac.GetValue(hs)
+		if err != nil {
+			return l, err
+		}
+		l[cid] = d.(string)
+	}
+	return l, err
+}

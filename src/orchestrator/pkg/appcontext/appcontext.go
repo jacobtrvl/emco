@@ -683,3 +683,11 @@ func (ac *AppContext) GetCompositeAppMeta() (CompositeAppMeta, error) {
 
 	return CompositeAppMeta{Project: p, CompositeApp: ca, Version: v, Release: rn, DeploymentIntentGroup: dig, Namespace: namespace, Level: level, ChildContextIDs: childCtxs, LogicalCloud: lc}, nil
 }
+//Delete level from the context and everything under it
+func (ac *AppContext) DeleteLevel(handle interface{}) error {
+	err := ac.rtc.RtcDeletePrefix(handle)
+	if err != nil {
+		return err
+	}
+	return nil
+}

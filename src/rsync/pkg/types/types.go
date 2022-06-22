@@ -5,6 +5,7 @@ package types
 
 import (
 	"context"
+
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/appcontext"
@@ -25,13 +26,14 @@ type RsyncEvent string
 
 // Rsync Event types
 const (
-	InstantiateEvent     RsyncEvent = "Instantiate"
-	TerminateEvent       RsyncEvent = "Terminate"
-	ReadEvent            RsyncEvent = "Read"
-	AddChildContextEvent RsyncEvent = "AddChildContext"
-	UpdateEvent          RsyncEvent = "Update"
+	InstantiateEvent RsyncEvent = "Instantiate"
+	TerminateEvent   RsyncEvent = "Terminate"
+	ReadEvent        RsyncEvent = "Read"
+	UpdateEvent      RsyncEvent = "Update"
 	// This is an internal event
-	UpdateDeleteEvent RsyncEvent = "UpdateDelete"
+	UpdateDeleteEvent         RsyncEvent = "UpdateDelete"
+	InstantiateDependentEvent RsyncEvent = "InstantiateDependent"
+	TerminateDependentEvent   RsyncEvent = "TerminateDependent"
 )
 
 // RsyncOperation is operation Rsync handles
@@ -124,6 +126,21 @@ var StateChanges = map[RsyncEvent]StateChange{
 		DState:   appcontext.AppContextStatusEnum.Instantiated,
 		CState:   appcontext.AppContextStatusEnum.Instantiating,
 		ErrState: appcontext.AppContextStatusEnum.InstantiateFailed,
+	},
+	// Dependent status doesn't effect Main AppContext
+	InstantiateDependentEvent: StateChange{
+		SState: []appcontext.StatusValue{
+			appcontext.AppContextStatusEnum.Instantiated},
+		DState:   appcontext.AppContextStatusEnum.Instantiated,
+		CState:   appcontext.AppContextStatusEnum.Instantiated,
+		ErrState: appcontext.AppContextStatusEnum.Instantiated,
+	},
+	TerminateDependentEvent: StateChange{
+		SState: []appcontext.StatusValue{
+			appcontext.AppContextStatusEnum.Instantiated},
+		DState:   appcontext.AppContextStatusEnum.Instantiated,
+		CState:   appcontext.AppContextStatusEnum.Instantiated,
+		ErrState: appcontext.AppContextStatusEnum.Instantiated,
 	},
 }
 
@@ -227,7 +244,6 @@ type StatusProvider interface {
 type ReferenceProvider interface {
 	ApplyConfig(ctx context.Context, config interface{}) error
 	DeleteConfig(ctx context.Context, config interface{}) error
-
 }
 
 // Client Provider provides functionality to interface with the cluster
