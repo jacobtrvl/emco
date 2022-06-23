@@ -19,6 +19,9 @@ args: ""
 command: "./ca-certs"
 workingDir: /opt/emco/ca-certs
 
+# flag to mount mongo db secret
+mountMongoSecret: true
+
 # flag to enable debugging - application support required
 debugEnabled: false
 

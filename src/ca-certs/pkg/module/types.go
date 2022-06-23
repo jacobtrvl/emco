@@ -100,5 +100,5 @@ type IssuingClusterInfo struct {
 // Key
 type Key struct {
 	Name string
-	Val  string
+	Val  string `encrypted:""`
 }
