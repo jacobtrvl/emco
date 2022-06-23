@@ -20,9 +20,9 @@ func NewRouter(mockClient interface{}) *mux.Router {
 		client: client.NewClient(),
 		mock:   mockClient}
 
-	// set routes for adding CA cert intent and cluster groups for cluster-provoder
+	// set routes for adding caCert intent and clusterGroup(s) for clusterProvider scenario
 	r.setClusterProviderRoutes()
-	// set routes for adding CA cert intent, logical-cloud and cluster groups for logical-cloud
+	// set routes for adding caCert intent, logicalCloud(s) and clusterGroup(s) for logicalCloud scenario
 	r.setLogicalCloudRoutes()
 
 	return r.router
@@ -37,40 +37,40 @@ func setClient(client, mockClient interface{}) interface{} {
 	}
 
 	switch cl := client.(type) {
-	case *clusterprovider.CertClient:
-		if mockClient != nil && reflect.TypeOf(mockClient).Implements(reflect.TypeOf((*clusterprovider.CertManager)(nil)).Elem()) {
-			c, ok := mockClient.(clusterprovider.CertManager)
+	case *clusterprovider.CaCertClient:
+		if mockClient != nil && reflect.TypeOf(mockClient).Implements(reflect.TypeOf((*clusterprovider.CaCertManager)(nil)).Elem()) {
+			c, ok := mockClient.(clusterprovider.CaCertManager)
 			if ok {
 				return c
 			}
 		}
 
-	case *clusterprovider.ClusterClient:
-		if mockClient != nil && reflect.TypeOf(mockClient).Implements(reflect.TypeOf((*clusterprovider.ClusterManager)(nil)).Elem()) {
-			c, ok := mockClient.(clusterprovider.ClusterManager)
+	case *clusterprovider.ClusterGroupClient:
+		if mockClient != nil && reflect.TypeOf(mockClient).Implements(reflect.TypeOf((*clusterprovider.ClusterGroupManager)(nil)).Elem()) {
+			c, ok := mockClient.(clusterprovider.ClusterGroupManager)
 			if ok {
 				return c
 			}
 		}
 
-	case *logicalcloud.CertClient:
-		if mockClient != nil && reflect.TypeOf(mockClient).Implements(reflect.TypeOf((*logicalcloud.CertManager)(nil)).Elem()) {
-			c, ok := mockClient.(logicalcloud.CertManager)
+	case *logicalcloud.CaCertClient:
+		if mockClient != nil && reflect.TypeOf(mockClient).Implements(reflect.TypeOf((*logicalcloud.CaCertManager)(nil)).Elem()) {
+			c, ok := mockClient.(logicalcloud.CaCertManager)
 			if ok {
 				return c
 			}
 		}
 
-	case *logicalcloud.LogicalCloudClient:
-		if mockClient != nil && reflect.TypeOf(mockClient).Implements(reflect.TypeOf((*logicalcloud.LogicalCloudManager)(nil)).Elem()) {
-			c, ok := mockClient.(logicalcloud.LogicalCloudManager)
+	case *logicalcloud.CaCertLogicalCloudClient:
+		if mockClient != nil && reflect.TypeOf(mockClient).Implements(reflect.TypeOf((*logicalcloud.CaCertLogicalCloudManager)(nil)).Elem()) {
+			c, ok := mockClient.(logicalcloud.CaCertLogicalCloudManager)
 			if ok {
 				return c
 			}
 		}
-	case *logicalcloud.ClusterClient:
-		if mockClient != nil && reflect.TypeOf(mockClient).Implements(reflect.TypeOf((*logicalcloud.ClusterManager)(nil)).Elem()) {
-			c, ok := mockClient.(logicalcloud.ClusterManager)
+	case *logicalcloud.ClusterGroupClient:
+		if mockClient != nil && reflect.TypeOf(mockClient).Implements(reflect.TypeOf((*logicalcloud.ClusterGroupManager)(nil)).Elem()) {
+			c, ok := mockClient.(logicalcloud.ClusterGroupManager)
 			if ok {
 				return c
 			}

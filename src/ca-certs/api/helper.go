@@ -5,11 +5,12 @@ package api
 
 import (
 	"encoding/json"
-	"errors"
 	"io"
 	"net/http"
 	"net/url"
 	"strings"
+
+	"github.com/pkg/errors"
 
 	"gitlab.com/project-emco/core/emco-base/src/ca-certs/pkg/client/logicalcloud"
 	"gitlab.com/project-emco/core/emco-base/src/ca-certs/pkg/module"
@@ -83,7 +84,7 @@ func validateRequestBody(r io.Reader, v interface{}, jsonSchema string) (int, er
 // validateData validate the payload for the required values
 func validateData(i interface{}) error {
 	switch p := i.(type) {
-	case *module.Cert:
+	case *module.CaCert:
 		return validateCertData(*p)
 	case *module.ClusterGroup:
 		return validateClusterGroupData(*p)
@@ -109,7 +110,7 @@ func sendResponse(w http.ResponseWriter, v interface{}, code int) {
 }
 
 // validateCertData validate the CA cert intent payload for the required values
-func validateCertData(cert module.Cert) error {
+func validateCertData(cert module.CaCert) error {
 	var err []string
 	if len(cert.MetaData.Name) == 0 {
 		logutils.Error("Cert name may not be empty",

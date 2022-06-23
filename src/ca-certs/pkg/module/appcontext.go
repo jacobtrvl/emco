@@ -16,7 +16,8 @@ import (
 	"gitlab.com/project-emco/core/emco-base/src/rsync/pkg/grpc/readynotify"
 )
 
-type CertAppContext struct {
+// CaCertAppContext
+type CaCertAppContext struct {
 	AppContext appcontext.AppContext
 	AppHandle  interface{}
 	AppName    string
@@ -25,46 +26,68 @@ type CertAppContext struct {
 	Resorder   []string
 }
 
-func (ctx *CertAppContext) InitAppContext() error {
-	// var log = func(message, contextID string, err error) {
-	// 	fields := make(logutils.Fields)
-	// 	fields["contextID"] = contextID
-	// 	if err != nil {
-	// 		fields["Error"] = err.Error()
-	// 	}
-	// 	logutils.Error(message, fields)
-	// }
+// InitAppContext
+func (ctx *CaCertAppContext) InitAppContext() error {
 	appContext := appcontext.AppContext{}
 	contextID, err := appContext.InitAppContext()
 	if err != nil {
+		logutils.Error("Failed to initialize the appContext",
+			logutils.Fields{
+				"Error": err.Error()})
 		return err
 	}
 
 	compAppHandle, err := appContext.CreateCompositeApp()
 	if err != nil {
+		logutils.Error("Failed to create the compositeApp",
+			logutils.Fields{
+				"Error": err.Error()})
 		return err
 	}
 
 	appHandle, err := appContext.AddApp(compAppHandle, ctx.AppName)
 	if err != nil {
+		logutils.Error("Failed to add app to the compositeApp",
+			logutils.Fields{
+				"App":   ctx.AppName,
+				"Error": err.Error()})
+
 		if er := appContext.DeleteCompositeApp(); er != nil {
-			fmt.Println("Failed to delete the compositeApp", contextID.(string), err)
+			logutils.Error("Failed to delete the compositeApp",
+				logutils.Fields{
+					"ContextID": contextID.(string),
+					"Error":     er.Error()})
+			return er
 		}
+
 		return err
 	}
 
 	// Add App Order
 	appOrder, err := json.Marshal(map[string][]string{"apporder": {ctx.AppName}})
 	if err != nil {
-		fmt.Println("Failed to create apporder", contextID.(string), err)
+		logutils.Error("Failed to marshal apporder",
+			logutils.Fields{
+				"Apporder": ctx.AppName,
+				"Error":    err.Error()})
 		return err
 	}
 
 	// Add app level Order
 	if _, err = appContext.AddInstruction(compAppHandle, "app", "order", string(appOrder)); err != nil {
+		logutils.Error("Failed to add the app level instruction order",
+			logutils.Fields{
+				"App":   ctx.AppName,
+				"Error": err.Error()})
+
 		if er := appContext.DeleteCompositeApp(); er != nil {
-			fmt.Println("Failed to delete the compositeApp", contextID.(string), err)
+			logutils.Error("Failed to delete the compositeApp",
+				logutils.Fields{
+					"ContextID": contextID.(string),
+					"Error":     er.Error()})
+			return er
 		}
+
 		return err
 	}
 
@@ -76,30 +99,42 @@ func (ctx *CertAppContext) InitAppContext() error {
 }
 
 // CallRsyncInstall
-// TODO: confirm what to do with the stream, client
-func (ctx *CertAppContext) CallRsyncInstall() error {
+func (ctx *CaCertAppContext) CallRsyncInstall() error {
 	// invokes the rsync service
 	if err := notifyclient.CallRsyncInstall(ctx.ContextID); err != nil {
-		if er := ctx.AppContext.DeleteCompositeApp(); er != nil {
-			fmt.Println("Failed to delete the compositeApp", ctx.ContextID, err)
-		}
-
-		logutils.Error("Failed to call rsync install",
+		logutils.Error("Rsync install failed",
 			logutils.Fields{
-				"Error": err.Error()})
+				"ContextID": ctx.ContextID,
+				"Error":     err.Error()})
+
+		if er := ctx.AppContext.DeleteCompositeApp(); er != nil {
+			logutils.Error("Failed to delete the compositeApp",
+				logutils.Fields{
+					"ContextID": ctx.ContextID,
+					"Error":     er.Error()})
+			return er
+		}
 
 		return err
 	}
 
 	// subscribe to alerts
-	// stream, client, err = notifyclient.InvokeReadyNotify(ctx.ContextID, ctx.ClientName)
 	stream, _, err := notifyclient.InvokeReadyNotify(ctx.ContextID, ctx.ClientName)
 	if err != nil {
+		logutils.Error("Failed to subscribe to alerts",
+			logutils.Fields{
+				"ContextID":  ctx.ContextID,
+				"ClientName": ctx.ClientName,
+				"Error":      err.Error()})
 		return err
 	}
 
 	if err := stream.CloseSend(); err != nil {
-		fmt.Println("Failed to close the send stream", ctx.ContextID, err)
+		logutils.Error("Failed to close the send stream",
+			logutils.Fields{
+				"ContextID":  ctx.ContextID,
+				"ClientName": ctx.ClientName,
+				"Error":      err.Error()})
 		return err
 	}
 
@@ -145,9 +180,9 @@ func RetrieveAppContext(stream readynotify.ReadyNotify_AlertClient, client ready
 }
 
 // CallRsyncUninstall
-func (ctx *CertAppContext) CallRsyncUninstall() error {
+func (ctx *CaCertAppContext) CallRsyncUninstall() error {
 	if err := notifyclient.CallRsyncUninstall(ctx.ContextID); err != nil {
-		logutils.Error("Failed to call RsyncUninstall",
+		logutils.Error("Rsync uninstall failed",
 			logutils.Fields{
 				"Error": err.Error()})
 		return err
@@ -160,18 +195,26 @@ func (ctx *CertAppContext) CallRsyncUninstall() error {
 func AddResource(appContext appcontext.AppContext, resource, handle interface{}, name string) error {
 	value, err := json.Marshal(resource)
 	if err != nil {
+		logutils.Error("Failed to marshal the resource",
+			logutils.Fields{
+				"Resource": resource,
+				"Error":    err.Error()})
 		return err
 	}
 
 	if _, err = appContext.AddResource(handle, name, string(value)); err != nil {
+		logutils.Error("Failed to add the resource",
+			logutils.Fields{
+				"Resource": name,
+				"Error":    err.Error()})
+
 		if er := appContext.DeleteCompositeApp(); er != nil {
-			logutils.Warn("Failed to delete the compositeApp", logutils.Fields{
-				"Error": err.Error()})
+			logutils.Error("Failed to delete the compositeApp",
+				logutils.Fields{
+					"Error": er.Error()})
+			return er
 		}
 
-		logutils.Error("Failed to add resource",
-			logutils.Fields{
-				"Error": err.Error()})
 		return err
 	}
 
@@ -182,18 +225,22 @@ func AddResource(appContext appcontext.AppContext, resource, handle interface{},
 func AddInstruction(appContext appcontext.AppContext, handle interface{}, resOrder []string) error {
 	order, err := json.Marshal(map[string][]string{"resorder": resOrder})
 	if err != nil {
+		logutils.Error("Failed to marshal resorder",
+			logutils.Fields{
+				"Error": err.Error()})
 		return err
 	}
 
 	if _, err = appContext.AddInstruction(handle, "resource", "order", string(order)); err != nil {
-		if er := appContext.DeleteCompositeApp(); er != nil {
-			logutils.Warn("Failed to delete the compositeApp", logutils.Fields{
-				"Error": err.Error()})
-		}
-
-		logutils.Error("Failed to add resource instruction",
+		logutils.Error("Failed to add the resource level instruction order",
 			logutils.Fields{
 				"Error": err.Error()})
+
+		if er := appContext.DeleteCompositeApp(); er != nil {
+			logutils.Error("Failed to delete the compositeApp",
+				logutils.Fields{
+					"Error": err.Error()})
+		}
 
 		return err
 	}
@@ -213,6 +260,10 @@ func GetAppContextStatus(key interface{}) (string, appcontext.StatusValue, error
 	if len(contextID) > 0 {
 		status, err := state.GetAppContextStatus(contextID)
 		if err != nil {
+			logutils.Error("Failed to get the appContext status",
+				logutils.Fields{
+					"ContextID": contextID,
+					"Error":     err.Error()})
 			return contextID, "", err
 		}
 

@@ -25,12 +25,8 @@ func ProxyConfigName(contextID, cert, clusterProvider, cluster string) string {
 // CreateProxyConfig
 func CreateProxyConfig(name, namespace string, environmentVariables map[string]string) *ProxyConfig {
 	pc := newProxyConfig()
-
 	pc.MetaData.Name = name
-
-	if len(namespace) > 0 {
-		pc.MetaData.Namespace = namespace
-	}
+	pc.MetaData.Namespace = namespace
 
 	for key, val := range environmentVariables {
 		pc.Spec.EnvironmentVariables[key] = val

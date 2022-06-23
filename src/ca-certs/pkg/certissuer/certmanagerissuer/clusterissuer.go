@@ -33,13 +33,8 @@ func ClusterIssuerName(contextID, cert, clusterProvider, cluster string) string 
 // CreateClusterIssuer retun the cert-manager ClusterIssuer object
 func CreateClusterIssuer(name, namespace, secret string) *cmv1.ClusterIssuer {
 	i := newClusterIssuer()
-
 	i.ObjectMeta.Name = name
-
-	if len(namespace) > 0 {
-		i.ObjectMeta.Namespace = namespace
-	}
-
+	i.ObjectMeta.Namespace = namespace
 	i.Spec.IssuerConfig.CA.SecretName = secret
 
 	return i

@@ -12,7 +12,7 @@ import (
 )
 
 type cpCertEnrollmentHandler struct {
-	manager clusterprovider.CertEnrollmentManager
+	manager clusterprovider.CaCertEnrollmentManager
 }
 
 // handleInstantiate handles the route for instantiating the cert enrollment

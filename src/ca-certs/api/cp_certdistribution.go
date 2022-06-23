@@ -12,7 +12,7 @@ import (
 )
 
 type cpCertDistributionHandler struct {
-	manager clusterprovider.CertDistributionManager
+	manager clusterprovider.CaCertDistributionManager
 }
 
 // handleInstantiate handles the route for instantiating the cert distribution

@@ -15,7 +15,7 @@ import (
 )
 
 type lcHandler struct {
-	manager logicalcloud.LogicalCloudManager
+	manager logicalcloud.CaCertLogicalCloudManager
 }
 
 // handleLogicalCloudCreate handles the route for creating a new logical cloud

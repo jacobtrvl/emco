@@ -6,38 +6,43 @@ package logicalcloud
 import (
 	"strings"
 
+	cmv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	"gitlab.com/project-emco/core/emco-base/src/ca-certs/pkg/certificate/distribution"
 	"gitlab.com/project-emco/core/emco-base/src/ca-certs/pkg/certificate/enrollment"
 	"gitlab.com/project-emco/core/emco-base/src/ca-certs/pkg/module"
+	"gitlab.com/project-emco/core/emco-base/src/ca-certs/pkg/service/istioservice"
+	"gitlab.com/project-emco/core/emco-base/src/ca-certs/pkg/service/knccservice"
 	dcm "gitlab.com/project-emco/core/emco-base/src/dcm/pkg/module"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/appcontext"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/state"
+	v1 "k8s.io/api/core/v1"
 )
 
-// CertDistributionManager
-type CertDistributionManager interface {
+// CaCertDistributionManager
+type CaCertDistributionManager interface {
 	Instantiate(cert, project string) error
 	Status(cert, project, qInstance, qType, qOutput string, fApps, fClusters, fResources []string) (module.CaCertStatus, error)
 	Terminate(cert, project string) error
 	Update(cert, project string) error
 }
 
-// CertDistributionClient
-type CertDistributionClient struct {
+// CaCertDistributionClient
+type CaCertDistributionClient struct {
 }
 
-// NewCertDistributionClient
-func NewCertDistributionClient() *CertDistributionClient {
-	return &CertDistributionClient{}
+// NewCaCertDistributionClient
+func NewCaCertDistributionClient() *CaCertDistributionClient {
+	return &CaCertDistributionClient{}
 }
 
-func (c *CertDistributionClient) Instantiate(cert, project string) error {
+// Instantiate
+func (c *CaCertDistributionClient) Instantiate(cert, project string) error {
 	dk := DistributionKey{
 		Cert:         cert,
 		Project:      project,
 		Distribution: distribution.AppName}
 
-	// get the cert enrollemnt instantiation state
+	// get the caCert enrollemnt instantiation state
 	sc := module.NewStateClient(dk)
 	if _, err := sc.VerifyState(module.InstantiateEvent); err != nil {
 		return err
@@ -64,20 +69,20 @@ func (c *CertDistributionClient) Instantiate(cert, project string) error {
 		return err
 	}
 
-	// get the ca cert
+	// get the caCert
 	caCert, err := getCertificate(cert, project)
 	if err != nil {
 		return err
 	}
 
-	// get all the logcal-clouds associated with this cert
+	// get all the logicalCloud(s) associated with this caCert
 	lcs, err := getAllLogicalClouds(cert, project)
 	if err != nil {
 		return err
 	}
 
-	// initialize a new app context
-	ctx := module.CertAppContext{
+	// initialize a new appContext
+	ctx := module.CaCertAppContext{
 		AppName:    distribution.AppName,
 		ClientName: clientName}
 
@@ -91,11 +96,18 @@ func (c *CertDistributionClient) Instantiate(cert, project string) error {
 		AppHandle:           ctx.AppHandle,
 		CaCert:              caCert,
 		ContextID:           ctx.ContextID,
-		EnrollmentContextID: enrollmentContextID}
+		EnrollmentContextID: enrollmentContextID,
+		Resources: distribution.DistributionResource{
+			ClusterIssuer: map[string]*cmv1.ClusterIssuer{},
+			ProxyConfig:   map[string]*istioservice.ProxyConfig{},
+			Secret:        map[string]*v1.Secret{},
+			KnccConfig:    map[string]*knccservice.Config{},
+		},
+	}
 
-	//  you can have multiple lcs under the same cert
-	//  we need to process all the lcs within the same app context
-	// get all the clusters associated with these logical-clouds
+	//  you can have multiple logicalCloud(s) under the same caCert
+	//  we need to process all the logicalCloud(s) within the same appContext
+	// get all the clusters associated with these logicalCloud(s)
 	for _, lc := range lcs {
 		// get the logical cloud
 		l, err := dcm.NewLogicalCloudClient().Get(project, lc.MetaData.Name)
@@ -104,7 +116,7 @@ func (c *CertDistributionClient) Instantiate(cert, project string) error {
 		}
 
 		if len(l.Specification.NameSpace) > 0 &&
-			strings.ToLower(l.Specification.NameSpace) != "default" {
+			strings.ToLower(l.Specification.NameSpace) != module.DefaultNamespace {
 			dCtx.Namespace = l.Specification.NameSpace
 		}
 
@@ -114,7 +126,7 @@ func (c *CertDistributionClient) Instantiate(cert, project string) error {
 			return err
 		}
 
-		// instantiate the cert distribution
+		// instantiate the caCert distribution
 		if err = dCtx.Instantiate(); err != nil {
 			return err
 		}
@@ -135,13 +147,13 @@ func (c *CertDistributionClient) Instantiate(cert, project string) error {
 }
 
 // Status
-func (c *CertDistributionClient) Status(cert, project, qInstance, qType, qOutput string, fApps, fClusters, fResources []string) (module.CaCertStatus, error) {
+func (c *CaCertDistributionClient) Status(cert, project, qInstance, qType, qOutput string, fApps, fClusters, fResources []string) (module.CaCertStatus, error) {
 	dk := DistributionKey{
 		Cert:         cert,
 		Project:      project,
 		Distribution: distribution.AppName}
 
-	// get the current state of the
+	// get the current state of the Distribution
 	stateInfo, err := module.NewStateClient(dk).Get()
 	if err != nil {
 		return module.CaCertStatus{}, err
@@ -153,7 +165,7 @@ func (c *CertDistributionClient) Status(cert, project, qInstance, qType, qOutput
 }
 
 // Terminate
-func (c *CertDistributionClient) Terminate(cert, project string) error {
+func (c *CaCertDistributionClient) Terminate(cert, project string) error {
 	dk := DistributionKey{
 		Cert:         cert,
 		Project:      project,
@@ -163,8 +175,8 @@ func (c *CertDistributionClient) Terminate(cert, project string) error {
 }
 
 // Update
-func (c *CertDistributionClient) Update(cert, project string) error {
-	// get the ca cert
+func (c *CaCertDistributionClient) Update(cert, project string) error {
+	// get the caCert
 	caCert, err := getCertificate(cert, project)
 	if err != nil {
 		return err
@@ -181,8 +193,8 @@ func (c *CertDistributionClient) Update(cert, project string) error {
 	}
 
 	if status == appcontext.AppContextStatusEnum.Instantiated {
-		// instantiate a new app context
-		ctx := module.CertAppContext{
+		// instantiate a new appContext
+		ctx := module.CaCertAppContext{
 			AppName:    distribution.AppName,
 			ClientName: clientName}
 		if err := ctx.InitAppContext(); err != nil {
@@ -194,9 +206,16 @@ func (c *CertDistributionClient) Update(cert, project string) error {
 			AppHandle:  ctx.AppHandle,
 			CaCert:     caCert,
 			ContextID:  ctx.ContextID,
-			ClientName: clientName}
+			ClientName: clientName,
+			Resources: distribution.DistributionResource{
+				ClusterIssuer: map[string]*cmv1.ClusterIssuer{},
+				ProxyConfig:   map[string]*istioservice.ProxyConfig{},
+				Secret:        map[string]*v1.Secret{},
+				KnccConfig:    map[string]*knccservice.Config{},
+			},
+		}
 
-		// get all the logcal-clouds associated with this cert
+		// get all the logcalCloud(s) associated with this caCert
 		lcs, err := getAllLogicalClouds(cert, project)
 		if err != nil {
 			return err
@@ -217,7 +236,7 @@ func (c *CertDistributionClient) Update(cert, project string) error {
 			}
 		}
 
-		// update the app context
+		// update the appContext
 		if err := dCtx.Update(previd); err != nil {
 			return err
 		}

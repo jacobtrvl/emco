@@ -12,7 +12,7 @@ import (
 type KeyManager interface {
 	Save(pk string) error
 	Delete(key interface{}) error
-	Get(key interface{}) (Cert, error)
+	Get(key interface{}) (CaCert, error)
 }
 
 // DBKey
@@ -29,7 +29,7 @@ type KeyClient struct {
 	dbKey  interface{}
 }
 
-// NewCertClient
+// NewKeyClient
 func NewKeyClient(dbKey interface{}) *KeyClient {
 	return &KeyClient{
 		dbInfo: db.DbInfo{
@@ -38,17 +38,17 @@ func NewKeyClient(dbKey interface{}) *KeyClient {
 		dbKey: dbKey}
 }
 
-// Save
+// Save key
 func (c *KeyClient) Save(pk Key) error {
 	return db.DBconn.Insert(c.dbInfo.StoreName, c.dbKey, nil, c.dbInfo.TagMeta, pk)
 }
 
-// Delete
+// Delete key
 func (c *KeyClient) Delete() error {
 	return db.DBconn.Remove(c.dbInfo.StoreName, c.dbKey)
 }
 
-// Get
+// Get key
 func (c *KeyClient) Get() (Key, error) {
 	value, err := db.DBconn.Find(c.dbInfo.StoreName, c.dbKey, c.dbInfo.TagMeta)
 	if err != nil {

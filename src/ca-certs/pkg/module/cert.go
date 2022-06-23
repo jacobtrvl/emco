@@ -9,26 +9,27 @@ import (
 	"github.com/pkg/errors"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/appcontext"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
+	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/state"
 )
 
-// CertManager
-type CertManager interface {
-	CreateCert(cert Cert, failIfExists bool) (Cert, bool, error)
+// CaCertManager
+type CaCertManager interface {
+	CreateCert(cert CaCert, failIfExists bool) (CaCert, bool, error)
 	DeleteCert() error
-	GetAllCert() ([]Cert, error)
-	GetCert() (Cert, error)
+	GetAllCert() ([]CaCert, error)
+	GetCert() (CaCert, error)
 }
 
-// CertClient
-type CertClient struct {
+// CaCertClient
+type CaCertClient struct {
 	dbInfo db.DbInfo
 	dbKey  interface{}
 }
 
 // NewCertClients
-func NewCertClient(dbKey interface{}) *CertClient {
-	return &CertClient{
+func NewCaCertClient(dbKey interface{}) *CaCertClient {
+	return &CaCertClient{
 		dbInfo: db.DbInfo{
 			StoreName: "resources",
 			TagMeta:   "data",
@@ -37,43 +38,43 @@ func NewCertClient(dbKey interface{}) *CertClient {
 }
 
 // CreateCert
-func (c *CertClient) CreateCert(cert Cert, failIfExists bool) (Cert, bool, error) {
+func (c *CaCertClient) CreateCert(cert CaCert, failIfExists bool) (CaCert, bool, error) {
 	certExists := false
 
 	if cer, err := c.GetCert(); err == nil &&
-		!reflect.DeepEqual(cer, Cert{}) {
+		!reflect.DeepEqual(cer, CaCert{}) {
 		certExists = true
 	}
 
 	if certExists &&
 		failIfExists {
-		return Cert{}, certExists, errors.New("Certificate already exists")
+		return CaCert{}, certExists, errors.New("Certificate already exists")
 	}
 
 	if err := db.DBconn.Insert(c.dbInfo.StoreName, c.dbKey, nil, c.dbInfo.TagMeta, cert); err != nil {
-		return Cert{}, certExists, err
+		return CaCert{}, certExists, err
 	}
 
 	return cert, certExists, nil
 }
 
 // DeleteCert
-func (c *CertClient) DeleteCert() error {
+func (c *CaCertClient) DeleteCert() error {
 	return db.DBconn.Remove(c.dbInfo.StoreName, c.dbKey)
 }
 
-// GetAllCertificate
-func (c *CertClient) GetAllCert() ([]Cert, error) {
+// GetAllCert
+func (c *CaCertClient) GetAllCert() ([]CaCert, error) {
 	values, err := db.DBconn.Find(c.dbInfo.StoreName, c.dbKey, c.dbInfo.TagMeta)
 	if err != nil {
-		return []Cert{}, err
+		return []CaCert{}, err
 	}
 
-	var certs []Cert
+	var certs []CaCert
 	for _, value := range values {
-		cert := Cert{}
+		cert := CaCert{}
 		if err = db.DBconn.Unmarshal(value, &cert); err != nil {
-			return []Cert{}, err
+			return []CaCert{}, err
 		}
 		certs = append(certs, cert)
 	}
@@ -82,33 +83,34 @@ func (c *CertClient) GetAllCert() ([]Cert, error) {
 }
 
 // GetCert
-func (c *CertClient) GetCert() (Cert, error) {
+func (c *CaCertClient) GetCert() (CaCert, error) {
 	value, err := db.DBconn.Find(c.dbInfo.StoreName, c.dbKey, c.dbInfo.TagMeta)
 	if err != nil {
-		return Cert{}, err
+		return CaCert{}, err
 	}
 
 	if len(value) == 0 {
-		return Cert{}, errors.New("Certificate not found")
+		return CaCert{}, errors.New("Certificate not found")
 	}
 
 	if value != nil {
-		cert := Cert{}
+		cert := CaCert{}
 		if err = db.DBconn.Unmarshal(value[0], &cert); err != nil {
-			return Cert{}, err
+			return CaCert{}, err
 		}
 		return cert, nil
 	}
 
-	return Cert{}, errors.New("Unknown Error")
+	return CaCert{}, errors.New("Unknown Error")
 }
 
-func (c *CertClient) UpdateCert(cert Cert) error {
+// UpdateCert
+func (c *CaCertClient) UpdateCert(cert CaCert) error {
 	return db.DBconn.Insert(c.dbInfo.StoreName, c.dbKey, nil, c.dbInfo.TagMeta, cert)
 }
 
 // VerifyStateBeforeDelete
-func (c *CertClient) VerifyStateBeforeDelete(cert, lifecycle string) error {
+func (c *CaCertClient) VerifyStateBeforeDelete(cert, lifecycle string) error {
 	sc := NewStateClient(c.dbKey)
 	stateInfo, err := sc.Get()
 	if err != nil {
@@ -122,29 +124,42 @@ func (c *CertClient) VerifyStateBeforeDelete(cert, lifecycle string) error {
 
 	if cState == state.StateEnum.Instantiated ||
 		cState == state.StateEnum.InstantiateStopped {
-		return errors.Errorf(
-			"%s must be terminated for CaCert %s before it can be deleted", lifecycle, cert)
+		err := errors.Errorf("%s must be terminated for CaCert %s before it can be deleted", lifecycle, cert)
+		logutils.Error("",
+			logutils.Fields{
+				"Error": err.Error()})
+		return err
 	}
 
 	if cState == state.StateEnum.Terminated ||
 		cState == state.StateEnum.TerminateStopped {
 		// verify that the appcontext has completed terminating
 		ctxID := state.GetLastContextIdFromStateInfo(stateInfo)
-
 		acStatus, err := state.GetAppContextStatus(ctxID)
 		if err == nil &&
 			!(acStatus.Status == appcontext.AppContextStatusEnum.Terminated ||
 				acStatus.Status == appcontext.AppContextStatusEnum.TerminateFailed) {
-			return errors.Errorf("%s termination has not completed for CaCert %s", lifecycle, cert)
+			err := errors.Errorf("%s termination has not completed for CaCert %s", lifecycle, cert)
+			logutils.Error("",
+				logutils.Fields{
+					"Error": err.Error()})
+			return err
 		}
 
 		for _, id := range state.GetContextIdsFromStateInfo(stateInfo) {
 			context, err := state.GetAppContextFromId(id)
 			if err != nil {
+				logutils.Error("Failed to get appContext from id",
+					logutils.Fields{
+						"ID":    id,
+						"Error": err.Error()})
 				return err
 			}
 			err = context.DeleteCompositeApp()
 			if err != nil {
+				logutils.Error("Failed to delete the appContext",
+					logutils.Fields{
+						"Error": err.Error()})
 				return err
 			}
 		}
@@ -154,7 +169,7 @@ func (c *CertClient) VerifyStateBeforeDelete(cert, lifecycle string) error {
 }
 
 // VerifyStateBeforeUpdate
-func (c *CertClient) VerifyStateBeforeUpdate(cert, lifecycle string) error {
+func (c *CaCertClient) VerifyStateBeforeUpdate(cert, lifecycle string) error {
 	sc := NewStateClient(c.dbKey)
 	stateInfo, err := sc.Get()
 	if err != nil {
@@ -166,20 +181,13 @@ func (c *CertClient) VerifyStateBeforeUpdate(cert, lifecycle string) error {
 		return err
 	}
 
-	// TODO: What if, the state is Terminated?
 	if cState != state.StateEnum.Created {
-		return errors.Errorf(
-			"failed to update the CaCert. %s for the CaCert %s is in %s state", lifecycle, cert, cState)
+		err := errors.Errorf("Failed to update the CaCert. %s for the CaCert %s is in %s state", lifecycle, cert, cState)
+		logutils.Error("",
+			logutils.Fields{
+				"Error": err.Error()})
+		return err
 	}
 
 	return nil
 }
-
-// // Convert the key to string to preserve the underlying structure
-// func (k CertKey) String() string {
-// 	out, err := json.Marshal(k)
-// 	if err != nil {
-// 		return ""
-// 	}
-// 	return string(out)
-// }

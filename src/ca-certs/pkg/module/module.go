@@ -2,3 +2,5 @@
 // Copyright (c) 2022 Intel Corporation
 
 package module
+
+const DefaultNamespace string = "default"

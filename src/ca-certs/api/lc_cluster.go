@@ -14,7 +14,7 @@ import (
 )
 
 type lcClusterHandler struct {
-	manager logicalcloud.ClusterManager
+	manager logicalcloud.ClusterGroupManager
 }
 
 // handleClusterCreate handles the route for creating a new cluster group

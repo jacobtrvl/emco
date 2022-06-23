@@ -12,23 +12,23 @@ import (
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
 )
 
-// ClusterManager
-type ClusterManager interface {
+// ClusterGroupManager
+type ClusterGroupManager interface {
 	CreateClusterGroup(cluster ClusterGroup, failIfExists bool) (ClusterGroup, bool, error)
 	DeleteClusterGroup() error
 	GetAllClusterGroups() ([]ClusterGroup, error)
 	GetClusterGroup() (ClusterGroup, error)
 }
 
-// ClusterClient
-type ClusterClient struct {
+// ClusterGroupClient
+type ClusterGroupClient struct {
 	dbInfo db.DbInfo
 	dbKey  interface{}
 }
 
-// NewClusterClient
-func NewClusterClient(dbKey interface{}) *ClusterClient {
-	return &ClusterClient{
+// NewClusterGroupClient
+func NewClusterGroupClient(dbKey interface{}) *ClusterGroupClient {
+	return &ClusterGroupClient{
 		dbInfo: db.DbInfo{
 			StoreName: "resources",
 			TagMeta:   "data"},
@@ -36,9 +36,9 @@ func NewClusterClient(dbKey interface{}) *ClusterClient {
 }
 
 // CreateClusterGroup
-func (c *ClusterClient) CreateClusterGroup(group ClusterGroup, failIfExists bool) (ClusterGroup, bool, error) {
+func (c *ClusterGroupClient) CreateClusterGroup(group ClusterGroup, failIfExists bool) (ClusterGroup, bool, error) {
 	cExists := false
-	// TODO:- Confirm if we need to check it exists or directly update
+
 	if clr, err := c.GetClusterGroup(); err == nil &&
 		!reflect.DeepEqual(clr, ClusterGroup{}) {
 		cExists = true
@@ -56,13 +56,13 @@ func (c *ClusterClient) CreateClusterGroup(group ClusterGroup, failIfExists bool
 	return group, cExists, nil
 }
 
-// DeleteClustersToTheCertificate
-func (c *ClusterClient) DeleteClusterGroup() error {
+// DeleteClusterGroup
+func (c *ClusterGroupClient) DeleteClusterGroup() error {
 	return db.DBconn.Remove(c.dbInfo.StoreName, c.dbKey)
 }
 
 // GetAllClusterGroups
-func (c *ClusterClient) GetAllClusterGroups() ([]ClusterGroup, error) {
+func (c *ClusterGroupClient) GetAllClusterGroups() ([]ClusterGroup, error) {
 	values, err := db.DBconn.Find(c.dbInfo.StoreName, c.dbKey, c.dbInfo.TagMeta)
 	if err != nil {
 		return []ClusterGroup{}, err
@@ -81,7 +81,7 @@ func (c *ClusterClient) GetAllClusterGroups() ([]ClusterGroup, error) {
 }
 
 // GetClusterGroup
-func (c *ClusterClient) GetClusterGroup() (ClusterGroup, error) {
+func (c *ClusterGroupClient) GetClusterGroup() (ClusterGroup, error) {
 	value, err := db.DBconn.Find(c.dbInfo.StoreName, c.dbKey, c.dbInfo.TagMeta)
 	if err != nil {
 		return ClusterGroup{}, err
@@ -107,7 +107,6 @@ func GetClusters(group ClusterGroup) (clusters []string, err error) {
 	clusters = []string{}
 	switch strings.ToLower(group.Spec.Scope) {
 	case "name":
-		// TODO: Confirm if we need to verify the cluster exists or not
 		// get cluster by provider and the name
 		if _, err = clm.NewClusterClient().GetCluster(group.Spec.Provider, group.Spec.Cluster); err != nil {
 			return clusters, err
@@ -121,7 +120,6 @@ func GetClusters(group ClusterGroup) (clusters []string, err error) {
 			return clusters, err
 		}
 
-		// TODO: Confirm if we need to veirfy the cluster exists or not
 		for _, name := range list {
 			// get cluster by provider and the name
 			if _, err = clm.NewClusterClient().GetCluster(group.Spec.Provider, name); err != nil {

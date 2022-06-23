@@ -104,7 +104,7 @@ func initGrpcServer() {
 	}
 
 	go func() {
-		err := grpc.StartGrpcServer("cacert", "CACERT_NAME", 9035,
+		err := grpc.StartGrpcServer("ca-certs", "CACERT_NAME", 9035,
 			grpc.RegisterContextUpdateService, &contextupdateServer{})
 		if err != nil {
 			logutils.Error("GRPC server failed to start",

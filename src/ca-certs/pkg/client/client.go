@@ -10,28 +10,28 @@ import (
 
 // Client for using the services
 type Client struct {
-	ClusterProviderCert             *clusterprovider.CertClient
-	ClusterProviderCluster          *clusterprovider.ClusterClient
-	ClusterProviderCertDistribution *clusterprovider.CertDistributionClient
-	ClusterProviderCertEnrollment   *clusterprovider.CertEnrollmentClient
-	LogicalCloud                    *logicalcloud.LogicalCloudClient
-	LogicalCloudCert                *logicalcloud.CertClient
-	LogicalCloudCluster             *logicalcloud.ClusterClient
-	LogicalCloudCertDistribution    *logicalcloud.CertDistributionClient
-	LogicalCloudCertEnrollment      *logicalcloud.CertEnrollmentClient
+	ClusterProviderCert             *clusterprovider.CaCertClient
+	ClusterProviderCluster          *clusterprovider.ClusterGroupClient
+	ClusterProviderCertDistribution *clusterprovider.CaCertDistributionClient
+	ClusterProviderCertEnrollment   *clusterprovider.CaCertEnrollmentClient
+	LogicalCloud                    *logicalcloud.CaCertLogicalCloudClient
+	LogicalCloudCert                *logicalcloud.CaCertClient
+	LogicalCloudCluster             *logicalcloud.ClusterGroupClient
+	LogicalCloudCertDistribution    *logicalcloud.CaCertDistributionClient
+	LogicalCloudCertEnrollment      *logicalcloud.CaCertEnrollmentClient
 }
 
 // NewClient creates a new client for using the services
 func NewClient() *Client {
 	c := &Client{}
-	c.ClusterProviderCert = clusterprovider.NewCertClient()
-	c.ClusterProviderCluster = clusterprovider.NewClusterClient()
-	c.ClusterProviderCertDistribution = clusterprovider.NewCertDistributionClient()
-	c.ClusterProviderCertEnrollment = clusterprovider.NewCertEnrollmentClient()
-	c.LogicalCloud = logicalcloud.NewLogicalCloudClient()
-	c.LogicalCloudCert = logicalcloud.NewCertClient()
-	c.LogicalCloudCluster = logicalcloud.NewClusterClient()
-	c.LogicalCloudCertDistribution = logicalcloud.NewCertDistributionClient()
-	c.LogicalCloudCertEnrollment = logicalcloud.NewCertEnrollmentClient()
+	c.ClusterProviderCert = clusterprovider.NewCaCertClient()
+	c.ClusterProviderCluster = clusterprovider.NewClusterGroupClient()
+	c.ClusterProviderCertDistribution = clusterprovider.NewCaCertDistributionClient()
+	c.ClusterProviderCertEnrollment = clusterprovider.NewCaCertEnrollmentClient()
+	c.LogicalCloud = logicalcloud.NewCaCertLogicalCloudClient()
+	c.LogicalCloudCert = logicalcloud.NewCaCertClient()
+	c.LogicalCloudCluster = logicalcloud.NewClusterGroupClient()
+	c.LogicalCloudCertDistribution = logicalcloud.NewCaCertDistributionClient()
+	c.LogicalCloudCertEnrollment = logicalcloud.NewCaCertEnrollmentClient()
 	return c
 }

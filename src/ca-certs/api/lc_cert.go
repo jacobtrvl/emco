@@ -14,7 +14,7 @@ import (
 )
 
 type lcCertHandler struct {
-	manager logicalcloud.CertManager
+	manager logicalcloud.CaCertManager
 }
 
 // handleCertificateCreate handles the route for creating a new CA cert intent
@@ -66,7 +66,7 @@ func (h *lcCertHandler) handleCertificateUpdate(w http.ResponseWriter, r *http.R
 
 // createOrUpdateCertificate create/update the CA cert intent based on the request method
 func (h *lcCertHandler) createOrUpdateCertificate(w http.ResponseWriter, r *http.Request) {
-	var cert module.Cert
+	var cert module.CaCert
 	if code, err := validateRequestBody(r.Body, &cert, CertificateSchemaJson); err != nil {
 		http.Error(w, err.Error(), code)
 		return

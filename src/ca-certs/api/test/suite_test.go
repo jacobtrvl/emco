@@ -15,11 +15,11 @@ import (
 )
 
 const (
-	// cluster-provider
+	// clusterProvider
 	clusterProviderCertURL             string = "/v2/cluster-providers/{clusterProvider}/ca-certs"
 	clusterProviderCertDistributionURL string = clusterProviderCertURL + "/{caCert}/distribution"
 	clusterProviderCertEnrollmentURL   string = clusterProviderCertURL + "/{caCert}/enrollment"
-	// logical-cloud
+	// logicalCloud
 	logicalCloudCertURL             string = "/v2/projects/{project}/ca-certs"
 	logicalCloudCertDistributionURL string = logicalCloudCertURL + "/{caCert}/distribution"
 	logicalCloudCertEnrollmentURL   string = logicalCloudCertURL + "/{caCert}/enrollment"

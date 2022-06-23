@@ -12,7 +12,7 @@ import (
 )
 
 type lcCertDistributionHandler struct {
-	manager logicalcloud.CertDistributionManager
+	manager logicalcloud.CaCertDistributionManager
 }
 
 // handleInstantiate handles the route for instantiating the cert distribution

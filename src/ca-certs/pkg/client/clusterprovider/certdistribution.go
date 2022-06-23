@@ -4,33 +4,37 @@
 package clusterprovider
 
 import (
+	cmv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	"gitlab.com/project-emco/core/emco-base/src/ca-certs/pkg/certificate/distribution"
 	"gitlab.com/project-emco/core/emco-base/src/ca-certs/pkg/certificate/enrollment"
 	"gitlab.com/project-emco/core/emco-base/src/ca-certs/pkg/module"
+	"gitlab.com/project-emco/core/emco-base/src/ca-certs/pkg/service/istioservice"
+	"gitlab.com/project-emco/core/emco-base/src/ca-certs/pkg/service/knccservice"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/appcontext"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/state"
+	v1 "k8s.io/api/core/v1"
 )
 
-// CertDistributionManager exposes all the functionalities related to CA cert distribution
-type CertDistributionManager interface {
+// CaCertDistributionManager exposes all the functionalities related to CA cert distribution
+type CaCertDistributionManager interface {
 	Instantiate(cert, clusterProvider string) error
 	Status(cert, clusterProvider, qInstance, qType, qOutput string, fApps, fClusters, fResources []string) (module.CaCertStatus, error)
 	Terminate(cert, clusterProvider string) error
 	Update(cert, clusterProvider string) error
 }
 
-// CertDistributionClient holds the client properties
-type CertDistributionClient struct {
+// CaCertDistributionClient holds the client properties
+type CaCertDistributionClient struct {
 }
 
-// NewCertDistributionClient returns an instance of the CertDistributionClient
+// NewCaCertDistributionClient returns an instance of the CaCertDistributionClient
 // which implements the Manager
-func NewCertDistributionClient() *CertDistributionClient {
-	return &CertDistributionClient{}
+func NewCaCertDistributionClient() *CaCertDistributionClient {
+	return &CaCertDistributionClient{}
 }
 
-// Instantiate the cert distribution
-func (c *CertDistributionClient) Instantiate(cert, clusterProvider string) error {
+// Instantiate the caCert distribution
+func (c *CaCertDistributionClient) Instantiate(cert, clusterProvider string) error {
 	// check the current stateInfo of the Instantiation, if any
 	dk := DistributionKey{
 		Cert:            cert,
@@ -63,14 +67,14 @@ func (c *CertDistributionClient) Instantiate(cert, clusterProvider string) error
 		return err
 	}
 
-	// get the ca cert
+	// get the caCert
 	caCert, err := getCertificate(cert, clusterProvider)
 	if err != nil {
 		return err
 	}
 
-	// initialize a new dCtx
-	ctx := module.CertAppContext{
+	// initialize a new appContext
+	ctx := module.CaCertAppContext{
 		AppName:    distribution.AppName,
 		ClientName: clientName}
 	if err := ctx.InitAppContext(); err != nil {
@@ -83,7 +87,14 @@ func (c *CertDistributionClient) Instantiate(cert, clusterProvider string) error
 		AppHandle:           ctx.AppHandle,
 		CaCert:              caCert,
 		ContextID:           ctx.ContextID,
-		EnrollmentContextID: enrollmentContextID}
+		EnrollmentContextID: enrollmentContextID,
+		Namespace:           module.DefaultNamespace,
+		Resources: distribution.DistributionResource{
+			ClusterIssuer: map[string]*cmv1.ClusterIssuer{},
+			ProxyConfig:   map[string]*istioservice.ProxyConfig{},
+			Secret:        map[string]*v1.Secret{},
+			KnccConfig:    map[string]*knccservice.Config{},
+		}}
 
 	// get all the clusters defined under this CA
 	dCtx.ClusterGroups, err = getAllClusterGroup(cert, clusterProvider)
@@ -91,7 +102,7 @@ func (c *CertDistributionClient) Instantiate(cert, clusterProvider string) error
 		return err
 	}
 
-	// start cert distribution instantiation
+	// start caCert distribution instantiation
 	if err = dCtx.Instantiate(); err != nil {
 		return err
 	}
@@ -102,7 +113,7 @@ func (c *CertDistributionClient) Instantiate(cert, clusterProvider string) error
 		return err
 	}
 
-	// update cert distribution state
+	// update caCert distribution state
 	if err := module.NewStateClient(dk).Update(state.StateEnum.Instantiated, ctx.ContextID, false); err != nil {
 		return err
 	}
@@ -111,7 +122,7 @@ func (c *CertDistributionClient) Instantiate(cert, clusterProvider string) error
 }
 
 // Status
-func (c *CertDistributionClient) Status(cert, clusterProvider, qInstance, qType, qOutput string, fApps, fClusters, fResources []string) (module.CaCertStatus, error) {
+func (c *CaCertDistributionClient) Status(cert, clusterProvider, qInstance, qType, qOutput string, fApps, fClusters, fResources []string) (module.CaCertStatus, error) {
 	// get the current state of the
 	dk := DistributionKey{
 		Cert:            cert,
@@ -128,7 +139,7 @@ func (c *CertDistributionClient) Status(cert, clusterProvider, qInstance, qType,
 }
 
 // Terminate
-func (c *CertDistributionClient) Terminate(cert, clusterProvider string) error {
+func (c *CaCertDistributionClient) Terminate(cert, clusterProvider string) error {
 	dk := DistributionKey{
 		Cert:            cert,
 		ClusterProvider: clusterProvider,
@@ -138,8 +149,8 @@ func (c *CertDistributionClient) Terminate(cert, clusterProvider string) error {
 }
 
 // Update
-func (c *CertDistributionClient) Update(cert, clusterProvider string) error {
-	// get the ca cert
+func (c *CaCertDistributionClient) Update(cert, clusterProvider string) error {
+	// get the caCert
 	caCert, err := getCertificate(cert, clusterProvider)
 	if err != nil {
 		return err
@@ -162,8 +173,8 @@ func (c *CertDistributionClient) Update(cert, clusterProvider string) error {
 			return err
 		}
 
-		// instantiate a new app context
-		ctx := module.CertAppContext{
+		// instantiate a new appContext
+		ctx := module.CaCertAppContext{
 			AppName:    distribution.AppName,
 			ClientName: clientName}
 		if err := ctx.InitAppContext(); err != nil {
@@ -176,18 +187,26 @@ func (c *CertDistributionClient) Update(cert, clusterProvider string) error {
 			CaCert:        caCert,
 			ContextID:     ctx.ContextID,
 			ClientName:    clientName,
-			ClusterGroups: clusterGroups}
+			ClusterGroups: clusterGroups,
+			Namespace:     module.DefaultNamespace,
+			Resources: distribution.DistributionResource{
+				ClusterIssuer: map[string]*cmv1.ClusterIssuer{},
+				ProxyConfig:   map[string]*istioservice.ProxyConfig{},
+				Secret:        map[string]*v1.Secret{},
+				KnccConfig:    map[string]*knccservice.Config{},
+			},
+		}
 
-		// start the cert distribution instantiation
+		// start the caCert distribution instantiation
 		if err := dCtx.Instantiate(); err != nil {
 			return err
 		}
-		// update the app context
+		// update the appContext
 		if err := dCtx.Update(previd); err != nil {
 			return err
 		}
 
-		// update the state object for the cert resource
+		// update the state object for the caCert resource
 		if err := module.NewStateClient(dk).Update(state.StateEnum.Updated, dCtx.ContextID, false); err != nil {
 			return err
 		}

@@ -7,8 +7,8 @@ import (
 	"gitlab.com/project-emco/core/emco-base/src/ca-certs/pkg/module"
 )
 
-// ClusterManager
-type ClusterManager interface {
+// ClusterGroupManager
+type ClusterGroupManager interface {
 	CreateClusterGroup(cluster module.ClusterGroup, logicalCloud, cert, project string, failIfExists bool) (module.ClusterGroup, bool, error)
 	DeleteClusterGroup(cluster, logicalCloud, cert, project string) error
 	GetAllClusterGroups(logicalCloud, cert, project string) ([]module.ClusterGroup, error)
@@ -17,69 +17,60 @@ type ClusterManager interface {
 
 // ClusterGroupKey
 type ClusterGroupKey struct {
-	Cert         string `json:"caCertLc"`
-	ClusterGroup string `json:"caCertClusterGroupLc"`
-	LogicalCloud string `json:"caCertLogicalCloud"`
-	Project      string `json:"project"`
+	Cert               string `json:"caCertLc"`
+	ClusterGroup       string `json:"caCertClusterGroupLc"`
+	CaCertLogicalCloud string `json:"caCertLogicalCloud"`
+	Project            string `json:"project"`
 }
 
-// ClusterClient
-type ClusterClient struct {
+// ClusterGroupClient
+type ClusterGroupClient struct {
 }
 
-// NewClusterClient
-func NewClusterClient() *ClusterClient {
-	return &ClusterClient{}
+// NewClusterGroupClient
+func NewClusterGroupClient() *ClusterGroupClient {
+	return &ClusterGroupClient{}
 }
 
 // CreateClusterGroup
-func (c *ClusterClient) CreateClusterGroup(group module.ClusterGroup, logicalCloud, cert, project string, failIfExists bool) (module.ClusterGroup, bool, error) {
+func (c *ClusterGroupClient) CreateClusterGroup(group module.ClusterGroup, caCertLogicalCloud, cert, project string, failIfExists bool) (module.ClusterGroup, bool, error) {
 	ck := ClusterGroupKey{
-		Cert:         cert,
-		ClusterGroup: group.MetaData.Name,
-		LogicalCloud: logicalCloud,
-		Project:      project}
+		Cert:               cert,
+		ClusterGroup:       group.MetaData.Name,
+		CaCertLogicalCloud: caCertLogicalCloud,
+		Project:            project}
 
-	return module.NewClusterClient(ck).CreateClusterGroup(group, failIfExists)
+	return module.NewClusterGroupClient(ck).CreateClusterGroup(group, failIfExists)
 }
 
 // DeleteClusterGroup
-func (c *ClusterClient) DeleteClusterGroup(clusterGroup, logicalCloud, cert, project string) error {
+func (c *ClusterGroupClient) DeleteClusterGroup(clusterGroup, caCertLogicalCloud, cert, project string) error {
 	ck := ClusterGroupKey{
-		Cert:         cert,
-		ClusterGroup: clusterGroup,
-		LogicalCloud: logicalCloud,
-		Project:      project}
+		Cert:               cert,
+		ClusterGroup:       clusterGroup,
+		CaCertLogicalCloud: caCertLogicalCloud,
+		Project:            project}
 
-	return module.NewClusterClient(ck).DeleteClusterGroup()
+	return module.NewClusterGroupClient(ck).DeleteClusterGroup()
 }
 
 // GetAllClusterGroups
-func (c *ClusterClient) GetAllClusterGroups(logicalCloud, cert, project string) ([]module.ClusterGroup, error) {
+func (c *ClusterGroupClient) GetAllClusterGroups(caCertLogicalCloud, cert, project string) ([]module.ClusterGroup, error) {
 	ck := ClusterGroupKey{
-		Cert:         cert,
-		LogicalCloud: logicalCloud,
-		Project:      project}
+		Cert:               cert,
+		CaCertLogicalCloud: caCertLogicalCloud,
+		Project:            project}
 
-	return module.NewClusterClient(ck).GetAllClusterGroups()
+	return module.NewClusterGroupClient(ck).GetAllClusterGroups()
 }
 
 // GetClusterGroup
-func (c *ClusterClient) GetClusterGroup(clusterGroup, logicalCloud, cert, project string) (module.ClusterGroup, error) {
+func (c *ClusterGroupClient) GetClusterGroup(clusterGroup, caCertLogicalCloud, cert, project string) (module.ClusterGroup, error) {
 	ck := ClusterGroupKey{
-		Cert:         cert,
-		ClusterGroup: clusterGroup,
-		LogicalCloud: logicalCloud,
-		Project:      project}
+		Cert:               cert,
+		ClusterGroup:       clusterGroup,
+		CaCertLogicalCloud: caCertLogicalCloud,
+		Project:            project}
 
-	return module.NewClusterClient(ck).GetClusterGroup()
+	return module.NewClusterGroupClient(ck).GetClusterGroup()
 }
-
-// // Convert the key to string to preserve the underlying structure
-// func (k ClusterGroupKey) String() string {
-// 	out, err := json.Marshal(k)
-// 	if err != nil {
-// 		return ""
-// 	}
-// 	return string(out)
-// }

@@ -30,7 +30,7 @@ const (
 func (r *route) setClusterProviderRoutes() {
 	// route to create the cluster-provider CA cert intent
 	cpCert := cpCertHandler{
-		manager: setClient(r.client.ClusterProviderCert, r.mock).(clusterprovider.CertManager)}
+		manager: setClient(r.client.ClusterProviderCert, r.mock).(clusterprovider.CaCertManager)}
 	r.router.HandleFunc(clusterProviderCertURL, cpCert.handleCertificateGet).Methods("GET")
 	r.router.HandleFunc(clusterProviderCertURL, cpCert.handleCertificateCreate).Methods("POST")
 	r.router.HandleFunc(clusterProviderCertURL+"/{caCert}", cpCert.handleCertificateGet).Methods("GET")
@@ -38,7 +38,7 @@ func (r *route) setClusterProviderRoutes() {
 	r.router.HandleFunc(clusterProviderCertURL+"/{caCert}", cpCert.handleCertificateUpdate).Methods("PUT")
 	// route to add clusters to the cluster-provider CA cert intent
 	cpCluster := cpClusterHandler{
-		manager: setClient(r.client.ClusterProviderCluster, r.mock).(clusterprovider.ClusterManager)}
+		manager: setClient(r.client.ClusterProviderCluster, r.mock).(clusterprovider.ClusterGroupManager)}
 	r.router.HandleFunc(clusterProviderCertURL+"/{caCert}/clusters", cpCluster.handleClusterGet).Methods("GET")
 	r.router.HandleFunc(clusterProviderCertURL+"/{caCert}/clusters", cpCluster.handleClusterCreate).Methods("POST")
 	r.router.HandleFunc(clusterProviderCertURL+"/{caCert}/clusters/{cluster}", cpCluster.handleClusterGet).Methods("GET")
@@ -47,7 +47,7 @@ func (r *route) setClusterProviderRoutes() {
 
 	// route to enroll the cluster-provider CA cert intent
 	cpCertEnrollment := cpCertEnrollmentHandler{
-		manager: setClient(r.client.ClusterProviderCertEnrollment, r.mock).(clusterprovider.CertEnrollmentManager)}
+		manager: setClient(r.client.ClusterProviderCertEnrollment, r.mock).(clusterprovider.CaCertEnrollmentManager)}
 	r.router.HandleFunc(clusterProviderCertEnrollmentURL+"/status", cpCertEnrollment.handleStatus).Methods("GET")
 	r.router.HandleFunc(clusterProviderCertEnrollmentURL+"/status",
 		cpCertEnrollment.handleStatus).Queries(
@@ -64,7 +64,7 @@ func (r *route) setClusterProviderRoutes() {
 
 	// route to distribute the cluster-provider CA cert intent
 	cpCertDistribution := cpCertDistributionHandler{
-		manager: setClient(r.client.ClusterProviderCertDistribution, r.mock).(clusterprovider.CertDistributionManager)}
+		manager: setClient(r.client.ClusterProviderCertDistribution, r.mock).(clusterprovider.CaCertDistributionManager)}
 	r.router.HandleFunc(clusterProviderCertDistributionURL+"/status", cpCertDistribution.handleStatus).Methods("GET")
 	r.router.HandleFunc(clusterProviderCertDistributionURL+"/status",
 		cpCertDistribution.handleStatus).Queries(
@@ -84,7 +84,7 @@ func (r *route) setClusterProviderRoutes() {
 func (r *route) setLogicalCloudRoutes() {
 	// route to create the logical-cloud CA cert intent
 	lcCert := lcCertHandler{
-		manager: setClient(r.client.LogicalCloudCert, r.mock).(logicalcloud.CertManager)}
+		manager: setClient(r.client.LogicalCloudCert, r.mock).(logicalcloud.CaCertManager)}
 	r.router.HandleFunc(logicalCloudCertURL, lcCert.handleCertificateGet).Methods("GET")
 	r.router.HandleFunc(logicalCloudCertURL, lcCert.handleCertificateCreate).Methods("POST")
 	r.router.HandleFunc(logicalCloudCertURL+"/{caCert}", lcCert.handleCertificateGet).Methods("GET")
@@ -93,7 +93,7 @@ func (r *route) setLogicalCloudRoutes() {
 
 	// route to add logical-cloud to the logical-cloud CA cert intent
 	lc := lcHandler{
-		manager: setClient(r.client.LogicalCloud, r.mock).(logicalcloud.LogicalCloudManager)}
+		manager: setClient(r.client.LogicalCloud, r.mock).(logicalcloud.CaCertLogicalCloudManager)}
 	r.router.HandleFunc(logicalCloudCertURL+"/{caCert}/logical-clouds", lc.handleLogicalCloudGet).Methods("GET")
 	r.router.HandleFunc(logicalCloudCertURL+"/{caCert}/logical-clouds", lc.handleLogicalCloudCreate).Methods("POST")
 	r.router.HandleFunc(logicalCloudCertURL+"/{caCert}/logical-clouds/{logicalCloud}", lc.handleLogicalCloudGet).Methods("GET")
@@ -102,7 +102,7 @@ func (r *route) setLogicalCloudRoutes() {
 
 	// route to add clusters to the logical-cloud CA cert intent
 	lcCluster := lcClusterHandler{
-		manager: setClient(r.client.LogicalCloudCluster, r.mock).(logicalcloud.ClusterManager)}
+		manager: setClient(r.client.LogicalCloudCluster, r.mock).(logicalcloud.ClusterGroupManager)}
 	r.router.HandleFunc(logicalCloudCertURL+"/{caCert}/logical-clouds/{logicalCloud}/clusters", lcCluster.handleClusterGet).Methods("GET")
 	r.router.HandleFunc(logicalCloudCertURL+"/{caCert}/logical-clouds/{logicalCloud}/clusters", lcCluster.handleClusterCreate).Methods("POST")
 	r.router.HandleFunc(logicalCloudCertURL+"/{caCert}/logical-clouds/{logicalCloud}/clusters/{cluster}", lcCluster.handleClusterGet).Methods("GET")
@@ -111,7 +111,7 @@ func (r *route) setLogicalCloudRoutes() {
 
 	// route to enroll the logical-cloud CA cert intent
 	lcCertEnrollment := lcCertEnrollmentHandler{
-		manager: setClient(r.client.LogicalCloudCertEnrollment, r.mock).(logicalcloud.CertEnrollmentManager)}
+		manager: setClient(r.client.LogicalCloudCertEnrollment, r.mock).(logicalcloud.CaCertEnrollmentManager)}
 	r.router.HandleFunc(logicalCloudCertEnrollmentURL+"/status", lcCertEnrollment.handleStatus).Methods("GET")
 	r.router.HandleFunc(logicalCloudCertEnrollmentURL+"/status",
 		lcCertEnrollment.handleStatus).Queries(
@@ -128,7 +128,7 @@ func (r *route) setLogicalCloudRoutes() {
 
 	// route to distribute the logical-cloud CA cert intent
 	lcCertDistribution := lcCertDistributionHandler{
-		manager: setClient(r.client.LogicalCloudCertDistribution, r.mock).(logicalcloud.CertDistributionManager)}
+		manager: setClient(r.client.LogicalCloudCertDistribution, r.mock).(logicalcloud.CaCertDistributionManager)}
 	r.router.HandleFunc(logicalCloudCertDistributionURL+"/status", lcCertDistribution.handleStatus).Methods("GET")
 	r.router.HandleFunc(logicalCloudCertDistributionURL+"/status",
 		lcCertDistribution.handleStatus).Queries(

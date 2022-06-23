@@ -7,8 +7,8 @@ import (
 	"gitlab.com/project-emco/core/emco-base/src/ca-certs/pkg/module"
 )
 
-// ClusterManager
-type ClusterManager interface {
+// ClusterGroupManager
+type ClusterGroupManager interface {
 	CreateClusterGroup(cluster module.ClusterGroup, cert, clusterProvider string, failIfExists bool) (module.ClusterGroup, bool, error)
 	DeleteClusterGroup(cert, cluster, clusterProvider string) error
 	GetAllClusterGroups(cert, clusterProvider string) ([]module.ClusterGroup, error)
@@ -22,50 +22,50 @@ type ClusterGroupKey struct {
 	ClusterProvider string `json:"clusterProvider"`
 }
 
-// ClusterClient
-type ClusterClient struct {
+// ClusterGroupClient
+type ClusterGroupClient struct {
 }
 
-// NewClusterClient
-func NewClusterClient() *ClusterClient {
-	return &ClusterClient{}
+// NewClusterGroupClient
+func NewClusterGroupClient() *ClusterGroupClient {
+	return &ClusterGroupClient{}
 }
 
 // CreateClusterGroup
-func (c *ClusterClient) CreateClusterGroup(group module.ClusterGroup, cert, clusterProvider string, failIfExists bool) (module.ClusterGroup, bool, error) {
+func (c *ClusterGroupClient) CreateClusterGroup(group module.ClusterGroup, cert, clusterProvider string, failIfExists bool) (module.ClusterGroup, bool, error) {
 	ck := ClusterGroupKey{
 		Cert:            cert,
 		ClusterGroup:    group.MetaData.Name,
 		ClusterProvider: clusterProvider}
 
-	return module.NewClusterClient(ck).CreateClusterGroup(group, failIfExists)
+	return module.NewClusterGroupClient(ck).CreateClusterGroup(group, failIfExists)
 }
 
-// DeleteClustersToTheCertificate
-func (c *ClusterClient) DeleteClusterGroup(cert, group, clusterProvider string) error {
+// DeleteClusterGroup
+func (c *ClusterGroupClient) DeleteClusterGroup(cert, group, clusterProvider string) error {
 	ck := ClusterGroupKey{
 		Cert:            cert,
 		ClusterGroup:    group,
 		ClusterProvider: clusterProvider}
 
-	return module.NewClusterClient(ck).DeleteClusterGroup()
+	return module.NewClusterGroupClient(ck).DeleteClusterGroup()
 }
 
 // GetAllClusterGroups
-func (c *ClusterClient) GetAllClusterGroups(cert, clusterProvider string) ([]module.ClusterGroup, error) {
+func (c *ClusterGroupClient) GetAllClusterGroups(cert, clusterProvider string) ([]module.ClusterGroup, error) {
 	ck := ClusterGroupKey{
 		Cert:            cert,
 		ClusterProvider: clusterProvider}
 
-	return module.NewClusterClient(ck).GetAllClusterGroups()
+	return module.NewClusterGroupClient(ck).GetAllClusterGroups()
 }
 
 // GetClusterGroup
-func (c *ClusterClient) GetClusterGroup(cert, clusterGroup, clusterProvider string) (module.ClusterGroup, error) {
+func (c *ClusterGroupClient) GetClusterGroup(cert, clusterGroup, clusterProvider string) (module.ClusterGroup, error) {
 	ck := ClusterGroupKey{
 		Cert:            cert,
 		ClusterGroup:    clusterGroup,
 		ClusterProvider: clusterProvider}
 
-	return module.NewClusterClient(ck).GetClusterGroup()
+	return module.NewClusterGroupClient(ck).GetClusterGroup()
 }

@@ -29,12 +29,8 @@ func SecretName(contextID, cert, clusterProvider, cluster string) string {
 // CreateSecret retun the Secret object
 func CreateSecret(name, namespace string, data map[string][]byte) *v1.Secret {
 	s := newSecret()
-
 	s.ObjectMeta.Name = name
-
-	if len(namespace) > 0 {
-		s.ObjectMeta.Namespace = namespace
-	}
+	s.ObjectMeta.Namespace = namespace
 
 	for key, val := range data {
 		s.Data[key] = val

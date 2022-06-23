@@ -3,6 +3,7 @@
 
 package certissuer
 
+// IssuerRef
 type IssuerRef struct {
 	Name    string `json:"name"`  // name of the issuer
 	Kind    string `json:"kind"`  // kind of the issuer
@@ -10,6 +11,7 @@ type IssuerRef struct {
 	Version string `json:"version,omitempty"`
 }
 
+// ResourceBundleStateStatus
 type ResourceBundleStateStatus struct {
 	Ready            bool             `json:"ready"`
 	ResourceCount    int32            `json:"resourceCount"`

@@ -12,7 +12,7 @@ import (
 )
 
 type lcCertEnrollmentHandler struct {
-	manager logicalcloud.CertEnrollmentManager
+	manager logicalcloud.CaCertEnrollmentManager
 }
 
 // handleInstantiate handles the route for instantiating the cert enrollment

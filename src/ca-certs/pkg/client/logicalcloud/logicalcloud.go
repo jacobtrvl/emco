@@ -10,38 +10,38 @@ import (
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
 )
 
-// LogicalCloudManager
-type LogicalCloudManager interface {
+// CaCertLogicalCloudManager
+type CaCertLogicalCloudManager interface {
 	CreateLogicalCloud(logicalCloud CaCertLogicalCloud, cert, project string, failIfExists bool) (CaCertLogicalCloud, bool, error)
 	DeleteLogicalCloud(logicalCloud, cert, project string) error
 	GetAllLogicalClouds(cert, project string) ([]CaCertLogicalCloud, error)
 	GetLogicalCloud(logicalCloud, cert, project string) (CaCertLogicalCloud, error)
 }
 
-// LogicalCloudKey
-type LogicalCloudKey struct {
+// CaCertLogicalCloudKey
+type CaCertLogicalCloudKey struct {
 	Cert               string `json:"caCertLc"`
 	CaCertLogicalCloud string `json:"caCertLogicalCloud"`
 	Project            string `json:"project"`
 }
 
-// LogicalCloudClient
-type LogicalCloudClient struct {
+// CaCertLogicalCloudClient
+type CaCertLogicalCloudClient struct {
 	dbInfo db.DbInfo
 }
 
-// NewLogicalCloudClient
-func NewLogicalCloudClient() *LogicalCloudClient {
-	return &LogicalCloudClient{
+// NewCaCertLogicalCloudClient
+func NewCaCertLogicalCloudClient() *CaCertLogicalCloudClient {
+	return &CaCertLogicalCloudClient{
 		dbInfo: db.DbInfo{
 			StoreName: "resources",
 			TagMeta:   "data"}}
 }
 
 // CreateLogicalCloud
-func (c *LogicalCloudClient) CreateLogicalCloud(logicalCloud CaCertLogicalCloud, cert, project string, failIfExists bool) (CaCertLogicalCloud, bool, error) {
+func (c *CaCertLogicalCloudClient) CreateLogicalCloud(logicalCloud CaCertLogicalCloud, cert, project string, failIfExists bool) (CaCertLogicalCloud, bool, error) {
 	lcExists := false
-	key := LogicalCloudKey{
+	key := CaCertLogicalCloudKey{
 		Cert:               cert,
 		Project:            project,
 		CaCertLogicalCloud: logicalCloud.MetaData.Name}
@@ -64,8 +64,8 @@ func (c *LogicalCloudClient) CreateLogicalCloud(logicalCloud CaCertLogicalCloud,
 }
 
 // DeleteLogicalCloud
-func (c *LogicalCloudClient) DeleteLogicalCloud(logicalCloud, cert, project string) error {
-	key := LogicalCloudKey{
+func (c *CaCertLogicalCloudClient) DeleteLogicalCloud(logicalCloud, cert, project string) error {
+	key := CaCertLogicalCloudKey{
 		Cert:               cert,
 		CaCertLogicalCloud: logicalCloud,
 		Project:            project}
@@ -74,8 +74,8 @@ func (c *LogicalCloudClient) DeleteLogicalCloud(logicalCloud, cert, project stri
 }
 
 // GetAllLogicalClouds
-func (c *LogicalCloudClient) GetAllLogicalClouds(cert, project string) ([]CaCertLogicalCloud, error) {
-	key := LogicalCloudKey{
+func (c *CaCertLogicalCloudClient) GetAllLogicalClouds(cert, project string) ([]CaCertLogicalCloud, error) {
+	key := CaCertLogicalCloudKey{
 		Cert:    cert,
 		Project: project}
 
@@ -97,8 +97,8 @@ func (c *LogicalCloudClient) GetAllLogicalClouds(cert, project string) ([]CaCert
 }
 
 // GetLogicalCloud
-func (c *LogicalCloudClient) GetLogicalCloud(logicalCloud, cert, project string) (CaCertLogicalCloud, error) {
-	key := LogicalCloudKey{
+func (c *CaCertLogicalCloudClient) GetLogicalCloud(logicalCloud, cert, project string) (CaCertLogicalCloud, error) {
+	key := CaCertLogicalCloudKey{
 		Cert:               cert,
 		CaCertLogicalCloud: logicalCloud,
 		Project:            project}
@@ -122,12 +122,3 @@ func (c *LogicalCloudClient) GetLogicalCloud(logicalCloud, cert, project string)
 
 	return CaCertLogicalCloud{}, errors.New("Unknown Error")
 }
-
-// // Convert the key to string to preserve the underlying structure
-// func (k LogicalCloudKey) String() string {
-// 	out, err := json.Marshal(k)
-// 	if err != nil {
-// 		return ""
-// 	}
-// 	return string(out)
-// }

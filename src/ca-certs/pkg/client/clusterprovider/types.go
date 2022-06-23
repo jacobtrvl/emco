@@ -3,12 +3,14 @@
 
 package clusterprovider
 
+// EnrollmentKey
 type EnrollmentKey struct {
 	Cert            string `json:"caCert"`
 	ClusterProvider string `json:"clusterProvider"`
 	Enrollment      string `json:"caCertEnrollment"`
 }
 
+// DistributionKey
 type DistributionKey struct {
 	Cert            string `json:"caCert"`
 	ClusterProvider string `json:"clusterProvider"`

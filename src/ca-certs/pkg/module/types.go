@@ -19,10 +19,10 @@ type ClusterGroup struct {
 
 // ClusterGroupSpec
 type ClusterGroupSpec struct {
-	Label    string `json:"label,omitempty"`   // select all the clusters with the specific label within the cluster-provider
-	Cluster  string `json:"cluster,omitempty"` // select the specific cluster within the cluster-provider
-	Provider string `json:"clusterProvider"`
-	Scope    string `json:"scope"` // indicates label or name should be used to select the cluster from cluster-provider
+	Label    string `json:"label,omitempty"`   // define the set of cluster(s)
+	Cluster  string `json:"cluster,omitempty"` // define the specific cluster
+	Provider string `json:"clusterProvider"`   // define the clusterProvider
+	Scope    string `json:"scope"`             // specifies which field should be used to identify the cluster(s)
 }
 
 // CaCertStatus
@@ -33,13 +33,13 @@ type CaCertStatus struct {
 }
 
 // Cert
-type Cert struct {
+type CaCert struct {
 	MetaData types.Metadata `json:"metadata"`
-	Spec     CertSpec       `json:"spec"`
+	Spec     CaCertSpec     `json:"spec"`
 }
 
 // CertSpec
-type CertSpec struct {
+type CaCertSpec struct {
 	CertificateSigningInfo CertificateSigningInfo `json:"csrInfo" yaml:"csrInfo"`               // represent the certificate signining request(CSR) info
 	Duration               time.Duration          `json:"duration,omitempty"`                   // duration of the certificate
 	IsCA                   bool                   `json:"isCA,omitempty" yaml:"isCA,omitempty"` // specifies the cert is a CA or not
@@ -95,7 +95,7 @@ type Algorithm struct {
 // IssuingClusterInfo
 type IssuingClusterInfo struct {
 	Cluster         string `json:"cluster"`         // name of the cluster
-	ClusterProvider string `json:"clusterProvider"` // name of the cluster provider
+	ClusterProvider string `json:"clusterProvider"` // name of the clusterProvider
 }
 
 // Key

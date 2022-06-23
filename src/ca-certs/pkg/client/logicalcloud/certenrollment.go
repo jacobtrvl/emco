@@ -4,33 +4,35 @@
 package logicalcloud
 
 import (
+	cmv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	"gitlab.com/project-emco/core/emco-base/src/ca-certs/pkg/certificate/enrollment"
 	"gitlab.com/project-emco/core/emco-base/src/ca-certs/pkg/module"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/appcontext"
+	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/state"
 )
 
 const clientName string = "cacert"
 
-// CertEnrollmentManager
-type CertEnrollmentManager interface {
+// CaCertEnrollmentManager
+type CaCertEnrollmentManager interface {
 	Instantiate(cert, project string) error
 	Status(cert, project, qInstance, qType, qOutput string, fApps, fClusters, fResources []string) (module.CaCertStatus, error)
 	Terminate(cert, project string) error
 	Update(cert, project string) error
 }
 
-// CertEnrollmentClient
-type CertEnrollmentClient struct {
+// CaCertEnrollmentClient
+type CaCertEnrollmentClient struct {
 }
 
-// NewCertEnrollmentClient
-func NewCertEnrollmentClient() *CertEnrollmentClient {
-	return &CertEnrollmentClient{}
+// NewCaCertEnrollmentClient
+func NewCaCertEnrollmentClient() *CaCertEnrollmentClient {
+	return &CaCertEnrollmentClient{}
 }
 
 // Instantiate
-func (c *CertEnrollmentClient) Instantiate(cert, project string) error {
+func (c *CaCertEnrollmentClient) Instantiate(cert, project string) error {
 	// check the current stateInfo of the Instantiation, if any
 	ek := EnrollmentKey{
 		Cert:       cert,
@@ -42,20 +44,20 @@ func (c *CertEnrollmentClient) Instantiate(cert, project string) error {
 		return err
 	}
 
-	// get the ca cert
+	// get the caCert
 	caCert, err := getCertificate(cert, project)
 	if err != nil {
 		return err
 	}
 
-	// get all the logcal-clouds associated with this cert
+	// get all the logcalClouds associated with this caCert
 	lcs, err := getAllLogicalClouds(cert, project)
 	if err != nil {
 		return err
 	}
 
-	// initialize a new app context
-	ctx := module.CertAppContext{
+	// initialize a new appContext
+	ctx := module.CaCertAppContext{
 		AppName:    enrollment.AppName,
 		ClientName: clientName}
 	if err := ctx.InitAppContext(); err != nil {
@@ -67,18 +69,20 @@ func (c *CertEnrollmentClient) Instantiate(cert, project string) error {
 		AppContext: ctx.AppContext,
 		AppHandle:  ctx.AppHandle,
 		CaCert:     caCert, // CA
-		ContextID:  ctx.ContextID}
+		ContextID:  ctx.ContextID,
+		Resources: enrollment.EnrollmentResource{
+			CertificateRequest: map[string]*cmv1.CertificateRequest{},
+		}}
 
 	// set the issuing cluster handle
-
 	eCtx.IssuerHandle, err = eCtx.IssuingClusterHandle()
 	if err != nil {
 		return err
 	}
 
-	//  you can have multiple lcs under the same cert
-	//  we need to process all the lcs within the same app context
-	// get all the clusters associated with these logical-clouds
+	// you can have multiple logcalClouds under the same caCert
+	// we need to process all the logcalClouds within the same appContext
+	// get all the clusters associated with these logicalClouds
 	for _, lc := range lcs {
 		// get all the clusters defined under this CA
 		clusterGroups, err := getAllClusterGroup(lc.MetaData.Name, cert, project)
@@ -88,13 +92,13 @@ func (c *CertEnrollmentClient) Instantiate(cert, project string) error {
 
 		eCtx.ClusterGroups = clusterGroups
 
-		// instantiate cert enrollment
+		// instantiate caCert enrollment
 		if err = eCtx.Instantiate(); err != nil {
 			return err
 		}
 	}
 
-	// add instruction under given handle and type
+	// add instruction under the given handle and type
 	if err := module.AddInstruction(eCtx.AppContext, eCtx.IssuerHandle, eCtx.ResOrder); err != nil {
 		return err
 	}
@@ -114,7 +118,7 @@ func (c *CertEnrollmentClient) Instantiate(cert, project string) error {
 }
 
 // Status
-func (c *CertEnrollmentClient) Status(cert, project, qInstance, qType, qOutput string, fApps, fClusters, fResources []string) (module.CaCertStatus, error) {
+func (c *CaCertEnrollmentClient) Status(cert, project, qInstance, qType, qOutput string, fApps, fClusters, fResources []string) (module.CaCertStatus, error) {
 	// get the enrollment stateInfo
 	ek := EnrollmentKey{
 		Cert:       cert,
@@ -131,7 +135,7 @@ func (c *CertEnrollmentClient) Status(cert, project, qInstance, qType, qOutput s
 }
 
 // Terminate
-func (c *CertEnrollmentClient) Terminate(cert, project string) error {
+func (c *CaCertEnrollmentClient) Terminate(cert, project string) error {
 	// get enrollment stateInfo
 	ek := EnrollmentKey{
 		Cert:       cert,
@@ -145,22 +149,21 @@ func (c *CertEnrollmentClient) Terminate(cert, project string) error {
 		return err
 	}
 
-	// initialize a new app context
-	ctx := module.CertAppContext{
+	// initialize a new appContext
+	ctx := module.CaCertAppContext{
 		ContextID: contextID}
 	// call resource synchronizer to delete the CSR from the issuing cluster
-	// TODO : Confirm the order, mongo first then rsync? or vice vers
 	if err := ctx.CallRsyncUninstall(); err != nil {
 		return err
 	}
 
-	// get the ca cert
+	// get the caCert
 	caCert, err := getCertificate(cert, project)
 	if err != nil {
 		return err
 	}
 
-	// get all the logcal-clouds associated with this cert
+	// get all the logcalcloud(s) associated with this caCert
 	lcs, err := getAllLogicalClouds(cert, project)
 	if err != nil {
 		return err
@@ -169,11 +172,14 @@ func (c *CertEnrollmentClient) Terminate(cert, project string) error {
 	// create a new EnrollmentContext
 	eCtx := enrollment.EnrollmentContext{
 		CaCert:    caCert,
-		ContextID: ctx.ContextID}
+		ContextID: ctx.ContextID,
+		Resources: enrollment.EnrollmentResource{
+			CertificateRequest: map[string]*cmv1.CertificateRequest{},
+		}}
 
-	//  you can have multiple lcs under the same cert
-	//  we need to process all the lcs within the same app context
-	// get all the clusters associated with these logical-clouds
+	// you can have multiple logcalCloud(s) under the same caCert
+	// we need to process all the logcalCloud(s) within the same appContext
+	// get all the clusters associated with these logicalCloud(s)
 	for _, lc := range lcs {
 		// get all the clusters defined under this CA
 		clusterGroups, err := getAllClusterGroup(lc.MetaData.Name, cert, project)
@@ -183,7 +189,7 @@ func (c *CertEnrollmentClient) Terminate(cert, project string) error {
 
 		eCtx.ClusterGroups = clusterGroups
 
-		// terminate the cert enrollment
+		// terminate the caCert enrollment
 		if err = eCtx.Terminate(); err != nil {
 			return err
 		}
@@ -199,8 +205,8 @@ func (c *CertEnrollmentClient) Terminate(cert, project string) error {
 }
 
 // Update
-func (c *CertEnrollmentClient) Update(cert, project string) error {
-	// get the ca cert
+func (c *CaCertEnrollmentClient) Update(cert, project string) error {
+	// get the caCert
 	caCert, err := getCertificate(cert, project)
 	if err != nil {
 		return err
@@ -219,14 +225,18 @@ func (c *CertEnrollmentClient) Update(cert, project string) error {
 
 	contextID := state.GetLastContextIdFromStateInfo(stateInfo)
 	if len(contextID) > 0 {
-		// get the existing app context
+		// get the existing appContext
 		status, err := state.GetAppContextStatus(contextID)
 		if err != nil {
+			logutils.Error("Failed to get the appContext status",
+				logutils.Fields{
+					"ContextID": contextID,
+					"Error":     err.Error()})
 			return err
 		}
 		if status.Status == appcontext.AppContextStatusEnum.Instantiated {
 			// instantiate a new eCtx
-			ctx := module.CertAppContext{
+			ctx := module.CaCertAppContext{
 				AppName:    enrollment.AppName,
 				ClientName: clientName}
 			if err := ctx.InitAppContext(); err != nil {
@@ -238,9 +248,12 @@ func (c *CertEnrollmentClient) Update(cert, project string) error {
 				AppHandle:  ctx.AppHandle,
 				CaCert:     caCert,
 				ContextID:  ctx.ContextID,
-				ClientName: clientName}
+				ClientName: clientName,
+				Resources: enrollment.EnrollmentResource{
+					CertificateRequest: map[string]*cmv1.CertificateRequest{},
+				}}
 
-			// get all the logcal-clouds associated with this cert
+			// get all the logcalCloud(s) associated with this cert
 			lcs, err := getAllLogicalClouds(cert, project)
 			if err != nil {
 				return err
@@ -255,7 +268,7 @@ func (c *CertEnrollmentClient) Update(cert, project string) error {
 
 				eCtx.ClusterGroups = clusterGroups
 
-				// update the cert enrollment app context
+				// update the cert enrollment appContext
 				if err := eCtx.Update(contextID); err != nil {
 					return err
 				}

@@ -3,7 +3,7 @@
 
 package istioservice
 
-// ProxyConfig holds secret data of a certain type
+// ProxyConfig holds the logicalCloud specific cert signer details
 type ProxyConfig struct {
 	APIVersion string          `yaml:"apiVersion" json:"apiVersion"`
 	Kind       string          `yaml:"kind" json:"kind"`
@@ -11,6 +11,7 @@ type ProxyConfig struct {
 	Spec       ProxyConfigSpec `yaml:"spec" json:"spec"`
 }
 
+// ProxyConfigSpec
 type ProxyConfigSpec struct {
 	EnvironmentVariables map[string]string `yaml:"environmentVariables" json:"environmentVariables"`
 }

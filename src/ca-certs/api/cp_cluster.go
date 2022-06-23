@@ -14,7 +14,7 @@ import (
 )
 
 type cpClusterHandler struct {
-	manager clusterprovider.ClusterManager
+	manager clusterprovider.ClusterGroupManager
 }
 
 // handleClusterCreate handles the route for creating a new cluster group
