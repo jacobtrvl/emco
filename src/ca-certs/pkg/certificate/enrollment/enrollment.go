@@ -23,7 +23,7 @@ const AppName string = "cert-enrollment"
 func (ctx *EnrollmentContext) Instantiate() error {
 	for _, ctx.ClusterGroup = range ctx.ClusterGroups {
 		// get all the clusters in this clusterGroup
-		clusters, err := module.GetClusters(ctx.ClusterGroup)
+		clusters, err := module.GetClusters(ctx.ClusterGroup, ctx.Project, ctx.LogicalCloud)
 		if err != nil {
 			return err
 		}
@@ -46,7 +46,11 @@ func (ctx *EnrollmentContext) Instantiate() error {
 						"Error":  err.Error()})
 				return err
 			}
+
+			ctx.Cluster = ""
 		}
+
+		ctx.ClusterGroup = module.ClusterGroup{}
 	}
 
 	return nil
@@ -78,7 +82,7 @@ func Status(stateInfo state.StateInfo, qInstance, qType, qOutput string, fApps, 
 func (ctx *EnrollmentContext) Terminate() error {
 	for _, ctx.ClusterGroup = range ctx.ClusterGroups {
 		// get all the clusters in this clusterGoup
-		clusters, err := module.GetClusters(ctx.ClusterGroup)
+		clusters, err := module.GetClusters(ctx.ClusterGroup, ctx.Project, ctx.LogicalCloud)
 		if err != nil {
 			return err
 		}
@@ -90,7 +94,11 @@ func (ctx *EnrollmentContext) Terminate() error {
 					return err
 				}
 			}
+
+			ctx.Cluster = ""
 		}
+
+		ctx.ClusterGroup = module.ClusterGroup{}
 	}
 
 	return nil

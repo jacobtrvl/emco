@@ -18,8 +18,8 @@ func newProxyConfig() *ProxyConfig {
 }
 
 // ProxyConfigName
-func ProxyConfigName(contextID, cert, clusterProvider, cluster string) string {
-	return fmt.Sprintf("%s-%s-%s-%s-%s", contextID, cert, clusterProvider, cluster, "pc")
+func ProxyConfigName(contextID, cert, clusterProvider, cluster, namespace string) string {
+	return fmt.Sprintf("%s-%s-%s-%s-%s-%s", contextID, cert, clusterProvider, cluster, namespace, "pc")
 }
 
 // CreateProxyConfig

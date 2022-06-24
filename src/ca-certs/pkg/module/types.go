@@ -65,7 +65,6 @@ type Subject struct {
 	Organization Organization `json:"organization"`
 }
 
-// TODO: Confirm if this is required. Common name should be unique for each csr
 type Names struct {
 	CommonNamePrefix string `json:"commonNamePrefix"`
 	CommonName       string

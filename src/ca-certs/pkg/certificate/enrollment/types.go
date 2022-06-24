@@ -22,6 +22,9 @@ type EnrollmentContext struct {
 	IssuerHandle  interface{}
 	Cluster       string
 	Resources     EnrollmentResource
+	Project       string
+	Namespace     string
+	LogicalCloud  string
 }
 
 // EnrollmentResource

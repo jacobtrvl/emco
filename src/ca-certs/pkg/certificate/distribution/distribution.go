@@ -124,7 +124,7 @@ func (ctx *DistributionContext) createCertManagerIssuerResources() error {
 
 	for _, ctx.ClusterGroup = range ctx.ClusterGroups {
 		// get all the clusters in this clusterGroup
-		clusters, err := module.GetClusters(ctx.ClusterGroup)
+		clusters, err := module.GetClusters(ctx.ClusterGroup, ctx.Project, ctx.LogicalCloud)
 		if err != nil {
 			return err
 		}
@@ -191,7 +191,13 @@ func (ctx *DistributionContext) createCertManagerIssuerResources() error {
 			if err := module.AddInstruction(ctx.AppContext, ctx.ClusterHandle, ctx.ResOrder); err != nil {
 				return err
 			}
+
+			ctx.Cluster = ""
+			ctx.ResOrder = []string{}
+			ctx.ClusterHandle = nil
 		}
+
+		ctx.ClusterGroup = module.ClusterGroup{}
 	}
 
 	return nil
@@ -199,14 +205,12 @@ func (ctx *DistributionContext) createCertManagerIssuerResources() error {
 
 // createServiceResources
 func (ctx *DistributionContext) createServiceResources() error {
-	var serviceType string = "istio"
-	// TODO: change the naming
-	val, err := clm.NewClusterClient().GetClusterKvPairsValue(ctx.ClusterGroup.Spec.Provider, ctx.Cluster, "csrkvpairs", "commonName")
+	var serviceType string
+	val, err := clm.NewClusterClient().GetClusterKvPairsValue(ctx.ClusterGroup.Spec.Provider, ctx.Cluster, "serviceMeshInfo", "serviceType")
 	if err == nil {
 		serviceType = val.(string)
 	}
 
-	// TODO: Confirm should we return from here or not
 	if err != nil &&
 		err.Error() != "Cluster key value pair not found" &&
 		err.Error() != "Cluster KV pair key value not found" {
@@ -228,13 +232,14 @@ func (ctx *DistributionContext) createIstioServiceResourcess() error {
 	switch ctx.CaCert.Spec.IssuerRef.Group {
 	case "cert-manager.io":
 		if issuer := ctx.retrieveClusterIssuer(ctx.Cluster); !reflect.DeepEqual(issuer, cmv1.ClusterIssuer{}) {
-			if ctx.Namespace != module.DefaultNamespace {
+			if len(ctx.Namespace) > 0 {
 				// create a proxyconfig for this namespace
 				if err := ctx.createProxyConfig(issuer); err != nil {
 					return err
 				}
 			}
-			// create a kncc patch config
+
+			// create a kncc patch config using the secret created fot this issuer
 			if s := ctx.retrieveSecret(ctx.Cluster); !reflect.DeepEqual(s, v1.Secret{}) {
 				pem := strings.Replace(string(s.Data[v1.TLSCertKey]), "\n", "\n    ", -1)
 				key := "mesh:\n  caCertificates\n"
@@ -245,7 +250,7 @@ func (ctx *DistributionContext) createIstioServiceResourcess() error {
 					return err
 				}
 
-				if ctx.Namespace == module.DefaultNamespace {
+				if len(ctx.Namespace) == 0 {
 					// use this issuer as the dfault issuer for the cluster
 					// TODO: This needs kncc support
 
@@ -254,6 +259,7 @@ func (ctx *DistributionContext) createIstioServiceResourcess() error {
 				return nil
 			}
 
+			// A secret is not available, return error
 			err := errors.New("A secret is not available for the cluster")
 			logutils.Error("",
 				logutils.Fields{
@@ -262,6 +268,7 @@ func (ctx *DistributionContext) createIstioServiceResourcess() error {
 			return err
 		}
 
+		// A clusterIssuer is not available, return error
 		err := errors.New("A clusterIssuer is not available for cluster")
 		logutils.Error("",
 			logutils.Fields{

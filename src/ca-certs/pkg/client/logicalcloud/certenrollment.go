@@ -7,6 +7,7 @@ import (
 	cmv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	"gitlab.com/project-emco/core/emco-base/src/ca-certs/pkg/certificate/enrollment"
 	"gitlab.com/project-emco/core/emco-base/src/ca-certs/pkg/module"
+	dcm "gitlab.com/project-emco/core/emco-base/src/dcm/pkg/module"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/appcontext"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/state"
@@ -72,7 +73,9 @@ func (c *CaCertEnrollmentClient) Instantiate(cert, project string) error {
 		ContextID:  ctx.ContextID,
 		Resources: enrollment.EnrollmentResource{
 			CertificateRequest: map[string]*cmv1.CertificateRequest{},
-		}}
+		},
+		Project: project,
+	}
 
 	// set the issuing cluster handle
 	eCtx.IssuerHandle, err = eCtx.IssuingClusterHandle()
@@ -84,18 +87,33 @@ func (c *CaCertEnrollmentClient) Instantiate(cert, project string) error {
 	// we need to process all the logcalClouds within the same appContext
 	// get all the clusters associated with these logicalClouds
 	for _, lc := range lcs {
-		// get all the clusters defined under this CA
-		clusterGroups, err := getAllClusterGroup(lc.MetaData.Name, cert, project)
+		// get the logical cloud
+		l, err := dcm.NewLogicalCloudClient().Get(project, lc.MetaData.Name)
 		if err != nil {
 			return err
 		}
 
-		eCtx.ClusterGroups = clusterGroups
+		eCtx.LogicalCloud = l.MetaData.LogicalCloudName
+
+		if len(l.Specification.NameSpace) > 0 {
+			eCtx.Namespace = l.Specification.NameSpace
+		}
+
+		// get all the clusters defined under this CA
+		eCtx.ClusterGroups, err = getAllClusterGroup(lc.MetaData.Name, cert, project)
+		if err != nil {
+			return err
+		}
 
 		// instantiate caCert enrollment
 		if err = eCtx.Instantiate(); err != nil {
 			return err
 		}
+
+		eCtx.Namespace = ""
+		eCtx.LogicalCloud = ""
+		eCtx.ClusterGroups = []module.ClusterGroup{}
+
 	}
 
 	// add instruction under the given handle and type
@@ -175,24 +193,40 @@ func (c *CaCertEnrollmentClient) Terminate(cert, project string) error {
 		ContextID: ctx.ContextID,
 		Resources: enrollment.EnrollmentResource{
 			CertificateRequest: map[string]*cmv1.CertificateRequest{},
-		}}
+		},
+		Project: project,
+	}
 
 	// you can have multiple logcalCloud(s) under the same caCert
 	// we need to process all the logcalCloud(s) within the same appContext
 	// get all the clusters associated with these logicalCloud(s)
 	for _, lc := range lcs {
-		// get all the clusters defined under this CA
-		clusterGroups, err := getAllClusterGroup(lc.MetaData.Name, cert, project)
+		// get the logical cloud
+		l, err := dcm.NewLogicalCloudClient().Get(project, lc.MetaData.Name)
 		if err != nil {
 			return err
 		}
 
-		eCtx.ClusterGroups = clusterGroups
+		eCtx.LogicalCloud = l.MetaData.LogicalCloudName
+
+		if len(l.Specification.NameSpace) > 0 {
+			eCtx.Namespace = l.Specification.NameSpace
+		}
+
+		// get all the clusters defined under this CA
+		eCtx.ClusterGroups, err = getAllClusterGroup(lc.MetaData.Name, cert, project)
+		if err != nil {
+			return err
+		}
 
 		// terminate the caCert enrollment
 		if err = eCtx.Terminate(); err != nil {
 			return err
 		}
+
+		eCtx.Namespace = ""
+		eCtx.LogicalCloud = ""
+		eCtx.ClusterGroups = []module.ClusterGroup{}
 
 	}
 
@@ -251,7 +285,9 @@ func (c *CaCertEnrollmentClient) Update(cert, project string) error {
 				ClientName: clientName,
 				Resources: enrollment.EnrollmentResource{
 					CertificateRequest: map[string]*cmv1.CertificateRequest{},
-				}}
+				},
+				Project: project,
+			}
 
 			// get all the logcalCloud(s) associated with this cert
 			lcs, err := getAllLogicalClouds(cert, project)
@@ -260,18 +296,32 @@ func (c *CaCertEnrollmentClient) Update(cert, project string) error {
 			}
 
 			for _, lc := range lcs {
-				// get all the clusters defined under this CA
-				clusterGroups, err := getAllClusterGroup(lc.MetaData.Name, cert, project)
+				// get the logical cloud
+				l, err := dcm.NewLogicalCloudClient().Get(project, lc.MetaData.Name)
 				if err != nil {
 					return err
 				}
 
-				eCtx.ClusterGroups = clusterGroups
+				eCtx.LogicalCloud = l.MetaData.LogicalCloudName
+
+				if len(l.Specification.NameSpace) > 0 {
+					eCtx.Namespace = l.Specification.NameSpace
+				}
+
+				// get all the clusters defined under this CA
+				eCtx.ClusterGroups, err = getAllClusterGroup(lc.MetaData.Name, cert, project)
+				if err != nil {
+					return err
+				}
 
 				// update the cert enrollment appContext
 				if err := eCtx.Update(contextID); err != nil {
 					return err
 				}
+
+				eCtx.Namespace = ""
+				eCtx.LogicalCloud = ""
+				eCtx.ClusterGroups = []module.ClusterGroup{}
 
 			}
 

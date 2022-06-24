@@ -88,7 +88,6 @@ func (c *CaCertDistributionClient) Instantiate(cert, clusterProvider string) err
 		CaCert:              caCert,
 		ContextID:           ctx.ContextID,
 		EnrollmentContextID: enrollmentContextID,
-		Namespace:           module.DefaultNamespace,
 		Resources: distribution.DistributionResource{
 			ClusterIssuer: map[string]*cmv1.ClusterIssuer{},
 			ProxyConfig:   map[string]*istioservice.ProxyConfig{},
@@ -188,7 +187,6 @@ func (c *CaCertDistributionClient) Update(cert, clusterProvider string) error {
 			ContextID:     ctx.ContextID,
 			ClientName:    clientName,
 			ClusterGroups: clusterGroups,
-			Namespace:     module.DefaultNamespace,
 			Resources: distribution.DistributionResource{
 				ClusterIssuer: map[string]*cmv1.ClusterIssuer{},
 				ProxyConfig:   map[string]*istioservice.ProxyConfig{},

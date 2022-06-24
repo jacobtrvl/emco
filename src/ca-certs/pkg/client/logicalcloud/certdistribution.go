@@ -4,8 +4,6 @@
 package logicalcloud
 
 import (
-	"strings"
-
 	cmv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	"gitlab.com/project-emco/core/emco-base/src/ca-certs/pkg/certificate/distribution"
 	"gitlab.com/project-emco/core/emco-base/src/ca-certs/pkg/certificate/enrollment"
@@ -103,6 +101,7 @@ func (c *CaCertDistributionClient) Instantiate(cert, project string) error {
 			Secret:        map[string]*v1.Secret{},
 			KnccConfig:    map[string]*knccservice.Config{},
 		},
+		Project: project,
 	}
 
 	//  you can have multiple logicalCloud(s) under the same caCert
@@ -115,8 +114,9 @@ func (c *CaCertDistributionClient) Instantiate(cert, project string) error {
 			return err
 		}
 
-		if len(l.Specification.NameSpace) > 0 &&
-			strings.ToLower(l.Specification.NameSpace) != module.DefaultNamespace {
+		dCtx.LogicalCloud = l.MetaData.LogicalCloudName
+
+		if len(l.Specification.NameSpace) > 0 {
 			dCtx.Namespace = l.Specification.NameSpace
 		}
 
@@ -130,6 +130,10 @@ func (c *CaCertDistributionClient) Instantiate(cert, project string) error {
 		if err = dCtx.Instantiate(); err != nil {
 			return err
 		}
+
+		dCtx.Namespace = ""
+		dCtx.LogicalCloud = ""
+		dCtx.ClusterGroups = []module.ClusterGroup{}
 	}
 
 	// invokes the rsync service
@@ -213,6 +217,7 @@ func (c *CaCertDistributionClient) Update(cert, project string) error {
 				Secret:        map[string]*v1.Secret{},
 				KnccConfig:    map[string]*knccservice.Config{},
 			},
+			Project: project,
 		}
 
 		// get all the logcalCloud(s) associated with this caCert
@@ -222,18 +227,32 @@ func (c *CaCertDistributionClient) Update(cert, project string) error {
 		}
 
 		for _, lc := range lcs {
-			// get all the clusters defined under this CA
-			clusterGroups, err := getAllClusterGroup(lc.MetaData.Name, cert, project)
+			// get the logical cloud
+			l, err := dcm.NewLogicalCloudClient().Get(project, lc.MetaData.Name)
 			if err != nil {
 				return err
 			}
 
-			dCtx.ClusterGroups = clusterGroups
+			dCtx.LogicalCloud = l.MetaData.LogicalCloudName
+
+			if len(l.Specification.NameSpace) > 0 {
+				dCtx.Namespace = l.Specification.NameSpace
+			}
+
+			// get all the clusters defined under this CA
+			dCtx.ClusterGroups, err = getAllClusterGroup(lc.MetaData.Name, cert, project)
+			if err != nil {
+				return err
+			}
 
 			// start the cert distribution instantiation
 			if err := dCtx.Instantiate(); err != nil {
 				return err
 			}
+
+			dCtx.Namespace = ""
+			dCtx.LogicalCloud = ""
+			dCtx.ClusterGroups = []module.ClusterGroup{}
 		}
 
 		// update the appContext

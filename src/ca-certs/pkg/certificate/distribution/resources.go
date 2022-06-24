@@ -6,7 +6,6 @@ package distribution
 import (
 	"bytes"
 	"encoding/base64"
-	"strings"
 
 	cmv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/pkg/errors"
@@ -54,13 +53,7 @@ func (ctx *DistributionContext) createClusterIssuer(secretName string) error {
 		return nil
 	}
 
-	ns := ""
-	if len(ctx.Namespace) > 0 &&
-		strings.ToLower(ctx.Namespace) != module.DefaultNamespace {
-		ns = ctx.Namespace
-	}
-
-	i := certmanagerissuer.CreateClusterIssuer(iName, ns, secretName)
+	i := certmanagerissuer.CreateClusterIssuer(iName, secretName)
 	if err := module.AddResource(ctx.AppContext, i, ctx.ClusterHandle, module.ResourceName(i.ObjectMeta.Name, i.Kind)); err != nil {
 		return err
 	}
@@ -73,21 +66,15 @@ func (ctx *DistributionContext) createClusterIssuer(secretName string) error {
 
 // createProxyConfig creates a ProxyConfig to control the traffic between workloads
 func (ctx *DistributionContext) createProxyConfig(issuer *cmv1.ClusterIssuer) error {
-	pcName := istioservice.ProxyConfigName(ctx.ContextID, ctx.CaCert.MetaData.Name, ctx.ClusterGroup.Spec.Provider, ctx.Cluster)
+	pcName := istioservice.ProxyConfigName(ctx.ContextID, ctx.CaCert.MetaData.Name, ctx.ClusterGroup.Spec.Provider, ctx.Cluster, ctx.Namespace)
 	if _, exists := ctx.Resources.ProxyConfig[pcName]; exists {
 		// a ProxyConfig already exists
 		return nil
 	}
 
-	ns := ""
-	if len(ctx.Namespace) > 0 &&
-		strings.ToLower(ctx.Namespace) != module.DefaultNamespace {
-		ns = ctx.Namespace
-	}
-
 	environmentVariables := map[string]string{}
 	environmentVariables["ISTIO_META_CERT_SIGNER"] = issuer.ObjectMeta.Name
-	pc := istioservice.CreateProxyConfig(pcName, ns, environmentVariables)
+	pc := istioservice.CreateProxyConfig(pcName, ctx.Namespace, environmentVariables)
 
 	if err := module.AddResource(ctx.AppContext, pc, ctx.ClusterHandle, module.ResourceName(pc.MetaData.Name, pc.Kind)); err != nil {
 		return err

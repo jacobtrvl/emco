@@ -26,11 +26,16 @@ func (ctx *EnrollmentContext) createCertManagerCertificateRequest() error {
 		return nil
 	}
 
+	commonName := strings.Join([]string{ctx.CaCert.MetaData.Name, ctx.ClusterGroup.Spec.Provider, ctx.Cluster, "ca"}, "-")
+	if len(ctx.CaCert.Spec.CertificateSigningInfo.Subject.Names.CommonNamePrefix) > 0 {
+		commonName = strings.Join([]string{commonName, ctx.CaCert.Spec.CertificateSigningInfo.Subject.Names.CommonNamePrefix}, "-")
+	}
+
 	// This needs to be a unique name for each cluster
-	ctx.CaCert.Spec.CertificateSigningInfo.Subject.Names.CommonName = strings.Join([]string{ctx.CaCert.MetaData.Name, ctx.ClusterGroup.Spec.Provider, ctx.Cluster, "ca"}, "-")
+	ctx.CaCert.Spec.CertificateSigningInfo.Subject.Names.CommonName = commonName
+
 	// check if a cluster specific commonName is available
-	// TODO: kvpair naming
-	if val, err := clm.NewClusterClient().GetClusterKvPairsValue(ctx.ClusterGroup.Spec.Provider, ctx.Cluster, "csrkvpairs", "commonName"); err == nil {
+	if val, err := clm.NewClusterClient().GetClusterKvPairsValue(ctx.ClusterGroup.Spec.Provider, ctx.Cluster, "csrData", "commonName"); err == nil {
 		ctx.CaCert.Spec.CertificateSigningInfo.Subject.Names.CommonName = val.(string)
 	}
 

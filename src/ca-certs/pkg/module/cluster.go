@@ -9,6 +9,7 @@ import (
 
 	"github.com/pkg/errors"
 	clm "gitlab.com/project-emco/core/emco-base/src/clm/pkg/cluster"
+	dcm "gitlab.com/project-emco/core/emco-base/src/dcm/pkg/module"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
 )
 
@@ -102,8 +103,17 @@ func (c *ClusterGroupClient) GetClusterGroup() (ClusterGroup, error) {
 	return ClusterGroup{}, errors.New("Unknown Error")
 }
 
-// GetClusters returns the list of clusters based on the scope
-func GetClusters(group ClusterGroup) (clusters []string, err error) {
+// GetClusters returns the list of clusters based on the namespace and scope
+func GetClusters(group ClusterGroup, project, namespace string) (clusters []string, err error) {
+	if len(namespace) > 0 {
+		return getLogicalCloudReferencedClusters(group, project, namespace)
+	}
+
+	return getClusters(group)
+}
+
+// getClusters returns the list of clusters based on the scope
+func getClusters(group ClusterGroup) (clusters []string, err error) {
 	clusters = []string{}
 	switch strings.ToLower(group.Spec.Scope) {
 	case "name":
@@ -131,4 +141,32 @@ func GetClusters(group ClusterGroup) (clusters []string, err error) {
 	}
 
 	return clusters, err
+}
+
+// getLogicalCloudReferencedClusters returns the list of clusters part of the logicalCloud
+func getLogicalCloudReferencedClusters(group ClusterGroup, project, logicalCloud string) ([]string, error) {
+	cList, err := getClusters(group)
+	if err != nil {
+		return []string{}, err
+	}
+
+	// get all the clusters referenced by the project and logicalCloud
+	cListLc, err := dcm.NewClusterClient().GetAllClusters(project, logicalCloud)
+	if err != nil {
+		return []string{}, err
+	}
+
+	// filter clusters which are referenced by the clusterGroup, project and logicalCloud
+	var clusters []string = []string{}
+	for _, c := range cList {
+		// check if the cluster is referenced by the logicalCloud
+		for _, cLc := range cListLc {
+			if c == cLc.Specification.ClusterName {
+				clusters = append(clusters, c)
+				break
+			}
+		}
+	}
+
+	return clusters, nil
 }

@@ -79,8 +79,6 @@ func (c *CaCertEnrollmentClient) Instantiate(cert, clusterProvider string) error
 		return err
 	}
 
-	// eCtx.ClusterGroups = clusterGroups
-
 	// instantiate caCert enrollment
 	if err = eCtx.Instantiate(); err != nil {
 		return err

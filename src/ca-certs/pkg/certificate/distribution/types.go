@@ -29,6 +29,7 @@ type DistributionContext struct {
 	ClientName          string
 	Cluster             string
 	ClusterHandle       interface{}
+	LogicalCloud        string
 }
 
 // DistributionResource
