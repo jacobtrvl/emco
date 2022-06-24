@@ -6,6 +6,8 @@ package distribution
 import (
 	"bytes"
 	"encoding/base64"
+	"fmt"
+	"strings"
 
 	cmv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/pkg/errors"
@@ -19,8 +21,9 @@ import (
 
 // createSecret creates a secret to store the certificate
 func (ctx *DistributionContext) createSecret(cr cmv1.CertificateRequest, name, namespace string) error {
-	if _, exists := ctx.Resources.Secret[name]; exists {
+	if s, exists := ctx.Resources.Secret[name]; exists {
 		// a secret already exists
+		ctx.ResOrder = append(ctx.ResOrder, module.ResourceName(s.ObjectMeta.Name, s.Kind))
 		return nil
 	}
 	// retrieve the Private Key from mongo
@@ -48,8 +51,9 @@ func (ctx *DistributionContext) createSecret(cr cmv1.CertificateRequest, name, n
 // createClusterIssuer creates a ClusterIssuer to issue the certificates
 func (ctx *DistributionContext) createClusterIssuer(secretName string) error {
 	iName := certmanagerissuer.ClusterIssuerName(ctx.ContextID, ctx.CaCert.MetaData.Name, ctx.ClusterGroup.Spec.Provider, ctx.Cluster)
-	if _, exists := ctx.Resources.ClusterIssuer[iName]; exists {
+	if i, exists := ctx.Resources.ClusterIssuer[iName]; exists {
 		// a clusterIssuer already exists
+		ctx.ResOrder = append(ctx.ResOrder, module.ResourceName(i.ObjectMeta.Name, i.Kind))
 		return nil
 	}
 
@@ -67,8 +71,9 @@ func (ctx *DistributionContext) createClusterIssuer(secretName string) error {
 // createProxyConfig creates a ProxyConfig to control the traffic between workloads
 func (ctx *DistributionContext) createProxyConfig(issuer *cmv1.ClusterIssuer) error {
 	pcName := istioservice.ProxyConfigName(ctx.ContextID, ctx.CaCert.MetaData.Name, ctx.ClusterGroup.Spec.Provider, ctx.Cluster, ctx.Namespace)
-	if _, exists := ctx.Resources.ProxyConfig[pcName]; exists {
+	if pc, exists := ctx.Resources.ProxyConfig[pcName]; exists {
 		// a ProxyConfig already exists
+		ctx.ResOrder = append(ctx.ResOrder, module.ResourceName(pc.MetaData.Name, pc.Kind))
 		return nil
 	}
 
@@ -83,6 +88,23 @@ func (ctx *DistributionContext) createProxyConfig(issuer *cmv1.ClusterIssuer) er
 	ctx.Resources.ProxyConfig[pcName] = pc
 
 	ctx.ResOrder = append(ctx.ResOrder, module.ResourceName(pc.MetaData.Name, pc.Kind))
+
+	for _, p := range ctx.Resources.ProxyConfig {
+		// add any other proxyconfig, created for the same appcontext, cert clusterProvider and cluster
+		if strings.Contains(p.MetaData.Name, fmt.Sprintf("%s-%s-%s-%s", ctx.ContextID, ctx.CaCert.MetaData.Name, ctx.ClusterGroup.Spec.Provider, ctx.Cluster)) {
+			exists := false
+			for _, o := range ctx.ResOrder {
+				if o == module.ResourceName(p.MetaData.Name, p.Kind) {
+					exists = true
+					break
+				}
+			}
+
+			if !exists {
+				ctx.ResOrder = append(ctx.ResOrder, module.ResourceName(p.MetaData.Name, p.Kind))
+			}
+		}
+	}
 
 	return nil
 }
@@ -142,8 +164,9 @@ func (ctx *DistributionContext) retrieveSecret(cluster string) *v1.Secret {
 func (ctx *DistributionContext) createKnccConfig(namespace, resourceName, resourceNamespace string,
 	patch []map[string]string) error {
 	cName := knccservice.KnccConfigName(ctx.ContextID, ctx.CaCert.MetaData.Name, ctx.ClusterGroup.Spec.Provider, ctx.Cluster)
-	if _, exists := ctx.Resources.KnccConfig[cName]; exists {
+	if c, exists := ctx.Resources.KnccConfig[cName]; exists {
 		// a KnccConfig already exists
+		ctx.ResOrder = append(ctx.ResOrder, module.ResourceName(c.ObjectMeta.Name, c.TypeMeta.Kind))
 		return nil
 	}
 	c := knccservice.CreateKnccConfig(cName, namespace, resourceName, resourceNamespace, patch)
