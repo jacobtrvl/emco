@@ -7,9 +7,9 @@ import (
 	"context"
 
 	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
+	"gitlab.com/project-emco/core/emco-base/src/rsync/pkg/internal/utils"
 	"gitlab.com/project-emco/core/emco-base/src/rsync/pkg/status"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"gitlab.com/project-emco/core/emco-base/src/rsync/pkg/internal/utils"
 )
 
 // Creates a new resource if the not already existing
@@ -30,7 +30,13 @@ func (p *AzureArcV2Provider) Apply(name string, ref interface{}, content []byte)
 		return nil, err
 	}
 	// Set Namespace
-	unstruct.SetNamespace(p.gitProvider.Namespace)
+	if unstruct.GetNamespace() == "" {
+		if unstruct.GetKind() != "Namespace" {
+			// Set Namespace
+			unstruct.SetNamespace(p.gitProvider.Namespace)
+		}
+	}
+
 	b, err := unstruct.MarshalJSON()
 	if err != nil {
 		return nil, err

@@ -16,23 +16,23 @@ import (
 )
 
 type AzureArcV2Provider struct {
-	gitProvider       gitsupport.GitProvider
-	clientID          string
-	tenantID          string
-	clientSecret      string
-	subscriptionID    string
-	arcCluster        string
-	arcResourceGroup  string
-	timeOut           int
-	syncInterval      int
-	retryInterval     int
+	gitProvider      gitsupport.GitProvider
+	clientID         string
+	tenantID         string
+	clientSecret     string
+	subscriptionID   string
+	arcCluster       string
+	arcResourceGroup string
+	timeOut          int
+	syncInterval     int
+	retryInterval    int
 }
 
 func NewAzureArcProvider(cid, app, cluster, level, namespace string) (*AzureArcV2Provider, error) {
 
 	result := strings.SplitN(cluster, "+", 2)
 
-	c, err := utils.GetGitOpsConfig(cluster, level, namespace)
+	c, err := utils.GetGitOpsConfig(cluster, "0", "default")
 
 	if err != nil {
 		return nil, err
@@ -113,7 +113,7 @@ func NewAzureArcProvider(cid, app, cluster, level, namespace string) (*AzureArcV
 			continue
 		}
 	}
-	if len(clientID) <= 0 || len(tenantID) <= 0 || len(clientSecret) <= 0 || len(subscriptionID) <= 0 || len(arcCluster) <= 0 || len(arcResourceGroup) <= 0 || len(timeOutStr) <= 0 || len(syncIntervalStr) <= 0 || len(retryIntervalStr) <= 0{
+	if len(clientID) <= 0 || len(tenantID) <= 0 || len(clientSecret) <= 0 || len(subscriptionID) <= 0 || len(arcCluster) <= 0 || len(arcResourceGroup) <= 0 || len(timeOutStr) <= 0 || len(syncIntervalStr) <= 0 || len(retryIntervalStr) <= 0 {
 		log.Error("Missing information for Azure Arc", log.Fields{"clientID": clientID, "tenantID": tenantID, "clientSecret": clientSecret, "subscriptionID": subscriptionID,
 			"arcCluster": arcCluster, "arcResourceGroup": arcResourceGroup, "timeOut": timeOutStr, "syncInterval": syncIntervalStr, "retryInterval": retryIntervalStr})
 		return nil, pkgerrors.Errorf("Missing Information for Azure Arc V2")
@@ -142,19 +142,18 @@ func NewAzureArcProvider(cid, app, cluster, level, namespace string) (*AzureArcV
 		return nil, err
 	}
 
-
 	p := AzureArcV2Provider{
 
-		gitProvider:       *gitProvider,
-		clientID:          clientID,
-		tenantID:          tenantID,
-		clientSecret:      clientSecret,
-		subscriptionID:    subscriptionID,
-		arcCluster:        arcCluster,
-		arcResourceGroup:  arcResourceGroup,
-		timeOut:           timeOut,
-		syncInterval:      syncInterval,
-		retryInterval:     retryInterval,
+		gitProvider:      *gitProvider,
+		clientID:         clientID,
+		tenantID:         tenantID,
+		clientSecret:     clientSecret,
+		subscriptionID:   subscriptionID,
+		arcCluster:       arcCluster,
+		arcResourceGroup: arcResourceGroup,
+		timeOut:          timeOut,
+		syncInterval:     syncInterval,
+		retryInterval:    retryInterval,
 	}
 	return &p, nil
 }

@@ -13,6 +13,7 @@ import (
 	"net/url"
 
 	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
+	"gitlab.com/project-emco/core/emco-base/src/rsync/pkg/internal/utils"
 )
 
 const subscriptionURL = "https://management.azure.com/subscriptions/"
@@ -55,7 +56,7 @@ type KustomizationProperties struct {
 	Path                   string `json:"path"`
 	TimeoutInSeconds       int    `json:"timeoutInSeconds"`
 	SyncIntervalInSeconds  int    `json:"syncIntervalInSeconds"`
-	RetryIntervalInSeconds int   `json:"retryIntervalInSeconds"`
+	RetryIntervalInSeconds int    `json:"retryIntervalInSeconds"`
 	Prune                  bool   `json:"prune"`
 	Force                  bool   `json:"force"`
 }
@@ -124,7 +125,6 @@ func (p *AzureArcV2Provider) getAccessToken(clientId string, clientSecret string
 	return newToken.AccessToken, nil
 }
 
-
 /*
 	Function to create gitconfiguration of fluxv1 type in azure
 	params : ctx context.Context, config interface{}
@@ -142,8 +142,29 @@ func (p *AzureArcV2Provider) ApplyConfig(ctx context.Context, config interface{}
 		return err
 	}
 
-	gitConfiguration := "config-" + p.gitProvider.Cid
-	operatorScope := "cluster"
+	//Get the Namespace
+	acUtils, err := utils.NewAppContextReference(p.gitProvider.Cid)
+	if err != nil {
+		return nil
+	}
+	_, level := acUtils.GetNamespace()
+	// _, _, lcn, err := acUtils.GetLogicalCloudInfo()
+	if err != nil {
+		return err
+	}
+	var gitConfiguration, operatorScope string
+
+	// Special case creating a logical cloud
+	if level == "0" {
+		gitConfiguration = "config-" + p.gitProvider.Cid
+		operatorScope = "cluster"
+	} else {
+		gitConfiguration = p.gitProvider.Namespace
+		operatorScope = "namespace"
+	}
+
+	// gitConfiguration := "config-" + p.gitProvider.Cid
+
 	gitPath := "clusters/" + p.gitProvider.Cluster + "/context/" + p.gitProvider.Cid
 	gitBranch := p.gitProvider.Branch
 
@@ -177,13 +198,31 @@ func (p *AzureArcV2Provider) DeleteConfig(ctx context.Context, config interface{
 
 	//get accesstoken for azure
 	accessToken, err := p.getAccessToken(p.clientID, p.clientSecret, p.tenantID)
+	if err != nil {
+		return nil
+	}
+	//Get the Namespace
+	acUtils, err := utils.NewAppContextReference(p.gitProvider.Cid)
+	if err != nil {
+		return nil
+	}
+	_, level := acUtils.GetNamespace()
+	// _, _, lcn, err := acUtils.GetLogicalCloudInfo()
+	if err != nil {
+		return err
+	}
+	var gitConfiguration string
 
+	// Special case creating a logical cloud
+	if level == "0" {
+		gitConfiguration = "config-" + p.gitProvider.Cid
+	} else {
+		gitConfiguration = p.gitProvider.Namespace
+	}
 	if err != nil {
 		log.Error("Couldn't obtain access token", log.Fields{"err": err, "accessToken": accessToken})
 		return err
 	}
-
-	gitConfiguration := "config-" + p.gitProvider.Cid
 
 	_, err = p.deleteFluxConfiguration(accessToken, p.subscriptionID, p.arcResourceGroup, p.arcCluster, gitConfiguration)
 
@@ -221,12 +260,12 @@ func (p *AzureArcV2Provider) createFluxConfiguration(accessToken string, reposit
 					Branch: gitbranch}},
 			Kustomizations: KustomizationsUnit{
 				FirstKustomization: KustomizationProperties{
-					Path:                  gitpath,
-					TimeoutInSeconds:      timeOut,
-					SyncIntervalInSeconds: syncInterval,
+					Path:                   gitpath,
+					TimeoutInSeconds:       timeOut,
+					SyncIntervalInSeconds:  syncInterval,
 					RetryIntervalInSeconds: retryInterval,
-					Prune:                 true,
-					Force:                 false}}}}
+					Prune:                  true,
+					Force:                  false}}}}
 
 	dataProperties, err := json.Marshal(properties)
 	if err != nil {

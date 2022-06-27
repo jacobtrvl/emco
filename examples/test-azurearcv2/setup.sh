@@ -44,6 +44,9 @@ function create_common_values {
     ClusterProvider: provider-arc
     ClusterLabel: edge-cluster
     AdminCloud: default
+    LogicalCloud: lc1
+    StandardPermission: standard-permission
+    StandardNamespace: standard-lc-ns
     CompositeApp: test-composite-app
     CompositeProfile: test-composite-profile
     GenericPlacementIntent: test-placement-intent
