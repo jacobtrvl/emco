@@ -8,7 +8,7 @@ type Client struct {
 	db          db.Store
 	tag         string
 	storeName   string
-	eventStream chan Event
+	agentStream chan StreamAgentData
 }
 
 type Event struct {
@@ -21,7 +21,7 @@ func NewClient(config Config) *Client {
 		db:          config.Db,
 		tag:         config.Tag,
 		storeName:   config.StoreName,
-		eventStream: config.EventStream,
+		agentStream: config.AgentStream,
 	}
 }
 
@@ -33,5 +33,14 @@ type Config struct {
 	Db          db.Store
 	Tag         string
 	StoreName   string
-	EventStream chan Event
+	AgentStream chan StreamAgentData
+}
+
+type StreamAgentData struct {
+	Spec      AgentSpec
+	Operation string
+}
+
+type Actor interface {
+	Execute(input []byte) error
 }

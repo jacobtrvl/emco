@@ -14,7 +14,7 @@ format:
 
 clean:
 	@find . -name "*so" -delete
-	 @rm -f ../../bin/orchestrator/orchestrator coverage.html coverage.out
+	 @rm -f sacontroller coverage.html coverage.out
 
 .PHONY: cover
 cover:

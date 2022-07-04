@@ -26,7 +26,6 @@ func (c Client) CreatePolicyIntentHandler(ctx context.Context, w http.ResponseWr
 	intentData.Spec.CompositeAppVersion = v["compositeAppVersion"]
 	intentData.Spec.DeploymentIntentGroup = v["deploymentIntentGroup"]
 	intentData.Spec.PolicyIntentID = v["policyIntentId"]
-
 	request := &Request{
 		Project:               v["project"],
 		CompositeApp:          v["compositeApp"],
@@ -40,13 +39,6 @@ func (c Client) CreatePolicyIntentHandler(ctx context.Context, w http.ResponseWr
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
-	// Mark for appending to the in-memory list
-	c.updateStream <- StreamData{
-		Operation: "APPEND",
-		Intent:    *intent,
-	}
-
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	if err := json.NewEncoder(w).Encode(intent); err != nil {
@@ -80,7 +72,6 @@ func (c Client) GetPolicyIntentHandler(ctx context.Context, w http.ResponseWrite
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
 	log.Info("Get Policy intent processed successfully", log.Fields{"IntentID": request.PolicyIntentId})
 }
 
@@ -93,24 +84,9 @@ func (c Client) DeletePolicyIntentHandler(ctx context.Context, w http.ResponseWr
 		DeploymentIntentGroup: v["deploymentIntentGroup"],
 		PolicyIntentId:        v["policyIntentId"],
 	}
-	intent, err := c.GetIntent(ctx, request)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	if intent == nil {
-		http.Error(w, "404 Policy Intent not found", http.StatusNotFound)
-		return
-	}
 	if err := c.DeleteIntent(ctx, request); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
-	}
-	// Deleting from in memory list can be a time-consuming operation.
-	// Hence, we will just mark for deletion and proceed
-	c.updateStream <- StreamData{
-		Operation: "DELETE",
-		Intent:    *intent,
 	}
 	w.WriteHeader(http.StatusOK)
 	log.Info("Delete Policy intent processed successfully", log.Fields{"IntentID": request.PolicyIntentId})

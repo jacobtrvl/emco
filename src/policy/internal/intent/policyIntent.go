@@ -2,6 +2,8 @@ package intent
 
 import (
 	"context"
+	"github.com/google/go-cmp/cmp"
+	"github.com/pkg/errors"
 )
 
 func NewClient(config Config) *Client {
@@ -22,13 +24,32 @@ func (c Client) CreateIntent(_ context.Context, request *Request) (*Intent, erro
 		DigName:             request.DeploymentIntentGroup,
 	}
 	intent := *request.IntentData
+	value, err := c.db.Find(c.storeName, key, c.tag)
+	if err == nil && len(value) > 0 {
+		// Remove from in-memory if events are different
+		data := new(Intent)
+		if err := c.db.Unmarshal(value[0], data); err != nil {
+			return nil, err
+		}
+		if !cmp.Equal(data.Spec.Event, intent.Spec.Event) {
+			c.updateStream <- StreamData{
+				Operation: "DELETE",
+				Intent:    *data,
+			}
+		}
+	}
 	if err := c.db.Insert(c.storeName, key, nil, c.tag, intent); err != nil {
 		return nil, err
+	}
+	// Mark for appending to the in-memory list
+	c.updateStream <- StreamData{
+		Operation: "APPEND",
+		Intent:    intent,
 	}
 	return &intent, nil
 }
 
-func (c Client) DeleteIntent(_ context.Context, request *Request) error {
+func (c Client) DeleteIntent(ctx context.Context, request *Request) error {
 	key := Key{
 		PolicyIntent:        request.PolicyIntentId,
 		Project:             request.Project,
@@ -36,7 +57,24 @@ func (c Client) DeleteIntent(_ context.Context, request *Request) error {
 		CompositeAppVersion: request.CompositeAppVersion,
 		DigName:             request.DeploymentIntentGroup,
 	}
-	return c.db.Remove(c.storeName, key)
+	intent, err := c.GetIntent(ctx, request)
+	if err != nil {
+		return err
+	}
+	if intent == nil {
+		return errors.Errorf("Policy Intent not found")
+	}
+	// Deleting from in memory list can be a time-consuming operation.
+	// Hence, we will just mark for deletion and proceed
+	if err := c.db.Remove(c.storeName, key); err != nil {
+		return err
+	}
+	c.updateStream <- StreamData{
+		Operation: "DELETE",
+		Intent:    *intent,
+	}
+	return nil
+
 }
 
 func (c Client) GetIntent(_ context.Context, request *Request) (*Intent, error) {
@@ -47,7 +85,6 @@ func (c Client) GetIntent(_ context.Context, request *Request) (*Intent, error) 
 		CompositeAppVersion: request.CompositeAppVersion,
 		DigName:             request.DeploymentIntentGroup,
 	}
-
 	value, err := c.db.Find(c.storeName, key, c.tag)
 	if err != nil || len(value) == 0 {
 		return nil, err
