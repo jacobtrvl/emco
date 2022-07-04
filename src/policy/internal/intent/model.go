@@ -2,7 +2,6 @@ package intent
 
 import (
 	event "emcopolicy/internal/events"
-	events "emcopolicy/pkg/grpc"
 	"encoding/json"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
 )
@@ -23,7 +22,6 @@ type Config struct {
 
 type PolicySpec struct {
 	EngineUrl  string `json:"engineUrl"`
-	Namespace  string `json:"namespace"`
 	PolicyName string `json:"policyName"`
 }
 
@@ -50,13 +48,6 @@ type Metadata struct {
 	Description string `json:"description" yaml:"-"`
 	UserData1   string `json:"userData1" yaml:"-"`
 	UserData2   string `json:"userData2" yaml:"-"`
-}
-
-type Data struct {
-	PolicyId   string
-	Actor      Actor
-	ActorParam any
-	Events     []events.Event
 }
 
 type Request struct {

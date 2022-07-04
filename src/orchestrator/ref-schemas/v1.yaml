@@ -128,9 +128,12 @@ resources:
       - name: sfcIntent
       - name: app
         commonKey: compositeAppVersion
-#emco-workflowmgr
+  #emco-workflowmgr
   - name: workflowIntent
     parent: deploymentIntentGroup
   #emco-policy
   - name: policyIntent
     parent: deploymentIntentGroup
+  - name: policyModule
+  - name: agentId
+    parent: policyModule
