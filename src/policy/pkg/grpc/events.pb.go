@@ -2,13 +2,14 @@
 // versions:
 // 	protoc-gen-go v1.28.0
 // 	protoc        v3.19.4
-// source: pkg/api/grpc/events.proto
+// source: pkg/grpc/events.proto
 
 package events
 
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	anypb "google.golang.org/protobuf/types/known/anypb"
 	reflect "reflect"
 	sync "sync"
 )
@@ -25,16 +26,16 @@ type Event struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	EventId string              `protobuf:"bytes,1,opt,name=eventId,proto3" json:"eventId,omitempty"`
-	Spec    *Spec               `protobuf:"bytes,2,opt,name=spec,proto3" json:"spec,omitempty"`
-	Metrics *Metrics            `protobuf:"bytes,3,opt,name=metrics,proto3" json:"metrics,omitempty"`
-	Custom  *CustomEventDetails `protobuf:"bytes,4,opt,name=custom,proto3" json:"custom,omitempty"`
+	EventId string     `protobuf:"bytes,1,opt,name=eventId,proto3" json:"eventId,omitempty"`
+	AgentId string     `protobuf:"bytes,2,opt,name=agentId,proto3" json:"agentId,omitempty"`
+	Spec    *anypb.Any `protobuf:"bytes,3,opt,name=spec,proto3" json:"spec,omitempty"`
+	Message *anypb.Any `protobuf:"bytes,4,opt,name=message,proto3" json:"message,omitempty"`
 }
 
 func (x *Event) Reset() {
 	*x = Event{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_pkg_api_grpc_events_proto_msgTypes[0]
+		mi := &file_pkg_grpc_events_proto_msgTypes[0]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -47,7 +48,7 @@ func (x *Event) String() string {
 func (*Event) ProtoMessage() {}
 
 func (x *Event) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_api_grpc_events_proto_msgTypes[0]
+	mi := &file_pkg_grpc_events_proto_msgTypes[0]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -60,7 +61,7 @@ func (x *Event) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Event.ProtoReflect.Descriptor instead.
 func (*Event) Descriptor() ([]byte, []int) {
-	return file_pkg_api_grpc_events_proto_rawDescGZIP(), []int{0}
+	return file_pkg_grpc_events_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *Event) GetEventId() string {
@@ -70,326 +71,28 @@ func (x *Event) GetEventId() string {
 	return ""
 }
 
-func (x *Event) GetSpec() *Spec {
+func (x *Event) GetAgentId() string {
+	if x != nil {
+		return x.AgentId
+	}
+	return ""
+}
+
+func (x *Event) GetSpec() *anypb.Any {
 	if x != nil {
 		return x.Spec
 	}
 	return nil
 }
 
-func (x *Event) GetMetrics() *Metrics {
+func (x *Event) GetMessage() *anypb.Any {
 	if x != nil {
-		return x.Metrics
+		return x.Message
 	}
 	return nil
 }
 
-func (x *Event) GetCustom() *CustomEventDetails {
-	if x != nil {
-		return x.Custom
-	}
-	return nil
-}
-
-type Spec struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	Cluster     *ClusterSpec `protobuf:"bytes,1,opt,name=cluster,proto3" json:"cluster,omitempty"`
-	Application *AppSpec     `protobuf:"bytes,2,opt,name=application,proto3" json:"application,omitempty"`
-	CustomSpec  *CustomSpec  `protobuf:"bytes,3,opt,name=customSpec,proto3" json:"customSpec,omitempty"`
-}
-
-func (x *Spec) Reset() {
-	*x = Spec{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_pkg_api_grpc_events_proto_msgTypes[1]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *Spec) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*Spec) ProtoMessage() {}
-
-func (x *Spec) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_api_grpc_events_proto_msgTypes[1]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use Spec.ProtoReflect.Descriptor instead.
-func (*Spec) Descriptor() ([]byte, []int) {
-	return file_pkg_api_grpc_events_proto_rawDescGZIP(), []int{1}
-}
-
-func (x *Spec) GetCluster() *ClusterSpec {
-	if x != nil {
-		return x.Cluster
-	}
-	return nil
-}
-
-func (x *Spec) GetApplication() *AppSpec {
-	if x != nil {
-		return x.Application
-	}
-	return nil
-}
-
-func (x *Spec) GetCustomSpec() *CustomSpec {
-	if x != nil {
-		return x.CustomSpec
-	}
-	return nil
-}
-
-type ClusterSpec struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	PlaceHolder string `protobuf:"bytes,1,opt,name=placeHolder,proto3" json:"placeHolder,omitempty"`
-}
-
-func (x *ClusterSpec) Reset() {
-	*x = ClusterSpec{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_pkg_api_grpc_events_proto_msgTypes[2]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *ClusterSpec) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ClusterSpec) ProtoMessage() {}
-
-func (x *ClusterSpec) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_api_grpc_events_proto_msgTypes[2]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ClusterSpec.ProtoReflect.Descriptor instead.
-func (*ClusterSpec) Descriptor() ([]byte, []int) {
-	return file_pkg_api_grpc_events_proto_rawDescGZIP(), []int{2}
-}
-
-func (x *ClusterSpec) GetPlaceHolder() string {
-	if x != nil {
-		return x.PlaceHolder
-	}
-	return ""
-}
-
-type AppSpec struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	PlaceHolder string `protobuf:"bytes,1,opt,name=placeHolder,proto3" json:"placeHolder,omitempty"`
-}
-
-func (x *AppSpec) Reset() {
-	*x = AppSpec{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_pkg_api_grpc_events_proto_msgTypes[3]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *AppSpec) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*AppSpec) ProtoMessage() {}
-
-func (x *AppSpec) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_api_grpc_events_proto_msgTypes[3]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use AppSpec.ProtoReflect.Descriptor instead.
-func (*AppSpec) Descriptor() ([]byte, []int) {
-	return file_pkg_api_grpc_events_proto_rawDescGZIP(), []int{3}
-}
-
-func (x *AppSpec) GetPlaceHolder() string {
-	if x != nil {
-		return x.PlaceHolder
-	}
-	return ""
-}
-
-type CustomSpec struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	PlaceHolder string `protobuf:"bytes,1,opt,name=placeHolder,proto3" json:"placeHolder,omitempty"`
-}
-
-func (x *CustomSpec) Reset() {
-	*x = CustomSpec{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_pkg_api_grpc_events_proto_msgTypes[4]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *CustomSpec) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*CustomSpec) ProtoMessage() {}
-
-func (x *CustomSpec) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_api_grpc_events_proto_msgTypes[4]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use CustomSpec.ProtoReflect.Descriptor instead.
-func (*CustomSpec) Descriptor() ([]byte, []int) {
-	return file_pkg_api_grpc_events_proto_rawDescGZIP(), []int{4}
-}
-
-func (x *CustomSpec) GetPlaceHolder() string {
-	if x != nil {
-		return x.PlaceHolder
-	}
-	return ""
-}
-
-type Metrics struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	PlaceHolder string `protobuf:"bytes,1,opt,name=placeHolder,proto3" json:"placeHolder,omitempty"`
-}
-
-func (x *Metrics) Reset() {
-	*x = Metrics{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_pkg_api_grpc_events_proto_msgTypes[5]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *Metrics) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*Metrics) ProtoMessage() {}
-
-func (x *Metrics) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_api_grpc_events_proto_msgTypes[5]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use Metrics.ProtoReflect.Descriptor instead.
-func (*Metrics) Descriptor() ([]byte, []int) {
-	return file_pkg_api_grpc_events_proto_rawDescGZIP(), []int{5}
-}
-
-func (x *Metrics) GetPlaceHolder() string {
-	if x != nil {
-		return x.PlaceHolder
-	}
-	return ""
-}
-
-type CustomEventDetails struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	PlaceHolder string `protobuf:"bytes,1,opt,name=placeHolder,proto3" json:"placeHolder,omitempty"`
-}
-
-func (x *CustomEventDetails) Reset() {
-	*x = CustomEventDetails{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_pkg_api_grpc_events_proto_msgTypes[6]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *CustomEventDetails) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*CustomEventDetails) ProtoMessage() {}
-
-func (x *CustomEventDetails) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_api_grpc_events_proto_msgTypes[6]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use CustomEventDetails.ProtoReflect.Descriptor instead.
-func (*CustomEventDetails) Descriptor() ([]byte, []int) {
-	return file_pkg_api_grpc_events_proto_rawDescGZIP(), []int{6}
-}
-
-func (x *CustomEventDetails) GetPlaceHolder() string {
-	if x != nil {
-		return x.PlaceHolder
-	}
-	return ""
-}
-
-type EventInitiate struct {
+type ServerSpec struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
@@ -397,23 +100,23 @@ type EventInitiate struct {
 	ServerId int32 `protobuf:"varint,1,opt,name=serverId,proto3" json:"serverId,omitempty"`
 }
 
-func (x *EventInitiate) Reset() {
-	*x = EventInitiate{}
+func (x *ServerSpec) Reset() {
+	*x = ServerSpec{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_pkg_api_grpc_events_proto_msgTypes[7]
+		mi := &file_pkg_grpc_events_proto_msgTypes[1]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
 }
 
-func (x *EventInitiate) String() string {
+func (x *ServerSpec) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*EventInitiate) ProtoMessage() {}
+func (*ServerSpec) ProtoMessage() {}
 
-func (x *EventInitiate) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_api_grpc_events_proto_msgTypes[7]
+func (x *ServerSpec) ProtoReflect() protoreflect.Message {
+	mi := &file_pkg_grpc_events_proto_msgTypes[1]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -424,118 +127,213 @@ func (x *EventInitiate) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use EventInitiate.ProtoReflect.Descriptor instead.
-func (*EventInitiate) Descriptor() ([]byte, []int) {
-	return file_pkg_api_grpc_events_proto_rawDescGZIP(), []int{7}
+// Deprecated: Use ServerSpec.ProtoReflect.Descriptor instead.
+func (*ServerSpec) Descriptor() ([]byte, []int) {
+	return file_pkg_grpc_events_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *EventInitiate) GetServerId() int32 {
+func (x *ServerSpec) GetServerId() int32 {
 	if x != nil {
 		return x.ServerId
 	}
 	return 0
 }
 
-var File_pkg_api_grpc_events_proto protoreflect.FileDescriptor
+type AgentSpec struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
 
-var file_pkg_api_grpc_events_proto_rawDesc = []byte{
-	0x0a, 0x19, 0x70, 0x6b, 0x67, 0x2f, 0x61, 0x70, 0x69, 0x2f, 0x67, 0x72, 0x70, 0x63, 0x2f, 0x65,
-	0x76, 0x65, 0x6e, 0x74, 0x73, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x12, 0x06, 0x65, 0x76, 0x65,
-	0x6e, 0x74, 0x73, 0x22, 0xa2, 0x01, 0x0a, 0x05, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x12, 0x18, 0x0a,
-	0x07, 0x65, 0x76, 0x65, 0x6e, 0x74, 0x49, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x07,
-	0x65, 0x76, 0x65, 0x6e, 0x74, 0x49, 0x64, 0x12, 0x20, 0x0a, 0x04, 0x73, 0x70, 0x65, 0x63, 0x18,
-	0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x0c, 0x2e, 0x65, 0x76, 0x65, 0x6e, 0x74, 0x73, 0x2e, 0x53,
-	0x70, 0x65, 0x63, 0x52, 0x04, 0x73, 0x70, 0x65, 0x63, 0x12, 0x29, 0x0a, 0x07, 0x6d, 0x65, 0x74,
-	0x72, 0x69, 0x63, 0x73, 0x18, 0x03, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x0f, 0x2e, 0x65, 0x76, 0x65,
-	0x6e, 0x74, 0x73, 0x2e, 0x4d, 0x65, 0x74, 0x72, 0x69, 0x63, 0x73, 0x52, 0x07, 0x6d, 0x65, 0x74,
-	0x72, 0x69, 0x63, 0x73, 0x12, 0x32, 0x0a, 0x06, 0x63, 0x75, 0x73, 0x74, 0x6f, 0x6d, 0x18, 0x04,
-	0x20, 0x01, 0x28, 0x0b, 0x32, 0x1a, 0x2e, 0x65, 0x76, 0x65, 0x6e, 0x74, 0x73, 0x2e, 0x43, 0x75,
-	0x73, 0x74, 0x6f, 0x6d, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x44, 0x65, 0x74, 0x61, 0x69, 0x6c, 0x73,
-	0x52, 0x06, 0x63, 0x75, 0x73, 0x74, 0x6f, 0x6d, 0x22, 0x9c, 0x01, 0x0a, 0x04, 0x53, 0x70, 0x65,
-	0x63, 0x12, 0x2d, 0x0a, 0x07, 0x63, 0x6c, 0x75, 0x73, 0x74, 0x65, 0x72, 0x18, 0x01, 0x20, 0x01,
-	0x28, 0x0b, 0x32, 0x13, 0x2e, 0x65, 0x76, 0x65, 0x6e, 0x74, 0x73, 0x2e, 0x43, 0x6c, 0x75, 0x73,
-	0x74, 0x65, 0x72, 0x53, 0x70, 0x65, 0x63, 0x52, 0x07, 0x63, 0x6c, 0x75, 0x73, 0x74, 0x65, 0x72,
-	0x12, 0x31, 0x0a, 0x0b, 0x61, 0x70, 0x70, 0x6c, 0x69, 0x63, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x18,
-	0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x0f, 0x2e, 0x65, 0x76, 0x65, 0x6e, 0x74, 0x73, 0x2e, 0x41,
-	0x70, 0x70, 0x53, 0x70, 0x65, 0x63, 0x52, 0x0b, 0x61, 0x70, 0x70, 0x6c, 0x69, 0x63, 0x61, 0x74,
-	0x69, 0x6f, 0x6e, 0x12, 0x32, 0x0a, 0x0a, 0x63, 0x75, 0x73, 0x74, 0x6f, 0x6d, 0x53, 0x70, 0x65,
-	0x63, 0x18, 0x03, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x12, 0x2e, 0x65, 0x76, 0x65, 0x6e, 0x74, 0x73,
-	0x2e, 0x43, 0x75, 0x73, 0x74, 0x6f, 0x6d, 0x53, 0x70, 0x65, 0x63, 0x52, 0x0a, 0x63, 0x75, 0x73,
-	0x74, 0x6f, 0x6d, 0x53, 0x70, 0x65, 0x63, 0x22, 0x2f, 0x0a, 0x0b, 0x43, 0x6c, 0x75, 0x73, 0x74,
-	0x65, 0x72, 0x53, 0x70, 0x65, 0x63, 0x12, 0x20, 0x0a, 0x0b, 0x70, 0x6c, 0x61, 0x63, 0x65, 0x48,
-	0x6f, 0x6c, 0x64, 0x65, 0x72, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x0b, 0x70, 0x6c, 0x61,
-	0x63, 0x65, 0x48, 0x6f, 0x6c, 0x64, 0x65, 0x72, 0x22, 0x2b, 0x0a, 0x07, 0x41, 0x70, 0x70, 0x53,
-	0x70, 0x65, 0x63, 0x12, 0x20, 0x0a, 0x0b, 0x70, 0x6c, 0x61, 0x63, 0x65, 0x48, 0x6f, 0x6c, 0x64,
-	0x65, 0x72, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x0b, 0x70, 0x6c, 0x61, 0x63, 0x65, 0x48,
-	0x6f, 0x6c, 0x64, 0x65, 0x72, 0x22, 0x2e, 0x0a, 0x0a, 0x43, 0x75, 0x73, 0x74, 0x6f, 0x6d, 0x53,
-	0x70, 0x65, 0x63, 0x12, 0x20, 0x0a, 0x0b, 0x70, 0x6c, 0x61, 0x63, 0x65, 0x48, 0x6f, 0x6c, 0x64,
-	0x65, 0x72, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x0b, 0x70, 0x6c, 0x61, 0x63, 0x65, 0x48,
-	0x6f, 0x6c, 0x64, 0x65, 0x72, 0x22, 0x2b, 0x0a, 0x07, 0x4d, 0x65, 0x74, 0x72, 0x69, 0x63, 0x73,
-	0x12, 0x20, 0x0a, 0x0b, 0x70, 0x6c, 0x61, 0x63, 0x65, 0x48, 0x6f, 0x6c, 0x64, 0x65, 0x72, 0x18,
-	0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x0b, 0x70, 0x6c, 0x61, 0x63, 0x65, 0x48, 0x6f, 0x6c, 0x64,
-	0x65, 0x72, 0x22, 0x36, 0x0a, 0x12, 0x43, 0x75, 0x73, 0x74, 0x6f, 0x6d, 0x45, 0x76, 0x65, 0x6e,
-	0x74, 0x44, 0x65, 0x74, 0x61, 0x69, 0x6c, 0x73, 0x12, 0x20, 0x0a, 0x0b, 0x70, 0x6c, 0x61, 0x63,
-	0x65, 0x48, 0x6f, 0x6c, 0x64, 0x65, 0x72, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x0b, 0x70,
-	0x6c, 0x61, 0x63, 0x65, 0x48, 0x6f, 0x6c, 0x64, 0x65, 0x72, 0x22, 0x2b, 0x0a, 0x0d, 0x45, 0x76,
-	0x65, 0x6e, 0x74, 0x49, 0x6e, 0x69, 0x74, 0x69, 0x61, 0x74, 0x65, 0x12, 0x1a, 0x0a, 0x08, 0x73,
-	0x65, 0x72, 0x76, 0x65, 0x72, 0x49, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x05, 0x52, 0x08, 0x73,
-	0x65, 0x72, 0x76, 0x65, 0x72, 0x49, 0x64, 0x32, 0x41, 0x0a, 0x06, 0x65, 0x76, 0x65, 0x6e, 0x74,
-	0x73, 0x12, 0x37, 0x0a, 0x0b, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x55, 0x70, 0x64, 0x61, 0x74, 0x65,
-	0x12, 0x15, 0x2e, 0x65, 0x76, 0x65, 0x6e, 0x74, 0x73, 0x2e, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x49,
-	0x6e, 0x69, 0x74, 0x69, 0x61, 0x74, 0x65, 0x1a, 0x0d, 0x2e, 0x65, 0x76, 0x65, 0x6e, 0x74, 0x73,
-	0x2e, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x22, 0x00, 0x30, 0x01, 0x42, 0x3a, 0x5a, 0x38, 0x67, 0x69,
-	0x74, 0x6c, 0x61, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x70, 0x72, 0x6f, 0x6a, 0x65, 0x63, 0x74,
-	0x2d, 0x65, 0x6d, 0x63, 0x6f, 0x2f, 0x63, 0x6f, 0x72, 0x65, 0x2f, 0x65, 0x6d, 0x63, 0x6f, 0x2d,
-	0x62, 0x61, 0x73, 0x65, 0x2f, 0x73, 0x72, 0x63, 0x2f, 0x70, 0x6f, 0x6c, 0x69, 0x63, 0x79, 0x2f,
-	0x65, 0x76, 0x65, 0x6e, 0x74, 0x73, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	AgentId string `protobuf:"bytes,1,opt,name=agentId,proto3" json:"agentId,omitempty"`
+}
+
+func (x *AgentSpec) Reset() {
+	*x = AgentSpec{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_pkg_grpc_events_proto_msgTypes[2]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *AgentSpec) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AgentSpec) ProtoMessage() {}
+
+func (x *AgentSpec) ProtoReflect() protoreflect.Message {
+	mi := &file_pkg_grpc_events_proto_msgTypes[2]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AgentSpec.ProtoReflect.Descriptor instead.
+func (*AgentSpec) Descriptor() ([]byte, []int) {
+	return file_pkg_grpc_events_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *AgentSpec) GetAgentId() string {
+	if x != nil {
+		return x.AgentId
+	}
+	return ""
+}
+
+type AgentMessage struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Method string   `protobuf:"bytes,1,opt,name=method,proto3" json:"method,omitempty"`
+	Owner  string   `protobuf:"bytes,2,opt,name=owner,proto3" json:"owner,omitempty"`
+	Path   []string `protobuf:"bytes,3,rep,name=path,proto3" json:"path,omitempty"`
+	User   string   `protobuf:"bytes,4,opt,name=user,proto3" json:"user,omitempty"`
+}
+
+func (x *AgentMessage) Reset() {
+	*x = AgentMessage{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_pkg_grpc_events_proto_msgTypes[3]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *AgentMessage) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AgentMessage) ProtoMessage() {}
+
+func (x *AgentMessage) ProtoReflect() protoreflect.Message {
+	mi := &file_pkg_grpc_events_proto_msgTypes[3]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AgentMessage.ProtoReflect.Descriptor instead.
+func (*AgentMessage) Descriptor() ([]byte, []int) {
+	return file_pkg_grpc_events_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *AgentMessage) GetMethod() string {
+	if x != nil {
+		return x.Method
+	}
+	return ""
+}
+
+func (x *AgentMessage) GetOwner() string {
+	if x != nil {
+		return x.Owner
+	}
+	return ""
+}
+
+func (x *AgentMessage) GetPath() []string {
+	if x != nil {
+		return x.Path
+	}
+	return nil
+}
+
+func (x *AgentMessage) GetUser() string {
+	if x != nil {
+		return x.User
+	}
+	return ""
+}
+
+var File_pkg_grpc_events_proto protoreflect.FileDescriptor
+
+var file_pkg_grpc_events_proto_rawDesc = []byte{
+	0x0a, 0x15, 0x70, 0x6b, 0x67, 0x2f, 0x67, 0x72, 0x70, 0x63, 0x2f, 0x65, 0x76, 0x65, 0x6e, 0x74,
+	0x73, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x12, 0x06, 0x65, 0x76, 0x65, 0x6e, 0x74, 0x73, 0x1a,
+	0x19, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x2f, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x62, 0x75, 0x66,
+	0x2f, 0x61, 0x6e, 0x79, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x22, 0x95, 0x01, 0x0a, 0x05, 0x45,
+	0x76, 0x65, 0x6e, 0x74, 0x12, 0x18, 0x0a, 0x07, 0x65, 0x76, 0x65, 0x6e, 0x74, 0x49, 0x64, 0x18,
+	0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x07, 0x65, 0x76, 0x65, 0x6e, 0x74, 0x49, 0x64, 0x12, 0x18,
+	0x0a, 0x07, 0x61, 0x67, 0x65, 0x6e, 0x74, 0x49, 0x64, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52,
+	0x07, 0x61, 0x67, 0x65, 0x6e, 0x74, 0x49, 0x64, 0x12, 0x28, 0x0a, 0x04, 0x73, 0x70, 0x65, 0x63,
+	0x18, 0x03, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x14, 0x2e, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x2e,
+	0x70, 0x72, 0x6f, 0x74, 0x6f, 0x62, 0x75, 0x66, 0x2e, 0x41, 0x6e, 0x79, 0x52, 0x04, 0x73, 0x70,
+	0x65, 0x63, 0x12, 0x2e, 0x0a, 0x07, 0x6d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x18, 0x04, 0x20,
+	0x01, 0x28, 0x0b, 0x32, 0x14, 0x2e, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x2e, 0x70, 0x72, 0x6f,
+	0x74, 0x6f, 0x62, 0x75, 0x66, 0x2e, 0x41, 0x6e, 0x79, 0x52, 0x07, 0x6d, 0x65, 0x73, 0x73, 0x61,
+	0x67, 0x65, 0x22, 0x28, 0x0a, 0x0a, 0x53, 0x65, 0x72, 0x76, 0x65, 0x72, 0x53, 0x70, 0x65, 0x63,
+	0x12, 0x1a, 0x0a, 0x08, 0x73, 0x65, 0x72, 0x76, 0x65, 0x72, 0x49, 0x64, 0x18, 0x01, 0x20, 0x01,
+	0x28, 0x05, 0x52, 0x08, 0x73, 0x65, 0x72, 0x76, 0x65, 0x72, 0x49, 0x64, 0x22, 0x25, 0x0a, 0x09,
+	0x41, 0x67, 0x65, 0x6e, 0x74, 0x53, 0x70, 0x65, 0x63, 0x12, 0x18, 0x0a, 0x07, 0x61, 0x67, 0x65,
+	0x6e, 0x74, 0x49, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x07, 0x61, 0x67, 0x65, 0x6e,
+	0x74, 0x49, 0x64, 0x22, 0x64, 0x0a, 0x0c, 0x41, 0x67, 0x65, 0x6e, 0x74, 0x4d, 0x65, 0x73, 0x73,
+	0x61, 0x67, 0x65, 0x12, 0x16, 0x0a, 0x06, 0x6d, 0x65, 0x74, 0x68, 0x6f, 0x64, 0x18, 0x01, 0x20,
+	0x01, 0x28, 0x09, 0x52, 0x06, 0x6d, 0x65, 0x74, 0x68, 0x6f, 0x64, 0x12, 0x14, 0x0a, 0x05, 0x6f,
+	0x77, 0x6e, 0x65, 0x72, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x05, 0x6f, 0x77, 0x6e, 0x65,
+	0x72, 0x12, 0x12, 0x0a, 0x04, 0x70, 0x61, 0x74, 0x68, 0x18, 0x03, 0x20, 0x03, 0x28, 0x09, 0x52,
+	0x04, 0x70, 0x61, 0x74, 0x68, 0x12, 0x12, 0x0a, 0x04, 0x75, 0x73, 0x65, 0x72, 0x18, 0x04, 0x20,
+	0x01, 0x28, 0x09, 0x52, 0x04, 0x75, 0x73, 0x65, 0x72, 0x32, 0x3e, 0x0a, 0x06, 0x65, 0x76, 0x65,
+	0x6e, 0x74, 0x73, 0x12, 0x34, 0x0a, 0x0b, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x55, 0x70, 0x64, 0x61,
+	0x74, 0x65, 0x12, 0x12, 0x2e, 0x65, 0x76, 0x65, 0x6e, 0x74, 0x73, 0x2e, 0x53, 0x65, 0x72, 0x76,
+	0x65, 0x72, 0x53, 0x70, 0x65, 0x63, 0x1a, 0x0d, 0x2e, 0x65, 0x76, 0x65, 0x6e, 0x74, 0x73, 0x2e,
+	0x45, 0x76, 0x65, 0x6e, 0x74, 0x22, 0x00, 0x30, 0x01, 0x42, 0x3a, 0x5a, 0x38, 0x67, 0x69, 0x74,
+	0x6c, 0x61, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x70, 0x72, 0x6f, 0x6a, 0x65, 0x63, 0x74, 0x2d,
+	0x65, 0x6d, 0x63, 0x6f, 0x2f, 0x63, 0x6f, 0x72, 0x65, 0x2f, 0x65, 0x6d, 0x63, 0x6f, 0x2d, 0x62,
+	0x61, 0x73, 0x65, 0x2f, 0x73, 0x72, 0x63, 0x2f, 0x70, 0x6f, 0x6c, 0x69, 0x63, 0x79, 0x2f, 0x65,
+	0x76, 0x65, 0x6e, 0x74, 0x73, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
-	file_pkg_api_grpc_events_proto_rawDescOnce sync.Once
-	file_pkg_api_grpc_events_proto_rawDescData = file_pkg_api_grpc_events_proto_rawDesc
+	file_pkg_grpc_events_proto_rawDescOnce sync.Once
+	file_pkg_grpc_events_proto_rawDescData = file_pkg_grpc_events_proto_rawDesc
 )
 
-func file_pkg_api_grpc_events_proto_rawDescGZIP() []byte {
-	file_pkg_api_grpc_events_proto_rawDescOnce.Do(func() {
-		file_pkg_api_grpc_events_proto_rawDescData = protoimpl.X.CompressGZIP(file_pkg_api_grpc_events_proto_rawDescData)
+func file_pkg_grpc_events_proto_rawDescGZIP() []byte {
+	file_pkg_grpc_events_proto_rawDescOnce.Do(func() {
+		file_pkg_grpc_events_proto_rawDescData = protoimpl.X.CompressGZIP(file_pkg_grpc_events_proto_rawDescData)
 	})
-	return file_pkg_api_grpc_events_proto_rawDescData
+	return file_pkg_grpc_events_proto_rawDescData
 }
 
-var file_pkg_api_grpc_events_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
-var file_pkg_api_grpc_events_proto_goTypes = []interface{}{
-	(*Event)(nil),              // 0: events.Event
-	(*Spec)(nil),               // 1: events.Spec
-	(*ClusterSpec)(nil),        // 2: events.ClusterSpec
-	(*AppSpec)(nil),            // 3: events.AppSpec
-	(*CustomSpec)(nil),         // 4: events.CustomSpec
-	(*Metrics)(nil),            // 5: events.Metrics
-	(*CustomEventDetails)(nil), // 6: events.CustomEventDetails
-	(*EventInitiate)(nil),      // 7: events.EventInitiate
+var file_pkg_grpc_events_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_pkg_grpc_events_proto_goTypes = []interface{}{
+	(*Event)(nil),        // 0: events.Event
+	(*ServerSpec)(nil),   // 1: events.ServerSpec
+	(*AgentSpec)(nil),    // 2: events.AgentSpec
+	(*AgentMessage)(nil), // 3: events.AgentMessage
+	(*anypb.Any)(nil),    // 4: google.protobuf.Any
 }
-var file_pkg_api_grpc_events_proto_depIdxs = []int32{
-	1, // 0: events.Event.spec:type_name -> events.Spec
-	5, // 1: events.Event.metrics:type_name -> events.Metrics
-	6, // 2: events.Event.custom:type_name -> events.CustomEventDetails
-	2, // 3: events.Spec.cluster:type_name -> events.ClusterSpec
-	3, // 4: events.Spec.application:type_name -> events.AppSpec
-	4, // 5: events.Spec.customSpec:type_name -> events.CustomSpec
-	7, // 6: events.events.EventUpdate:input_type -> events.EventInitiate
-	0, // 7: events.events.EventUpdate:output_type -> events.Event
-	7, // [7:8] is the sub-list for method output_type
-	6, // [6:7] is the sub-list for method input_type
-	6, // [6:6] is the sub-list for extension type_name
-	6, // [6:6] is the sub-list for extension extendee
-	0, // [0:6] is the sub-list for field type_name
+var file_pkg_grpc_events_proto_depIdxs = []int32{
+	4, // 0: events.Event.spec:type_name -> google.protobuf.Any
+	4, // 1: events.Event.message:type_name -> google.protobuf.Any
+	1, // 2: events.events.EventUpdate:input_type -> events.ServerSpec
+	0, // 3: events.events.EventUpdate:output_type -> events.Event
+	3, // [3:4] is the sub-list for method output_type
+	2, // [2:3] is the sub-list for method input_type
+	2, // [2:2] is the sub-list for extension type_name
+	2, // [2:2] is the sub-list for extension extendee
+	0, // [0:2] is the sub-list for field type_name
 }
 
-func init() { file_pkg_api_grpc_events_proto_init() }
-func file_pkg_api_grpc_events_proto_init() {
-	if File_pkg_api_grpc_events_proto != nil {
+func init() { file_pkg_grpc_events_proto_init() }
+func file_pkg_grpc_events_proto_init() {
+	if File_pkg_grpc_events_proto != nil {
 		return
 	}
 	if !protoimpl.UnsafeEnabled {
-		file_pkg_api_grpc_events_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
+		file_pkg_grpc_events_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*Event); i {
 			case 0:
 				return &v.state
@@ -547,8 +345,8 @@ func file_pkg_api_grpc_events_proto_init() {
 				return nil
 			}
 		}
-		file_pkg_api_grpc_events_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Spec); i {
+		file_pkg_grpc_events_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*ServerSpec); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -559,8 +357,8 @@ func file_pkg_api_grpc_events_proto_init() {
 				return nil
 			}
 		}
-		file_pkg_api_grpc_events_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ClusterSpec); i {
+		file_pkg_grpc_events_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*AgentSpec); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -571,56 +369,8 @@ func file_pkg_api_grpc_events_proto_init() {
 				return nil
 			}
 		}
-		file_pkg_api_grpc_events_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*AppSpec); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_pkg_api_grpc_events_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*CustomSpec); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_pkg_api_grpc_events_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Metrics); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_pkg_api_grpc_events_proto_msgTypes[6].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*CustomEventDetails); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_pkg_api_grpc_events_proto_msgTypes[7].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*EventInitiate); i {
+		file_pkg_grpc_events_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*AgentMessage); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -636,18 +386,18 @@ func file_pkg_api_grpc_events_proto_init() {
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: file_pkg_api_grpc_events_proto_rawDesc,
+			RawDescriptor: file_pkg_grpc_events_proto_rawDesc,
 			NumEnums:      0,
-			NumMessages:   8,
+			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_pkg_api_grpc_events_proto_goTypes,
-		DependencyIndexes: file_pkg_api_grpc_events_proto_depIdxs,
-		MessageInfos:      file_pkg_api_grpc_events_proto_msgTypes,
+		GoTypes:           file_pkg_grpc_events_proto_goTypes,
+		DependencyIndexes: file_pkg_grpc_events_proto_depIdxs,
+		MessageInfos:      file_pkg_grpc_events_proto_msgTypes,
 	}.Build()
-	File_pkg_api_grpc_events_proto = out.File
-	file_pkg_api_grpc_events_proto_rawDesc = nil
-	file_pkg_api_grpc_events_proto_goTypes = nil
-	file_pkg_api_grpc_events_proto_depIdxs = nil
+	File_pkg_grpc_events_proto = out.File
+	file_pkg_grpc_events_proto_rawDesc = nil
+	file_pkg_grpc_events_proto_goTypes = nil
+	file_pkg_grpc_events_proto_depIdxs = nil
 }

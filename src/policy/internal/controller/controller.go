@@ -4,24 +4,26 @@ import (
 	"context"
 	event "emcopolicy/internal/events"
 	"emcopolicy/internal/intent"
+	events "emcopolicy/pkg/grpc"
 	"github.com/pkg/errors"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
-	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 	"sync"
 )
 
-func Init() *Controller {
+func Init() (*Controller, error) {
 	err := db.InitializeDatabaseConnection("emco")
-	//item := make(map[string]map[string][]byte)
-	//items := []map[string]map[string][]byte{item}
-	// dbTest := db.MockDB{
-	//	Items:      items,
-	//	Err:        nil,
-	//	MarshalErr: nil,
-	// }
 	if err != nil {
-		log.Fatal("Unable to initialize mongo database connection", log.Fields{"Error": err})
+		return nil, errors.Errorf("Unable to initialize mongo database connection: %s", err)
 	}
+	/* TODO For unit testing. Remove once proper unit test code is in
+	item := make(map[string]map[string][]byte)
+	items := []map[string]map[string][]byte{item}
+	dbTest := db.MockDB{
+		Items:      items,
+		Err:        nil,
+		MarshalErr: nil,
+	} */
+
 	// DB connection is a package level variable (db.DBconn) in orchestrator db package.
 	// Scoping this to the client context for better readability
 	c := &Controller{
@@ -29,12 +31,19 @@ func Init() *Controller {
 		//db:        &dbTest,
 		tag:       "data",
 		storeName: "resources",
-		eventList: &EventList{
+		reverseMap: &ReverseMap{
 			eventMap: make(map[event.Event][]intent.Intent),
 			mutex:    sync.RWMutex{},
 		},
-		updateStream: make(chan intent.StreamData),
-		eventStream:  make(chan event.Event),
+		agentMap: &AgentMap{
+			runtime: make(map[AgentID]*AgentRuntime),
+			mutex:   sync.RWMutex{},
+		},
+		updateStream:    make(chan intent.StreamData),
+		eventStream:     make(chan event.Event),
+		agentStream:     make(chan event.StreamAgentData),
+		requireRecovery: make(chan any),
+		eventsQueue:     make(chan *events.Event, 100),
 	}
 	c.policyClient = intent.NewClient(intent.Config{
 		Db:           c.db,
@@ -46,27 +55,29 @@ func Init() *Controller {
 		Db:          c.db,
 		Tag:         c.tag,
 		StoreName:   c.storeName,
-		EventStream: c.eventStream,
+		AgentStream: c.agentStream,
 	})
-	return c
+
+	key := Module{"Agent"}
+	err = c.db.Insert(c.storeName, key, nil, c.tag, key)
+	if err != nil {
+		return nil, errors.Errorf("Error while Initializing DB %s", err)
+	}
+	return c, nil
 }
 
-func (c *Controller) StartScheduler() error {
-	c.eventList = new(EventList)
-	c.eventList.eventMap = make(map[event.Event][]intent.Intent)
-	c.storeName = "resources"
-	c.tag = "data"
-	err := c.BuildEventListFromDB(context.Background())
+func (c *Controller) StartScheduler(ctx context.Context) error {
+	err := c.BuildReverseMap(ctx)
 	if err != nil {
-		return errors.Wrap(err, "Starting scheduler failed::")
+		return errors.Wrap(err, "Starting OperationalScheduler failed")
 	}
-	go func() {
-		err := c.scheduler(context.Background())
-		if err != nil {
-			log.Warn("Scheduler exited", log.Fields{"Reason": err})
-		}
-	}()
-
+	err = c.BuildAgentMap(ctx)
+	if err != nil {
+		return errors.Wrap(err, "Starting OperationalScheduler failed")
+	}
+	go c.OperationalScheduler(ctx)
+	go c.AgentManager(ctx)
+	go c.EventsManager(ctx)
 	return nil
 }
 

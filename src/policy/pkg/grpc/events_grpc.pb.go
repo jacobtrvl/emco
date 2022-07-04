@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.2.0
 // - protoc             v3.19.4
-// source: pkg/api/grpc/events.proto
+// source: pkg/grpc/events.proto
 
 package events
 
@@ -22,7 +22,7 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type EventsClient interface {
-	EventUpdate(ctx context.Context, in *EventInitiate, opts ...grpc.CallOption) (Events_EventUpdateClient, error)
+	EventUpdate(ctx context.Context, in *ServerSpec, opts ...grpc.CallOption) (Events_EventUpdateClient, error)
 }
 
 type eventsClient struct {
@@ -33,7 +33,7 @@ func NewEventsClient(cc grpc.ClientConnInterface) EventsClient {
 	return &eventsClient{cc}
 }
 
-func (c *eventsClient) EventUpdate(ctx context.Context, in *EventInitiate, opts ...grpc.CallOption) (Events_EventUpdateClient, error) {
+func (c *eventsClient) EventUpdate(ctx context.Context, in *ServerSpec, opts ...grpc.CallOption) (Events_EventUpdateClient, error) {
 	stream, err := c.cc.NewStream(ctx, &Events_ServiceDesc.Streams[0], "/events.events/EventUpdate", opts...)
 	if err != nil {
 		return nil, err
@@ -69,7 +69,7 @@ func (x *eventsEventUpdateClient) Recv() (*Event, error) {
 // All implementations must embed UnimplementedEventsServer
 // for forward compatibility
 type EventsServer interface {
-	EventUpdate(*EventInitiate, Events_EventUpdateServer) error
+	EventUpdate(*ServerSpec, Events_EventUpdateServer) error
 	mustEmbedUnimplementedEventsServer()
 }
 
@@ -77,7 +77,7 @@ type EventsServer interface {
 type UnimplementedEventsServer struct {
 }
 
-func (UnimplementedEventsServer) EventUpdate(*EventInitiate, Events_EventUpdateServer) error {
+func (UnimplementedEventsServer) EventUpdate(*ServerSpec, Events_EventUpdateServer) error {
 	return status.Errorf(codes.Unimplemented, "method EventUpdate not implemented")
 }
 func (UnimplementedEventsServer) mustEmbedUnimplementedEventsServer() {}
@@ -94,7 +94,7 @@ func RegisterEventsServer(s grpc.ServiceRegistrar, srv EventsServer) {
 }
 
 func _Events_EventUpdate_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(EventInitiate)
+	m := new(ServerSpec)
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}
@@ -128,5 +128,5 @@ var Events_ServiceDesc = grpc.ServiceDesc{
 			ServerStreams: true,
 		},
 	},
-	Metadata: "pkg/api/grpc/events.proto",
+	Metadata: "pkg/grpc/events.proto",
 }
