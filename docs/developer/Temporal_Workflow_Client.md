@@ -42,15 +42,13 @@ The final portion of the of temporal is the worker itself. The worker is a compo
 
 ## Temporal Client in EMCO
 
-To add a new client to EMCO the user must follow the template provided in [EMCO source code](https://gitlab.com/project-emco/core/emco-base/-/tree/main/src/tools/workflowclient)
-
 The HTTP server portion of the workflow client will remain largely unedited. It has been abstracted to be able to accommodate generally any workflow client the user writes. The workflow clients job name is taken from its only registered route /invoke/{client-name}. The HTTP server will take all the data associated with the job request, and package for the workflow client and then store it into a locally stored JSON file. The http server will then execute the workflow client and provide the relative location of the JSON file via command line arguments.
 
-The workflow client itself is what must be written by the user, although most of the time a barely edited version workflow client provided in the [emco source code](https://gitlab.com/project-emco/core/emco-base/-/tree/main/src/tools/workflowclient) will suffice. The general flow of the workflow client will be unpacking the data from the JSON file, submitting the job and data to the appropriate task queue in the temporal server, and waiting for it to finish.
+The workflow client itself is what must be written by the user, although most of the time a barely edited version workflow client provided in the emco source code will suffice. The general flow of the workflow client will be unpacking the data from the JSON file, submitting the job and data to the appropriate task queue in the temporal server, and waiting for it to finish.
 
 ## Temporal Worker in EMCO
 
-To add a new worker the user should follow the template provided in [EMCO source code](https://gitlab.com/project-emco/core/emco-base/-/tree/main/src/tools/workflowclient) or the examples provided in [temporal docs themselves](https://docs.temporal.io/go/how-to-develop-a-worker-program-in-go/)
+To add a new worker the user should follow the template provided in EMCO source code or the examples provided in [temporal docs themselves](https://docs.temporal.io/go/how-to-develop-a-worker-program-in-go/)
 
 
 ## Example Temporal Action Controller workflow
