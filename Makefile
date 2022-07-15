@@ -23,11 +23,8 @@ ifndef MAINDOCKERREPO
 endif
 
 ifndef MODS
-MODS=clm dcm dtc nps sds its genericactioncontroller monitor ncm orchestrator ovnaction rsync tools/emcoctl sfc sfcclient hpa-plc hpa-ac workflowmgr ca-certs swc tac
+MODS=clm dcm dtc nps sds its genericactioncontroller monitor ncm orchestrator ovnaction rsync tools/emcoctl sfc sfcclient hpa-plc hpa-ac workflowmgr policy metricscollector
 endif
-
-noparam:
-	@echo "Please pick a make a target, such as: all, build-base, deploy, develop, test, clean-all."
 
 all: check-env compile build-containers
 
@@ -84,7 +81,7 @@ pre-compile: clean
 compile: pre-compile
 	@echo "Building artifacts"
 	@for m in $(MODS); do \
-	    $(MAKE) -C ./src/$$m all || exit 1; \
+	    $(MAKE) -C ./src/$$m all; \
 	 done
 	@echo "    Done."
 
@@ -106,7 +103,7 @@ build-containers:
 	      *) d=$$m; n=$$m;; \
 	    esac; \
 	    echo "Packaging $$m"; \
-	    docker build $$ARGS --rm -t emco-$$n -f ./build/docker/Dockerfile.$$d ./bin/$$m || exit 1; \
+	    docker build $$ARGS --rm -t emco-$$n -f ./build/docker/Dockerfile.$$d ./bin/$$m; \
 	 done
 	@echo "    Done."
 

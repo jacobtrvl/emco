@@ -11,18 +11,15 @@ TAG=${TAG}
 create_helm_chart() {
   echo "Creating helm chart"
   mkdir -p ${BIN_PATH}/helm
-  cp -rf ${EMCOBUILDROOT}/deployments/helm/emcoBase ${EMCOBUILDROOT}/deployments/helm/monitor ${BIN_PATH}/helm/
+  cp -rf ${EMCOBUILDROOT}/deployments/helm/emcoBase ${EMCOBUILDROOT}/deployments/helm/monitor ${EMCOBUILDROOT}/deployments/helm/metricscollector ${BIN_PATH}/helm/
   cat > ${BIN_PATH}/helm/emcoBase/common/values.yaml <<EOF
-global:
-  repository: ${REGISTRY}
-  emcoTag: ${TAG}
-  noProxyHosts: ${NO_PROXY}
-  loglevel: warn
+repository: ${REGISTRY}
+imageTag: ${TAG}
+noProxyHosts: ${NO_PROXY}
 EOF
   cat > ${BIN_PATH}/helm/monitor/values.yaml <<EOF
-repository: ${REGISTRY}
-image: emco-monitor
-emcoTag: ${TAG}
+registryPrefix: ${REGISTRY}
+tag: ${TAG}
 
 workingDir: /opt/emco/monitor
 git:
@@ -33,33 +30,55 @@ httpProxy: ${HTTP_PROXY}
 httpsProxy: ${HTTPS_PROXY}
 EOF
   cat > ${BIN_PATH}/helm/helm_value_overrides.yaml <<EOF
+#update proxies
+noProxyHosts: ${NO_PROXY}
+#update and uncomment if build tag to be changed
+#imageTag: latest
+#update and uncomment to override registry
+#repository: registry.docker.com/
 global:
-  #update and uncomment to override registry
-  #repository: registry.docker.com/
-  #update and uncomment if build tag to be changed
-  #emcoTag: latest
-  #update proxies
-  noProxyHosts: ${NO_PROXY}
   loglevel: info
+EOF
+  cat > ${BIN_PATH}/helm/metricscollector/values.yaml <<EOF
+registryPrefix: ${REGISTRY}
+tag: ${TAG}
+
+workingDir: /opt/emco/metricscollector
+
+noProxyHosts: ${NO_PROXY}
+httpProxy: ${HTTP_PROXY}
+httpsProxy: ${HTTPS_PROXY}
+EOF
+
+  # Submodules to use evaluated values.yaml via common templates
+  cp -rf ${EMCOBUILDROOT}/deployments/helm/emcoBase/common ${EMCOBUILDROOT}/deployments/helm/
+  cat > ${EMCOBUILDROOT}/deployments/helm/common/values.yaml <<EOF
+repository: ${REGISTRY}
+imageTag: ${TAG}
+noProxyHosts: ${NO_PROXY}
 EOF
 
   # emco base
   cp ${EMCOBUILDROOT}/deployments/helm/emco-base-helm-install.sh ${BIN_PATH}/helm/install_template
-  cat ${BIN_PATH}/helm/install_template | sed -e "s/emco-db-1.0.0.tgz/emco-db-${TAG}.tgz/" \
-                                              -e "s/emco-services-1.0.0.tgz/emco-services-${TAG}.tgz/" \
-                                              -e "s/emco-tools-1.0.0.tgz/emco-tools-${TAG}.tgz/" > ${BIN_PATH}/helm/emco-base-helm-install.sh
+  cat ${BIN_PATH}/helm/install_template | sed -e "s/emco-db-0.1.0.tgz/emco-db-${TAG}.tgz/" \
+                                              -e "s/emco-services-0.1.0.tgz/emco-services-${TAG}.tgz/" \
+                                              -e "s/emco-tools-0.1.0.tgz/emco-tools-${TAG}.tgz/" > ${BIN_PATH}/helm/emco-base-helm-install.sh
   chmod +x ${BIN_PATH}/helm/emco-base-helm-install.sh
   rm -f ${BIN_PATH}/helm/install_template
 
   make -C ${BIN_PATH}/helm/emcoBase all
-  mv ${BIN_PATH}/helm/emcoBase/dist/packages/emco-db-1.0.0.tgz ${BIN_PATH}/helm/emco-db-${TAG}.tgz
-  mv ${BIN_PATH}/helm/emcoBase/dist/packages/emco-services-1.0.1.tgz ${BIN_PATH}/helm/emco-services-${TAG}.tgz
-  mv ${BIN_PATH}/helm/emcoBase/dist/packages/emco-tools-1.0.0.tgz ${BIN_PATH}/helm/emco-tools-${TAG}.tgz
+  mv ${BIN_PATH}/helm/emcoBase/dist/packages/emco-db-0.1.0.tgz ${BIN_PATH}/helm/emco-db-${TAG}.tgz
+  mv ${BIN_PATH}/helm/emcoBase/dist/packages/emco-services-0.1.0.tgz ${BIN_PATH}/helm/emco-services-${TAG}.tgz
+  mv ${BIN_PATH}/helm/emcoBase/dist/packages/emco-tools-0.1.0.tgz ${BIN_PATH}/helm/emco-tools-${TAG}.tgz
   rm -rf ${BIN_PATH}/helm/emcoBase
 
   # monitor
   tar -cvzf  ${BIN_PATH}/helm/monitor-helm-${TAG}.tgz -C ${BIN_PATH}/helm/ monitor
   rm -rf ${BIN_PATH}/helm/monitor
+
+  # metricscollector
+  tar -cvzf  ${BIN_PATH}/helm/metricscollector-helm-${TAG}.tgz -C ${BIN_PATH}/helm/ metricscollector
+  rm -rf ${BIN_PATH}/helm/metricscollector
 }
 
 if [ "${BUILD_CAUSE}" != "RELEASE" ];then

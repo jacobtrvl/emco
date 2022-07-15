@@ -1,0 +1,20 @@
+ARG MAINDOCKERREPO
+ARG SERVICE_BASE_IMAGE_NAME
+ARG SERVICE_BASE_IMAGE_VERSION
+
+FROM ${MAINDOCKERREPO}${SERVICE_BASE_IMAGE_NAME}:${SERVICE_BASE_IMAGE_VERSION}
+
+WORKDIR /opt/emco/policy
+
+RUN addgroup -S emco && adduser -S -G emco emco
+RUN chown emco:emco . -R
+
+COPY --chown=emco sacontroller ./
+COPY --chown=emco dbhelper ./
+COPY --chown=emco run_policy ./
+COPY --chown=emco config.json ./
+COPY --chown=emco ./ref-schemas ./ref-schemas
+
+USER emco
+
+ENTRYPOINT ["./run_policy"]
