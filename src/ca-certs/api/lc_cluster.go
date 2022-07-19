@@ -9,7 +9,7 @@ import (
 	"github.com/gorilla/mux"
 	"gitlab.com/project-emco/core/emco-base/src/ca-certs/pkg/client/logicalcloud"
 	"gitlab.com/project-emco/core/emco-base/src/ca-certs/pkg/module"
-	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/apierror"
+	"gitlab.com/project-emco/core/emco-base/src/orchestrator/common/emcoerror"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 )
 
@@ -28,7 +28,7 @@ func (h *lcClusterHandler) handleClusterDelete(w http.ResponseWriter, r *http.Re
 	// get the route variables
 	vars := _lcVars(mux.Vars(r))
 	if err := h.manager.DeleteClusterGroup(vars.cluster, vars.logicalCloud, vars.cert, vars.project); err != nil {
-		apiErr := apierror.HandleErrors(mux.Vars(r), err, nil, apiErrors)
+		apiErr := emcoerror.HandleAPIError(err)
 		http.Error(w, apiErr.Message, apiErr.Status)
 		return
 	}
@@ -52,7 +52,7 @@ func (h *lcClusterHandler) handleClusterGet(w http.ResponseWriter, r *http.Reque
 	}
 
 	if err != nil {
-		apiErr := apierror.HandleErrors(mux.Vars(r), err, nil, apiErrors)
+		apiErr := emcoerror.HandleAPIError(err)
 		http.Error(w, apiErr.Message, apiErr.Status)
 		return
 	}
@@ -105,7 +105,7 @@ func (h *lcClusterHandler) createOrUpdateCluster(w http.ResponseWriter, r *http.
 
 	clr, clusterExists, err := h.manager.CreateClusterGroup(cluster, vars.logicalCloud, vars.cert, vars.project, methodPost)
 	if err != nil {
-		apiErr := apierror.HandleErrors(mux.Vars(r), err, cluster, apiErrors)
+		apiErr := emcoerror.HandleAPIError(err)
 		http.Error(w, apiErr.Message, apiErr.Status)
 		return
 	}

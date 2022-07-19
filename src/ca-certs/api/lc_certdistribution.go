@@ -8,7 +8,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"gitlab.com/project-emco/core/emco-base/src/ca-certs/pkg/client/logicalcloud"
-	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/apierror"
+	"gitlab.com/project-emco/core/emco-base/src/orchestrator/common/emcoerror"
 )
 
 // lcCertDistributionHandler implements the logicalCloud caCert distribution handler functions
@@ -21,7 +21,7 @@ func (h *lcCertDistributionHandler) handleInstantiate(w http.ResponseWriter, r *
 	// get the route variables
 	vars := _lcVars(mux.Vars(r))
 	if err := h.manager.Instantiate(vars.cert, vars.project); err != nil {
-		apiErr := apierror.HandleErrors(mux.Vars(r), err, nil, apiErrors)
+		apiErr := emcoerror.HandleAPIError(err)
 		http.Error(w, apiErr.Message, apiErr.Status)
 		return
 	}
@@ -36,7 +36,7 @@ func (h *lcCertDistributionHandler) handleStatus(w http.ResponseWriter, r *http.
 
 	qParams, err := _statusQueryParams(r)
 	if err != nil {
-		apiErr := apierror.HandleErrors(mux.Vars(r), err, nil, apiErrors)
+		apiErr := emcoerror.HandleAPIError(err)
 		http.Error(w, apiErr.Message, apiErr.Status)
 	}
 
@@ -48,7 +48,7 @@ func (h *lcCertDistributionHandler) handleStatus(w http.ResponseWriter, r *http.
 		qParams.fClusters,
 		qParams.fResources)
 	if err != nil {
-		apiErr := apierror.HandleErrors(mux.Vars(r), err, nil, apiErrors)
+		apiErr := emcoerror.HandleAPIError(err)
 		http.Error(w, apiErr.Message, apiErr.Status)
 		return
 	}
@@ -61,7 +61,7 @@ func (h *lcCertDistributionHandler) handleTerminate(w http.ResponseWriter, r *ht
 	// get the route variables
 	vars := _lcVars(mux.Vars(r))
 	if err := h.manager.Terminate(vars.cert, vars.project); err != nil {
-		apiErr := apierror.HandleErrors(mux.Vars(r), err, nil, apiErrors)
+		apiErr := emcoerror.HandleAPIError(err)
 		http.Error(w, apiErr.Message, apiErr.Status)
 		return
 	}
@@ -74,7 +74,7 @@ func (h *lcCertDistributionHandler) handleUpdate(w http.ResponseWriter, r *http.
 	// get the route variables
 	vars := _lcVars(mux.Vars(r))
 	if err := h.manager.Update(vars.cert, vars.project); err != nil {
-		apiErr := apierror.HandleErrors(mux.Vars(r), err, nil, apiErrors)
+		apiErr := emcoerror.HandleAPIError(err)
 		http.Error(w, apiErr.Message, apiErr.Status)
 		return
 	}

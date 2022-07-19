@@ -6,7 +6,7 @@ package module
 import (
 	"time"
 
-	"github.com/pkg/errors"
+	"gitlab.com/project-emco/core/emco-base/src/orchestrator/common/emcoerror"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/appcontext"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
@@ -67,7 +67,10 @@ func (c *StateClient) Get() (state.StateInfo, error) {
 	if len(values) == 0 ||
 		(len(values) > 0 &&
 			values[0] == nil) {
-		return state.StateInfo{}, errors.New("StateInfo not found")
+		return state.StateInfo{}, &emcoerror.Error{
+			Message: emcoerror.StateInfoNotFound,
+			Type:    emcoerror.NotFound,
+		}
 	}
 
 	if len(values) > 0 &&
@@ -79,7 +82,10 @@ func (c *StateClient) Get() (state.StateInfo, error) {
 		return s, nil
 	}
 
-	return state.StateInfo{}, errors.New("Unknown Error")
+	return state.StateInfo{}, &emcoerror.Error{
+		Message: emcoerror.UnknownErrorMessage,
+		Type:    emcoerror.Unknown,
+	}
 }
 
 // Update the stateInfo
@@ -109,10 +115,12 @@ func (c *StateClient) Update(newState state.StateValue,
 		return nil
 	}
 
-	if err.Error() == "StateInfo not found" &&
-		createIfNotExists {
-		return c.Create(contextID)
-
+	switch e := err.(type) {
+	case *emcoerror.Error:
+		if e.Type == emcoerror.NotFound &&
+			createIfNotExists {
+			return c.Create(contextID)
+		}
 	}
 
 	return err
@@ -141,21 +149,40 @@ func (sc *StateClient) VerifyState(event LifeCycleEvent) (string, error) {
 
 		switch status.Status {
 		case appcontext.AppContextStatusEnum.Terminating:
-			err := errors.Errorf("Failed to %s. The resource is being terminated", event)
+			err := &emcoerror.Error{
+				Message: (&emcoerror.StateError{
+					Resource: "CaCert",
+					Event:    string(event),
+					Status:   status.Status,
+				}).Error(),
+				Type: emcoerror.Conflict,
+			}
 			logutils.Error("",
 				logutils.Fields{
 					"Error":     err.Error(),
 					"ContextID": contextID})
 			return contextID, err
 		case appcontext.AppContextStatusEnum.Instantiating:
-			err := errors.Errorf("Failed to %s. The resource is in instantiating status", event)
+			err := &emcoerror.Error{
+				Message: (&emcoerror.StateError{
+					Resource: "CaCert",
+					Event:    string(event),
+					Status:   status.Status}).Error(),
+				Type: emcoerror.Conflict,
+			}
 			logutils.Error("",
 				logutils.Fields{
 					"Error":     err.Error(),
 					"ContextID": contextID})
 			return contextID, err
 		case appcontext.AppContextStatusEnum.TerminateFailed:
-			err := errors.Errorf("Failed to %s. The resource has failed terminating, please delete the resource", event)
+			err := &emcoerror.Error{
+				Message: (&emcoerror.StateError{
+					Resource: "CaCert",
+					Event:    string(event),
+					Status:   status.Status}).Error(),
+				Type: emcoerror.Conflict,
+			}
 			logutils.Error("",
 				logutils.Fields{
 					"Error":     err.Error(),
@@ -167,7 +194,13 @@ func (sc *StateClient) VerifyState(event LifeCycleEvent) (string, error) {
 			case InstantiateEvent:
 				return contextID, nil
 			case TerminateEvent:
-				err := errors.New("The resource is already terminated")
+				err := &emcoerror.Error{
+					Message: (&emcoerror.StateError{
+						Resource: "CaCert",
+						Event:    string(event),
+						Status:   status.Status}).Error(),
+					Type: emcoerror.Conflict,
+				}
 				logutils.Error("",
 					logutils.Fields{
 						"Error":     err.Error(),
@@ -177,7 +210,13 @@ func (sc *StateClient) VerifyState(event LifeCycleEvent) (string, error) {
 		case appcontext.AppContextStatusEnum.Instantiated:
 			switch event {
 			case InstantiateEvent:
-				err := errors.New("The resource is already instantiated")
+				err := &emcoerror.Error{
+					Message: (&emcoerror.StateError{
+						Resource: "CaCert",
+						Event:    string(event),
+						Status:   status.Status}).Error(),
+					Type: emcoerror.Conflict,
+				}
 				logutils.Error("",
 					logutils.Fields{
 						"Error":     err.Error(),
@@ -189,7 +228,13 @@ func (sc *StateClient) VerifyState(event LifeCycleEvent) (string, error) {
 		case appcontext.AppContextStatusEnum.InstantiateFailed:
 			switch event {
 			case InstantiateEvent:
-				err := errors.New("The resource has failed instantiating before, please terminate and try again")
+				err := &emcoerror.Error{
+					Message: (&emcoerror.StateError{
+						Resource: "CaCert",
+						Event:    string(event),
+						Status:   status.Status}).Error(),
+					Type: emcoerror.Conflict,
+				}
 				logutils.Error("",
 					logutils.Fields{
 						"Error":     err.Error(),
@@ -200,7 +245,13 @@ func (sc *StateClient) VerifyState(event LifeCycleEvent) (string, error) {
 				return contextID, nil
 			}
 		default:
-			err := errors.New("The resource isn't in an expected status so not taking any action")
+			err := &emcoerror.Error{
+				Message: (&emcoerror.StateError{
+					Resource: "CaCert",
+					Event:    string(event),
+					Status:   status.Status}).Error(),
+				Type: emcoerror.Conflict,
+			}
 			logutils.Error("",
 				logutils.Fields{
 					"Error":     err.Error(),

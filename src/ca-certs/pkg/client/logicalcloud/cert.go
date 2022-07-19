@@ -6,10 +6,10 @@ package logicalcloud
 import (
 	"reflect"
 
-	"github.com/pkg/errors"
 	"gitlab.com/project-emco/core/emco-base/src/ca-certs/pkg/certificate/distribution"
 	"gitlab.com/project-emco/core/emco-base/src/ca-certs/pkg/certificate/enrollment"
 	"gitlab.com/project-emco/core/emco-base/src/ca-certs/pkg/module"
+	"gitlab.com/project-emco/core/emco-base/src/orchestrator/common/emcoerror"
 )
 
 // CaCertManager exposes all the caCert functionalities
@@ -52,7 +52,10 @@ func (c *CaCertClient) CreateCert(cert module.CaCert, project string, failIfExis
 
 	if certExists &&
 		failIfExists {
-		return module.CaCert{}, certExists, errors.New("Certificate already exists")
+		return module.CaCert{}, certExists, &emcoerror.Error{
+			Message: module.CaCertAlreadyExists,
+			Type:    emcoerror.Conflict,
+		}
 	}
 
 	if certExists {
@@ -102,7 +105,12 @@ func (c *CaCertClient) DeleteCert(cert, project string) error {
 	// check the enrollment state
 	if err := verifyEnrollmentStateBeforeDelete(cert, project); err != nil {
 		// if the StateInfo cannot be found, then a caCert record may not present
-		if err.Error() != "StateInfo not found" {
+		switch e := err.(type) {
+		case *emcoerror.Error:
+			if e.Type != emcoerror.NotFound {
+				return e
+			}
+		default:
 			return err
 		}
 	}
@@ -110,7 +118,12 @@ func (c *CaCertClient) DeleteCert(cert, project string) error {
 	// check the distribution state
 	if err := verifyDistributionStateBeforeDelete(cert, project); err != nil {
 		// if the StateInfo cannot be found, then a caCert record may not present
-		if err.Error() != "StateInfo not found" {
+		switch e := err.(type) {
+		case *emcoerror.Error:
+			if e.Type != emcoerror.NotFound {
+				return e
+			}
+		default:
 			return err
 		}
 	}

@@ -4,7 +4,7 @@
 package module
 
 import (
-	"github.com/pkg/errors"
+	"gitlab.com/project-emco/core/emco-base/src/orchestrator/common/emcoerror"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
 )
 
@@ -56,7 +56,10 @@ func (c *KeyClient) Get() (Key, error) {
 	}
 
 	if len(value) == 0 {
-		return Key{}, errors.New("Key not found")
+		return Key{}, &emcoerror.Error{
+			Message: KeyNotFound,
+			Type:    emcoerror.NotFound,
+		}
 	}
 
 	if value != nil {
@@ -67,5 +70,8 @@ func (c *KeyClient) Get() (Key, error) {
 		return key, nil
 	}
 
-	return Key{}, errors.New("Unknown Error")
+	return Key{}, &emcoerror.Error{
+		Message: emcoerror.UnknownErrorMessage,
+		Type:    emcoerror.Unknown,
+	}
 }

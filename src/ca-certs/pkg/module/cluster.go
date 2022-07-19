@@ -7,9 +7,9 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/pkg/errors"
 	clm "gitlab.com/project-emco/core/emco-base/src/clm/pkg/cluster"
 	dcm "gitlab.com/project-emco/core/emco-base/src/dcm/pkg/module"
+	"gitlab.com/project-emco/core/emco-base/src/orchestrator/common/emcoerror"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
 )
 
@@ -47,7 +47,10 @@ func (c *ClusterGroupClient) CreateClusterGroup(group ClusterGroup, failIfExists
 
 	if cExists &&
 		failIfExists {
-		return ClusterGroup{}, cExists, errors.New("ClusterGroup already exists")
+		return ClusterGroup{}, cExists, &emcoerror.Error{
+			Message: CaCertClusterGroupAlreadyExists,
+			Type:    emcoerror.Conflict,
+		}
 	}
 
 	if err := db.DBconn.Insert(c.dbInfo.StoreName, c.dbKey, nil, c.dbInfo.TagMeta, group); err != nil {
@@ -89,7 +92,10 @@ func (c *ClusterGroupClient) GetClusterGroup() (ClusterGroup, error) {
 	}
 
 	if len(value) == 0 {
-		return ClusterGroup{}, errors.New("ClusterGroup not found")
+		return ClusterGroup{}, &emcoerror.Error{
+			Message: CaCertClusterGroupNotFound,
+			Type:    emcoerror.NotFound,
+		}
 	}
 
 	if value != nil {
@@ -100,7 +106,10 @@ func (c *ClusterGroupClient) GetClusterGroup() (ClusterGroup, error) {
 		return c, nil
 	}
 
-	return ClusterGroup{}, errors.New("Unknown Error")
+	return ClusterGroup{}, &emcoerror.Error{
+		Message: emcoerror.UnknownErrorMessage,
+		Type:    emcoerror.Unknown,
+	}
 }
 
 // GetClusters returns the list of clusters based on the logicalcloud and scope
