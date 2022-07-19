@@ -5,6 +5,7 @@ package api
 
 import (
 	"github.com/gorilla/mux"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	moduleLib "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/module"
 	controller "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/module/controller"
 )
@@ -25,7 +26,11 @@ func NewRouter(projectClient moduleLib.ProjectManager,
 	instantiationClient moduleLib.InstantiationManager,
 	appDependencyClient moduleLib.AppDependencyManager) *mux.Router {
 
-	router := mux.NewRouter().PathPrefix("/v2").Subrouter()
+	router := mux.NewRouter()
+
+	router.Handle("/metrics", promhttp.Handler())
+
+	v2Router := router.PathPrefix("/v2").Subrouter()
 
 	moduleClient = moduleLib.NewClient()
 
@@ -43,11 +48,11 @@ func NewRouter(projectClient moduleLib.ProjectManager,
 	controlHandler := controllerHandler{
 		client: ControllerClient,
 	}
-	router.HandleFunc("/projects", projHandler.createHandler).Methods("POST")
-	router.HandleFunc("/projects/{project}", projHandler.updateHandler).Methods("PUT")
-	router.HandleFunc("/projects/{project}", projHandler.getHandler).Methods("GET")
-	router.HandleFunc("/projects", projHandler.getHandler).Methods("GET")
-	router.HandleFunc("/projects/{project}", projHandler.deleteHandler).Methods("DELETE")
+	v2Router.HandleFunc("/projects", projHandler.createHandler).Methods("POST")
+	v2Router.HandleFunc("/projects/{project}", projHandler.updateHandler).Methods("PUT")
+	v2Router.HandleFunc("/projects/{project}", projHandler.getHandler).Methods("GET")
+	v2Router.HandleFunc("/projects", projHandler.getHandler).Methods("GET")
+	v2Router.HandleFunc("/projects/{project}", projHandler.deleteHandler).Methods("DELETE")
 
 	//setting routes for compositeApp
 	if compositeAppClient == nil {
@@ -56,11 +61,11 @@ func NewRouter(projectClient moduleLib.ProjectManager,
 	compAppHandler := compositeAppHandler{
 		client: compositeAppClient,
 	}
-	router.HandleFunc("/projects/{project}/composite-apps", compAppHandler.createHandler).Methods("POST")
-	router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}", compAppHandler.getHandler).Methods("GET")
-	router.HandleFunc("/projects/{project}/composite-apps", compAppHandler.getAllCompositeAppsHandler).Methods("GET")
-	router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}", compAppHandler.deleteHandler).Methods("DELETE")
-	router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}", compAppHandler.updateHandler).Methods("PUT")
+	v2Router.HandleFunc("/projects/{project}/composite-apps", compAppHandler.createHandler).Methods("POST")
+	v2Router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}", compAppHandler.getHandler).Methods("GET")
+	v2Router.HandleFunc("/projects/{project}/composite-apps", compAppHandler.getAllCompositeAppsHandler).Methods("GET")
+	v2Router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}", compAppHandler.deleteHandler).Methods("DELETE")
+	v2Router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}", compAppHandler.updateHandler).Methods("PUT")
 
 	if appClient == nil {
 		appClient = moduleClient.App
@@ -69,11 +74,11 @@ func NewRouter(projectClient moduleLib.ProjectManager,
 		client: appClient,
 	}
 
-	router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/apps", appHandler.createAppHandler).Methods("POST")
-	router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/apps/{app}", appHandler.getAppHandler).Methods("GET")
-	router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/apps/{app}", appHandler.updateAppHandler).Methods("PUT")
-	router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/apps", appHandler.getAppHandler).Methods("GET")
-	router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/apps/{app}", appHandler.deleteAppHandler).Methods("DELETE")
+	v2Router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/apps", appHandler.createAppHandler).Methods("POST")
+	v2Router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/apps/{app}", appHandler.getAppHandler).Methods("GET")
+	v2Router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/apps/{app}", appHandler.updateAppHandler).Methods("PUT")
+	v2Router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/apps", appHandler.getAppHandler).Methods("GET")
+	v2Router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/apps/{app}", appHandler.deleteAppHandler).Methods("DELETE")
 
 	if compositeProfileClient == nil {
 		compositeProfileClient = moduleClient.CompositeProfile
@@ -88,29 +93,29 @@ func NewRouter(projectClient moduleLib.ProjectManager,
 		client: appProfileClient,
 	}
 
-	router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/composite-profiles", compProfilepHandler.createHandler).Methods("POST")
-	router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/composite-profiles", compProfilepHandler.getHandler).Methods("GET")
-	router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/composite-profiles/{compositeProfile}", compProfilepHandler.getHandler).Methods("GET")
-	router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/composite-profiles/{compositeProfile}", compProfilepHandler.updateHandler).Methods("PUT")
-	router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/composite-profiles/{compositeProfile}", compProfilepHandler.deleteHandler).Methods("DELETE")
+	v2Router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/composite-profiles", compProfilepHandler.createHandler).Methods("POST")
+	v2Router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/composite-profiles", compProfilepHandler.getHandler).Methods("GET")
+	v2Router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/composite-profiles/{compositeProfile}", compProfilepHandler.getHandler).Methods("GET")
+	v2Router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/composite-profiles/{compositeProfile}", compProfilepHandler.updateHandler).Methods("PUT")
+	v2Router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/composite-profiles/{compositeProfile}", compProfilepHandler.deleteHandler).Methods("DELETE")
 
-	router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/composite-profiles/{compositeProfile}/profiles", appProfileHandler.createAppProfileHandler).Methods("POST")
-	router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/composite-profiles/{compositeProfile}/profiles", appProfileHandler.getAppProfileHandler).Methods("GET")
-	router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/composite-profiles/{compositeProfile}/profiles", appProfileHandler.getAppProfileHandler).Queries("app", "{app}")
-	router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/composite-profiles/{compositeProfile}/profiles/{appProfile}", appProfileHandler.getAppProfileHandler).Methods("GET")
-	router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/composite-profiles/{compositeProfile}/profiles/{appProfile}", appProfileHandler.updateAppProfileHandler).Methods("PUT")
-	router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/composite-profiles/{compositeProfile}/profiles/{appProfile}", appProfileHandler.deleteAppProfileHandler).Methods("DELETE")
-	router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/composite-profiles/{compositeProfile}/profiles", appProfileHandler.createAppProfileHandler).Methods("POST")
-	router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/composite-profiles/{compositeProfile}/profiles", appProfileHandler.getAppProfileHandler).Methods("GET")
-	router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/composite-profiles/{compositeProfile}/profiles", appProfileHandler.getAppProfileHandler).Queries("app", "{app}")
-	router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/composite-profiles/{compositeProfile}/profiles/{appProfile}", appProfileHandler.getAppProfileHandler).Methods("GET")
-	router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/composite-profiles/{compositeProfile}/profiles/{appProfile}", appProfileHandler.deleteAppProfileHandler).Methods("DELETE")
+	v2Router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/composite-profiles/{compositeProfile}/profiles", appProfileHandler.createAppProfileHandler).Methods("POST")
+	v2Router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/composite-profiles/{compositeProfile}/profiles", appProfileHandler.getAppProfileHandler).Methods("GET")
+	v2Router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/composite-profiles/{compositeProfile}/profiles", appProfileHandler.getAppProfileHandler).Queries("app", "{app}")
+	v2Router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/composite-profiles/{compositeProfile}/profiles/{appProfile}", appProfileHandler.getAppProfileHandler).Methods("GET")
+	v2Router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/composite-profiles/{compositeProfile}/profiles/{appProfile}", appProfileHandler.updateAppProfileHandler).Methods("PUT")
+	v2Router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/composite-profiles/{compositeProfile}/profiles/{appProfile}", appProfileHandler.deleteAppProfileHandler).Methods("DELETE")
+	v2Router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/composite-profiles/{compositeProfile}/profiles", appProfileHandler.createAppProfileHandler).Methods("POST")
+	v2Router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/composite-profiles/{compositeProfile}/profiles", appProfileHandler.getAppProfileHandler).Methods("GET")
+	v2Router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/composite-profiles/{compositeProfile}/profiles", appProfileHandler.getAppProfileHandler).Queries("app", "{app}")
+	v2Router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/composite-profiles/{compositeProfile}/profiles/{appProfile}", appProfileHandler.getAppProfileHandler).Methods("GET")
+	v2Router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/composite-profiles/{compositeProfile}/profiles/{appProfile}", appProfileHandler.deleteAppProfileHandler).Methods("DELETE")
 
-	router.HandleFunc("/controllers", controlHandler.createHandler).Methods("POST")
-	router.HandleFunc("/controllers", controlHandler.getHandler).Methods("GET")
-	router.HandleFunc("/controllers/{controller}", controlHandler.putHandler).Methods("PUT")
-	router.HandleFunc("/controllers/{controller}", controlHandler.getHandler).Methods("GET")
-	router.HandleFunc("/controllers/{controller}", controlHandler.deleteHandler).Methods("DELETE")
+	v2Router.HandleFunc("/controllers", controlHandler.createHandler).Methods("POST")
+	v2Router.HandleFunc("/controllers", controlHandler.getHandler).Methods("GET")
+	v2Router.HandleFunc("/controllers/{controller}", controlHandler.putHandler).Methods("PUT")
+	v2Router.HandleFunc("/controllers/{controller}", controlHandler.getHandler).Methods("GET")
+	v2Router.HandleFunc("/controllers/{controller}", controlHandler.deleteHandler).Methods("DELETE")
 
 	//setting routes for genericPlacementIntent
 	if genericPlacementIntentClient == nil {
@@ -120,11 +125,11 @@ func NewRouter(projectClient moduleLib.ProjectManager,
 	genericPlacementIntentHandler := genericPlacementIntentHandler{
 		client: genericPlacementIntentClient,
 	}
-	router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/generic-placement-intents", genericPlacementIntentHandler.createGenericPlacementIntentHandler).Methods("POST")
-	router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/generic-placement-intents/{genericPlacementIntent}", genericPlacementIntentHandler.getGenericPlacementHandler).Methods("GET")
-	router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/generic-placement-intents", genericPlacementIntentHandler.getAllGenericPlacementIntentsHandler).Methods("GET")
-	router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/generic-placement-intents/{genericPlacementIntent}", genericPlacementIntentHandler.deleteGenericPlacementHandler).Methods("DELETE")
-	router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/generic-placement-intents/{genericPlacementIntent}", genericPlacementIntentHandler.putGenericPlacementHandler).Methods("PUT")
+	v2Router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/generic-placement-intents", genericPlacementIntentHandler.createGenericPlacementIntentHandler).Methods("POST")
+	v2Router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/generic-placement-intents/{genericPlacementIntent}", genericPlacementIntentHandler.getGenericPlacementHandler).Methods("GET")
+	v2Router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/generic-placement-intents", genericPlacementIntentHandler.getAllGenericPlacementIntentsHandler).Methods("GET")
+	v2Router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/generic-placement-intents/{genericPlacementIntent}", genericPlacementIntentHandler.deleteGenericPlacementHandler).Methods("DELETE")
+	v2Router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/generic-placement-intents/{genericPlacementIntent}", genericPlacementIntentHandler.putGenericPlacementHandler).Methods("PUT")
 
 	//setting routes for AppIntent
 	if appIntentClient == nil {
@@ -135,12 +140,12 @@ func NewRouter(projectClient moduleLib.ProjectManager,
 		client: appIntentClient,
 	}
 
-	router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/generic-placement-intents/{genericPlacementIntent}/app-intents", appIntentHandler.createAppIntentHandler).Methods("POST")
-	router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/generic-placement-intents/{genericPlacementIntent}/app-intents/{genericAppPlacementIntent}", appIntentHandler.getAppIntentHandler).Methods("GET")
-	router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/generic-placement-intents/{genericPlacementIntent}/app-intents", appIntentHandler.getAllAppIntentsHandler).Methods("GET")
-	router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/generic-placement-intents/{genericPlacementIntent}/app-intents/", appIntentHandler.getAllIntentsByAppHandler).Queries("app", "{app}")
-	router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/generic-placement-intents/{genericPlacementIntent}/app-intents/{genericAppPlacementIntent}", appIntentHandler.deleteAppIntentHandler).Methods("DELETE")
-	router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/generic-placement-intents/{genericPlacementIntent}/app-intents/{genericAppPlacementIntent}", appIntentHandler.putAppIntentHandler).Methods("PUT")
+	v2Router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/generic-placement-intents/{genericPlacementIntent}/app-intents", appIntentHandler.createAppIntentHandler).Methods("POST")
+	v2Router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/generic-placement-intents/{genericPlacementIntent}/app-intents/{genericAppPlacementIntent}", appIntentHandler.getAppIntentHandler).Methods("GET")
+	v2Router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/generic-placement-intents/{genericPlacementIntent}/app-intents", appIntentHandler.getAllAppIntentsHandler).Methods("GET")
+	v2Router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/generic-placement-intents/{genericPlacementIntent}/app-intents/", appIntentHandler.getAllIntentsByAppHandler).Queries("app", "{app}")
+	v2Router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/generic-placement-intents/{genericPlacementIntent}/app-intents/{genericAppPlacementIntent}", appIntentHandler.deleteAppIntentHandler).Methods("DELETE")
+	v2Router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/generic-placement-intents/{genericPlacementIntent}/app-intents/{genericAppPlacementIntent}", appIntentHandler.putAppIntentHandler).Methods("PUT")
 
 	//setting routes for deploymentIntentGroup
 	if deploymentIntentGrpClient == nil {
@@ -150,11 +155,11 @@ func NewRouter(projectClient moduleLib.ProjectManager,
 	deploymentIntentGrpHandler := deploymentIntentGroupHandler{
 		client: deploymentIntentGrpClient,
 	}
-	router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups", deploymentIntentGrpHandler.createDeploymentIntentGroupHandler).Methods("POST")
-	router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}", deploymentIntentGrpHandler.getDeploymentIntentGroupHandler).Methods("GET")
-	router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups", deploymentIntentGrpHandler.getAllDeploymentIntentGroupsHandler).Methods("GET")
-	router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}", deploymentIntentGrpHandler.deleteDeploymentIntentGroupHandler).Methods("DELETE")
-	router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}", deploymentIntentGrpHandler.putDeploymentIntentGroupHandler).Methods("PUT")
+	v2Router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups", deploymentIntentGrpHandler.createDeploymentIntentGroupHandler).Methods("POST")
+	v2Router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}", deploymentIntentGrpHandler.getDeploymentIntentGroupHandler).Methods("GET")
+	v2Router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups", deploymentIntentGrpHandler.getAllDeploymentIntentGroupsHandler).Methods("GET")
+	v2Router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}", deploymentIntentGrpHandler.deleteDeploymentIntentGroupHandler).Methods("DELETE")
+	v2Router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}", deploymentIntentGrpHandler.putDeploymentIntentGroupHandler).Methods("PUT")
 
 	// setting routes for AddingIntents
 	if intentClient == nil {
@@ -165,12 +170,12 @@ func NewRouter(projectClient moduleLib.ProjectManager,
 		client: intentClient,
 	}
 
-	router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/intents", intentHandler.addIntentHandler).Methods("POST")
-	router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/intents/{groupIntent}", intentHandler.getIntentHandler).Methods("GET")
-	router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/intents", intentHandler.getAllIntentsHandler).Methods("GET")
-	router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/intents/", intentHandler.getIntentByNameHandler).Queries("intent", "{intent}")
-	router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/intents/{groupIntent}", intentHandler.deleteIntentHandler).Methods("DELETE")
-	router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/intents/{groupIntent}", intentHandler.putIntentHandler).Methods("PUT")
+	v2Router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/intents", intentHandler.addIntentHandler).Methods("POST")
+	v2Router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/intents/{groupIntent}", intentHandler.getIntentHandler).Methods("GET")
+	v2Router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/intents", intentHandler.getAllIntentsHandler).Methods("GET")
+	v2Router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/intents/", intentHandler.getIntentByNameHandler).Queries("intent", "{intent}")
+	v2Router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/intents/{groupIntent}", intentHandler.deleteIntentHandler).Methods("DELETE")
+	v2Router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/intents/{groupIntent}", intentHandler.putIntentHandler).Methods("PUT")
 
 	// setting routes for Instantiation
 	if instantiationClient == nil {
@@ -181,12 +186,12 @@ func NewRouter(projectClient moduleLib.ProjectManager,
 		client: instantiationClient,
 	}
 
-	router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/approve", instantiationHandler.approveHandler).Methods("POST")
-	router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/terminate", instantiationHandler.terminateHandler).Methods("POST")
-	router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/instantiate", instantiationHandler.instantiateHandler).Methods("POST")
-	router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/stop", instantiationHandler.stopHandler).Methods("POST")
-	router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/status", instantiationHandler.statusHandler).Methods("GET")
-	router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/status",
+	v2Router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/approve", instantiationHandler.approveHandler).Methods("POST")
+	v2Router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/terminate", instantiationHandler.terminateHandler).Methods("POST")
+	v2Router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/instantiate", instantiationHandler.instantiateHandler).Methods("POST")
+	v2Router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/stop", instantiationHandler.stopHandler).Methods("POST")
+	v2Router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/status", instantiationHandler.statusHandler).Methods("GET")
+	v2Router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/status",
 		instantiationHandler.statusHandler).Queries(
 		"instance", "{instance}",
 		"type", "{type}", // deprecated - to be replaced with "status" parameter
@@ -204,9 +209,9 @@ func NewRouter(projectClient moduleLib.ProjectManager,
 		client: instantiationClient,
 	}
 
-	router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/migrate", updateHandler.migrateHandler).Methods("POST")
-	router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/update", updateHandler.updateHandler).Methods("POST")
-	router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/rollback", updateHandler.rollbackHandler).Methods("POST")
+	v2Router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/migrate", updateHandler.migrateHandler).Methods("POST")
+	v2Router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/update", updateHandler.updateHandler).Methods("POST")
+	v2Router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/rollback", updateHandler.rollbackHandler).Methods("POST")
 
 	if appDependencyClient == nil {
 		appDependencyClient = moduleClient.AppDependency
@@ -215,10 +220,11 @@ func NewRouter(projectClient moduleLib.ProjectManager,
 		client: appDependencyClient,
 	}
 
-	router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/apps/{app}/dependency", appDependencyHandler.createAppDependencyHandler).Methods("POST")
-	router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/apps/{app}/dependency/{dependency}", appDependencyHandler.getAppDependencyHandler).Methods("GET")
-	router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/apps/{app}/dependency/{dependency}", appDependencyHandler.updateAppDependencyHandler).Methods("PUT")
-	router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/apps/{app}/dependency", appDependencyHandler.getAllAppDependencyHandler).Methods("GET")
-	router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/apps/{app}/dependency/{dependency}", appDependencyHandler.deleteappDependencyHandler).Methods("DELETE")
+	v2Router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/apps/{app}/dependency", appDependencyHandler.createAppDependencyHandler).Methods("POST")
+	v2Router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/apps/{app}/dependency/{dependency}", appDependencyHandler.getAppDependencyHandler).Methods("GET")
+	v2Router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/apps/{app}/dependency/{dependency}", appDependencyHandler.updateAppDependencyHandler).Methods("PUT")
+	v2Router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/apps/{app}/dependency", appDependencyHandler.getAllAppDependencyHandler).Methods("GET")
+	v2Router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/apps/{app}/dependency/{dependency}", appDependencyHandler.deleteappDependencyHandler).Methods("DELETE")
+
 	return router
 }
