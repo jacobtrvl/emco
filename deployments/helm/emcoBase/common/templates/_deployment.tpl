@@ -29,6 +29,10 @@ spec:
       labels:
         app: {{ include "common.name" . }}
         release: {{ .Release.Name }}
+      {{- if .Values.podAnnotations }}
+      annotations:
+        {{- toYaml .Values.podAnnotations | nindent 8 }}
+      {{- end }}
     spec:
       containers:
       - image: "{{ .Values.global.repository }}{{ .Values.image }}:{{ .Values.global.emcoTag }}"
