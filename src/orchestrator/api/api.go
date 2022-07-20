@@ -5,7 +5,6 @@ package api
 
 import (
 	"github.com/gorilla/mux"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	moduleLib "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/module"
 	controller "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/module/controller"
 )
@@ -27,8 +26,6 @@ func NewRouter(projectClient moduleLib.ProjectManager,
 	appDependencyClient moduleLib.AppDependencyManager) *mux.Router {
 
 	router := mux.NewRouter()
-
-	router.Handle("/metrics", promhttp.Handler())
 
 	v2Router := router.PathPrefix("/v2").Subrouter()
 

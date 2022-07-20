@@ -12,15 +12,20 @@ import (
 	"time"
 
 	"github.com/gorilla/handlers"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"gitlab.com/project-emco/core/emco-base/src/clm/api"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/config"
 	contextDb "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/contextdb"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
 	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
+	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/metrics"
 )
 
 func main() {
 	rand.Seed(time.Now().UnixNano())
+
+	prometheus.MustRegister(metrics.NewBuildInfoCollector("clm"))
 
 	err := db.InitializeDatabaseConnection("emco")
 	if err != nil {
@@ -34,6 +39,7 @@ func main() {
 	}
 
 	httpRouter := api.NewRouter(nil)
+	httpRouter.Handle("/metrics", promhttp.Handler())
 	loggedRouter := handlers.LoggingHandler(os.Stdout, httpRouter)
 	log.Info("Starting Cluster Manager", log.Fields{"Port": config.GetConfiguration().ServicePort})
 

@@ -107,7 +107,7 @@ deploy-compile: check-env
 # Modules that follow naming conventions are done in a loop, rest later
 build-containers:
 	@echo "Packaging microservices "
-	@export ARGS="--build-arg EMCODOCKERREPO=${EMCODOCKERREPO} --build-arg MAINDOCKERREPO=${MAINDOCKERREPO} --build-arg SERVICE_BASE_IMAGE_NAME=${SERVICE_BASE_IMAGE_NAME} --build-arg SERVICE_BASE_IMAGE_VERSION=${SERVICE_BASE_IMAGE_VERSION}"; \
+	@export ARGS="--build-arg EMCODOCKERREPO=${EMCODOCKERREPO} --build-arg MAINDOCKERREPO=${MAINDOCKERREPO} --build-arg SERVICE_BASE_IMAGE_NAME=${SERVICE_BASE_IMAGE_NAME} --build-arg SERVICE_BASE_IMAGE_VERSION=${SERVICE_BASE_IMAGE_VERSION} --build-arg EMCO_SHA=${COMMITID} --build-arg EMCO_VERSION=${TAG}"; \
 	 for m in $(MODS); do \
 	    case $$m in \
 	      "tools/emcoctl") continue;; \
@@ -138,7 +138,7 @@ test:
 	    TESTFAILED="$$TESTFAILED$$m,"; \
 	  else \
             echo "Test case(s) for $$m executed successfully"; \
-      	  fi \
+	  fi \
 	done; \
 	if [ ! -z "$$TESTFAILED" -a "$$TESTFAILED" != " " ]; then \
 	    echo "One or more test case(s) of $$TESTFAILED failed"; \
