@@ -45,13 +45,24 @@ ifndef BRANCH
 export BRANCH=$(shell git rev-parse --abbrev-ref HEAD)
 endif
 
-ifeq ($(BUILD_CAUSE), RELEASE)
- ifndef TAG
-  export TAG=$(shell git tag --points-at HEAD | awk 'NR==1 {print $1}')
-  ifndef TAG
-  export TAG=${BRANCH}-daily-`date +"%m%d%y"`
+ifndef TAG
+  ifeq ($(BUILD_CAUSE),RELEASE)
+    ifneq ($(EMCOSRV_RELEASE_TAG),)
+      # remove "v" from e.g. "vXX.YY"
+      export TAG=${EMCOSRV_RELEASE_TAG:v%=%}
+    else
+      export TAG=$(shell git tag --points-at HEAD | awk 'NR==1 {print $1}')
+      ifeq ($(TAG),)
+        export TAG=${BRANCH}-daily-`date +"%m%d%y"`
+      endif
+    endif
+  else ifeq ($(BUILD_CAUSE),DEV_TEST)
+    export TAG=${USER}-latest
+  else ifeq ($(BUILD_CAUSE),TIMERTRIGGER)
+    export TAG=${BRANCH}-daily-`date +"%m%d%y"`-${COMMITID}
+  else
+    export TAG=latest
   endif
- endif
 endif
 
 clean-all:

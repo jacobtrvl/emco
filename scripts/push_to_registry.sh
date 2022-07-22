@@ -17,32 +17,10 @@ push_to_registry() {
 }
 
 if [ "${BUILD_CAUSE}" != "TIMERTRIGGER" ] && [ "${BUILD_CAUSE}" != "DEV_TEST" ] && [ "${BUILD_CAUSE}" != "RELEASE" ]; then
-    TAG="latest"
     exit 0
 fi
 
-if [ -z ${TAG} ]; then
-  TAG=${BRANCH}-daily-`date +"%Y%m%d"`
-fi
-
-if [ "${BUILD_CAUSE}" == "DEV_TEST" ]; then
-  TAG=${USER}-latest
-fi
-
-if [ "${BUILD_CAUSE}" == "TIMERTRIGGER" ] ; then
-  if [ -z "${CI_COMMIT_REF_NAME}" ]; then
-    CI_COMMIT_REF_NAME=${BRANCH}
-  fi
-  TAG=${CI_COMMIT_REF_NAME}-daily-`date +"%Y%m%d"`-${COMMITID}
-fi
-
 if [ "${BUILD_CAUSE}" == "RELEASE" ]; then
-  if [ ! -z ${EMCOSRV_RELEASE_TAG} ]; then
-    # remove first character of release tag, i.e. the "v"
-    TAG=${EMCOSRV_RELEASE_TAG:1}
-  else
-    TAG=${TAG}
-  fi
   if [ -z ${TAG} ]; then
     echo "HEAD has no tag associated with it"
     exit 0

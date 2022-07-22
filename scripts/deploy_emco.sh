@@ -62,12 +62,6 @@ EOF
   rm -rf ${BIN_PATH}/helm/monitor
 }
 
-if [ "${BUILD_CAUSE}" != "RELEASE" ];then
-  if [ -z ${TAG} ]; then
-    TAG=${BRANCH}-daily-`date +"%m%d%y"`
-  fi
-fi
-
 # check if it is a cron scheduled build
 if [ "${BUILD_CAUSE}" != "TIMERTRIGGER" ] && [ "${BUILD_CAUSE}" != "DEV_TEST" ] && [ "${BUILD_CAUSE}" != "RELEASE" ]; then
     echo "WARNING: this is not a CI build; skipping..."
@@ -77,26 +71,10 @@ if [ "${BUILD_CAUSE}" != "TIMERTRIGGER" ] && [ "${BUILD_CAUSE}" != "DEV_TEST" ] 
 fi
 
 if [ "${BUILD_CAUSE}" == "RELEASE" ]; then
-  if [ ! -z ${EMCOSRV_RELEASE_TAG} ]; then
-    TAG=${EMCOSRV_RELEASE_TAG}
-  else
-    TAG=${TAG}
-  fi
   if [ -z ${TAG} ]; then
     echo "HEAD has no tag associated with it"
     exit 0
   fi
-fi
-
-if [ "${BUILD_CAUSE}" == "DEV_TEST" ]; then
-  TAG=${USER}-latest
-fi
-
-if [ "${BUILD_CAUSE}" == "TIMERTRIGGER" ] ; then
-  if [ -z "${CI_COMMIT_REF_NAME}" ]; then
-    CI_COMMIT_REF_NAME=${BRANCH}
-  fi
-  TAG=${CI_COMMIT_REF_NAME}-daily-`date +"%m%d%y"`
 fi
 
 echo "Creating docker deployment - docker-compose.yml"
