@@ -21,6 +21,9 @@ func NewRouter(mockClient interface{}) *mux.Router {
 	h := intentHandler{
 		client: setClient(c.WorkflowIntentClient, mockClient).(module.WorkflowIntentManager),
 	}
+	w := workerHandler{
+		client: setClient(c.WorkerIntentClient, mockClient).(module.WorkerIntentManager),
+	}
 
 	// Temporal Action Hook Intent APIs Unit Test Cases for front end and back end
 	r.HandleFunc(baseURL, h.handleTacIntentCreate).Methods("POST")
@@ -31,6 +34,12 @@ func NewRouter(mockClient interface{}) *mux.Router {
 	// Cancel or get the status of a temporal action controller intent
 	r.HandleFunc(baseURL+"/{tac-intent}/cancel", h.handleTemporalWorkflowHookCancel).Methods("POST")
 	r.HandleFunc(baseURL+"/{tac-intent}/status", h.handleTemporalWorkflowHookStatus).Methods("GET")
+	// Worker APIs - Used to register workers in DIGs so TAC can dynamically deploy and terminate them.
+	r.HandleFunc(baseURL+"/{tac-intent}/workers", w.handleWorkerCreate).Methods("POST")
+	r.HandleFunc(baseURL+"/{tac-intent}/workers", w.handleWorkerGet).Methods("GET")
+	r.HandleFunc(baseURL+"/{tac-intent}/workers/{workers}", w.handleWorkerGet).Methods("GET")
+	r.HandleFunc(baseURL+"/{tac-intent}/workers/{workers}", w.handleWorkerUpdate).Methods("PUT")
+	r.HandleFunc(baseURL+"/{tac-intent}/workers/{workers}", w.handleWorkerDelete).Methods("DELETE")
 
 	return r
 }
@@ -43,6 +52,13 @@ func setClient(client, mockClient interface{}) interface{} {
 	case *module.WorkflowIntentClient:
 		if mockClient != nil && reflect.TypeOf(mockClient).Implements(reflect.TypeOf((*module.WorkflowIntentManager)(nil)).Elem()) {
 			c, ok := mockClient.(module.WorkflowIntentManager)
+			if ok {
+				return c
+			}
+		}
+	case *module.WorkerIntentClient:
+		if mockClient != nil && reflect.TypeOf(mockClient).Implements(reflect.TypeOf((*module.WorkerIntentManager)(nil)).Elem()) {
+			c, ok := mockClient.(module.WorkerIntentManager)
 			if ok {
 				return c
 			}

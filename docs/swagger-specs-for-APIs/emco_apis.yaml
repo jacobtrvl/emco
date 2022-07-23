@@ -7424,6 +7424,107 @@ paths:
         '500':
           description: Internal Server Error
 
+  /projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/temporal-action-controller/{tac-intent}/workers:
+    parameters:
+      - $ref: '#/components/parameters/projectName'
+      - $ref: '#/components/parameters/compositeAppName'
+      - $ref: '#/components/parameters/compositeAppVersion'
+      - $ref: '#/components/parameters/deploymentIntentGroupName'
+      - $ref: '#/components/parameters/temporalActionIntentHook'
+      
+    post:
+      tags:
+        - Temporal Action Controller
+      summary: Post a new worker
+      description: Adds a new `worker inent` to emco
+      operationId: addWorker
+      responses:
+        '201':
+          description: Success
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/WorkerIntent'
+        '400':
+          description: Bad Request
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '422':
+          description: Unprocessable Entity
+        '500':
+          description: Internal Server Error
+          
+  /projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/temporal-action-controller/{tac-intent}/workers/{workers}:
+    parameters:
+      - $ref: '#/components/parameters/projectName'
+      - $ref: '#/components/parameters/compositeAppName'
+      - $ref: '#/components/parameters/compositeAppVersion'
+      - $ref: '#/components/parameters/deploymentIntentGroupName'
+      - $ref: '#/components/parameters/temporalActionIntentHook'
+      - $ref: '#/components/parameters/WorkerIntent'
+      
+    get:
+      tags:
+        - Temporal Action Controller
+      summary: Get specific worker intent
+      description: Gets a specific `worker intent` from emco
+      operationId: getWorker
+      responses:
+        '200':
+          description: Success
+          
+        '400':
+          description: Bad Request
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '422':
+          description: Unprocessable Entity
+        '500':
+          description: Internal Server Error
+    delete:
+      tags:
+        - Temporal Action Controller
+      summary: Delete a specific worker intent
+      description: Deletes a specific `worker intent` from emco
+      operationId: deleteWorker
+      responses:
+        '204':
+          description: Success
+          
+        '400':
+          description: Bad Request
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '422':
+          description: Unprocessable Entity
+        '500':
+          description: Internal Server Error
+    put:
+      tags:
+        - Temporal Action Controller
+      summary: Update a specific worker intent
+      description: Updates a specific `worker intent` from emco
+      operationId: updateWorker
+      responses:
+        '201':
+          description: Success
+          
+        '400':
+          description: Bad Request
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '422':
+          description: Unprocessable Entity
+        '500':
+          description: Internal Server Error
 
 #########################SCHEMAS####################################################
 # An object to hold reusable parts that can be used across the definition
@@ -9442,6 +9543,25 @@ components:
               type: string
             queryParams:
               type: string
+    WorkerIntent:
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/MetadataBase'
+        spec:
+          type: object
+          properties:
+            taskQueue:
+              type: string
+            deploymentIntentGroup:
+              type: string
+            compositeApp:
+              type: string
+            compositeAppVersion:
+              type: string
+            project:
+              type: string
+    
 
 ############################ PARAMETERS #################################################
   parameters:
@@ -9811,6 +9931,14 @@ components:
       name: tac-intent
       in: path
       description: Name of Temporal Action Intent Hook
+      required: true
+      schema:
+        type: string
+        maxLength: 128
+    WorkerIntent:
+      name: workers
+      in: path
+      description: Name of tthe worker intent
       required: true
       schema:
         type: string
