@@ -68,8 +68,7 @@ func (c *StateClient) Get() (state.StateInfo, error) {
 		(len(values) > 0 &&
 			values[0] == nil) {
 		return state.StateInfo{}, &emcoerror.Error{
-			Message: emcoerror.StateInfoNotFound,
-			Type:    emcoerror.NotFound,
+			Kind: emcoerror.StateInfoNotFound,
 		}
 	}
 
@@ -83,8 +82,7 @@ func (c *StateClient) Get() (state.StateInfo, error) {
 	}
 
 	return state.StateInfo{}, &emcoerror.Error{
-		Message: emcoerror.UnknownErrorMessage,
-		Type:    emcoerror.Unknown,
+		Kind: emcoerror.UnknownError,
 	}
 }
 
@@ -117,7 +115,8 @@ func (c *StateClient) Update(newState state.StateValue,
 
 	switch e := err.(type) {
 	case *emcoerror.Error:
-		if e.Type == emcoerror.NotFound &&
+		// Here's an example of error handling with the new format (looking at the original "Kind" of error instead of the more ambiguous ErrorType):
+		if e.Kind == emcoerror.CaCertNotFound &&
 			createIfNotExists {
 			return c.Create(contextID)
 		}
@@ -146,16 +145,17 @@ func (sc *StateClient) VerifyState(event LifeCycleEvent) (string, error) {
 		if err != nil {
 			return contextID, err
 		}
-
+		// Seems like all cases use the same Error/Message, so defining it here:
+		errkind := emcoerror.GeneralConflict
+		errkind.Message = (&emcoerror.StateError{
+			Resource: "CaCert",
+			Event:    string(event),
+			Status:   status.Status,
+		}).Error()
 		switch status.Status {
 		case appcontext.AppContextStatusEnum.Terminating:
 			err := &emcoerror.Error{
-				Message: (&emcoerror.StateError{
-					Resource: "CaCert",
-					Event:    string(event),
-					Status:   status.Status,
-				}).Error(),
-				Type: emcoerror.Conflict,
+				Kind: errkind,
 			}
 			logutils.Error("",
 				logutils.Fields{
@@ -164,11 +164,7 @@ func (sc *StateClient) VerifyState(event LifeCycleEvent) (string, error) {
 			return contextID, err
 		case appcontext.AppContextStatusEnum.Instantiating:
 			err := &emcoerror.Error{
-				Message: (&emcoerror.StateError{
-					Resource: "CaCert",
-					Event:    string(event),
-					Status:   status.Status}).Error(),
-				Type: emcoerror.Conflict,
+				Kind: errkind,
 			}
 			logutils.Error("",
 				logutils.Fields{
@@ -177,11 +173,7 @@ func (sc *StateClient) VerifyState(event LifeCycleEvent) (string, error) {
 			return contextID, err
 		case appcontext.AppContextStatusEnum.TerminateFailed:
 			err := &emcoerror.Error{
-				Message: (&emcoerror.StateError{
-					Resource: "CaCert",
-					Event:    string(event),
-					Status:   status.Status}).Error(),
-				Type: emcoerror.Conflict,
+				Kind: errkind,
 			}
 			logutils.Error("",
 				logutils.Fields{
@@ -195,11 +187,7 @@ func (sc *StateClient) VerifyState(event LifeCycleEvent) (string, error) {
 				return contextID, nil
 			case TerminateEvent:
 				err := &emcoerror.Error{
-					Message: (&emcoerror.StateError{
-						Resource: "CaCert",
-						Event:    string(event),
-						Status:   status.Status}).Error(),
-					Type: emcoerror.Conflict,
+					Kind: errkind,
 				}
 				logutils.Error("",
 					logutils.Fields{
@@ -211,11 +199,7 @@ func (sc *StateClient) VerifyState(event LifeCycleEvent) (string, error) {
 			switch event {
 			case InstantiateEvent:
 				err := &emcoerror.Error{
-					Message: (&emcoerror.StateError{
-						Resource: "CaCert",
-						Event:    string(event),
-						Status:   status.Status}).Error(),
-					Type: emcoerror.Conflict,
+					Kind: errkind,
 				}
 				logutils.Error("",
 					logutils.Fields{
@@ -229,11 +213,7 @@ func (sc *StateClient) VerifyState(event LifeCycleEvent) (string, error) {
 			switch event {
 			case InstantiateEvent:
 				err := &emcoerror.Error{
-					Message: (&emcoerror.StateError{
-						Resource: "CaCert",
-						Event:    string(event),
-						Status:   status.Status}).Error(),
-					Type: emcoerror.Conflict,
+					Kind: errkind,
 				}
 				logutils.Error("",
 					logutils.Fields{
@@ -246,11 +226,7 @@ func (sc *StateClient) VerifyState(event LifeCycleEvent) (string, error) {
 			}
 		default:
 			err := &emcoerror.Error{
-				Message: (&emcoerror.StateError{
-					Resource: "CaCert",
-					Event:    string(event),
-					Status:   status.Status}).Error(),
-				Type: emcoerror.Conflict,
+				Kind: errkind,
 			}
 			logutils.Error("",
 				logutils.Fields{

@@ -49,9 +49,13 @@ func (c *CaCertClient) CreateCert(cert CaCert, failIfExists bool) (CaCert, bool,
 
 	if certExists &&
 		failIfExists {
+		// Since CaCertAlreadyExists has a default message,
+		// which is appropriate in this usage, and a default HTTP status code,
+		// there's nothing else we need to do in the instantiation of the following Error.
+		// And this will be the case for the majority of cases.
+		// Further down this file we can see instances of the ErrorKind message being overriden.
 		return CaCert{}, certExists, &emcoerror.Error{
-			Message: CaCertAlreadyExists,
-			Type:    emcoerror.Conflict,
+			Kind: emcoerror.CaCertAlreadyExists,
 		}
 	}
 
@@ -95,8 +99,7 @@ func (c *CaCertClient) GetCert() (CaCert, error) {
 
 	if len(value) == 0 {
 		return CaCert{}, &emcoerror.Error{
-			Message: CaCertNotFound,
-			Type:    emcoerror.NotFound,
+			Kind: emcoerror.CaCertNotFound,
 		}
 	}
 
@@ -109,8 +112,7 @@ func (c *CaCertClient) GetCert() (CaCert, error) {
 	}
 
 	return CaCert{}, &emcoerror.Error{
-		Message: emcoerror.UnknownErrorMessage,
-		Type:    emcoerror.Unknown,
+		Kind: emcoerror.UnknownError,
 	}
 }
 
@@ -134,9 +136,11 @@ func (c *CaCertClient) VerifyStateBeforeDelete(cert, lifecycle string) error {
 
 	if cState == state.StateEnum.Instantiated ||
 		cState == state.StateEnum.InstantiateStopped {
+		// Here's an example of overriding the default message for a particular ErrorType, when needed:
+		errkind := emcoerror.GeneralConflict
+		errkind.Message = fmt.Sprintf("%s must be terminated for CaCert %s before it can be deleted", lifecycle, cert)
 		err := &emcoerror.Error{
-			Message: fmt.Sprintf("%s must be terminated for CaCert %s before it can be deleted", lifecycle, cert),
-			Type:    emcoerror.Conflict,
+			Kind: errkind,
 		}
 		logutils.Error("",
 			logutils.Fields{
@@ -152,9 +156,11 @@ func (c *CaCertClient) VerifyStateBeforeDelete(cert, lifecycle string) error {
 		if err == nil &&
 			!(acStatus.Status == appcontext.AppContextStatusEnum.Terminated ||
 				acStatus.Status == appcontext.AppContextStatusEnum.TerminateFailed) {
+			// Overriding again here:
+			errkind := emcoerror.GeneralConflict
+			errkind.Message = fmt.Sprintf("%s termination has not completed for CaCert %s", lifecycle, cert)
 			err := &emcoerror.Error{
-				Message: fmt.Sprintf("%s termination has not completed for CaCert %s", lifecycle, cert),
-				Type:    emcoerror.Conflict,
+				Kind: errkind,
 			}
 			logutils.Error("",
 				logutils.Fields{
@@ -200,9 +206,11 @@ func (c *CaCertClient) VerifyStateBeforeUpdate(cert, lifecycle string) error {
 	}
 
 	if cState != state.StateEnum.Created {
+		// Overriding again here:
+		errkind := emcoerror.GeneralConflict
+		errkind.Message = fmt.Sprintf("Failed to update the CaCert. %s for the CaCert %s is in %s state", lifecycle, cert, cState)
 		err := &emcoerror.Error{
-			Message: fmt.Sprintf("Failed to update the CaCert. %s for the CaCert %s is in %s state", lifecycle, cert, cState),
-			Type:    emcoerror.Conflict,
+			Kind: errkind,
 		}
 		logutils.Error("",
 			logutils.Fields{

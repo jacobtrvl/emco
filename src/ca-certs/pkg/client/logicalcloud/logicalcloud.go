@@ -6,7 +6,6 @@ package logicalcloud
 import (
 	"reflect"
 
-	"gitlab.com/project-emco/core/emco-base/src/ca-certs/pkg/module"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/common/emcoerror"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
 )
@@ -55,8 +54,7 @@ func (c *CaCertLogicalCloudClient) CreateLogicalCloud(logicalCloud CaCertLogical
 	if lcExists &&
 		failIfExists {
 		return CaCertLogicalCloud{}, lcExists, &emcoerror.Error{
-			Message: module.CaCertLogicalCloudAlreadyExists,
-			Type:    emcoerror.Conflict,
+			Kind: emcoerror.CaCertLogicalCloudAlreadyExists,
 		}
 	}
 
@@ -114,8 +112,7 @@ func (c *CaCertLogicalCloudClient) GetLogicalCloud(logicalCloud, cert, project s
 
 	if len(value) == 0 {
 		return CaCertLogicalCloud{}, &emcoerror.Error{
-			Message: module.CaCertLogicalCloudNotFound,
-			Type:    emcoerror.NotFound,
+			Kind: emcoerror.CaCertLogicalCloudNotFound,
 		}
 	}
 
@@ -128,7 +125,6 @@ func (c *CaCertLogicalCloudClient) GetLogicalCloud(logicalCloud, cert, project s
 	}
 
 	return CaCertLogicalCloud{}, &emcoerror.Error{
-		Message: emcoerror.UnknownErrorMessage,
-		Type:    emcoerror.Unknown,
+		Kind: emcoerror.UnknownError,
 	}
 }

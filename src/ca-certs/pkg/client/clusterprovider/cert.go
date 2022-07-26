@@ -52,8 +52,7 @@ func (c *CaCertClient) CreateCert(cert module.CaCert, clusterProvider string, fa
 	if certExists &&
 		failIfExists {
 		return module.CaCert{}, certExists, &emcoerror.Error{
-			Message: module.CaCertAlreadyExists,
-			Type:    emcoerror.Conflict,
+			Kind: emcoerror.CaCertAlreadyExists,
 		}
 	}
 
@@ -106,7 +105,7 @@ func (c *CaCertClient) DeleteCert(cert, clusterProvider string) error {
 		// if the StateInfo cannot be found, then a caCert record may not present
 		switch e := err.(type) {
 		case *emcoerror.Error:
-			if e.Type != emcoerror.NotFound {
+			if e.Kind != emcoerror.CaCertNotFound {
 				return e
 			}
 		default:
@@ -119,7 +118,7 @@ func (c *CaCertClient) DeleteCert(cert, clusterProvider string) error {
 		// if the StateInfo cannot be found, then a caCert record may not present
 		switch e := err.(type) {
 		case *emcoerror.Error:
-			if e.Type != emcoerror.NotFound {
+			if e.Kind != emcoerror.CaCertNotFound {
 				return e
 			}
 		default:

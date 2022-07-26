@@ -48,8 +48,7 @@ func (c *ClusterGroupClient) CreateClusterGroup(group ClusterGroup, failIfExists
 	if cExists &&
 		failIfExists {
 		return ClusterGroup{}, cExists, &emcoerror.Error{
-			Message: CaCertClusterGroupAlreadyExists,
-			Type:    emcoerror.Conflict,
+			Kind: emcoerror.CaCertClusterGroupAlreadyExists,
 		}
 	}
 
@@ -93,8 +92,7 @@ func (c *ClusterGroupClient) GetClusterGroup() (ClusterGroup, error) {
 
 	if len(value) == 0 {
 		return ClusterGroup{}, &emcoerror.Error{
-			Message: CaCertClusterGroupNotFound,
-			Type:    emcoerror.NotFound,
+			Kind: emcoerror.CaCertClusterGroupNotFound,
 		}
 	}
 
@@ -107,8 +105,7 @@ func (c *ClusterGroupClient) GetClusterGroup() (ClusterGroup, error) {
 	}
 
 	return ClusterGroup{}, &emcoerror.Error{
-		Message: emcoerror.UnknownErrorMessage,
-		Type:    emcoerror.Unknown,
+		Kind: emcoerror.UnknownError,
 	}
 }
 

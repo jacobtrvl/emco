@@ -9,7 +9,6 @@ import (
 	"github.com/gorilla/mux"
 	"gitlab.com/project-emco/core/emco-base/src/ca-certs/pkg/client/clusterprovider"
 	"gitlab.com/project-emco/core/emco-base/src/ca-certs/pkg/module"
-	"gitlab.com/project-emco/core/emco-base/src/orchestrator/common/emcoerror"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 )
 
@@ -28,8 +27,11 @@ func (h *cpCertHandler) handleCertificateDelete(w http.ResponseWriter, r *http.R
 	// get the route variables
 	vars := _cpVars(mux.Vars(r))
 	if err := h.manager.DeleteCert(vars.cert, vars.clusterProvider); err != nil {
-		apiErr := emcoerror.HandleAPIError(err)
-		http.Error(w, apiErr.Message, apiErr.Status)
+		// Here's example of the one-liner I mentioned about converting from internal error (Kind) to HTTP status code:
+		http.Error(w, err.Kind.Message, err.Kind.HTTPStatusCode)
+		// However, this assumes the functions have return Error instead of err, so this doesn't actually work as is,
+		// so the functions would have to start return EMCO-specific Errors instead of Go errors.
+		// Or something equivalent.
 		return
 	}
 
@@ -52,8 +54,7 @@ func (h *cpCertHandler) handleCertificateGet(w http.ResponseWriter, r *http.Requ
 	}
 
 	if err != nil {
-		apiErr := emcoerror.HandleAPIError(err)
-		http.Error(w, apiErr.Message, apiErr.Status)
+		http.Error(w, err.Kind.Message, err.Kind.HTTPStatusCode)
 		return
 	}
 
@@ -98,8 +99,7 @@ func (h *cpCertHandler) createOrUpdateCertificate(w http.ResponseWriter, r *http
 
 	crt, certExists, err := h.manager.CreateCert(cert, vars.clusterProvider, methodPost)
 	if err != nil {
-		apiErr := emcoerror.HandleAPIError(err)
-		http.Error(w, apiErr.Message, apiErr.Status)
+		http.Error(w, err.Kind.Message, err.Kind.HTTPStatusCode)
 		return
 	}
 

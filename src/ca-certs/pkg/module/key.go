@@ -57,8 +57,7 @@ func (c *KeyClient) Get() (Key, error) {
 
 	if len(value) == 0 {
 		return Key{}, &emcoerror.Error{
-			Message: KeyNotFound,
-			Type:    emcoerror.NotFound,
+			Kind: emcoerror.CaKeyNotFound,
 		}
 	}
 
@@ -71,7 +70,6 @@ func (c *KeyClient) Get() (Key, error) {
 	}
 
 	return Key{}, &emcoerror.Error{
-		Message: emcoerror.UnknownErrorMessage,
-		Type:    emcoerror.Unknown,
+		Kind: emcoerror.UnknownError,
 	}
 }
