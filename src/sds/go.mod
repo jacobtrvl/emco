@@ -11,7 +11,6 @@ require (
 	gitlab.com/project-emco/core/emco-base/src/monitor v0.0.0-00010101000000-000000000000
 	gitlab.com/project-emco/core/emco-base/src/orchestrator v0.0.0-00010101000000-000000000000
 	gitlab.com/project-emco/core/emco-base/src/rsync v0.0.0-00010101000000-000000000000
-	google.golang.org/grpc v1.43.0
 	gopkg.in/yaml.v2 v2.4.0
 	k8s.io/api v0.23.3
 	k8s.io/apimachinery v0.23.3
