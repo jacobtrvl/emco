@@ -47,6 +47,20 @@ func setClient(client, testClient interface{}) interface{} {
 				return c
 			}
 		}
+	case *module.OutboundClientIntentDbClient:
+		if testClient != nil && reflect.TypeOf(testClient).Implements(reflect.TypeOf((*module.OutboundClientIntentManager)(nil)).Elem()) {
+			c, ok := testClient.(module.OutboundClientIntentManager)
+			if ok {
+				return c
+			}
+		}
+	case *module.OutboundServerIntentDbClient:
+		if testClient != nil && reflect.TypeOf(testClient).Implements(reflect.TypeOf((*module.OutboundServerIntentManager)(nil)).Elem()) {
+			c, ok := testClient.(module.OutboundServerIntentManager)
+			if ok {
+				return c
+			}
+		}
 	case *controller.ControllerClient:
 		if testClient != nil && reflect.TypeOf(testClient).Implements(reflect.TypeOf((*controller.ControllerManager)(nil)).Elem()) {
 			c, ok := testClient.(controller.ControllerManager)
@@ -101,6 +115,24 @@ func NewRouter(testClient interface{}) *mux.Router {
 	router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/traffic-group-intents/{trafficGroupIntent}/inbound-intents/{inboundServerIntent}/clients/{inboundClientsIntent}/access-points/{inboundClientsAccessIntent}", inboundclientsaccessintentHandler.getHandler).Methods("GET")
 	router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/traffic-group-intents/{trafficGroupIntent}/inbound-intents/{inboundServerIntent}/clients/{inboundClientsIntent}/access-points/{inboundClientsAccessIntent}", inboundclientsaccessintentHandler.putHandler).Methods("PUT")
 	router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/traffic-group-intents/{trafficGroupIntent}/inbound-intents/{inboundServerIntent}/clients/{inboundClientsIntent}/access-points/{inboundClientsAccessIntent}", inboundclientsaccessintentHandler.deleteHandler).Methods("DELETE")
+
+	outboundclientintentHandler := outboundclientintentHandler{
+		client: setClient(moduleClient.ClientOutboundIntent, testClient).(module.OutboundClientIntentManager),
+	}
+	router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/traffic-group-intents/{trafficGroupIntent}/outbound-intents", outboundclientintentHandler.createHandler).Methods("POST")
+	router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/traffic-group-intents/{trafficGroupIntent}/outbound-intents/{outboundClientIntent}", outboundserverintentHandler.getHandler).Methods("GET")
+	router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/traffic-group-intents/{trafficGroupIntent}/outbound-intents", outboundclientintentHandler.getHandler).Methods("GET")
+	router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/traffic-group-intents/{trafficGroupIntent}/outbound-intents/{outboundClientIntent}", outboundclientintentHandler.putHandler).Methods("PUT")
+	router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/traffic-group-intents/{trafficGroupIntent}/outbound-intents/{outboundClientIntent}", outboundclientintentHandler.deleteHandler).Methods("DELETE")
+
+	outboundserverintentHandler := outboundserverintentHandler{
+		client: setClient(moduleClient.ServerOutboundIntent, testClient).(module.OutboundServerIntentManager),
+	}
+	router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/traffic-group-intents/{trafficGroupIntent}/outbound-intents/{outboundClientIntent}/server", outboundserverintentHandler.createHandler).Methods("POST")
+	router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/traffic-group-intents/{trafficGroupIntent}/outbound-intents/{outboundClientIntent}/server", outboundserverintentHandler.getHandler).Methods("GET")
+	router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/traffic-group-intents/{trafficGroupIntent}/outbound-intents/{outboundClientIntent}/server/{outboundClientIntent}", outboundserverintentHandler.getHandler).Methods("GET")
+	router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/traffic-group-intents/{trafficGroupIntent}/outbound-intents/{outboundClientIntent}/server/{outboundClientIntent}", outboundserverintentHandler.putHandler).Methods("PUT")
+	router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/traffic-group-intents/{trafficGroupIntent}/outbound-intents/{outboundServerIntent}/server/{outboundClientIntent}", outboundserverintentHandler.deleteHandler).Methods("DELETE")
 
 	controlHandler := controllerHandler{
 		client: setClient(moduleClient.Controller, testClient).(controller.ControllerManager),
