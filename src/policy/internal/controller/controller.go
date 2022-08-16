@@ -1,3 +1,18 @@
+//=======================================================================
+// Copyright (c) 2022 Aarna Networks, Inc.
+// All rights reserved.
+// ======================================================================
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//           http://www.apache.org/licenses/LICENSE-2.0
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// ========================================================================
+
 package controller
 
 import (
@@ -5,34 +20,29 @@ import (
 	event "emcopolicy/internal/events"
 	"emcopolicy/internal/intent"
 	events "emcopolicy/pkg/grpc"
+	"emcopolicy/pkg/plugins"
 	"github.com/pkg/errors"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
 	"sync"
 )
 
-func Init() (*Controller, error) {
+func Init(args ...string) (*Controller, error) {
 	err := db.InitializeDatabaseConnection("emco")
+	if err != nil {
+		return nil, err
+	}
 	if err != nil {
 		return nil, errors.Errorf("Unable to initialize mongo database connection: %s", err)
 	}
-	/* TODO For unit testing. Remove once proper unit test code is in
-	item := make(map[string]map[string][]byte)
-	items := []map[string]map[string][]byte{item}
-	dbTest := db.MockDB{
-		Items:      items,
-		Err:        nil,
-		MarshalErr: nil,
-	} */
 
 	// DB connection is a package level variable (db.DBconn) in orchestrator db package.
 	// Scoping this to the client context for better readability
 	c := &Controller{
-		db: db.DBconn,
-		//db:        &dbTest,
+		db:        db.DBconn,
 		tag:       "data",
 		storeName: "resources",
 		reverseMap: &ReverseMap{
-			eventMap: make(map[event.Event][]intent.Intent),
+			eventMap: make(map[intent.Event][]intent.Intent),
 			mutex:    sync.RWMutex{},
 		},
 		agentMap: &AgentMap{
@@ -44,6 +54,7 @@ func Init() (*Controller, error) {
 		agentStream:     make(chan event.StreamAgentData),
 		requireRecovery: make(chan any),
 		eventsQueue:     make(chan *events.Event, 100),
+		actors:          make(map[string]event.Actor),
 	}
 	c.policyClient = intent.NewClient(intent.Config{
 		Db:           c.db,
@@ -57,6 +68,9 @@ func Init() (*Controller, error) {
 		StoreName:   c.storeName,
 		AgentStream: c.agentStream,
 	})
+	c.actors["temporal"] = &plugins.TemporalActor{
+		WorkFlowMgrUrl: args[0],
+	}
 
 	key := Module{"Agent"}
 	err = c.db.Insert(c.storeName, key, nil, c.tag, key)
@@ -71,12 +85,14 @@ func (c *Controller) StartScheduler(ctx context.Context) error {
 	if err != nil {
 		return errors.Wrap(err, "Starting OperationalScheduler failed")
 	}
+	// Starting AgentManager before the call BuildAgentMap to avoid
+	// requireRecovery channel getting blocked
+	go c.AgentManager(ctx)
 	err = c.BuildAgentMap(ctx)
 	if err != nil {
 		return errors.Wrap(err, "Starting OperationalScheduler failed")
 	}
 	go c.OperationalScheduler(ctx)
-	go c.AgentManager(ctx)
 	go c.EventsManager(ctx)
 	return nil
 }

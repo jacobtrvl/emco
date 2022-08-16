@@ -1,3 +1,18 @@
+//=======================================================================
+// Copyright (c) 2022 Aarna Networks, Inc.
+// All rights reserved.
+// ======================================================================
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//           http://www.apache.org/licenses/LICENSE-2.0
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// ========================================================================
+
 package controller
 
 import (
@@ -6,10 +21,14 @@ import (
 	"emcopolicy/internal/intent"
 	events "emcopolicy/pkg/grpc"
 	"encoding/json"
+	"fmt"
+	"github.com/pkg/errors"
 	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 	"go.mongodb.org/mongo-driver/bson"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
+	"io/ioutil"
+	"net/http"
 	"time"
 )
 
@@ -38,7 +57,9 @@ func (c *Controller) OperationalScheduler(ctx context.Context) {
 	}
 }
 
-// AgentManager blah blah
+// AgentManager manages the agent threads.  It runs one thread per registered
+// agent. These threads start a rpc connection with agent it is managing.
+// This method watch the status of these threads, and restart if required.
 func (c *Controller) AgentManager(ctx context.Context) {
 	log.Info("Starting Agent Manager", log.Fields{})
 	for {
@@ -82,6 +103,9 @@ func (c *Controller) AgentManager(ctx context.Context) {
 	}
 }
 
+// EventsManager continuously watch for new events from agents.
+// New events are queued to eventsQueue by the agent threads.
+// EventsManager dequeue them and process the event.
 func (c *Controller) EventsManager(_ context.Context) {
 	log.Info("Starting Events manager", log.Fields{})
 	for e := range c.eventsQueue {
@@ -89,11 +113,18 @@ func (c *Controller) EventsManager(_ context.Context) {
 	}
 }
 
+// markForRecovery is  passed as cancellation function for agent threads
+// It mark that thread for this agentID is closed.
+// AgentManager will restart the thread in its next run.
+// Major reason for agent thread closing is the connection getting closed
+// from agent side.
 func (c *Controller) markForRecovery(id AgentID) {
 	c.agentMap.MarkForRecovery(id)
 	c.requireRecovery <- struct{}{}
 }
 
+// handleAgentUpdate Append/Delete the agent update to the runtime data structure.
+// This method should be called only after the updates are persisted.
 func (c *Controller) handleAgentUpdate(_ context.Context, data event.StreamAgentData) {
 	if c.agentMap == nil || c.agentMap.runtime == nil {
 		log.Fatal("AgentMap or runtime is nil", log.Fields{})
@@ -107,6 +138,8 @@ func (c *Controller) handleAgentUpdate(_ context.Context, data event.StreamAgent
 
 }
 
+// handleIntentUpdate Append/Delete the intent update to the runtime data structure.
+// This method should be called only after the updates are persisted.
 func (c *Controller) handleIntentUpdate(ctx context.Context, data intent.StreamData) {
 	switch data.Operation {
 	case "DELETE":
@@ -178,9 +211,14 @@ func (c *Controller) appendAgent(agent event.AgentSpec) {
 	c.requireRecovery <- struct{}{}
 }
 
+// processEvent process the events from data. It does  the following steps
+//   1. Decodes the events from protobuf format.
+//   2. Converts event, intent, agentSpec into json format
+//   3. Pass these data for further processing. (Policy evaluation and action)
 func (c *Controller) processEvent(e *events.Event) {
 	agentId := e.AgentId
 	eventId := e.EventId
+	contextId := e.ContextId
 	log.Debug("Processing event", log.Fields{"id": eventId, "agent": agentId})
 	// Convert agent spec from proto format to Json
 	agentSpec, err := anypb.UnmarshalNew(e.Spec, proto.UnmarshalOptions{})
@@ -194,41 +232,76 @@ func (c *Controller) processEvent(e *events.Event) {
 		return
 	}
 	// Convert event message from proto format to Json
-	eventMessage, err := anypb.UnmarshalNew(e.Message, proto.UnmarshalOptions{})
+	//eventMessageJson, err := json.Marshal(e.MetricList)
+	eventMessageJson := e.MetricList
 	if err != nil {
 		log.Error("processEvent failed", log.Fields{"err": err, "id": eventId, "agent": agentId})
 		return
 	}
-	eventMessageJson, err := json.Marshal(eventMessage)
+	contextMeta, err := c.getContextMeta(contextId)
 	if err != nil {
 		log.Error("processEvent failed", log.Fields{"err": err, "id": eventId, "agent": agentId})
 		return
 	}
 	// Process events with Agent ID mentioned in policy intent
-	eventSpec := event.Event{
+	eventSpec := intent.Event{
 		Id:      eventId,
 		AgentID: agentId,
 	}
 	// Deep copying the intent. This allows remaining tasks,
 	// which can be time-consuming to do without taking lock
-	intentJsons, err := c.reverseMap.GetIntents(eventSpec)
+	intentJsons, err := c.reverseMap.GetIntents(eventSpec, contextMeta)
 	if err != nil {
 		log.Error("processEvent failed", log.Fields{"err": err, "id": eventId, "agent": agentId})
 		return
 	}
 	// Process events without Agent ID mentioned in policy intent
-	eventSpec = event.Event{
+	eventSpec = intent.Event{
 		Id:      eventId,
 		AgentID: "",
 	}
-	temp, err := c.reverseMap.GetIntents(eventSpec)
+
+	temp, err := c.reverseMap.GetIntents(eventSpec, contextMeta)
 	if err != nil {
 		log.Error("processEvent failed", log.Fields{"err": err, "id": eventId, "agent": agentId})
 		return
 	}
 	intentJsons = append(intentJsons, temp...)
 	// Execute events for each attached intent
+	log.Debug("Processing event", log.Fields{"Event": string(eventMessageJson)})
+	fmt.Println("Processing event:", string(eventMessageJson))
 	for _, intentJson := range intentJsons {
 		go c.ExecuteEvent(intentJson, agentSpecJson, eventMessageJson)
 	}
+}
+
+func (c *Controller) getContextMeta(contextId string) (ContextMeta, error) {
+	contextMetaJson, err := c.getContextMetaFromDB(contextId)
+	if err != nil {
+		return ContextMeta{}, errors.Wrap(err, "Failed to get context metadata from contextDB")
+	}
+	var contextMeta ContextMeta
+	err = json.Unmarshal(contextMetaJson, &contextMeta)
+	if err != nil {
+		return ContextMeta{}, errors.Wrap(err, "Failed to parse context metadata")
+	}
+	return contextMeta, err
+}
+
+// getContextMetaFromDB is a workaround for etcd library issue.
+// Ideally we should use the ContextDB library provided by EMCO orchestrator
+// But the etcd library that ContextDB using is not backward compatible and has conflict with this module.
+// Hence, we are going for a separate service for reading from ContextDB
+func (c *Controller) getContextMetaFromDB(contextId string) ([]byte, error) {
+	response, err := http.Get("http://10.110.92.100:9080/v2/get/" + contextId)
+	log.Debug("Response from Engine", log.Fields{"Response": response})
+	if err != nil {
+		return nil, err
+	}
+	defer response.Body.Close()
+	body, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		return nil, err
+	}
+	return body, nil
 }
