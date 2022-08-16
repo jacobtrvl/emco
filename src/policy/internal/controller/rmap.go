@@ -1,3 +1,18 @@
+//=======================================================================
+// Copyright (c) 2022 Aarna Networks, Inc.
+// All rights reserved.
+// ======================================================================
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//           http://www.apache.org/licenses/LICENSE-2.0
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// ========================================================================
+
 package controller
 
 import (
@@ -29,8 +44,8 @@ func (c *Controller) BuildReverseMap(ctx context.Context) error {
 	return nil
 }
 
-// BuildAgentMap builds a reverse map of events to policy.
-// Should be called only during boot up, when no other controller threads are running
+// BuildAgentMap builds the runtime map of agents from db.
+// AgentManager should be started before calling this method, otherwise this will block
 func (c *Controller) BuildAgentMap(ctx context.Context) error {
 	agents, err := c.getAllAgents(ctx)
 	if err != nil {
@@ -48,11 +63,12 @@ func (c *Controller) BuildAgentMap(ctx context.Context) error {
 		}
 		c.agentMap.runtime[AgentID(agent.Id)] = runtime
 	}
+	c.requireRecovery <- struct{}{}
 	return nil
 }
 
 // AddPolicyIntent adds an intent from event's intentList in eventMap
-func (m *ReverseMap) AddPolicyIntent(e event.Event, p intent.Intent) {
+func (m *ReverseMap) AddPolicyIntent(e intent.Event, p intent.Intent) {
 	var index int
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
@@ -75,7 +91,7 @@ func (m *ReverseMap) AddPolicyIntent(e event.Event, p intent.Intent) {
 }
 
 // RemovePolicyIntent deletes an intent from event's intentList in eventMap
-func (m *ReverseMap) RemovePolicyIntent(e event.Event, p intent.Intent) error {
+func (m *ReverseMap) RemovePolicyIntent(e intent.Event, p intent.Intent) error {
 	var index int
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
@@ -94,7 +110,7 @@ func (m *ReverseMap) RemovePolicyIntent(e event.Event, p intent.Intent) error {
 }
 
 // GetPolicyIntentList returns intentList of an event from eventMap
-func (m *ReverseMap) GetPolicyIntentList(e event.Event) (error, []intent.Intent) {
+func (m *ReverseMap) GetPolicyIntentList(e intent.Event) (error, []intent.Intent) {
 	m.mutex.RLock()
 	defer m.mutex.RUnlock()
 	if _, ok := m.eventMap[e]; !ok {
@@ -108,13 +124,16 @@ func (m *ReverseMap) GetPolicyIntentList(e event.Event) (error, []intent.Intent)
 	return nil, intentCopy
 }
 
-func (m *ReverseMap) GetIntents(event event.Event) ([][]byte, error) {
+func (m *ReverseMap) GetIntents(event intent.Event, contextSpec ContextMeta) ([][]byte, error) {
 	var (
 		intents [][]byte
 	)
 	m.mutex.RLock()
 	defer m.mutex.RUnlock()
 	for _, i := range m.eventMap[event] {
+		if !isSameContext(i.Spec, contextSpec) {
+			continue
+		}
 		data, err := json.Marshal(i.Spec)
 		intents = append(intents, data)
 		if err != nil {
@@ -123,6 +142,17 @@ func (m *ReverseMap) GetIntents(event event.Event) ([][]byte, error) {
 	}
 	return intents, nil
 }
+
+// isSameContext compare the intent with context.
+func isSameContext(intentSpec intent.Spec, contextSpec ContextMeta) bool {
+	return intentSpec.Project == contextSpec.Project &&
+		intentSpec.CompositeApp == contextSpec.CompositeApp &&
+		intentSpec.CompositeAppVersion == contextSpec.Version &&
+		intentSpec.DeploymentIntentGroup == contextSpec.DeploymentIntentGroup
+}
+
+// Cancel method cancels the context.
+// Required when deleting the agent, to stop the thread.
 func (m *AgentMap) Cancel(id AgentID) {
 	m.mutex.RLock()
 	defer m.mutex.RUnlock()
@@ -161,12 +191,15 @@ func (m *AgentMap) UpdateSpec(id AgentID, spec event.AgentSpec) {
 	}
 }
 
+// MarkForRecovery is the cancel function passed to the agent threads
+// It marks the runtime data structure as thread exited
 func (m *AgentMap) MarkForRecovery(id AgentID) {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 	if runtime, ok := m.runtime[id]; ok {
-		//A small delay to avoid busy looping in case of agent errors
-		time.Sleep(time.Second)
+		// A small delay to avoid busy looping in case of agent errors
+		// We can move an exponential algorithm in the future.
+		time.Sleep(time.Second * 5)
 		runtime.isRunning = false
 	}
 }

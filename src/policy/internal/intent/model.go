@@ -1,7 +1,21 @@
+//=======================================================================
+// Copyright (c) 2022 Aarna Networks, Inc.
+// All rights reserved.
+// ======================================================================
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//           http://www.apache.org/licenses/LICENSE-2.0
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// ========================================================================
+
 package intent
 
 import (
-	event "emcopolicy/internal/events"
 	"encoding/json"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
 )
@@ -34,8 +48,16 @@ type Spec struct {
 	Policy                PolicySpec       `json:"policy"`
 	Actor                 string           `json:"actor"`
 	ActorArg              *json.RawMessage `json:"actorArg,omitempty"`
-	Event                 event.Event      `json:"event"`
-	SupportingEvents      []event.Event    `json:"supportingEvent,omitempty"`
+	Event                 Event            `json:"event"`
+	SupportingEvents      []Event          `json:"supportingEvent,omitempty"`
+}
+
+// Event defines an event/metrics. Controller identifies using this id.
+// Redefining events here to avoid import cycle. Originally defined in Events package
+// TODO: Refactor this to avoid import cycle and multiple definitions
+type Event struct {
+	Id      string `json:"id"`
+	AgentID string `json:"agent,omitempty"`
 }
 
 type Intent struct {

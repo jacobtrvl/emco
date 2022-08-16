@@ -11,8 +11,10 @@ service events{
 message Event {
   string eventId = 1;
   string agentId = 2;
-  google.protobuf.Any spec = 3;
-  google.protobuf.Any message = 4;
+  string contextId = 3;
+  string appName = 4;
+  google.protobuf.Any spec = 5;
+  bytes metricList = 6;
 }
 
 message ServerSpec {
@@ -22,11 +24,3 @@ message ServerSpec {
 message AgentSpec {
   string agentId = 1;
 }
-
-message AgentMessage {
-  string method = 1;
-  string owner = 2;
-  repeated string path = 3;
-  string user = 4;
-}
-
