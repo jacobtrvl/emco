@@ -1,3 +1,18 @@
+//=======================================================================
+// Copyright (c) 2022 Aarna Networks, Inc.
+// All rights reserved.
+// ======================================================================
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//           http://www.apache.org/licenses/LICENSE-2.0
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// ========================================================================
+
 package controller
 
 import (
@@ -11,6 +26,10 @@ import (
 	"net/http"
 )
 
+// ExecuteEvent is the core of the Policy evaluation logic
+// It evaluates the event by calling the policy engine, as per the intent.
+// Evaluation result is passed to the actor. The actor plugin is responsible for
+// taking the action, if required
 func (c *Controller) ExecuteEvent(intentSpecJson []byte, agentSpec []byte, eventMessage []byte) {
 	intentSpec := new(intent.Spec)
 	if err := json.Unmarshal(intentSpecJson, intentSpec); err != nil {
@@ -36,17 +55,20 @@ func (c *Controller) ExecuteEvent(intentSpecJson []byte, agentSpec []byte, event
 		return
 	}
 	policyUrl := "http://" + intentSpec.Policy.EngineUrl + "/" + intentSpec.Policy.PolicyName
+	log.Debug("Evalutaing policy:", log.Fields{"input": string(input)})
 	response, err := EvaluatePolicy(policyUrl, input)
 	if err != nil {
 		log.Error("ExecuteEvent failed", log.Fields{"err": err})
 		return
 	}
-	if err := event.DoAction(intentSpec.Actor, response); err != nil {
+	if err := event.DoAction(intentSpec.Actor, response, intentSpecJson, agentSpec, c.actors); err != nil {
 		log.Error("ExecuteEvent failed", log.Fields{"err": err})
 		return
 	}
 }
 
+// EvaluatePolicy Call the policy endpoint for evaluation.
+// Will move this in a plugin model.
 func EvaluatePolicy(url string, input []byte) ([]byte, error) {
 	response, err := http.Post(url, "application/json", bytes.NewBuffer(input))
 	if err != nil {

@@ -9,9 +9,6 @@ replace (
 	gitlab.com/project-emco/core/emco-base/src/monitor => ../monitor
 	gitlab.com/project-emco/core/emco-base/src/orchestrator => ../orchestrator
 	gitlab.com/project-emco/core/emco-base/src/rsync => ../rsync
-//go.etcd.io/etcd => go.etcd.io/etcd v0.5.0-alpha.5.0.20200819165624-17cef6e3e9d5 // 17cef6e3e9d5 is the SHA for git tag v3.4.12
-//google.golang.org/grpc => google.golang.org/grpc v1.29.0
-
 )
 
 require (
@@ -22,14 +19,18 @@ require (
 	gitlab.com/project-emco/core/emco-base/src/orchestrator v0.0.0-20220518182253-c5f7c495f0c2
 	go.mongodb.org/mongo-driver v1.8.3
 	golang.org/x/net v0.0.0-20220127200216-cd36cc0744dd
-	google.golang.org/grpc v1.46.2
-	google.golang.org/protobuf v1.28.0
+	//google.golang.org/protobuf v1.28.0
+	google.golang.org/grpc v1.43.0
+)
+
+require (
+	github.com/golang/protobuf v1.5.2
+	google.golang.org/protobuf v1.28.1
 )
 
 require (
 	github.com/felixge/httpsnoop v1.0.1 // indirect
 	github.com/go-stack/stack v1.8.0 // indirect
-	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/golang/snappy v0.0.3 // indirect
 	github.com/klauspost/compress v1.13.6 // indirect
 	github.com/sirupsen/logrus v1.8.1 // indirect

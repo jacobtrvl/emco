@@ -17,5 +17,4 @@ COPY --chown=emco ./ref-schemas ./ref-schemas
 
 USER emco
 
-ENTRYPOINT ["./sacontroller"]
-
+ENTRYPOINT ["./sacontroller", "-workflowmgr", "10.98.208.2:9095"]
