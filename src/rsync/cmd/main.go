@@ -10,10 +10,9 @@ import (
 	"os/signal"
 	"time"
 
-	"github.com/prometheus/client_golang/prometheus"
 	register "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/grpc"
 	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
-	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/metrics"
+	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/module/controller"
 	installpb "gitlab.com/project-emco/core/emco-base/src/rsync/pkg/grpc/installapp"
 	"gitlab.com/project-emco/core/emco-base/src/rsync/pkg/grpc/installappserver"
 	readynotifypb "gitlab.com/project-emco/core/emco-base/src/rsync/pkg/grpc/readynotify"
@@ -21,8 +20,6 @@ import (
 	updatepb "gitlab.com/project-emco/core/emco-base/src/rsync/pkg/grpc/updateapp"
 	"gitlab.com/project-emco/core/emco-base/src/rsync/pkg/grpc/updateappserver"
 
-	contextDb "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/contextdb"
-	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
 	con "gitlab.com/project-emco/core/emco-base/src/rsync/pkg/context"
 	"google.golang.org/grpc"
 )
@@ -34,29 +31,20 @@ func RegisterRsyncServices(grpcServer *grpc.Server, srv interface{}) {
 }
 
 func main() {
-
 	rand.Seed(time.Now().UnixNano())
 
-	prometheus.MustRegister(metrics.NewBuildInfoCollector("orchestrator"))
-
-	// Initialize the mongodb
-	err := db.InitializeDatabaseConnection("emco")
-	if err != nil {
-		log.Error("Unable to initialize mongo database connection", log.Fields{"Error": err})
-		os.Exit(1)
-	}
-
-	// Initialize contextdb
-	err = contextDb.InitializeContextDatabase()
-	if err != nil {
-		log.Error("Unable to initialize etcd database connection", log.Fields{"Error": err})
-		os.Exit(1)
-	}
-
-	grpcServer, err := register.NewGrpcServerWithMetrics("rsync", "RSYNC_NAME", 9031,
+	grpcServer, err := register.NewGrpcServer("rsync", "RSYNC_NAME", 9031,
 		RegisterRsyncServices, nil)
 	if err != nil {
 		log.Error("Unable to create grpc server", log.Fields{"Error": err})
+		os.Exit(1)
+	}
+
+	server, err := controller.NewControllerServer("rsync",
+		nil,
+		grpcServer)
+	if err != nil {
+		log.Error("Unable to create server", log.Fields{"Error": err})
 		os.Exit(1)
 	}
 
@@ -70,12 +58,12 @@ func main() {
 		c := make(chan os.Signal, 1)
 		signal.Notify(c, os.Interrupt)
 		<-c
-		grpcServer.Shutdown(context.Background())
+		server.Shutdown(context.Background())
 		close(connectionsClose)
 	}()
 
-	err = grpcServer.Serve()
+	err = server.ListenAndServe()
 	if err != nil {
-		log.Error("gRPC server failed", log.Fields{"Error": err})
+		log.Error("Server failed", log.Fields{"Error": err})
 	}
 }

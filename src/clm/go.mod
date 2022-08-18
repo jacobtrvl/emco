@@ -2,10 +2,8 @@ module gitlab.com/project-emco/core/emco-base/src/clm
 
 require (
 	github.com/golang/protobuf v1.5.2
-	github.com/gorilla/handlers v1.5.1
 	github.com/gorilla/mux v1.8.0
 	github.com/pkg/errors v0.9.1
-	github.com/prometheus/client_golang v1.11.0
 	gitlab.com/project-emco/core/emco-base/src/orchestrator v0.0.0-00010101000000-000000000000
 	gitlab.com/project-emco/core/emco-base/src/rsync v0.0.0-00010101000000-000000000000
 	golang.org/x/net v0.0.0-20220127200216-cd36cc0744dd

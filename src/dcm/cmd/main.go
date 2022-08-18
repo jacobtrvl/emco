@@ -6,66 +6,46 @@ package main
 import (
 	"context"
 	"math/rand"
-	"net/http"
 	"os"
 	"os/signal"
 	"time"
 
-	"github.com/gorilla/handlers"
 	"gitlab.com/project-emco/core/emco-base/src/dcm/api"
 	"gitlab.com/project-emco/core/emco-base/src/dcm/pkg/statusnotify"
 	register "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/grpc"
-	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/config"
-	contextDb "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/contextdb"
-	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
 	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
+	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/module/controller"
 )
 
 func main() {
-
 	rand.Seed(time.Now().UnixNano())
 
-	err := db.InitializeDatabaseConnection("emco")
+	grpcServer, err := register.NewGrpcServer("dcm", "DCM_NAME", 9078,
+		register.RegisterStatusNotifyService, statusnotify.StartStatusNotifyServer())
 	if err != nil {
-		log.Error("Unable to initialize mongo database connection", log.Fields{"Error": err})
+		log.Error("Unable to create gRPC server", log.Fields{"Error": err})
 		os.Exit(1)
 	}
 
-	err = contextDb.InitializeContextDatabase()
+	server, err := controller.NewControllerServer("dcm",
+		api.NewRouter(nil, nil, nil, nil, nil),
+		grpcServer)
 	if err != nil {
-		log.Error("Unable to initialize etcd database connection", log.Fields{"Error": err})
+		log.Error("Unable to create server", log.Fields{"Error": err})
 		os.Exit(1)
 	}
-
-	httpRouter := api.NewRouter(nil, nil, nil, nil, nil)
-	loggedRouter := handlers.LoggingHandler(os.Stdout, httpRouter)
-	log.Info("Starting Distributed Cloud Manager API", log.Fields{"Port": config.GetConfiguration().ServicePort})
-
-	httpServer := &http.Server{
-		Handler: loggedRouter,
-		Addr:    ":" + config.GetConfiguration().ServicePort,
-	}
-
-	go func() {
-		err := register.StartGrpcServer("dcm", "DCM_NAME", 9078,
-			register.RegisterStatusNotifyService, statusnotify.StartStatusNotifyServer())
-		if err != nil {
-			log.Error("GRPC server failed to start", log.Fields{"Error": err})
-			os.Exit(1)
-		}
-	}()
 
 	connectionsClose := make(chan struct{})
 	go func() {
 		c := make(chan os.Signal, 1)
 		signal.Notify(c, os.Interrupt)
 		<-c
-		httpServer.Shutdown(context.Background())
+		server.Shutdown(context.Background())
 		close(connectionsClose)
 	}()
 
-	err = httpServer.ListenAndServe()
+	err = server.ListenAndServe()
 	if err != nil {
-		log.Error("HTTP server failed", log.Fields{"Error": err})
+		log.Error("Server failed", log.Fields{"Error": err})
 	}
 }
