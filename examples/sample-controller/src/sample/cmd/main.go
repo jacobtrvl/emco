@@ -7,85 +7,39 @@ import (
 	"context"
 	"log"
 	"math/rand"
-	"net/http"
 	"os"
 	"os/signal"
 	"time"
 
-	"github.com/gorilla/handlers"
 	"gitlab.com/project-emco/core/emco-base/examples/sample-controller/api"
-	"gitlab.com/project-emco/core/emco-base/examples/sample-controller/pkg/grpc"
-	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/auth"
-	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/config"
-	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/contextdb"
-	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
-	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
+	actioncontroller "gitlab.com/project-emco/core/emco-base/examples/sample-controller/pkg/grpc/action-controller"
+	placementcontroller "gitlab.com/project-emco/core/emco-base/examples/sample-controller/pkg/grpc/placement-controller"
+	register "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/grpc"
+	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/grpc/contextupdate"
+	orchplacementcontroller "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/grpc/placementcontroller"
+	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/module/controller"
+	"google.golang.org/grpc"
 )
 
 func main() {
-	if err := run(); err != nil {
-		log.Fatal(err)
-	}
-}
-
-// run initializes the dependencies and start the controller
-func run() error {
 	rand.Seed(time.Now().UnixNano())
 
-	// Initialize database(s)
-	if err := initDataBases(); err != nil {
-		return err
-	}
-
-	// Initialize grpc server, if required
-	initGrpcServer()
-
-	// Handle requests on incoming connections
-	if err := serve(); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// initDataBases initializes the emco databases
-func initDataBases() error {
-	// Initialize the emco database(Mongo DB)
-	err := db.InitializeDatabaseConnection("emco")
+	// Initialize gRPC server, if required
+	grpcServer, err := register.NewGrpcServer("sample", "SERVICE_NAME", 9025,
+		RegisterServices, nil)
 	if err != nil {
-		logutils.Error("Failed to initialize mongo database connection.",
-			logutils.Fields{
-				"Error": err})
-		return err
+		log.Fatal(err)
 	}
 
-	// Initialize etcd
-	err = contextdb.InitializeContextDatabase()
+	// Initialize the EMCO databases and initialize HTTP server, if required
+	server, err := controller.NewControllerServer("sample",
+		api.NewRouter(nil),
+		grpcServer)
 	if err != nil {
-		logutils.Error("Failed to initialize etcd database connection.",
-			logutils.Fields{
-				"Error": err})
-		return err
+		log.Fatal(err)
 	}
 
-	return nil
-}
-
-// serve start the controller and handle requests on incoming connections
-func serve() error {
-	p := config.GetConfiguration().ServicePort
-
-	logutils.Info("Starting controller",
-		logutils.Fields{
-			"Port": p})
-
-	r := api.NewRouter(nil)
-	h := handlers.LoggingHandler(os.Stdout, r)
-	server := &http.Server{
-		Handler: h,
-		Addr:    ":" + p,
-	}
-
+	// Start the gRPC and HTTP controller and handle requests on incoming connections
 	connection := make(chan struct{})
 	go func() {
 		c := make(chan os.Signal, 1)
@@ -95,22 +49,29 @@ func serve() error {
 		close(connection)
 	}()
 
-	c, err := auth.GetTLSConfig("ca.cert", "server.cert", "server.key")
+	err = server.ListenAndServe()
 	if err != nil {
-		logutils.Warn("Failed to get the TLS configuration. Starting without TLS.",
-			logutils.Fields{})
-		return server.ListenAndServe()
+		log.Fatal(err)
 	}
-
-	server.TLSConfig = c
-	return server.ListenAndServeTLS("", "") // empty string. tlsconfig already has this information
 }
 
-// initGrpcServer start the gRPC server
-func initGrpcServer() {
-	go func() {
-		if err := grpc.StartGrpcServer(); err != nil {
-			log.Fatal(err)
-		}
-	}()
+func RegisterServices(grpcServer *grpc.Server, srv interface{}) {
+	// A controller can be one of the placement types or actions.
+	// Placement controllers allow the orchestrator to choose the exact locations
+	// to place the application in the composite application.
+	// Action controllers can modify the state of a resource(create additional resources
+	// to be deployed, modify or delete the existing resources).
+	// You can build your controller and define packages and functionalities based on your need.
+	// In this sample controller, we have shown how to register the action and placement controllers.
+	// Registering the same controller as action and placement may or may not work.
+	// This is for illustration purposes only since the code structure is the same for action or placement controller.
+	// In EMCO, we have separate controllers for action and placement.
+	// ref: https://gitlab.com/project-emco/core/emco-base/-/tree/main/src/hpa-ac - HPA action controller
+	// ref: https://gitlab.com/project-emco/core/emco-base/-/tree/main/src/hpa-plc - HPA placement controller
+
+	// Register the action controller
+	contextupdate.RegisterContextupdateServer(grpcServer, actioncontroller.NewActionControllerServer())
+
+	// Register the placement controller
+	orchplacementcontroller.RegisterPlacementControllerServer(grpcServer, placementcontroller.NewPlacementControllerServer())
 }

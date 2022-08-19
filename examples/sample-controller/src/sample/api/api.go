@@ -19,7 +19,9 @@ import (
 func NewRouter(mockClient interface{}) *mux.Router {
 	const baseURL string = "/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/sampleIntents"
 
-	r := mux.NewRouter().PathPrefix("/v2").Subrouter()
+	r := mux.NewRouter()
+
+	v2 := r.PathPrefix("/v2").Subrouter()
 	c := module.NewClient()
 	h := intentHandler{
 		client: setClient(c.SampleIntent, mockClient).(module.SampleIntentManager),
@@ -28,8 +30,8 @@ func NewRouter(mockClient interface{}) *mux.Router {
 	// You can have multiple handlers based on the requirement and its implementation.
 	// ref: https://gitlab.com/project-emco/core/emco-base/-/blob/main/src/hpa-plc/api/api.go
 
-	r.HandleFunc(baseURL, h.handleSampleIntentCreate).Methods("POST")
-	r.HandleFunc(baseURL+"/{sampleIntent}", h.handleSampleIntentGet).Methods("GET")
+	v2.HandleFunc(baseURL, h.handleSampleIntentCreate).Methods("POST")
+	v2.HandleFunc(baseURL+"/{sampleIntent}", h.handleSampleIntentGet).Methods("GET")
 
 	return r
 }
