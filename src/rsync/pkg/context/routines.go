@@ -517,22 +517,20 @@ func (c *Context) runCluster(ctx context.Context, op RsyncOperation, e RsyncEven
 		return err
 	}
 	defer cl.CleanClientProvider()
-	// Start cluster watcher if there are resources to be watched
-	// case like admin cloud has no resources
-	if len(c.ca.Apps[app].Clusters[cluster].ResOrder) > 0 {
-		err = cl.StartClusterWatcher()
-		if err != nil {
-			log.Error("Error starting Cluster Watcher", log.Fields{
-				"error":   err,
-				"cluster": cluster,
-			})
-			return err
-		}
-		log.Trace("Started Cluster Watcher", log.Fields{
+	// Start cluster watcher if not already started for the cluster
+	err = cl.StartClusterWatcher()
+	if err != nil {
+		log.Error("Error starting Cluster Watcher", log.Fields{
 			"error":   err,
 			"cluster": cluster,
 		})
+		return err
 	}
+	log.Trace("Started Cluster Watcher", log.Fields{
+		"error":   err,
+		"cluster": cluster,
+	})
+
 	r := resProvd{app: app, cluster: cluster, cl: cl, context: *c}
 	// Timer key
 	key := app + depend.SEPARATOR + cluster
@@ -575,12 +573,12 @@ func (c *Context) runCluster(ctx context.Context, op RsyncOperation, e RsyncEven
 		}
 		// Install main resources without wait
 		log.Info("Installing main resources", log.Fields{"App": app, "cluster": cluster, "resources": c.ca.Apps[app].Clusters[cluster].ResOrder})
-		i, err := r.handleResources(ctx, op, c.ca.Apps[app].Clusters[cluster].ResOrder)
+		_, err := r.handleResources(ctx, op, c.ca.Apps[app].Clusters[cluster].ResOrder)
 		// handle status tracking before exiting if at least one resource got handled
-		if i > 0 {
-			// Add Status tracking
-			r.addStatusTracker("", namespace)
-		}
+		//if i > 0 {
+		// Add Status tracking
+		r.addStatusTracker("", namespace)
+		//}
 		if err != nil {
 			log.Error("Error installing resources for app", log.Fields{"App": app, "cluster": cluster, "resources": c.ca.Apps[app].Clusters[cluster].ResOrder})
 			return err

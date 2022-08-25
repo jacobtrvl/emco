@@ -96,7 +96,7 @@ type CompositeAppMeta struct {
 	Level                 string   `json:"Level"`
 	ChildContextIDs       []string `json:"ChildContextIDs"`
 	LogicalCloud          string   `json:"LogicalCloud"`
-	LogicalCloudNamespace string  `json:"LogicalCloudNamespace"`
+	LogicalCloudNamespace string   `json:"LogicalCloudNamespace"`
 }
 
 // Init app context

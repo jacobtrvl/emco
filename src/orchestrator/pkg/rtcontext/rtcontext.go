@@ -10,6 +10,7 @@ import (
 	"time"
 
 	pkgerrors "github.com/pkg/errors"
+	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/config"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/contextdb"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 )
@@ -46,12 +47,24 @@ func (rtc *RunTimeContext) RtcInit() (interface{}, error) {
 	if rtc.cid != nil {
 		return nil, pkgerrors.Errorf("Error, context already initialized")
 	}
-	ra := rand.New(rand.NewSource(time.Now().UnixNano()))
-	rn := ra.Int63n(maxrand)
-	id := fmt.Sprintf("%v", rn)
-	cid := (prefix + id + "/")
-	rtc.cid = interface{}(cid)
-	return interface{}(id), nil
+	for {
+
+		ra := rand.New(rand.NewSource(time.Now().UnixNano()))
+		rn := ra.Int63n(maxrand)
+		start := config.GetConfiguration().AppContextRsvdRangeStart
+		end := config.GetConfiguration().AppContextRsvdRangeEnd
+		// Check if range is Valid
+		if start < end {
+			// Check if random number is in the reserved range
+			if start <= rn && end >= rn {
+				continue
+			}
+		}
+		id := fmt.Sprintf("%v", rn)
+		cid := (prefix + id + "/")
+		rtc.cid = interface{}(cid)
+		return interface{}(id), nil
+	}
 }
 
 //Intialize context by assiging a new id

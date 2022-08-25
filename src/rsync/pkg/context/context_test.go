@@ -580,3 +580,59 @@ func TestGetAllActiveContext(t *testing.T) {
 		})
 	}
 }
+
+var TestNoResourceCA CompositeApp = CompositeApp{
+	CompMetadata: appcontext.CompositeAppMeta{Project: "proj1", CompositeApp: "ca1", Version: "v1", Release: "r1",
+		DeploymentIntentGroup: "dig1", Namespace: "default", Level: "0"},
+	AppOrder: []string{"a1"},
+	Apps: map[string]*App{"a1": {
+		Name: "a1",
+		Clusters: map[string]*Cluster{"provider1+cluster1": {
+			Name:      "provider1+cluster1",
+			Resources: map[string]*AppResource{},
+			ResOrder:  []string{}}},
+	},
+	},
+}
+
+func TestInstantiateTerminateNoResources(t *testing.T) {
+
+	cid, _ := CreateCompApp(TestNoResourceCA)
+	con := NewProvider(cid)
+
+	testCases := []struct {
+		label          string
+		expectedApply  map[string]string
+		expectedDelete map[string]string
+		Status         string
+		expectedError  error
+		event          RsyncEvent
+	}{
+		{
+			expectedApply:  map[string]string{},
+			expectedDelete: map[string]string{},
+			expectedError:  nil,
+			label:          "Instantiate Resources",
+			event:          InstantiateEvent,
+		},
+		{
+			expectedApply:  map[string]string{},
+			expectedDelete: map[string]string{},
+			expectedError:  nil,
+			label:          "Terminate Resources",
+			event:          TerminateEvent,
+		},
+	}
+	for _, testCase := range testCases {
+		t.Run(testCase.label, func(t *testing.T) {
+			_ = HandleAppContext(cid, nil, testCase.event, &con)
+			time.Sleep(2 * time.Second)
+			if !CompareMaps(testCase.expectedApply, LoadMap("apply")) {
+				t.Error("Apply resources doesn't match", LoadMap("apply"))
+			}
+			if !CompareMaps(testCase.expectedDelete, LoadMap("delete")) {
+				t.Error("Delete resources doesn't match", LoadMap("delete"))
+			}
+		})
+	}
+}
