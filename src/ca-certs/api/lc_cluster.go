@@ -25,9 +25,10 @@ func (h *lcClusterHandler) handleClusterCreate(w http.ResponseWriter, r *http.Re
 
 // handleClusterDelete handles the route for deleting a caCert clusterGroup
 func (h *lcClusterHandler) handleClusterDelete(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	// get the route variables
 	vars := _lcVars(mux.Vars(r))
-	if err := h.manager.DeleteClusterGroup(vars.cluster, vars.logicalCloud, vars.cert, vars.project); err != nil {
+	if err := h.manager.DeleteClusterGroup(ctx, vars.cluster, vars.logicalCloud, vars.cert, vars.project); err != nil {
 		apiErr := emcoerror.HandleAPIError(err)
 		http.Error(w, apiErr.Message, apiErr.Status)
 		return
@@ -43,12 +44,13 @@ func (h *lcClusterHandler) handleClusterGet(w http.ResponseWriter, r *http.Reque
 		err      error
 	)
 
+	ctx := r.Context()
 	// get the route variables
 	vars := _lcVars(mux.Vars(r))
 	if len(vars.cluster) == 0 {
-		clusters, err = h.manager.GetAllClusterGroups(vars.logicalCloud, vars.cert, vars.project)
+		clusters, err = h.manager.GetAllClusterGroups(ctx, vars.logicalCloud, vars.cert, vars.project)
 	} else {
-		clusters, err = h.manager.GetClusterGroup(vars.cluster, vars.logicalCloud, vars.cert, vars.project)
+		clusters, err = h.manager.GetClusterGroup(ctx, vars.cluster, vars.logicalCloud, vars.cert, vars.project)
 	}
 
 	if err != nil {
@@ -83,6 +85,7 @@ func (h *lcClusterHandler) createOrUpdateCluster(w http.ResponseWriter, r *http.
 
 	}
 
+	ctx := r.Context()
 	// get the route variables
 	vars := _lcVars(mux.Vars(r))
 
@@ -103,7 +106,7 @@ func (h *lcClusterHandler) createOrUpdateCluster(w http.ResponseWriter, r *http.
 		}
 	}
 
-	clr, clusterExists, err := h.manager.CreateClusterGroup(cluster, vars.logicalCloud, vars.cert, vars.project, methodPost)
+	clr, clusterExists, err := h.manager.CreateClusterGroup(ctx, cluster, vars.logicalCloud, vars.cert, vars.project, methodPost)
 	if err != nil {
 		apiErr := emcoerror.HandleAPIError(err)
 		http.Error(w, apiErr.Message, apiErr.Status)

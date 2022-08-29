@@ -24,7 +24,7 @@ type Resources struct {
 }
 
 // RetrieveCertManagerResources retrieves the cert-manager resources created by the caCert enrollment
-func RetrieveCertManagerResources(contextID string) (Resources, error) {
+func RetrieveCertManagerResources(ctx context.Context, contextID string) (Resources, error) {
 	var (
 		appContext                 appcontext.AppContext
 		clusters                   []string
@@ -35,7 +35,7 @@ func RetrieveCertManagerResources(contextID string) (Resources, error) {
 	)
 
 	// load the appContext
-	_, err := appContext.LoadAppContext(context.Background(), contextID)
+	_, err := appContext.LoadAppContext(ctx, contextID)
 	if err != nil {
 		logutils.Error("Failed to load the appContext",
 			logutils.Fields{
@@ -45,7 +45,7 @@ func RetrieveCertManagerResources(contextID string) (Resources, error) {
 	}
 
 	// get the app instruction for 'order'
-	appsOrder, err := appContext.GetAppInstruction(context.Background(), "order")
+	appsOrder, err := appContext.GetAppInstruction(ctx, "order")
 	if err != nil {
 		logutils.Error("Failed to get the app instruction for the 'order' instruction type",
 			logutils.Fields{
@@ -65,7 +65,7 @@ func RetrieveCertManagerResources(contextID string) (Resources, error) {
 
 	for _, app := range appList["apporder"] {
 		//  get all the clusters associated with the app
-		clusters, err = appContext.GetClusterNames(context.Background(), app)
+		clusters, err = appContext.GetClusterNames(ctx, app)
 		if err != nil {
 			logutils.Error("Failed to get cluster names",
 				logutils.Fields{
@@ -77,7 +77,7 @@ func RetrieveCertManagerResources(contextID string) (Resources, error) {
 
 		for _, cluster := range clusters {
 			// get the resources
-			resources, err := appContext.GetResourceNames(context.Background(), app, cluster)
+			resources, err := appContext.GetResourceNames(ctx, app, cluster)
 			if err != nil {
 				logutils.Error("Failed to get the resource names",
 					logutils.Fields{
@@ -89,7 +89,7 @@ func RetrieveCertManagerResources(contextID string) (Resources, error) {
 			}
 
 			// get the cluster handle
-			cHandle, err := appContext.GetClusterHandle(context.Background(), app, cluster)
+			cHandle, err := appContext.GetClusterHandle(ctx, app, cluster)
 			if err != nil {
 				logutils.Error("Failed to get the cluster handle",
 					logutils.Fields{
@@ -101,7 +101,7 @@ func RetrieveCertManagerResources(contextID string) (Resources, error) {
 			}
 
 			// get the cluster status handle
-			sHandle, err := appContext.GetLevelHandle(context.Background(), cHandle, "status")
+			sHandle, err := appContext.GetLevelHandle(ctx, cHandle, "status")
 			if err != nil {
 				logutils.Error("Failed to get the handle of level 'status'",
 					logutils.Fields{
@@ -117,7 +117,7 @@ func RetrieveCertManagerResources(contextID string) (Resources, error) {
 			statusReady := false
 			for !statusReady {
 				// get the value of 'status' handle
-				val, err := appContext.GetValue(context.Background(), sHandle)
+				val, err := appContext.GetValue(ctx, sHandle)
 				if err != nil {
 					logutils.Error("Failed to get the value of 'status' handle",
 						logutils.Fields{

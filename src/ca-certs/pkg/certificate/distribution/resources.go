@@ -5,6 +5,7 @@ package distribution
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"fmt"
 	"strings"
@@ -22,14 +23,14 @@ import (
 )
 
 // createSecret creates a secret to store the certificate
-func (ctx *DistributionContext) createSecret(cr cmv1.CertificateRequest, name, namespace string) error {
-	if s, exists := ctx.Resources.Secret[name]; exists {
+func (distCtx *DistributionContext) createSecret(ctx context.Context, cr cmv1.CertificateRequest, name, namespace string) error {
+	if s, exists := distCtx.Resources.Secret[name]; exists {
 		// a secret already exists, update the context resource order
-		ctx.ResOrder = append(ctx.ResOrder, module.ResourceName(s.ObjectMeta.Name, s.Kind))
+		distCtx.ResOrder = append(distCtx.ResOrder, module.ResourceName(s.ObjectMeta.Name, s.Kind))
 		return nil
 	}
 	// retrieve the Private Key from mongo
-	key, err := ctx.retrievePrivateKey()
+	key, err := distCtx.retrievePrivateKey(ctx)
 	if err != nil {
 		return err
 	}
@@ -39,63 +40,65 @@ func (ctx *DistributionContext) createSecret(cr cmv1.CertificateRequest, name, n
 	data[v1.TLSPrivateKeyKey] = key
 
 	s := certmanagerissuer.CreateSecret(name, namespace, data)
-	if err := module.AddResource(ctx.AppContext, s, ctx.ClusterHandle, module.ResourceName(s.ObjectMeta.Name, s.Kind)); err != nil {
+	if err := module.AddResource(ctx, distCtx.AppContext, s, distCtx.ClusterHandle, module.ResourceName(s.ObjectMeta.Name, s.Kind)); err != nil {
 		return err
 	}
 
-	ctx.ResOrder = append(ctx.ResOrder, module.ResourceName(s.ObjectMeta.Name, s.Kind))
+	distCtx.ResOrder = append(distCtx.ResOrder, module.ResourceName(s.ObjectMeta.Name, s.Kind))
 
-	ctx.Resources.Secret[name] = s // this is needed to create the kncc config
+	distCtx.Resources.Secret[name] = s // this is needed to create the kncc config
 
 	return nil
 }
 
 // createClusterIssuer creates a clusterIssuer to issue the certificates
-func (ctx *DistributionContext) createClusterIssuer(secretName string) error {
-	iName := certmanagerissuer.ClusterIssuerName(ctx.ContextID, ctx.CaCert.MetaData.Name, ctx.ClusterGroup.Spec.Provider, ctx.Cluster)
-	if i, exists := ctx.Resources.ClusterIssuer[iName]; exists {
+func (distCtx *DistributionContext) createClusterIssuer(ctx context.Context, secretName string) error {
+	iName := certmanagerissuer.ClusterIssuerName(distCtx.ContextID, distCtx.CaCert.MetaData.Name, distCtx.ClusterGroup.Spec.Provider, distCtx.Cluster)
+	if i, exists := distCtx.Resources.ClusterIssuer[iName]; exists {
 		// a clusterIssuer already exists, update the context resource order
-		ctx.ResOrder = append(ctx.ResOrder, module.ResourceName(i.ObjectMeta.Name, i.Kind))
+		distCtx.ResOrder = append(distCtx.ResOrder, module.ResourceName(i.ObjectMeta.Name, i.Kind))
 		return nil
 	}
 
 	i := certmanagerissuer.CreateClusterIssuer(iName, secretName)
-	if err := module.AddResource(ctx.AppContext, i, ctx.ClusterHandle, module.ResourceName(i.ObjectMeta.Name, i.Kind)); err != nil {
+	if err := module.AddResource(ctx, distCtx.AppContext, i, distCtx.ClusterHandle, module.ResourceName(i.ObjectMeta.Name, i.Kind)); err != nil {
 		return err
 	}
 
-	ctx.ResOrder = append(ctx.ResOrder, module.ResourceName(i.ObjectMeta.Name, i.Kind))
-	ctx.Resources.ClusterIssuer[iName] = i // this is needed to create the proxyconfig
+	distCtx.ResOrder = append(distCtx.ResOrder, module.ResourceName(i.ObjectMeta.Name, i.Kind))
+	distCtx.Resources.ClusterIssuer[iName] = i // this is needed to create the proxyconfig
 
 	return nil
 }
 
 // createProxyConfig creates a proxyConfig to control the traffic between workloads
-func (ctx *DistributionContext) createProxyConfig(issuer string) error {
-	pcName := istioservice.ProxyConfigName(ctx.ContextID, ctx.CaCert.MetaData.Name, ctx.ClusterGroup.Spec.Provider, ctx.Cluster, ctx.Namespace)
-	if pc, exists := ctx.Resources.ProxyConfig[pcName]; exists {
+
+func (distCtx *DistributionContext) createProxyConfig(ctx context.Context, issuer string) error {
+	pcName := istioservice.ProxyConfigName(distCtx.ContextID, distCtx.CaCert.MetaData.Name, distCtx.ClusterGroup.Spec.Provider, distCtx.Cluster, distCtx.Namespace)
+	if pc, exists := distCtx.Resources.ProxyConfig[pcName]; exists {
 		// a proxyConfig already exists, update the context resource order
-		ctx.ResOrder = append(ctx.ResOrder, module.ResourceName(pc.MetaData.Name, pc.Kind))
+		distCtx.ResOrder = append(distCtx.ResOrder, module.ResourceName(pc.MetaData.Name, pc.Kind))
 		return nil
 	}
 
 	environmentVariables := map[string]string{}
-	environmentVariables["ISTIO_META_CERT_SIGNER"] = issuer
-	pc := istioservice.CreateProxyConfig(pcName, ctx.Namespace, environmentVariables)
 
-	if err := module.AddResource(ctx.AppContext, pc, ctx.ClusterHandle, module.ResourceName(pc.MetaData.Name, pc.Kind)); err != nil {
+	environmentVariables["ISTIO_META_CERT_SIGNER"] = issuer
+	pc := istioservice.CreateProxyConfig(pcName, distCtx.Namespace, environmentVariables)
+
+	if err := module.AddResource(ctx, distCtx.AppContext, pc, distCtx.ClusterHandle, module.ResourceName(pc.MetaData.Name, pc.Kind)); err != nil {
 		return err
 	}
 
-	ctx.Resources.ProxyConfig[pcName] = pc
+	distCtx.Resources.ProxyConfig[pcName] = pc
 
-	ctx.ResOrder = append(ctx.ResOrder, module.ResourceName(pc.MetaData.Name, pc.Kind))
+	distCtx.ResOrder = append(distCtx.ResOrder, module.ResourceName(pc.MetaData.Name, pc.Kind))
 
-	for _, p := range ctx.Resources.ProxyConfig {
+	for _, p := range distCtx.Resources.ProxyConfig {
 		// update the context resource order with any other proxyConfig created for the same appContext, caCert, clusterProvider and cluster
-		if strings.Contains(p.MetaData.Name, fmt.Sprintf("%s-%s-%s-%s", ctx.ContextID, ctx.CaCert.MetaData.Name, ctx.ClusterGroup.Spec.Provider, ctx.Cluster)) {
+		if strings.Contains(p.MetaData.Name, fmt.Sprintf("%s-%s-%s-%s", distCtx.ContextID, distCtx.CaCert.MetaData.Name, distCtx.ClusterGroup.Spec.Provider, distCtx.Cluster)) {
 			exists := false
-			for _, o := range ctx.ResOrder {
+			for _, o := range distCtx.ResOrder {
 				if o == module.ResourceName(p.MetaData.Name, p.Kind) {
 					exists = true
 					break
@@ -103,7 +106,7 @@ func (ctx *DistributionContext) createProxyConfig(issuer string) error {
 			}
 
 			if !exists {
-				ctx.ResOrder = append(ctx.ResOrder, module.ResourceName(p.MetaData.Name, p.Kind))
+				distCtx.ResOrder = append(distCtx.ResOrder, module.ResourceName(p.MetaData.Name, p.Kind))
 			}
 		}
 	}
@@ -112,44 +115,44 @@ func (ctx *DistributionContext) createProxyConfig(issuer string) error {
 }
 
 // createKnccConfig creates a kncc config patch to update the configMap
-func (ctx *DistributionContext) createKnccConfig(namespace, resourceName, resourceNamespace string,
+func (distCtx *DistributionContext) createKnccConfig(ctx context.Context, namespace, resourceName, resourceNamespace string,
 	patch []map[string]string) error {
-	cName := knccservice.KnccConfigName(ctx.ContextID, ctx.CaCert.MetaData.Name, ctx.ClusterGroup.Spec.Provider, ctx.Cluster)
-	if c, exists := ctx.Resources.KnccConfig[cName]; exists {
+	cName := knccservice.KnccConfigName(distCtx.ContextID, distCtx.CaCert.MetaData.Name, distCtx.ClusterGroup.Spec.Provider, distCtx.Cluster)
+	if c, exists := distCtx.Resources.KnccConfig[cName]; exists {
 		// a KnccConfig already exists, update the config
-		return ctx.updateKnccConfig(patch, c)
+		return distCtx.updateKnccConfig(ctx, patch, c)
 	}
 
 	c := knccservice.CreateKnccConfig(cName, namespace, resourceName, resourceNamespace, patch)
-	if err := module.AddResource(ctx.AppContext, c, ctx.ClusterHandle, module.ResourceName(c.ObjectMeta.Name, c.TypeMeta.Kind)); err != nil {
+	if err := module.AddResource(ctx, distCtx.AppContext, c, distCtx.ClusterHandle, module.ResourceName(c.ObjectMeta.Name, c.TypeMeta.Kind)); err != nil {
 		return err
 	}
 
-	ctx.Resources.KnccConfig[cName] = c
+	distCtx.Resources.KnccConfig[cName] = c
 
-	ctx.ResOrder = append(ctx.ResOrder, module.ResourceName(c.ObjectMeta.Name, c.TypeMeta.Kind))
+	distCtx.ResOrder = append(distCtx.ResOrder, module.ResourceName(c.ObjectMeta.Name, c.TypeMeta.Kind))
 
 	return nil
 }
 
 // retrievePrivateKey retrieves the rsa private key from mongo
-func (ctx *DistributionContext) retrievePrivateKey() ([]byte, error) {
+func (distCtx *DistributionContext) retrievePrivateKey(ctx context.Context) ([]byte, error) {
 	dbKey := module.DBKey{
-		Cert:            ctx.CaCert.MetaData.Name,
-		Cluster:         ctx.Cluster,
-		ClusterProvider: ctx.ClusterGroup.Spec.Provider,
-		ContextID:       ctx.EnrollmentContextID}
+		Cert:            distCtx.CaCert.MetaData.Name,
+		Cluster:         distCtx.Cluster,
+		ClusterProvider: distCtx.ClusterGroup.Spec.Provider,
+		ContextID:       distCtx.EnrollmentContextID}
 
-	key, err := module.NewKeyClient(dbKey).Get()
+	key, err := module.NewKeyClient(dbKey).Get(ctx)
 	if err != nil {
 		return []byte{}, err
 	}
 
-	if key.Name != certmanagerissuer.CertificateRequestName(ctx.EnrollmentContextID, ctx.CaCert.MetaData.Name, ctx.ClusterGroup.Spec.Provider, ctx.Cluster) {
+	if key.Name != certmanagerissuer.CertificateRequestName(distCtx.EnrollmentContextID, distCtx.CaCert.MetaData.Name, distCtx.ClusterGroup.Spec.Provider, distCtx.Cluster) {
 		err := errors.New("PrivateKey not found")
 		logutils.Error("",
 			logutils.Fields{
-				"CaCert": ctx.CaCert.MetaData.Name,
+				"CaCert": distCtx.CaCert.MetaData.Name,
 				"Error":  err.Error()})
 		return []byte{}, err
 	}
@@ -158,10 +161,10 @@ func (ctx *DistributionContext) retrievePrivateKey() ([]byte, error) {
 }
 
 // retrieveClusterIssuer returns the specific issuer from the distribution resources list
-func (ctx *DistributionContext) retrieveClusterIssuer(cluster string) *cmv1.ClusterIssuer {
+func (distCtx *DistributionContext) retrieveClusterIssuer(cluster string) *cmv1.ClusterIssuer {
 	var iName string
-	for _, issuer := range ctx.Resources.ClusterIssuer {
-		iName = certmanagerissuer.ClusterIssuerName(ctx.ContextID, ctx.CaCert.MetaData.Name, ctx.ClusterGroup.Spec.Provider, cluster)
+	for _, issuer := range distCtx.Resources.ClusterIssuer {
+		iName = certmanagerissuer.ClusterIssuerName(distCtx.ContextID, distCtx.CaCert.MetaData.Name, distCtx.ClusterGroup.Spec.Provider, cluster)
 		if issuer.ObjectMeta.Name == iName {
 			return issuer
 		}
@@ -171,10 +174,10 @@ func (ctx *DistributionContext) retrieveClusterIssuer(cluster string) *cmv1.Clus
 }
 
 // retrieveSecret returns the specific secret from the distribution resources list
-func (ctx *DistributionContext) retrieveSecret(cluster string) *v1.Secret {
+func (distCtx *DistributionContext) retrieveSecret(cluster string) *v1.Secret {
 	var sName string
-	for _, s := range ctx.Resources.Secret {
-		sName = certmanagerissuer.SecretName(ctx.ContextID, ctx.CaCert.MetaData.Name, ctx.ClusterGroup.Spec.Provider, cluster)
+	for _, s := range distCtx.Resources.Secret {
+		sName = certmanagerissuer.SecretName(distCtx.ContextID, distCtx.CaCert.MetaData.Name, distCtx.ClusterGroup.Spec.Provider, cluster)
 		if s.ObjectMeta.Name == sName {
 			return s
 		}
@@ -184,46 +187,46 @@ func (ctx *DistributionContext) retrieveSecret(cluster string) *v1.Secret {
 }
 
 // updateKnccConfig updates the kncc resource patch
-func (ctx *DistributionContext) updateKnccConfig(patch []map[string]string, c *knccservice.Config) error {
+func (distCtx *DistributionContext) updateKnccConfig(ctx context.Context, patch []map[string]string, c *knccservice.Config) error {
 	// update kncc config
 	knccservice.UpdateKnccConfig(patch, c)
 	// update resource appContext
-	if err := module.AddResource(ctx.AppContext, c, ctx.ClusterHandle, module.ResourceName(c.ObjectMeta.Name, c.TypeMeta.Kind)); err != nil {
+	if err := module.AddResource(ctx, distCtx.AppContext, c, distCtx.ClusterHandle, module.ResourceName(c.ObjectMeta.Name, c.TypeMeta.Kind)); err != nil {
 		return err
 	}
 	// store the new config
-	ctx.Resources.KnccConfig[c.ObjectMeta.Name] = c
+	distCtx.Resources.KnccConfig[c.ObjectMeta.Name] = c
 	// update the resource order
-	ctx.ResOrder = append(ctx.ResOrder, module.ResourceName(c.ObjectMeta.Name, c.TypeMeta.Kind))
+	distCtx.ResOrder = append(distCtx.ResOrder, module.ResourceName(c.ObjectMeta.Name, c.TypeMeta.Kind))
 
 	return nil
 }
 
 // createTCSIssuer creates a TCSIssuer to issue the certificates
-func (ctx *DistributionContext) createTCSIssuer(secret string, selfSign bool) error {
-	iName := tcsissuer.TCSIssuerName(ctx.EnrollmentContextID, ctx.CaCert.MetaData.Name, ctx.ClusterGroup.Spec.Provider, ctx.Cluster)
-	if i, exists := ctx.Resources.TCSIssuer[iName]; exists {
+func (distCtx *DistributionContext) createTCSIssuer(ctx context.Context, secret string, selfSign bool) error {
+	iName := tcsissuer.TCSIssuerName(distCtx.EnrollmentContextID, distCtx.CaCert.MetaData.Name, distCtx.ClusterGroup.Spec.Provider, distCtx.Cluster)
+	if i, exists := distCtx.Resources.TCSIssuer[iName]; exists {
 		// a tcsIssuer already exists, update the context resource order
-		ctx.ResOrder = append(ctx.ResOrder, module.ResourceName(i.ObjectMeta.Name, i.Kind))
+		distCtx.ResOrder = append(distCtx.ResOrder, module.ResourceName(i.ObjectMeta.Name, i.Kind))
 		return nil
 	}
 
 	i := tcsissuer.CreateTCSIssuer(iName, secret, selfSign)
-	if err := module.AddResource(ctx.AppContext, i, ctx.ClusterHandle, module.ResourceName(i.ObjectMeta.Name, i.Kind)); err != nil {
+	if err := module.AddResource(ctx, distCtx.AppContext, i, distCtx.ClusterHandle, module.ResourceName(i.ObjectMeta.Name, i.Kind)); err != nil {
 		return err
 	}
 
-	ctx.ResOrder = append(ctx.ResOrder, module.ResourceName(i.ObjectMeta.Name, i.Kind))
-	ctx.Resources.TCSIssuer[iName] = i // this is needed to create the proxyconfig
+	distCtx.ResOrder = append(distCtx.ResOrder, module.ResourceName(i.ObjectMeta.Name, i.Kind))
+	distCtx.Resources.TCSIssuer[iName] = i // this is needed to create the proxyconfig
 
 	return nil
 }
 
 // retrieveTCSIssuer returns the specific tcsissuer from the distribution resources list
-func (ctx *DistributionContext) retrieveTCSIssuer(cluster string) *tcsv1.TCSIssuer {
+func (distCtx *DistributionContext) retrieveTCSIssuer(cluster string) *tcsv1.TCSIssuer {
 	var iName string
-	for _, issuer := range ctx.Resources.TCSIssuer {
-		iName = tcsissuer.TCSIssuerName(ctx.EnrollmentContextID, ctx.CaCert.MetaData.Name, ctx.ClusterGroup.Spec.Provider, cluster)
+	for _, issuer := range distCtx.Resources.TCSIssuer {
+		iName = tcsissuer.TCSIssuerName(distCtx.EnrollmentContextID, distCtx.CaCert.MetaData.Name, distCtx.ClusterGroup.Spec.Provider, cluster)
 		if issuer.ObjectMeta.Name == iName {
 			return issuer
 		}

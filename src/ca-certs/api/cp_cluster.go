@@ -25,9 +25,10 @@ func (h *cpClusterHandler) handleClusterCreate(w http.ResponseWriter, r *http.Re
 
 // handleClusterDelete handles the route for deleting a caCert clusterGroup
 func (h *cpClusterHandler) handleClusterDelete(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	// get the route variables
 	vars := _cpVars(mux.Vars(r))
-	if err := h.manager.DeleteClusterGroup(vars.cert, vars.cluster, vars.clusterProvider); err != nil {
+	if err := h.manager.DeleteClusterGroup(ctx, vars.cert, vars.cluster, vars.clusterProvider); err != nil {
 		apiErr := emcoerror.HandleAPIError(err)
 		http.Error(w, apiErr.Message, apiErr.Status)
 		return
@@ -43,12 +44,13 @@ func (h *cpClusterHandler) handleClusterGet(w http.ResponseWriter, r *http.Reque
 		err      error
 	)
 
+	ctx := r.Context()
 	// get the route variables
 	vars := _cpVars(mux.Vars(r))
 	if len(vars.cluster) == 0 {
-		clusters, err = h.manager.GetAllClusterGroups(vars.cert, vars.clusterProvider)
+		clusters, err = h.manager.GetAllClusterGroups(ctx, vars.cert, vars.clusterProvider)
 	} else {
-		clusters, err = h.manager.GetClusterGroup(vars.cert, vars.cluster, vars.clusterProvider)
+		clusters, err = h.manager.GetClusterGroup(ctx, vars.cert, vars.cluster, vars.clusterProvider)
 	}
 
 	if err != nil {
@@ -85,6 +87,7 @@ func (h *cpClusterHandler) createOrUpdateCluster(w http.ResponseWriter, r *http.
 
 	}
 
+	ctx := r.Context()
 	// get the route variables
 	vars := _cpVars(mux.Vars(r))
 
@@ -105,7 +108,7 @@ func (h *cpClusterHandler) createOrUpdateCluster(w http.ResponseWriter, r *http.
 		}
 	}
 
-	clr, clusterExists, err := h.manager.CreateClusterGroup(cluster, vars.cert, vars.clusterProvider, methodPost)
+	clr, clusterExists, err := h.manager.CreateClusterGroup(ctx, cluster, vars.cert, vars.clusterProvider, methodPost)
 	if err != nil {
 		apiErr := emcoerror.HandleAPIError(err)
 		http.Error(w, apiErr.Message, apiErr.Status)

@@ -4,6 +4,8 @@
 package clusterprovider
 
 import (
+	"context"
+
 	cmv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	tcsv1 "github.com/intel/trusted-certificate-issuer/api/v1alpha1"
 	"gitlab.com/project-emco/core/emco-base/src/ca-certs/pkg/certificate/distribution"
@@ -19,10 +21,10 @@ import (
 
 // CaCertDistributionManager exposes all the clusterProvider caCert distribution functionalities
 type CaCertDistributionManager interface {
-	Instantiate(cert, clusterProvider string) error
-	Status(cert, clusterProvider, qInstance, qType, qOutput string, fApps, fClusters, fResources []string) (module.CaCertStatus, error)
-	Terminate(cert, clusterProvider string) error
-	Update(cert, clusterProvider string) error
+	Instantiate(ctx context.Context, cert, clusterProvider string) error
+	Status(ctx context.Context, cert, clusterProvider, qInstance, qType, qOutput string, fApps, fClusters, fResources []string) (module.CaCertStatus, error)
+	Terminate(ctx context.Context, cert, clusterProvider string) error
+	Update(ctx context.Context, cert, clusterProvider string) error
 }
 
 // CaCertDistributionClient holds the client properties
@@ -36,7 +38,7 @@ func NewCaCertDistributionClient() *CaCertDistributionClient {
 }
 
 // Instantiate the clusterProvider caCert distribution
-func (c *CaCertDistributionClient) Instantiate(cert, clusterProvider string) error {
+func (c *CaCertDistributionClient) Instantiate(ctx context.Context, cert, clusterProvider string) error {
 	// check the current stateInfo of the Instantiation, if any
 	dk := DistributionKey{
 		Cert:            cert,
@@ -44,7 +46,7 @@ func (c *CaCertDistributionClient) Instantiate(cert, clusterProvider string) err
 		Distribution:    distribution.AppName}
 
 	sc := module.NewStateClient(dk)
-	if _, err := sc.VerifyState(common.Instantiate); err != nil {
+	if _, err := sc.VerifyState(ctx, common.Instantiate); err != nil {
 		return err
 	}
 
@@ -53,42 +55,42 @@ func (c *CaCertDistributionClient) Instantiate(cert, clusterProvider string) err
 		Cert:            cert,
 		ClusterProvider: clusterProvider,
 		Enrollment:      enrollment.AppName}
-	stateInfo, err := module.NewStateClient(ek).Get()
+	stateInfo, err := module.NewStateClient(ek).Get(ctx)
 	if err != nil {
 		return err
 	}
 
-	enrollmentContextID, err := enrollment.VerifyEnrollmentState(stateInfo)
+	enrollmentContextID, err := enrollment.VerifyEnrollmentState(ctx, stateInfo)
 	if err != nil {
 		return err
 	}
 
 	// validate the enrollment status
-	_, err = enrollment.ValidateEnrollmentStatus(stateInfo)
+	_, err = enrollment.ValidateEnrollmentStatus(ctx, stateInfo)
 	if err != nil {
 		return err
 	}
 
 	// get the caCert
-	caCert, err := getCertificate(cert, clusterProvider)
+	caCert, err := getCertificate(ctx, cert, clusterProvider)
 	if err != nil {
 		return err
 	}
 
 	// initialize a new appContext
-	ctx := module.CaCertAppContext{
+	cCtx := module.CaCertAppContext{
 		AppName:    distribution.AppName,
 		ClientName: clientName}
-	if err := ctx.InitAppContext(); err != nil {
+	if err := cCtx.InitAppContext(ctx); err != nil {
 		return err
 	}
 
 	// create a new Distribution Context
 	dCtx := distribution.DistributionContext{
-		AppContext:          ctx.AppContext,
-		AppHandle:           ctx.AppHandle,
+		AppContext:          cCtx.AppContext,
+		AppHandle:           cCtx.AppHandle,
 		CaCert:              caCert,
-		ContextID:           ctx.ContextID,
+		ContextID:           cCtx.ContextID,
 		EnrollmentContextID: enrollmentContextID,
 		Resources: distribution.DistributionResource{
 			ClusterIssuer: map[string]*cmv1.ClusterIssuer{},
@@ -99,24 +101,24 @@ func (c *CaCertDistributionClient) Instantiate(cert, clusterProvider string) err
 		}}
 
 	// get all the clusters defined under this caCert
-	dCtx.ClusterGroups, err = getAllClusterGroup(cert, clusterProvider)
+	dCtx.ClusterGroups, err = getAllClusterGroup(ctx, cert, clusterProvider)
 	if err != nil {
 		return err
 	}
 
 	// start caCert distribution instantiation
-	if err = dCtx.Instantiate(); err != nil {
+	if err = dCtx.Instantiate(ctx); err != nil {
 		return err
 	}
 
 	// invokes the rsync service
-	err = ctx.CallRsyncInstall()
+	err = cCtx.CallRsyncInstall(ctx)
 	if err != nil {
 		return err
 	}
 
 	// update caCert distribution state
-	if err := module.NewStateClient(dk).Update(state.StateEnum.Instantiated, ctx.ContextID, false); err != nil {
+	if err := module.NewStateClient(dk).Update(ctx, state.StateEnum.Instantiated, cCtx.ContextID, false); err != nil {
 		return err
 	}
 
@@ -124,36 +126,36 @@ func (c *CaCertDistributionClient) Instantiate(cert, clusterProvider string) err
 }
 
 // Status returns the caCert distribution status
-func (c *CaCertDistributionClient) Status(cert, clusterProvider, qInstance, qType, qOutput string, fApps, fClusters, fResources []string) (module.CaCertStatus, error) {
+func (c *CaCertDistributionClient) Status(ctx context.Context, cert, clusterProvider, qInstance, qType, qOutput string, fApps, fClusters, fResources []string) (module.CaCertStatus, error) {
 	// get the current state of the
 	dk := DistributionKey{
 		Cert:            cert,
 		ClusterProvider: clusterProvider,
 		Distribution:    distribution.AppName}
-	stateInfo, err := module.NewStateClient(dk).Get()
+	stateInfo, err := module.NewStateClient(dk).Get(ctx)
 	if err != nil {
 		return module.CaCertStatus{}, err
 	}
 
-	sval, err := enrollment.Status(stateInfo, qInstance, qType, qOutput, fApps, fClusters, fResources)
+	sval, err := enrollment.Status(ctx, stateInfo, qInstance, qType, qOutput, fApps, fClusters, fResources)
 	sval.ClusterProvider = clusterProvider
 	return sval, err
 }
 
 // Terminate the caCert distribution
-func (c *CaCertDistributionClient) Terminate(cert, clusterProvider string) error {
+func (c *CaCertDistributionClient) Terminate(ctx context.Context, cert, clusterProvider string) error {
 	dk := DistributionKey{
 		Cert:            cert,
 		ClusterProvider: clusterProvider,
 		Distribution:    distribution.AppName}
 
-	return distribution.Terminate(dk)
+	return distribution.Terminate(ctx, dk)
 }
 
 // Update the caCert distribution
-func (c *CaCertDistributionClient) Update(cert, clusterProvider string) error {
+func (c *CaCertDistributionClient) Update(ctx context.Context, cert, clusterProvider string) error {
 	// get the caCert
-	caCert, err := getCertificate(cert, clusterProvider)
+	caCert, err := getCertificate(ctx, cert, clusterProvider)
 	if err != nil {
 		return err
 	}
@@ -163,31 +165,31 @@ func (c *CaCertDistributionClient) Update(cert, clusterProvider string) error {
 		ClusterProvider: clusterProvider,
 		Distribution:    distribution.AppName}
 
-	previd, status, err := module.GetAppContextStatus(dk)
+	previd, status, err := module.GetAppContextStatus(ctx, dk)
 	if err != nil {
 		return err
 	}
 
 	if status == appcontext.AppContextStatusEnum.Instantiated {
 		// get all the clusters defined under this caCert
-		clusterGroups, err := getAllClusterGroup(cert, clusterProvider)
+		clusterGroups, err := getAllClusterGroup(ctx, cert, clusterProvider)
 		if err != nil {
 			return err
 		}
 
 		// instantiate a new appContext
-		ctx := module.CaCertAppContext{
+		cCtx := module.CaCertAppContext{
 			AppName:    distribution.AppName,
 			ClientName: clientName}
-		if err := ctx.InitAppContext(); err != nil {
+		if err := cCtx.InitAppContext(ctx); err != nil {
 			return err
 		}
 
 		dCtx := distribution.DistributionContext{
-			AppContext:    ctx.AppContext,
-			AppHandle:     ctx.AppHandle,
+			AppContext:    cCtx.AppContext,
+			AppHandle:     cCtx.AppHandle,
 			CaCert:        caCert,
-			ContextID:     ctx.ContextID,
+			ContextID:     cCtx.ContextID,
 			ClientName:    clientName,
 			ClusterGroups: clusterGroups,
 			Resources: distribution.DistributionResource{
@@ -200,16 +202,16 @@ func (c *CaCertDistributionClient) Update(cert, clusterProvider string) error {
 		}
 
 		// start the caCert distribution instantiation
-		if err := dCtx.Instantiate(); err != nil {
+		if err := dCtx.Instantiate(ctx); err != nil {
 			return err
 		}
 		// update the appContext
-		if err := dCtx.Update(previd); err != nil {
+		if err := dCtx.Update(ctx, previd); err != nil {
 			return err
 		}
 
 		// update the state object for the caCert resource
-		if err := module.NewStateClient(dk).Update(state.StateEnum.Updated, dCtx.ContextID, false); err != nil {
+		if err := module.NewStateClient(dk).Update(ctx, state.StateEnum.Updated, dCtx.ContextID, false); err != nil {
 			return err
 		}
 

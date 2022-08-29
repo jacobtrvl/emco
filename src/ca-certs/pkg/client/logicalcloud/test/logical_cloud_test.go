@@ -25,9 +25,10 @@ var _ = Describe("Create CaCertLogicalCloud",
 		})
 		Context("create a caCertLogicalCloud for a logicalCloud", func() {
 			It("returns the caCertLogicalCloud, no error and, the exists flag is false", func() {
+				ctx := context.Background()
 				l := len(mockdb.Items)
 				mLogicalCloud := mockLogicalCloud("new-caCertLogicalCloud-1")
-				c, cExists, err := lcClient.CreateLogicalCloud(mLogicalCloud, "cert1", "proj1", true)
+				c, cExists, err := lcClient.CreateLogicalCloud(ctx, mLogicalCloud, "cert1", "proj1", true)
 				validateError(err, "")
 				validateLogicalCloud(c, mLogicalCloud)
 				Expect(cExists).To(Equal(false))
@@ -36,9 +37,10 @@ var _ = Describe("Create CaCertLogicalCloud",
 		})
 		Context("create a caCertLogicalCloud for a logicalCloud that already exists", func() {
 			It("returns an error, no caCertLogicalCloud and, the exists flag is true", func() {
+				ctx := context.Background()
 				l := len(mockdb.Items)
 				mLogicalCloud := mockLogicalCloud("test-caCertLogicalCloud-1")
-				c, cExists, err := lcClient.CreateLogicalCloud(mLogicalCloud, "cert1", "proj1", true)
+				c, cExists, err := lcClient.CreateLogicalCloud(ctx, mLogicalCloud, "cert1", "proj1", true)
 				validateError(err, module.CaCertLogicalCloudAlreadyExists)
 				validateLogicalCloud(c, logicalcloud.CaCertLogicalCloud{})
 				Expect(cExists).To(Equal(true))
@@ -55,17 +57,19 @@ var _ = Describe("Delete CaCertLogicalCloud",
 		})
 		Context("delete an existing caCertLogicalCloud", func() {
 			It("returns no error and delete the entry from the db", func() {
+				ctx := context.Background()
 				l := len(mockdb.Items)
-				err := lcClient.DeleteLogicalCloud("test-caCertLogicalCloud-1", "cert1", "proj1")
+				err := lcClient.DeleteLogicalCloud(ctx, "test-caCertLogicalCloud-1", "cert1", "proj1")
 				validateError(err, "")
 				Expect(len(mockdb.Items)).To(Equal(l - 1))
 			})
 		})
 		Context("delete a nonexisting caCertLogicalCloud", func() {
 			It("returns an error and no change in the db", func() {
+				ctx := context.Background()
 				l := len(mockdb.Items)
 				mockdb.Err = errors.New("db Remove resource not found")
-				err := lcClient.DeleteLogicalCloud("non-existing-caCertLogicalCloud", "cert1", "proj1")
+				err := lcClient.DeleteLogicalCloud(ctx, "non-existing-caCertLogicalCloud", "cert1", "proj1")
 				validateError(err, "db Remove resource not found")
 				Expect(len(mockdb.Items)).To(Equal(l))
 			})
@@ -80,15 +84,17 @@ var _ = Describe("Get All CaCertLogicalCloud",
 		})
 		Context("get all the caCertLogicalClouds", func() {
 			It("returns all the caCertLogicalClouds, no error", func() {
-				clusters, err := lcClient.GetAllLogicalClouds("cert1", "proj1")
+				ctx := context.Background()
+				clusters, err := lcClient.GetAllLogicalClouds(ctx, "cert1", "proj1")
 				validateError(err, "")
 				Expect(len(clusters)).To(Equal(len(mockdb.Items)))
 			})
 		})
 		Context("get all the caCertLogicalClouds without creating any", func() {
 			It("returns an empty array, no error", func() {
+				ctx := context.Background()
 				mockdb.Items = []map[string]map[string][]byte{}
-				clusters, err := lcClient.GetAllLogicalClouds("cert1", "proj1")
+				clusters, err := lcClient.GetAllLogicalClouds(ctx, "cert1", "proj1")
 				validateError(err, "")
 				Expect(len(clusters)).To(Equal(0))
 			})
@@ -103,14 +109,16 @@ var _ = Describe("Get CaCertLogicalCloud",
 		})
 		Context("get an existing caCertLogicalCloud", func() {
 			It("returns the caCertLogicalCloud, no error", func() {
-				cluster, err := lcClient.GetLogicalCloud("test-caCertLogicalCloud-1", "cert1", "proj1")
+				ctx := context.Background()
+				cluster, err := lcClient.GetLogicalCloud(ctx, "test-caCertLogicalCloud-1", "cert1", "proj1")
 				validateError(err, "")
 				validateLogicalCloud(cluster, mockLogicalCloud("test-caCertLogicalCloud-1"))
 			})
 		})
 		Context("get a nonexisting caCertLogicalCloud", func() {
 			It("returns an error, no caCertLogicalCloud", func() {
-				cluster, err := lcClient.GetLogicalCloud("non-existing-caCertLogicalCloud", "cert1", "proj1")
+				ctx := context.Background()
+				cluster, err := lcClient.GetLogicalCloud(ctx, "non-existing-caCertLogicalCloud", "cert1", "proj1")
 				validateError(err, module.CaCertLogicalCloudNotFound)
 				validateLogicalCloud(cluster, logicalcloud.CaCertLogicalCloud{})
 			})
@@ -140,6 +148,7 @@ func mockLogicalCloud(name string) logicalcloud.CaCertLogicalCloud {
 
 // populateLogicalCloudTestData
 func populateLogicalCloudTestData() {
+	ctx := context.Background()
 	mockdb.Err = nil
 	mockdb.Items = []map[string]map[string][]byte{}
 	mockdb.MarshalErr = nil
@@ -150,7 +159,7 @@ func populateLogicalCloudTestData() {
 		Cert:               "cert1",
 		CaCertLogicalCloud: lc.MetaData.Name,
 		Project:            "proj1"}
-	_ = mockdb.Insert(context.Background(), "resources", cpKey, nil, "data", lc)
+	_ = mockdb.Insert(ctx, "resources", cpKey, nil, "data", lc)
 
 	// caCertLogicalCloud 2
 	lc = mockLogicalCloud("test-caCertLogicalCloud-2")
@@ -158,7 +167,7 @@ func populateLogicalCloudTestData() {
 		Cert:               "cert1",
 		CaCertLogicalCloud: lc.MetaData.Name,
 		Project:            "proj1"}
-	_ = mockdb.Insert(context.Background(), "resources", cpKey, nil, "data", lc)
+	_ = mockdb.Insert(ctx, "resources", cpKey, nil, "data", lc)
 
 	// caCertLogicalCloud 3
 	lc = mockLogicalCloud("test-caCertLogicalCloud-3")
@@ -166,7 +175,7 @@ func populateLogicalCloudTestData() {
 		Cert:               "cert1",
 		CaCertLogicalCloud: lc.MetaData.Name,
 		Project:            "proj1"}
-	_ = mockdb.Insert(context.Background(), "resources", cpKey, nil, "data", lc)
+	_ = mockdb.Insert(ctx, "resources", cpKey, nil, "data", lc)
 }
 
 func validateError(err error, message string) {

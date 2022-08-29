@@ -17,10 +17,10 @@ import (
 
 // CaCertManager exposes all the caCert functionalities
 type CaCertManager interface {
-	CreateCert(cert CaCert, failIfExists bool) (CaCert, bool, error)
-	DeleteCert() error
-	GetAllCert() ([]CaCert, error)
-	GetCert() (CaCert, error)
+	CreateCert(ctx context.Context, cert CaCert, failIfExists bool) (CaCert, bool, error)
+	DeleteCert(ctx context.Context) error
+	GetAllCert(ctx context.Context) ([]CaCert, error)
+	GetCert(ctx context.Context) (CaCert, error)
 }
 
 // CaCertClient holds the client properties
@@ -40,10 +40,10 @@ func NewCaCertClient(dbKey interface{}) *CaCertClient {
 }
 
 // CreateCert creates a caCert
-func (c *CaCertClient) CreateCert(cert CaCert, failIfExists bool) (CaCert, bool, error) {
+func (c *CaCertClient) CreateCert(ctx context.Context, cert CaCert, failIfExists bool) (CaCert, bool, error) {
 	certExists := false
 
-	if cer, err := c.GetCert(); err == nil &&
+	if cer, err := c.GetCert(ctx); err == nil &&
 		!reflect.DeepEqual(cer, CaCert{}) {
 		certExists = true
 	}
@@ -56,7 +56,7 @@ func (c *CaCertClient) CreateCert(cert CaCert, failIfExists bool) (CaCert, bool,
 		)
 	}
 
-	if err := db.DBconn.Insert(context.Background(), c.dbInfo.StoreName, c.dbKey, nil, c.dbInfo.TagMeta, cert); err != nil {
+	if err := db.DBconn.Insert(ctx, c.dbInfo.StoreName, c.dbKey, nil, c.dbInfo.TagMeta, cert); err != nil {
 		return CaCert{}, certExists, err
 	}
 
@@ -64,13 +64,13 @@ func (c *CaCertClient) CreateCert(cert CaCert, failIfExists bool) (CaCert, bool,
 }
 
 // DeleteCert deletes a caCert
-func (c *CaCertClient) DeleteCert() error {
-	return db.DBconn.Remove(context.Background(), c.dbInfo.StoreName, c.dbKey)
+func (c *CaCertClient) DeleteCert(ctx context.Context) error {
+	return db.DBconn.Remove(ctx, c.dbInfo.StoreName, c.dbKey)
 }
 
 // GetAllCert
-func (c *CaCertClient) GetAllCert() ([]CaCert, error) {
-	values, err := db.DBconn.Find(context.Background(), c.dbInfo.StoreName, c.dbKey, c.dbInfo.TagMeta)
+func (c *CaCertClient) GetAllCert(ctx context.Context) ([]CaCert, error) {
+	values, err := db.DBconn.Find(ctx, c.dbInfo.StoreName, c.dbKey, c.dbInfo.TagMeta)
 	if err != nil {
 		return []CaCert{}, err
 	}
@@ -88,8 +88,8 @@ func (c *CaCertClient) GetAllCert() ([]CaCert, error) {
 }
 
 // GetCert returns the caCert
-func (c *CaCertClient) GetCert() (CaCert, error) {
-	value, err := db.DBconn.Find(context.Background(), c.dbInfo.StoreName, c.dbKey, c.dbInfo.TagMeta)
+func (c *CaCertClient) GetCert(ctx context.Context) (CaCert, error) {
+	value, err := db.DBconn.Find(ctx, c.dbInfo.StoreName, c.dbKey, c.dbInfo.TagMeta)
 	if err != nil {
 		return CaCert{}, err
 	}
@@ -116,14 +116,14 @@ func (c *CaCertClient) GetCert() (CaCert, error) {
 }
 
 // UpdateCert update the caCert
-func (c *CaCertClient) UpdateCert(cert CaCert) error {
-	return db.DBconn.Insert(context.Background(), c.dbInfo.StoreName, c.dbKey, nil, c.dbInfo.TagMeta, cert)
+func (c *CaCertClient) UpdateCert(ctx context.Context, cert CaCert) error {
+	return db.DBconn.Insert(ctx, c.dbInfo.StoreName, c.dbKey, nil, c.dbInfo.TagMeta, cert)
 }
 
 // VerifyStateBeforeDelete verifies a caCert can be deleted or not
-func (c *CaCertClient) VerifyStateBeforeDelete(cert, lifecycle string) error {
+func (c *CaCertClient) VerifyStateBeforeDelete(ctx context.Context, cert, lifecycle string) error {
 	sc := NewStateClient(c.dbKey)
-	stateInfo, err := sc.Get()
+	stateInfo, err := sc.Get(ctx)
 	if err != nil {
 		return err
 	}
@@ -149,7 +149,7 @@ func (c *CaCertClient) VerifyStateBeforeDelete(cert, lifecycle string) error {
 		cState == state.StateEnum.TerminateStopped {
 		// verify that the appcontext has completed terminating
 		ctxID := state.GetLastContextIdFromStateInfo(stateInfo)
-		acStatus, err := state.GetAppContextStatus(context.Background(), ctxID)
+		acStatus, err := state.GetAppContextStatus(ctx, ctxID)
 		if err == nil &&
 			!(acStatus.Status == appcontext.AppContextStatusEnum.Terminated ||
 				acStatus.Status == appcontext.AppContextStatusEnum.TerminateFailed) {
@@ -164,7 +164,7 @@ func (c *CaCertClient) VerifyStateBeforeDelete(cert, lifecycle string) error {
 		}
 
 		for _, id := range state.GetContextIdsFromStateInfo(stateInfo) {
-			appCtx, err := state.GetAppContextFromId(context.Background(), id)
+			appCtx, err := state.GetAppContextFromId(ctx, id)
 			if err != nil {
 				logutils.Error("Failed to get appContext from id",
 					logutils.Fields{
@@ -172,7 +172,7 @@ func (c *CaCertClient) VerifyStateBeforeDelete(cert, lifecycle string) error {
 						"Error": err.Error()})
 				return err
 			}
-			err = appCtx.DeleteCompositeApp(context.Background())
+			err = appCtx.DeleteCompositeApp(ctx)
 			if err != nil {
 				logutils.Error("Failed to delete the appContext",
 					logutils.Fields{
@@ -186,9 +186,9 @@ func (c *CaCertClient) VerifyStateBeforeDelete(cert, lifecycle string) error {
 }
 
 // VerifyStateBeforeUpdate verifies a caCert can be updated or not
-func (c *CaCertClient) VerifyStateBeforeUpdate(cert, lifecycle string) error {
+func (c *CaCertClient) VerifyStateBeforeUpdate(ctx context.Context, cert, lifecycle string) error {
 	sc := NewStateClient(c.dbKey)
-	stateInfo, err := sc.Get()
+	stateInfo, err := sc.Get(ctx)
 	if err != nil {
 		return err
 	}

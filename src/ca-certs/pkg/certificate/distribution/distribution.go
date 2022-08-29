@@ -31,17 +31,17 @@ const (
 )
 
 // Instantiate the caCert distribution
-func (ctx *DistributionContext) Instantiate() error {
+func (distCtx *DistributionContext) Instantiate(ctx context.Context) error {
 	// create resources for the edge clsuters based on the issuer
-	switch ctx.CaCert.Spec.IssuerRef.Group {
+	switch distCtx.CaCert.Spec.IssuerRef.Group {
 	case "cert-manager.io":
-		return ctx.createCertManagerIssuerResources()
+		return distCtx.createCertManagerIssuerResources(ctx)
 
 	default:
 		err := errors.New("unsupported Issuer")
 		logutils.Error("",
 			logutils.Fields{
-				"Issuer": ctx.CaCert.Spec.IssuerRef.Group,
+				"Issuer": distCtx.CaCert.Spec.IssuerRef.Group,
 				"Error":  err.Error()})
 		return err
 	}
@@ -49,32 +49,32 @@ func (ctx *DistributionContext) Instantiate() error {
 }
 
 // Update the caCert distribution appContext
-func (ctx *DistributionContext) Update(prevContextID string) error {
-	if err := state.UpdateAppContextStatusContextID(context.Background(), ctx.ContextID, prevContextID); err != nil {
+func (distCtx *DistributionContext) Update(ctx context.Context, prevContextID string) error {
+	if err := state.UpdateAppContextStatusContextID(ctx, distCtx.ContextID, prevContextID); err != nil {
 		logutils.Error("Failed to update appContext status",
 			logutils.Fields{
-				"ContextID": ctx.ContextID,
+				"ContextID": distCtx.ContextID,
 				"AppName":   AppName,
 				"Error":     err.Error()})
 		return err
 	}
 
-	if err := notifyclient.CallRsyncUpdate(context.Background(), prevContextID, ctx.ContextID); err != nil {
+	if err := notifyclient.CallRsyncUpdate(ctx, prevContextID, distCtx.ContextID); err != nil {
 		logutils.Error("Rsync update failed",
 			logutils.Fields{
-				"ContextID": ctx.ContextID,
+				"ContextID": distCtx.ContextID,
 				"AppName":   AppName,
 				"Error":     err.Error()})
 		return err
 	}
 
 	// subscribe to alerts
-	stream, _, err := notifyclient.InvokeReadyNotify(context.Background(), ctx.ContextID, ctx.ClientName)
+	stream, _, err := notifyclient.InvokeReadyNotify(ctx, distCtx.ContextID, distCtx.ClientName)
 	if err != nil {
 		logutils.Error("Failed to subscribe to alerts",
 			logutils.Fields{
-				"ContextID":  ctx.ContextID,
-				"ClientName": ctx.ClientName,
+				"ContextID":  distCtx.ContextID,
+				"ClientName": distCtx.ClientName,
 				"AppName":    AppName,
 				"Error":      err.Error()})
 		return err
@@ -83,8 +83,8 @@ func (ctx *DistributionContext) Update(prevContextID string) error {
 	if err := stream.CloseSend(); err != nil {
 		logutils.Error("Failed to close the send stream",
 			logutils.Fields{
-				"ContextID":  ctx.ContextID,
-				"ClientName": ctx.ClientName,
+				"ContextID":  distCtx.ContextID,
+				"ClientName": distCtx.ClientName,
 				"AppName":    AppName,
 				"Error":      err.Error()})
 		return err
@@ -94,23 +94,23 @@ func (ctx *DistributionContext) Update(prevContextID string) error {
 }
 
 // Terminate the caCert distribution
-func Terminate(dbKey interface{}) error {
+func Terminate(ctx context.Context, dbKey interface{}) error {
 	sc := module.NewStateClient(dbKey)
 	// check the current state of the Instantiation, if any
-	contextID, err := sc.VerifyState(common.Terminate)
+	contextID, err := sc.VerifyState(ctx, common.Terminate)
 	if err != nil {
 		return err
 	}
 
 	// call resource synchronizer to delete the resources under this appContext
-	ctx := module.CaCertAppContext{
+	distCtx := module.CaCertAppContext{
 		ContextID: contextID}
-	if err := ctx.CallRsyncUninstall(); err != nil {
+	if err := distCtx.CallRsyncUninstall(ctx); err != nil {
 		return err
 	}
 
 	// update the state object for the caCert distribution resource
-	if err := sc.Update(state.StateEnum.Terminated, contextID, false); err != nil {
+	if err := sc.Update(ctx, state.StateEnum.Terminated, contextID, false); err != nil {
 		return err
 	}
 
@@ -119,37 +119,38 @@ func Terminate(dbKey interface{}) error {
 
 // createCertManagerIssuerResources creates cert-manager specific resources
 // in this case, secret, clusterIssuer
-func (ctx *DistributionContext) createCertManagerIssuerResources() error {
+
+func (distCtx *DistributionContext) createCertManagerIssuerResources(ctx context.Context) error {
 	// retrieve enrolled cert-manager resource
-	resources, err := certmanagerissuer.RetrieveCertManagerResources(ctx.EnrollmentContextID)
+	resources, err := certmanagerissuer.RetrieveCertManagerResources(ctx, distCtx.EnrollmentContextID)
 	if err != nil {
 		return err
 	}
 
-	ctx.CertificateRequests = resources.CertificateRequests
-	ctx.Certificates = resources.Certificates
-	ctx.Secrets = resources.Secrets
+	distCtx.CertificateRequests = resources.CertificateRequests
+	distCtx.Certificates = resources.Certificates
+	distCtx.Secrets = resources.Secrets
 
-	for _, ctx.ClusterGroup = range ctx.ClusterGroups {
+	for _, distCtx.ClusterGroup = range distCtx.ClusterGroups {
 		// get all the clusters in this clusterGroup
-		clusters, err := module.GetClusters(ctx.ClusterGroup, ctx.Project, ctx.LogicalCloud)
+		clusters, err := module.GetClusters(ctx, distCtx.ClusterGroup, distCtx.Project, distCtx.LogicalCloud)
 		if err != nil {
 			return err
 		}
 
-		for _, ctx.Cluster = range clusters {
-			ctx.ResOrder = []string{}
-			ctx.ClusterHandle, err = ctx.AppContext.AddCluster(context.Background(), ctx.AppHandle,
-				strings.Join([]string{ctx.ClusterGroup.Spec.Provider, ctx.Cluster}, "+"))
+		for _, distCtx.Cluster = range clusters {
+			distCtx.ResOrder = []string{}
+			distCtx.ClusterHandle, err = distCtx.AppContext.AddCluster(ctx, distCtx.AppHandle,
+				strings.Join([]string{distCtx.ClusterGroup.Spec.Provider, distCtx.Cluster}, "+"))
 			if err != nil {
 				logutils.Error("Failed to add the cluster",
 					logutils.Fields{
 						"Error": err.Error()})
 
-				if er := ctx.AppContext.DeleteCompositeApp(context.Background()); er != nil {
+				if er := distCtx.AppContext.DeleteCompositeApp(ctx); er != nil {
 					logutils.Error("Failed to delete the compositeApp",
 						logutils.Fields{
-							"ContextID": ctx.ContextID,
+							"ContextID": distCtx.ContextID,
 							"Error":     er.Error()})
 					return er
 				}
@@ -158,7 +159,7 @@ func (ctx *DistributionContext) createCertManagerIssuerResources() error {
 			}
 			var sgxEnabled bool
 			// check whether the cluster is SGX enabled or not
-			if val, err := clm.NewClusterClient().GetClusterKvPairsValue(context.Background(), ctx.ClusterGroup.Spec.Provider, ctx.Cluster, "sgx", "enabled"); err == nil {
+			if val, err := clm.NewClusterClient().GetClusterKvPairsValue(ctx, distCtx.ClusterGroup.Spec.Provider, distCtx.Cluster, "sgx", "enabled"); err == nil {
 				v, e := module.GetValue(val)
 				if e != nil {
 					return e
@@ -171,15 +172,15 @@ func (ctx *DistributionContext) createCertManagerIssuerResources() error {
 
 			ready := false
 			if sgxEnabled {
-				certName := certmanagerissuer.CertificateName(ctx.EnrollmentContextID, ctx.CaCert.MetaData.Name, ctx.ClusterGroup.Spec.Provider, ctx.Cluster)
-				for _, cert := range ctx.Certificates {
+				certName := certmanagerissuer.CertificateName(distCtx.EnrollmentContextID, distCtx.CaCert.MetaData.Name, distCtx.ClusterGroup.Spec.Provider, distCtx.Cluster)
+				for _, cert := range distCtx.Certificates {
 					if cert.ObjectMeta.Name == certName { // to make sure we are creating the resource(s) in the same cluster
 						if err := certmanagerissuer.ValidateCertificate(cert); err != nil {
 							return err
 						}
 
 						// create a TCSIssuer to use the secret and the certificate
-						if err := ctx.createTCSIssuer(cert.Spec.SecretName, false); err != nil {
+						if err := distCtx.createTCSIssuer(ctx, cert.Spec.SecretName, false); err != nil {
 							return err
 						}
 
@@ -188,21 +189,21 @@ func (ctx *DistributionContext) createCertManagerIssuerResources() error {
 					}
 				}
 			} else {
-				crName := certmanagerissuer.CertificateRequestName(ctx.EnrollmentContextID, ctx.CaCert.MetaData.Name, ctx.ClusterGroup.Spec.Provider, ctx.Cluster)
-				for _, cr := range ctx.CertificateRequests {
+				crName := certmanagerissuer.CertificateRequestName(distCtx.EnrollmentContextID, distCtx.CaCert.MetaData.Name, distCtx.ClusterGroup.Spec.Provider, distCtx.Cluster)
+				for _, cr := range distCtx.CertificateRequests {
 					if cr.ObjectMeta.Name == crName { // to make sure we are creating the resource(s) in the same cluster
 						if err := certmanagerissuer.ValidateCertificateRequest(cr); err != nil {
 							return err
 						}
 
 						// create a Secret to store the certificate
-						sName := certmanagerissuer.SecretName(ctx.ContextID, ctx.CaCert.MetaData.Name, ctx.ClusterGroup.Spec.Provider, ctx.Cluster)
-						if err := ctx.createSecret(cr, sName, "cert-manager"); err != nil {
+						sName := certmanagerissuer.SecretName(distCtx.ContextID, distCtx.CaCert.MetaData.Name, distCtx.ClusterGroup.Spec.Provider, distCtx.Cluster)
+						if err := distCtx.createSecret(ctx, cr, sName, "cert-manager"); err != nil {
 							return err
 						}
 
 						// create a ClusterIssuer to use the secret and the certificate
-						if err := ctx.createClusterIssuer(sName); err != nil {
+						if err := distCtx.createClusterIssuer(ctx, sName); err != nil {
 							return err
 						}
 
@@ -216,35 +217,35 @@ func (ctx *DistributionContext) createCertManagerIssuerResources() error {
 				err := errors.New("cert-manager resource is not ready. Update the enrollment")
 				logutils.Error("",
 					logutils.Fields{
-						"Cluster": ctx.Cluster,
+						"Cluster": distCtx.Cluster,
 						"Error":   err.Error()})
 				return err
 			}
 
 			// create service specific resources for this issuer
-			if err := ctx.createServiceResources(); err != nil {
+			if err := distCtx.createServiceResources(ctx); err != nil {
 				return err
 			}
 
-			if err := module.AddInstruction(ctx.AppContext, ctx.ClusterHandle, ctx.ResOrder); err != nil {
+			if err := module.AddInstruction(ctx, distCtx.AppContext, distCtx.ClusterHandle, distCtx.ResOrder); err != nil {
 				return err
 			}
 
-			ctx.Cluster = ""
-			ctx.ResOrder = []string{}
-			ctx.ClusterHandle = nil
+			distCtx.Cluster = ""
+			distCtx.ResOrder = []string{}
+			distCtx.ClusterHandle = nil
 		}
 
-		ctx.ClusterGroup = module.ClusterGroup{}
+		distCtx.ClusterGroup = module.ClusterGroup{}
 	}
 
 	return nil
 }
 
 // createServiceResources creates the resources based on the service mesh type
-func (ctx *DistributionContext) createServiceResources() error {
+func (distCtx *DistributionContext) createServiceResources(ctx context.Context) error {
 	var serviceType string
-	val, err := clm.NewClusterClient().GetClusterKvPairsValue(context.Background(), ctx.ClusterGroup.Spec.Provider, ctx.Cluster, "serviceMeshInfo", "serviceType")
+	val, err := clm.NewClusterClient().GetClusterKvPairsValue(ctx, distCtx.ClusterGroup.Spec.Provider, distCtx.Cluster, "serviceMeshInfo", "serviceType")
 	if err == nil {
 		v, e := module.GetValue(val)
 		if e != nil {
@@ -262,24 +263,24 @@ func (ctx *DistributionContext) createServiceResources() error {
 
 	switch serviceType {
 	case "istio":
-		return ctx.createIstioServiceResources()
-
+		return distCtx.createIstioServiceResourcess(ctx)
 	default:
-		return ctx.createIstioServiceResources()
+		return distCtx.createIstioServiceResourcess(ctx)
 	}
 
 }
 
 // createIstioServiceResources creates the istio resources on the edge cluster
 // in this case, proxyConfig, kncc resource to update the istio configMap
-func (ctx *DistributionContext) createIstioServiceResources() error {
-	switch ctx.CaCert.Spec.IssuerRef.Group {
+
+func (distCtx *DistributionContext) createIstioServiceResourcess(ctx context.Context) error {
+	switch distCtx.CaCert.Spec.IssuerRef.Group {
 	case "cert-manager.io":
 		var sgxEnabled bool
 		var issuerName string
 		var secret v1.Secret
 		// check whether the cluster is SGX enabled or not
-		if val, err := clm.NewClusterClient().GetClusterKvPairsValue(context.Background(), ctx.ClusterGroup.Spec.Provider, ctx.Cluster, "sgx", "enabled"); err == nil {
+		if val, err := clm.NewClusterClient().GetClusterKvPairsValue(ctx, distCtx.ClusterGroup.Spec.Provider, distCtx.Cluster, "sgx", "enabled"); err == nil {
 			v, e := module.GetValue(val)
 			if e != nil {
 				return e
@@ -292,12 +293,12 @@ func (ctx *DistributionContext) createIstioServiceResources() error {
 
 		if sgxEnabled {
 			// retrieve the tcsissuer
-			if issuer := ctx.retrieveTCSIssuer(ctx.Cluster); !reflect.DeepEqual(issuer, tcsv1.TCSIssuer{}) {
+			if issuer := distCtx.retrieveTCSIssuer(distCtx.Cluster); !reflect.DeepEqual(issuer, tcsv1.TCSIssuer{}) {
 				issuerName = issuer.ObjectMeta.Name
 			}
 			// retrieve the tcsissuer secret
-			sName := certmanagerissuer.SecretName(ctx.EnrollmentContextID, ctx.CaCert.MetaData.Name, ctx.ClusterGroup.Spec.Provider, ctx.Cluster)
-			for _, s := range ctx.Secrets {
+			sName := certmanagerissuer.SecretName(distCtx.EnrollmentContextID, distCtx.CaCert.MetaData.Name, distCtx.ClusterGroup.Spec.Provider, distCtx.Cluster)
+			for _, s := range distCtx.Secrets {
 				if s.ObjectMeta.Name == sName {
 					secret = s
 					break
@@ -305,11 +306,11 @@ func (ctx *DistributionContext) createIstioServiceResources() error {
 			}
 		} else {
 			// retrieve the clusterissuer
-			if issuer := ctx.retrieveClusterIssuer(ctx.Cluster); !reflect.DeepEqual(issuer, cmv1.ClusterIssuer{}) {
+			if issuer := distCtx.retrieveClusterIssuer(distCtx.Cluster); !reflect.DeepEqual(issuer, cmv1.ClusterIssuer{}) {
 				issuerName = issuer.ObjectMeta.Name
 			}
 			// retrieve the clusterissuer secret
-			secret = *ctx.retrieveSecret(ctx.Cluster)
+			secret = *distCtx.retrieveSecret(distCtx.Cluster)
 
 		}
 
@@ -321,7 +322,7 @@ func (ctx *DistributionContext) createIstioServiceResources() error {
 			}
 			logutils.Error("",
 				logutils.Fields{
-					"Cluster": ctx.Cluster,
+					"Cluster": distCtx.Cluster,
 					"Error":   err.Error()})
 			return err
 		}
@@ -331,7 +332,7 @@ func (ctx *DistributionContext) createIstioServiceResources() error {
 			err := errors.New("A secret is not available for the cluster")
 			logutils.Error("",
 				logutils.Fields{
-					"Cluster": ctx.Cluster,
+					"Cluster": distCtx.Cluster,
 					"Error":   err.Error()})
 			return err
 		}
@@ -341,9 +342,9 @@ func (ctx *DistributionContext) createIstioServiceResources() error {
 			value string
 		)
 
-		if len(ctx.Namespace) > 0 {
+		if len(distCtx.Namespace) > 0 {
 			// create a proxyconfig for this namespace
-			if err := ctx.createProxyConfig(issuerName); err != nil {
+			if err := distCtx.createProxyConfig(ctx, issuerName); err != nil {
 				return err
 			}
 		}
@@ -355,10 +356,10 @@ func (ctx *DistributionContext) createIstioServiceResources() error {
 				[]byte{})), "\n", "\n    ", -1) // create the caCert chain
 			value = fmt.Sprintf("- certSigners:\n  - tcsissuer.tcs.intel.com/default.%s\n  pem: |\n    %s",
 				issuerName, pem)
-			if len(ctx.Namespace) > 0 {
+			if len(distCtx.Namespace) > 0 {
 				// set the issuer name with the namespace
 				value = fmt.Sprintf("- certSigners:\n  - tcsissuer.tcs.intel.com/%s.%s\n  pem: |\n    %s",
-					ctx.Namespace, issuerName, pem)
+					distCtx.Namespace, issuerName, pem)
 			}
 
 		} else {
@@ -367,19 +368,19 @@ func (ctx *DistributionContext) createIstioServiceResources() error {
 				issuerName, pem)
 		}
 
-		if err := ctx.createKnccConfig("istio-system", "istio", "istio-system",
+		if err := distCtx.createKnccConfig(ctx, "istio-system", "istio", "istio-system",
 			[]map[string]string{{key: value}}); err != nil {
 			return err
 		}
 
-		if len(ctx.Namespace) == 0 {
+		if len(distCtx.Namespace) == 0 {
 			// use this issuer as the dfault issuer for the cluster
 			key = "mesh:\n  defaultConfig:\n    proxyMetadata:\n      ISTIO_META_CERT_SIGNER\n"
 			value = issuerName
 			if sgxEnabled {
 				value = fmt.Sprintf("default.%s", issuerName)
 			}
-			if err := ctx.createKnccConfig("istio-system", "istio", "istio-system",
+			if err := distCtx.createKnccConfig(ctx, "istio-system", "istio", "istio-system",
 				[]map[string]string{{key: value}}); err != nil {
 				return err
 			}
@@ -391,7 +392,7 @@ func (ctx *DistributionContext) createIstioServiceResources() error {
 	err := errors.New("Unsupported Issuer")
 	logutils.Error("",
 		logutils.Fields{
-			"Cluster": ctx.Cluster,
+			"Cluster": distCtx.Cluster,
 			"Error":   err.Error()})
 	return err
 }

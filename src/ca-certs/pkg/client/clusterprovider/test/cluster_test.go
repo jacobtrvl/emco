@@ -22,9 +22,10 @@ var _ = Describe("Create ClusterGroup",
 		})
 		Context("create a clusterGroup for a clusterProvider", func() {
 			It("returns the clusterGroup, no error and, the exists flag is false", func() {
+				ctx := context.Background()
 				l := len(mockdb.Items)
 				mClusterGroup := mockClusterGroup("new-clusterGroup-1")
-				cg, cExists, err := client.CreateClusterGroup(mClusterGroup, "cert1", "provider1", true)
+				cg, cExists, err := client.CreateClusterGroup(ctx, mClusterGroup, "cert1", "provider1", true)
 				validateError(err, "")
 				Expect(mClusterGroup).To(Equal(cg))
 				Expect(cExists).To(Equal(false))
@@ -33,9 +34,10 @@ var _ = Describe("Create ClusterGroup",
 		})
 		Context("create a clusterGroup for a clusterProvider that already exists", func() {
 			It("returns an error, no clusterGroup and, the exists flag is true", func() {
+				ctx := context.Background()
 				l := len(mockdb.Items)
 				mClusterGroup := mockClusterGroup("test-clusterGroup-1")
-				cg, cExists, err := client.CreateClusterGroup(mClusterGroup, "cert1", "provider1", true)
+				cg, cExists, err := client.CreateClusterGroup(ctx, mClusterGroup, "cert1", "provider1", true)
 				validateError(err, module.CaCertClusterGroupAlreadyExists)
 				Expect(module.ClusterGroup{}).To(Equal(cg))
 				Expect(cExists).To(Equal(true))
@@ -52,17 +54,19 @@ var _ = Describe("Delete ClusterGroup",
 		})
 		Context("delete an existing clusterGroup", func() {
 			It("returns no error and delete the entry from the db", func() {
+				ctx := context.Background()
 				l := len(mockdb.Items)
-				err := client.DeleteClusterGroup("cert1", "test-clusterGroup-1", "provider1")
+				err := client.DeleteClusterGroup(ctx, "cert1", "test-clusterGroup-1", "provider1")
 				validateError(err, "")
 				Expect(len(mockdb.Items)).To(Equal(l - 1))
 			})
 		})
 		Context("delete a nonexisting clusterGroup", func() {
 			It("returns an error and no change in the db", func() {
+				ctx := context.Background()
 				l := len(mockdb.Items)
 				mockdb.Err = errors.New("db Remove resource not found")
-				err := client.DeleteClusterGroup("cert1", "non-existing-cluster", "provider1")
+				err := client.DeleteClusterGroup(ctx, "cert1", "non-existing-cluster", "provider1")
 				validateError(err, "db Remove resource not found")
 				Expect(len(mockdb.Items)).To(Equal(l))
 			})
@@ -77,15 +81,17 @@ var _ = Describe("Get All ClusterGroups",
 		})
 		Context("get all the clusterGroups", func() {
 			It("returns all the clusterGroups, no error", func() {
-				clusters, err := client.GetAllClusterGroups("cert1", "provider1")
+				ctx := context.Background()
+				clusters, err := client.GetAllClusterGroups(ctx, "cert1", "provider1")
 				validateError(err, "")
 				Expect(len(clusters)).To(Equal(len(mockdb.Items)))
 			})
 		})
 		Context("get all the clusterGroups without creating any", func() {
 			It("returns an empty array, no error", func() {
+				ctx := context.Background()
 				mockdb.Items = []map[string]map[string][]byte{}
-				clusters, err := client.GetAllClusterGroups("cert1", "provider1")
+				clusters, err := client.GetAllClusterGroups(ctx, "cert1", "provider1")
 				validateError(err, "")
 				Expect(len(clusters)).To(Equal(0))
 			})
@@ -100,14 +106,16 @@ var _ = Describe("Get ClusterGroup",
 		})
 		Context("get an existing clusterGroup", func() {
 			It("returns the clusterGroup, no error", func() {
-				cluster, err := client.GetClusterGroup("cert1", "test-clusterGroup-1", "provider1")
+				ctx := context.Background()
+				cluster, err := client.GetClusterGroup(ctx, "cert1", "test-clusterGroup-1", "provider1")
 				validateError(err, "")
 				validateClusterGroup(cluster, mockClusterGroup("test-clusterGroup-1"))
 			})
 		})
 		Context("get a nonexisting clusterGroup", func() {
 			It("returns an error, no clusterGroup", func() {
-				cluster, err := client.GetClusterGroup("cert1", "non-existing-cluster", "provider1")
+				ctx := context.Background()
+				cluster, err := client.GetClusterGroup(ctx, "cert1", "non-existing-cluster", "provider1")
 				validateError(err, module.CaCertClusterGroupNotFound)
 				validateClusterGroup(cluster, module.ClusterGroup{})
 			})
@@ -134,6 +142,7 @@ func mockClusterGroup(name string) module.ClusterGroup {
 
 // populateClusterGroupTestData
 func populateClusterGroupTestData() {
+	ctx := context.Background()
 	mockdb.Err = nil
 	mockdb.Items = []map[string]map[string][]byte{}
 	mockdb.MarshalErr = nil
@@ -144,7 +153,7 @@ func populateClusterGroupTestData() {
 		Cert:            "cert1",
 		ClusterGroup:    "test-clusterGroup-1",
 		ClusterProvider: "provider1"}
-	_ = mockdb.Insert(context.Background(), "resources", cpKey, nil, "data", cluster)
+	_ = mockdb.Insert(ctx, "resources", cpKey, nil, "data", cluster)
 
 	// cluster 2
 	cluster = mockClusterGroup("test-clusterGroup-2")
@@ -152,7 +161,7 @@ func populateClusterGroupTestData() {
 		Cert:            "cert1",
 		ClusterGroup:    "test-clusterGroup-2",
 		ClusterProvider: "provider1"}
-	_ = mockdb.Insert(context.Background(), "resources", cpKey, nil, "data", cluster)
+	_ = mockdb.Insert(ctx, "resources", cpKey, nil, "data", cluster)
 
 	// cluster 3
 	cluster = mockClusterGroup("test-clusterGroup-3")
@@ -160,7 +169,7 @@ func populateClusterGroupTestData() {
 		Cert:            "cert1",
 		ClusterGroup:    "test-clusterGroup-3",
 		ClusterProvider: "provider1"}
-	_ = mockdb.Insert(context.Background(), "resources", cpKey, nil, "data", cluster)
+	_ = mockdb.Insert(ctx, "resources", cpKey, nil, "data", cluster)
 }
 
 func validateError(err error, message string) {

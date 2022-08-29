@@ -26,9 +26,10 @@ func (h *lcHandler) handleLogicalCloudCreate(w http.ResponseWriter, r *http.Requ
 
 // handleLogicalCloudDelete handles the route for deleting a caCert logicalCloud
 func (h *lcHandler) handleLogicalCloudDelete(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	// get the route variables
 	vars := _lcVars(mux.Vars(r))
-	if err := h.manager.DeleteLogicalCloud(vars.logicalCloud, vars.cert, vars.project); err != nil {
+	if err := h.manager.DeleteLogicalCloud(ctx, vars.logicalCloud, vars.cert, vars.project); err != nil {
 		apiErr := emcoerror.HandleAPIError(err)
 		http.Error(w, apiErr.Message, apiErr.Status)
 		return
@@ -44,12 +45,13 @@ func (h *lcHandler) handleLogicalCloudGet(w http.ResponseWriter, r *http.Request
 		err           error
 	)
 
+	ctx := r.Context()
 	// get the route variables
 	vars := _lcVars(mux.Vars(r))
 	if len(vars.logicalCloud) == 0 {
-		logicalClouds, err = h.manager.GetAllLogicalClouds(vars.cert, vars.project)
+		logicalClouds, err = h.manager.GetAllLogicalClouds(ctx, vars.cert, vars.project)
 	} else {
-		logicalClouds, err = h.manager.GetLogicalCloud(vars.logicalCloud, vars.cert, vars.project)
+		logicalClouds, err = h.manager.GetLogicalCloud(ctx, vars.logicalCloud, vars.cert, vars.project)
 	}
 
 	if err != nil {
@@ -74,6 +76,7 @@ func (h *lcHandler) createOrUpdateLogicalCloud(w http.ResponseWriter, r *http.Re
 		return
 	}
 
+	ctx := r.Context()
 	// get the route variables
 	vars := _lcVars(mux.Vars(r))
 
@@ -95,7 +98,7 @@ func (h *lcHandler) createOrUpdateLogicalCloud(w http.ResponseWriter, r *http.Re
 		}
 	}
 
-	clr, clrExists, err := h.manager.CreateLogicalCloud(logicalCloud, vars.cert, vars.project, methodPost)
+	clr, clrExists, err := h.manager.CreateLogicalCloud(ctx, logicalCloud, vars.cert, vars.project, methodPost)
 	if err != nil {
 		apiErr := emcoerror.HandleAPIError(err)
 		http.Error(w, apiErr.Message, apiErr.Status)

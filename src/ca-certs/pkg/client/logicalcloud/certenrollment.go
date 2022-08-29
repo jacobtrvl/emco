@@ -20,10 +20,10 @@ const clientName string = "cacert"
 
 // CaCertEnrollmentManager exposes all the caCert enrollment functionalities
 type CaCertEnrollmentManager interface {
-	Instantiate(cert, project string) error
-	Status(cert, project, qInstance, qType, qOutput string, fApps, fClusters, fResources []string) (module.CaCertStatus, error)
-	Terminate(cert, project string) error
-	Update(cert, project string) error
+	Instantiate(ctx context.Context, cert, project string) error
+	Status(ctx context.Context, cert, project, qInstance, qType, qOutput string, fApps, fClusters, fResources []string) (module.CaCertStatus, error)
+	Terminate(ctx context.Context, cert, project string) error
+	Update(ctx context.Context, cert, project string) error
 }
 
 // CaCertEnrollmentClient holds the client properties
@@ -37,7 +37,7 @@ func NewCaCertEnrollmentClient() *CaCertEnrollmentClient {
 }
 
 // Instantiate the caCert distribution
-func (c *CaCertEnrollmentClient) Instantiate(cert, project string) error {
+func (c *CaCertEnrollmentClient) Instantiate(ctx context.Context, cert, project string) error {
 	// check the current stateInfo of the Instantiation, if any
 	ek := EnrollmentKey{
 		Cert:       cert,
@@ -45,36 +45,36 @@ func (c *CaCertEnrollmentClient) Instantiate(cert, project string) error {
 		Enrollment: enrollment.AppName}
 
 	sc := module.NewStateClient(ek)
-	if _, err := sc.VerifyState(common.Instantiate); err != nil {
+	if _, err := sc.VerifyState(ctx, common.Instantiate); err != nil {
 		return err
 	}
 
 	// get the caCert
-	caCert, err := getCertificate(cert, project)
+	caCert, err := getCertificate(ctx, cert, project)
 	if err != nil {
 		return err
 	}
 
 	// get all the logcalClouds associated with this caCert
-	lcs, err := getAllLogicalClouds(cert, project)
+	lcs, err := getAllLogicalClouds(ctx, cert, project)
 	if err != nil {
 		return err
 	}
 
 	// initialize a new appContext
-	ctx := module.CaCertAppContext{
+	cCtx := module.CaCertAppContext{
 		AppName:    enrollment.AppName,
 		ClientName: clientName}
-	if err := ctx.InitAppContext(); err != nil {
+	if err := cCtx.InitAppContext(ctx); err != nil {
 		return err
 	}
 
 	// create a new EnrollmentContext
 	eCtx := enrollment.EnrollmentContext{
-		AppContext: ctx.AppContext,
-		AppHandle:  ctx.AppHandle,
+		AppContext: cCtx.AppContext,
+		AppHandle:  cCtx.AppHandle,
 		CaCert:     caCert,
-		ContextID:  ctx.ContextID,
+		ContextID:  cCtx.ContextID,
 		Resources: enrollment.EnrollmentResource{
 			CertificateRequest: map[string]*cmv1.CertificateRequest{},
 			Certificate:        map[string]*cmv1.Certificate{},
@@ -83,7 +83,7 @@ func (c *CaCertEnrollmentClient) Instantiate(cert, project string) error {
 	}
 
 	// set the issuing cluster handle
-	eCtx.IssuerHandle, err = eCtx.IssuingClusterHandle()
+	eCtx.IssuerHandle, err = eCtx.IssuingClusterHandle(ctx)
 	if err != nil {
 		return err
 	}
@@ -93,7 +93,7 @@ func (c *CaCertEnrollmentClient) Instantiate(cert, project string) error {
 	// get all the clusters associated with these logicalClouds
 	for _, lc := range lcs {
 		// get the logicalCloud
-		l, err := dcm.NewLogicalCloudClient().Get(context.Background(), project, lc.Spec.LogicalCloud)
+		l, err := dcm.NewLogicalCloudClient().Get(ctx, project, lc.Spec.LogicalCloud)
 		if err != nil {
 			return err
 		}
@@ -105,13 +105,13 @@ func (c *CaCertEnrollmentClient) Instantiate(cert, project string) error {
 		}
 
 		// get all the clusters defined under this caCert
-		eCtx.ClusterGroups, err = getAllClusterGroup(lc.MetaData.Name, cert, project)
+		eCtx.ClusterGroups, err = getAllClusterGroup(ctx, lc.MetaData.Name, cert, project)
 		if err != nil {
 			return err
 		}
 
 		// instantiate caCert enrollment
-		if err = eCtx.Instantiate(); err != nil {
+		if err = eCtx.Instantiate(ctx); err != nil {
 			return err
 		}
 
@@ -122,18 +122,18 @@ func (c *CaCertEnrollmentClient) Instantiate(cert, project string) error {
 	}
 
 	// add instruction under the given handle and type
-	if err := module.AddInstruction(eCtx.AppContext, eCtx.IssuerHandle, eCtx.ResOrder); err != nil {
+	if err := module.AddInstruction(ctx, eCtx.AppContext, eCtx.IssuerHandle, eCtx.ResOrder); err != nil {
 		return err
 	}
 
 	// invokes the rsync service
-	err = ctx.CallRsyncInstall()
+	err = cCtx.CallRsyncInstall(ctx)
 	if err != nil {
 		return err
 	}
 
 	// update the enrollment stateInfo
-	if err := sc.Update(state.StateEnum.Instantiated, ctx.ContextID, false); err != nil {
+	if err := sc.Update(ctx, state.StateEnum.Instantiated, cCtx.ContextID, false); err != nil {
 		return err
 	}
 
@@ -141,24 +141,24 @@ func (c *CaCertEnrollmentClient) Instantiate(cert, project string) error {
 }
 
 // Status returns the caCert enrollment status
-func (c *CaCertEnrollmentClient) Status(cert, project, qInstance, qType, qOutput string, fApps, fClusters, fResources []string) (module.CaCertStatus, error) {
+func (c *CaCertEnrollmentClient) Status(ctx context.Context, cert, project, qInstance, qType, qOutput string, fApps, fClusters, fResources []string) (module.CaCertStatus, error) {
 	// get the enrollment stateInfo
 	ek := EnrollmentKey{
 		Cert:       cert,
 		Project:    project,
 		Enrollment: enrollment.AppName}
-	stateInfo, err := module.NewStateClient(ek).Get()
+	stateInfo, err := module.NewStateClient(ek).Get(ctx)
 	if err != nil {
 		return module.CaCertStatus{}, err
 	}
 
-	sval, err := enrollment.Status(stateInfo, qInstance, qType, qOutput, fApps, fClusters, fResources)
+	sval, err := enrollment.Status(ctx, stateInfo, qInstance, qType, qOutput, fApps, fClusters, fResources)
 	sval.Project = project
 	return sval, err
 }
 
 // Terminate the caCert enrollment
-func (c *CaCertEnrollmentClient) Terminate(cert, project string) error {
+func (c *CaCertEnrollmentClient) Terminate(ctx context.Context, cert, project string) error {
 	// get enrollment stateInfo
 	ek := EnrollmentKey{
 		Cert:       cert,
@@ -167,27 +167,27 @@ func (c *CaCertEnrollmentClient) Terminate(cert, project string) error {
 
 	sc := module.NewStateClient(ek)
 	// check the current state of the Instantiation, if any
-	contextID, err := sc.VerifyState(common.Terminate)
+	contextID, err := sc.VerifyState(ctx, common.Terminate)
 	if err != nil {
 		return err
 	}
 
 	// initialize a new appContext
-	ctx := module.CaCertAppContext{
+	cCtx := module.CaCertAppContext{
 		ContextID: contextID}
 	// call resource synchronizer to delete the CSR from the issuing cluster
-	if err := ctx.CallRsyncUninstall(); err != nil {
+	if err := cCtx.CallRsyncUninstall(ctx); err != nil {
 		return err
 	}
 
 	// get the caCert
-	caCert, err := getCertificate(cert, project)
+	caCert, err := getCertificate(ctx, cert, project)
 	if err != nil {
 		return err
 	}
 
 	// get all the logcalcloud(s) associated with this caCert
-	lcs, err := getAllLogicalClouds(cert, project)
+	lcs, err := getAllLogicalClouds(ctx, cert, project)
 	if err != nil {
 		return err
 	}
@@ -195,7 +195,7 @@ func (c *CaCertEnrollmentClient) Terminate(cert, project string) error {
 	// create a new EnrollmentContext
 	eCtx := enrollment.EnrollmentContext{
 		CaCert:    caCert,
-		ContextID: ctx.ContextID,
+		ContextID: cCtx.ContextID,
 		Resources: enrollment.EnrollmentResource{
 			CertificateRequest: map[string]*cmv1.CertificateRequest{},
 			Certificate:        map[string]*cmv1.Certificate{},
@@ -208,7 +208,7 @@ func (c *CaCertEnrollmentClient) Terminate(cert, project string) error {
 	// get all the clusters associated with these logicalCloud(s)
 	for _, lc := range lcs {
 		// get the logicalCloud
-		l, err := dcm.NewLogicalCloudClient().Get(context.Background(), project, lc.Spec.LogicalCloud)
+		l, err := dcm.NewLogicalCloudClient().Get(ctx, project, lc.Spec.LogicalCloud)
 		if err != nil {
 			return err
 		}
@@ -220,13 +220,13 @@ func (c *CaCertEnrollmentClient) Terminate(cert, project string) error {
 		}
 
 		// get all the clusters defined under this caCert
-		eCtx.ClusterGroups, err = getAllClusterGroup(lc.MetaData.Name, cert, project)
+		eCtx.ClusterGroups, err = getAllClusterGroup(ctx, lc.MetaData.Name, cert, project)
 		if err != nil {
 			return err
 		}
 
 		// terminate the caCert enrollment
-		if err = eCtx.Terminate(); err != nil {
+		if err = eCtx.Terminate(ctx); err != nil {
 			return err
 		}
 
@@ -237,7 +237,7 @@ func (c *CaCertEnrollmentClient) Terminate(cert, project string) error {
 	}
 
 	// update the enrollment stateInfo
-	if err := sc.Update(state.StateEnum.Terminated, contextID, false); err != nil {
+	if err := sc.Update(ctx, state.StateEnum.Terminated, contextID, false); err != nil {
 		return err
 	}
 
@@ -245,9 +245,9 @@ func (c *CaCertEnrollmentClient) Terminate(cert, project string) error {
 }
 
 // Update the caCert enrollment
-func (c *CaCertEnrollmentClient) Update(cert, project string) error {
+func (c *CaCertEnrollmentClient) Update(ctx context.Context, cert, project string) error {
 	// get the caCert
-	caCert, err := getCertificate(cert, project)
+	caCert, err := getCertificate(ctx, cert, project)
 	if err != nil {
 		return err
 	}
@@ -258,7 +258,7 @@ func (c *CaCertEnrollmentClient) Update(cert, project string) error {
 		Project:    project,
 		Enrollment: enrollment.AppName}
 	sc := module.NewStateClient(ek)
-	stateInfo, err := sc.Get()
+	stateInfo, err := sc.Get(ctx)
 	if err != nil {
 		return err
 	}
@@ -266,7 +266,7 @@ func (c *CaCertEnrollmentClient) Update(cert, project string) error {
 	contextID := state.GetLastContextIdFromStateInfo(stateInfo)
 	if len(contextID) > 0 {
 		// get the existing appContext
-		status, err := state.GetAppContextStatus(context.Background(), contextID)
+		status, err := state.GetAppContextStatus(ctx, contextID)
 		if err != nil {
 			logutils.Error("Failed to get the appContext status",
 				logutils.Fields{
@@ -276,18 +276,18 @@ func (c *CaCertEnrollmentClient) Update(cert, project string) error {
 		}
 		if status.Status == appcontext.AppContextStatusEnum.Instantiated {
 			// instantiate a new appContext
-			ctx := module.CaCertAppContext{
+			cCtx := module.CaCertAppContext{
 				AppName:    enrollment.AppName,
 				ClientName: clientName}
-			if err := ctx.InitAppContext(); err != nil {
+			if err := cCtx.InitAppContext(ctx); err != nil {
 				return err
 			}
 
 			eCtx := enrollment.EnrollmentContext{
-				AppContext: ctx.AppContext,
-				AppHandle:  ctx.AppHandle,
+				AppContext: cCtx.AppContext,
+				AppHandle:  cCtx.AppHandle,
 				CaCert:     caCert,
-				ContextID:  ctx.ContextID,
+				ContextID:  cCtx.ContextID,
 				ClientName: clientName,
 				Resources: enrollment.EnrollmentResource{
 					CertificateRequest: map[string]*cmv1.CertificateRequest{},
@@ -297,20 +297,20 @@ func (c *CaCertEnrollmentClient) Update(cert, project string) error {
 			}
 
 			// set the issuing cluster handle
-			eCtx.IssuerHandle, err = eCtx.IssuingClusterHandle()
+			eCtx.IssuerHandle, err = eCtx.IssuingClusterHandle(ctx)
 			if err != nil {
 				return err
 			}
 
 			// get all the logcalCloud(s) associated with this caCert
-			lcs, err := getAllLogicalClouds(cert, project)
+			lcs, err := getAllLogicalClouds(ctx, cert, project)
 			if err != nil {
 				return err
 			}
 
 			for _, lc := range lcs {
 				// get the logicalCloud
-				l, err := dcm.NewLogicalCloudClient().Get(context.Background(), project, lc.Spec.LogicalCloud)
+				l, err := dcm.NewLogicalCloudClient().Get(ctx, project, lc.Spec.LogicalCloud)
 				if err != nil {
 					return err
 				}
@@ -322,13 +322,13 @@ func (c *CaCertEnrollmentClient) Update(cert, project string) error {
 				}
 
 				// get all the clusters defined under this caCert
-				eCtx.ClusterGroups, err = getAllClusterGroup(lc.MetaData.Name, cert, project)
+				eCtx.ClusterGroups, err = getAllClusterGroup(ctx, lc.MetaData.Name, cert, project)
 				if err != nil {
 					return err
 				}
 
 				// update the caCert enrollment appContext
-				if err := eCtx.Update(contextID); err != nil {
+				if err := eCtx.Update(ctx, contextID); err != nil {
 					return err
 				}
 
@@ -339,7 +339,7 @@ func (c *CaCertEnrollmentClient) Update(cert, project string) error {
 			}
 
 			// update enrollment stateInfo
-			if err := sc.Update(state.StateEnum.Updated, eCtx.ContextID, false); err != nil {
+			if err := sc.Update(ctx, state.StateEnum.Updated, eCtx.ContextID, false); err != nil {
 				return err
 			}
 		}

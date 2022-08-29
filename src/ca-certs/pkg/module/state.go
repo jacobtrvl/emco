@@ -17,9 +17,9 @@ import (
 
 // StateManager exposes all the caCert state functionalities
 type StateManager interface {
-	Create(contextID string) error
-	Get() (state.StateInfo, error)
-	Update(newState state.StateValue, contextID string, createIfNotExists bool) error
+	Create(ctx context.Context, contextID string) error
+	Get(ctx context.Context) (state.StateInfo, error)
+	Update(ctx context.Context, newState state.StateValue, contextID string, createIfNotExists bool) error
 }
 
 // StateClient holds the client properties
@@ -38,7 +38,7 @@ func NewStateClient(dbKey interface{}) *StateClient {
 }
 
 // Create the stateInfo resource in mongo
-func (c *StateClient) Create(contextID string) error {
+func (c *StateClient) Create(ctx context.Context, contextID string) error {
 	// create the stateInfo
 	a := state.ActionEntry{
 		State:     state.StateEnum.Created,
@@ -49,12 +49,12 @@ func (c *StateClient) Create(contextID string) error {
 	s := state.StateInfo{}
 	s.Actions = append(s.Actions, a)
 
-	return db.DBconn.Insert(context.Background(), c.dbInfo.StoreName, c.dbKey, nil, c.dbInfo.TagState, s)
+	return db.DBconn.Insert(ctx, c.dbInfo.StoreName, c.dbKey, nil, c.dbInfo.TagState, s)
 }
 
 // Get the stateInfo from mongo
-func (c *StateClient) Get() (state.StateInfo, error) {
-	values, err := db.DBconn.Find(context.Background(), c.dbInfo.StoreName, c.dbKey, c.dbInfo.TagState)
+func (c *StateClient) Get(ctx context.Context) (state.StateInfo, error) {
+	values, err := db.DBconn.Find(ctx, c.dbInfo.StoreName, c.dbKey, c.dbInfo.TagState)
 	if err != nil {
 		return state.StateInfo{}, err
 	}
@@ -84,9 +84,9 @@ func (c *StateClient) Get() (state.StateInfo, error) {
 }
 
 // Update the stateInfo
-func (c *StateClient) Update(newState state.StateValue,
+func (c *StateClient) Update(ctx context.Context, newState state.StateValue,
 	contextID string, createIfNotExists bool) error {
-	s, err := c.Get()
+	s, err := c.Get(ctx)
 	if err == nil { // state exists
 		revision, err := state.GetLatestRevisionFromStateInfo(s)
 		if err != nil {
@@ -103,7 +103,7 @@ func (c *StateClient) Update(newState state.StateValue,
 		s.StatusContextId = contextID
 		s.Actions = append(s.Actions, a)
 
-		if err = db.DBconn.Insert(context.Background(), c.dbInfo.StoreName, c.dbKey, nil, c.dbInfo.TagState, s); err != nil {
+		if err = db.DBconn.Insert(ctx, c.dbInfo.StoreName, c.dbKey, nil, c.dbInfo.TagState, s); err != nil {
 			return err
 		}
 
@@ -114,7 +114,7 @@ func (c *StateClient) Update(newState state.StateValue,
 	case *emcoerror.Error:
 		if e.Reason == emcoerror.NotFound &&
 			createIfNotExists {
-			return c.Create(contextID)
+			return c.Create(ctx, contextID)
 		}
 	}
 
@@ -122,22 +122,22 @@ func (c *StateClient) Update(newState state.StateValue,
 }
 
 // Delete the stateInfo
-func (c *StateClient) Delete() error {
-	return db.DBconn.Remove(context.Background(), c.dbInfo.StoreName, c.dbKey)
+func (c *StateClient) Delete(ctx context.Context) error {
+	return db.DBconn.Remove(ctx, c.dbInfo.StoreName, c.dbKey)
 }
 
 // VerifyState verifies the enrollment\distribution state
-func (sc *StateClient) VerifyState(event common.EmcoEvent) (string, error) {
+func (sc *StateClient) VerifyState(ctx context.Context, event common.EmcoEvent) (string, error) {
 	var contextID string
 	// check for previous instantiation state
-	s, err := sc.Get()
+	s, err := sc.Get(ctx)
 	if err != nil {
 		return contextID, err
 	}
 
 	contextID = state.GetLastContextIdFromStateInfo(s)
 	if contextID != "" {
-		status, err := state.GetAppContextStatus(context.Background(), contextID)
+		status, err := state.GetAppContextStatus(ctx, contextID)
 		if err != nil {
 			return contextID, err
 		}

@@ -18,9 +18,11 @@ type lcCertDistributionHandler struct {
 
 // handleInstantiate handles the route for instantiating the caCert distribution
 func (h *lcCertDistributionHandler) handleInstantiate(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	// get the route variables
 	vars := _lcVars(mux.Vars(r))
-	if err := h.manager.Instantiate(vars.cert, vars.project); err != nil {
+
+	if err := h.manager.Instantiate(ctx, vars.cert, vars.project); err != nil {
 		apiErr := emcoerror.HandleAPIError(err)
 		http.Error(w, apiErr.Message, apiErr.Status)
 		return
@@ -31,6 +33,7 @@ func (h *lcCertDistributionHandler) handleInstantiate(w http.ResponseWriter, r *
 
 // handleStatus handles the route for getting the status of the caCert distribution
 func (h *lcCertDistributionHandler) handleStatus(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	// get the route variables
 	vars := _lcVars(mux.Vars(r))
 
@@ -40,7 +43,7 @@ func (h *lcCertDistributionHandler) handleStatus(w http.ResponseWriter, r *http.
 		http.Error(w, apiErr.Message, apiErr.Status)
 	}
 
-	stat, err := h.manager.Status(vars.cert, vars.project,
+	stat, err := h.manager.Status(ctx, vars.cert, vars.project,
 		qParams.qInstance,
 		qParams.qType,
 		qParams.qOutput,
@@ -58,9 +61,10 @@ func (h *lcCertDistributionHandler) handleStatus(w http.ResponseWriter, r *http.
 
 // handleTerminate handles the route for terminating the caCert distribution
 func (h *lcCertDistributionHandler) handleTerminate(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	// get the route variables
 	vars := _lcVars(mux.Vars(r))
-	if err := h.manager.Terminate(vars.cert, vars.project); err != nil {
+	if err := h.manager.Terminate(ctx, vars.cert, vars.project); err != nil {
 		apiErr := emcoerror.HandleAPIError(err)
 		http.Error(w, apiErr.Message, apiErr.Status)
 		return
@@ -71,9 +75,10 @@ func (h *lcCertDistributionHandler) handleTerminate(w http.ResponseWriter, r *ht
 
 // handleUpdate handles the route for updating the caCert distribution
 func (h *lcCertDistributionHandler) handleUpdate(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	// get the route variables
 	vars := _lcVars(mux.Vars(r))
-	if err := h.manager.Update(vars.cert, vars.project); err != nil {
+	if err := h.manager.Update(ctx, vars.cert, vars.project); err != nil {
 		apiErr := emcoerror.HandleAPIError(err)
 		http.Error(w, apiErr.Message, apiErr.Status)
 		return

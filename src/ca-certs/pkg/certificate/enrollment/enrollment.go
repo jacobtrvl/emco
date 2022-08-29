@@ -23,29 +23,30 @@ import (
 const AppName string = "cert-enrollment"
 
 // Instantiate the caCert enrollment
-func (ctx *EnrollmentContext) Instantiate() error {
-	for _, ctx.ClusterGroup = range ctx.ClusterGroups {
+func (enrollCtx *EnrollmentContext) Instantiate(ctx context.Context) error {
+	for _, enrollCtx.ClusterGroup = range enrollCtx.ClusterGroups {
 		// get all the clusters in this clusterGroup
-		clusters, err := module.GetClusters(ctx.ClusterGroup, ctx.Project, ctx.LogicalCloud)
+		clusters, err := module.GetClusters(ctx, enrollCtx.ClusterGroup, enrollCtx.Project, enrollCtx.LogicalCloud)
 		if err != nil {
 			return err
 		}
 
-		for _, ctx.Cluster = range clusters {
+		for _, enrollCtx.Cluster = range clusters {
 			// create resources for the edge clsuters based on the issuer
-			switch ctx.CaCert.Spec.IssuerRef.Group {
+			switch enrollCtx.CaCert.Spec.IssuerRef.Group {
 			case "cert-manager.io":
+
 				// check whether the cluster is sgx enabled or not
 				// if it's an sgx capable cluster, create a cert-manager certificate resource
 				// otherwise, create a cert-manger certificaterequest resource
-				if val, err := clm.NewClusterClient().GetClusterKvPairsValue(context.Background(), ctx.ClusterGroup.Spec.Provider, ctx.Cluster, "sgx", "enabled"); err == nil {
+				if val, err := clm.NewClusterClient().GetClusterKvPairsValue(ctx, enrollCtx.ClusterGroup.Spec.Provider, enrollCtx.Cluster, "sgx", "enabled"); err == nil {
 					v, e := module.GetValue(val)
 					if e != nil {
 						return e
 					}
 
 					if v == "true" { // sgx enabled
-						if err := ctx.createCertManagerCertificate(); err != nil {
+						if err := enrollCtx.createCertManagerCertificate(ctx); err != nil {
 							return err
 						}
 
@@ -54,7 +55,7 @@ func (ctx *EnrollmentContext) Instantiate() error {
 				}
 
 				// cluster is not SGX enabled, create a certificaterequest
-				if err := ctx.createCertManagerCertificateRequest(); err != nil {
+				if err := enrollCtx.createCertManagerCertificateRequest(ctx); err != nil {
 					return err
 				}
 
@@ -62,23 +63,23 @@ func (ctx *EnrollmentContext) Instantiate() error {
 				err := errors.New("unsupported Issuer")
 				logutils.Error("",
 					logutils.Fields{
-						"Issuer": ctx.CaCert.Spec.IssuerRef.Group,
+						"Issuer": enrollCtx.CaCert.Spec.IssuerRef.Group,
 						"Error":  err.Error()})
 				return err
 			}
 
-			ctx.Cluster = ""
+			enrollCtx.Cluster = ""
 		}
 
-		ctx.ClusterGroup = module.ClusterGroup{}
+		enrollCtx.ClusterGroup = module.ClusterGroup{}
 	}
 
 	return nil
 }
 
 // Status provides the caCert enrollment status
-func Status(stateInfo state.StateInfo, qInstance, qType, qOutput string, fApps, fClusters, fResources []string) (module.CaCertStatus, error) {
-	statusResult, err := status.PrepareCaCertStatusResult(context.Background(), stateInfo, qInstance, qType, qOutput, fApps, fClusters, fResources)
+func Status(ctx context.Context, stateInfo state.StateInfo, qInstance, qType, qOutput string, fApps, fClusters, fResources []string) (module.CaCertStatus, error) {
+	statusResult, err := status.PrepareCaCertStatusResult(ctx, stateInfo, qInstance, qType, qOutput, fApps, fClusters, fResources)
 	if err != nil {
 		logutils.Error("Failed to get the enrollemnt status",
 			logutils.Fields{
@@ -99,68 +100,68 @@ func Status(stateInfo state.StateInfo, qInstance, qType, qOutput string, fApps, 
 }
 
 // Terminate the caCert enrollment
-func (ctx *EnrollmentContext) Terminate() error {
-	for _, ctx.ClusterGroup = range ctx.ClusterGroups {
+func (enrollCtx *EnrollmentContext) Terminate(ctx context.Context) error {
+	for _, enrollCtx.ClusterGroup = range enrollCtx.ClusterGroups {
 		// get all the clusters in this clusterGoup
-		clusters, err := module.GetClusters(ctx.ClusterGroup, ctx.Project, ctx.LogicalCloud)
+		clusters, err := module.GetClusters(ctx, enrollCtx.ClusterGroup, enrollCtx.Project, enrollCtx.LogicalCloud)
 		if err != nil {
 			return err
 		}
 		// delete all the resources associated with enrollment
-		for _, ctx.Cluster = range clusters {
+		for _, enrollCtx.Cluster = range clusters {
 			// delete the primary key, if it exists
-			if ctx.privateKeyExists() {
-				if err := ctx.deletePrivateKey(); err != nil {
+			if enrollCtx.privateKeyExists(ctx) {
+				if err := enrollCtx.deletePrivateKey(ctx); err != nil {
 					return err
 				}
 			}
 
-			ctx.Cluster = ""
+			enrollCtx.Cluster = ""
 		}
 
-		ctx.ClusterGroup = module.ClusterGroup{}
+		enrollCtx.ClusterGroup = module.ClusterGroup{}
 	}
 
 	return nil
 }
 
 // Update the caCert enrollment
-func (ctx *EnrollmentContext) Update(contextID string) error {
+func (enrollCtx *EnrollmentContext) Update(ctx context.Context, contextID string) error {
 	// initialize the Instantiation
-	if err := ctx.Instantiate(); err != nil {
+	if err := enrollCtx.Instantiate(ctx); err != nil {
 		return err
 	}
 
 	// add instruction under the given handle and type
-	if err := module.AddInstruction(ctx.AppContext, ctx.IssuerHandle, ctx.ResOrder); err != nil {
+	if err := module.AddInstruction(ctx, enrollCtx.AppContext, enrollCtx.IssuerHandle, enrollCtx.ResOrder); err != nil {
 		return err
 	}
 
-	if err := state.UpdateAppContextStatusContextID(context.Background(), ctx.ContextID, contextID); err != nil {
+	if err := state.UpdateAppContextStatusContextID(ctx, enrollCtx.ContextID, contextID); err != nil {
 		logutils.Error("Failed to update appContext status",
 			logutils.Fields{
-				"ContextID": ctx.ContextID,
+				"ContextID": enrollCtx.ContextID,
 				"AppName":   AppName,
 				"Error":     err.Error()})
 		return err
 	}
 
-	if err := notifyclient.CallRsyncUpdate(context.Background(), contextID, ctx.ContextID); err != nil {
+	if err := notifyclient.CallRsyncUpdate(ctx, contextID, enrollCtx.ContextID); err != nil {
 		logutils.Error("Rsync update failed",
 			logutils.Fields{
-				"ContextID": ctx.ContextID,
+				"ContextID": enrollCtx.ContextID,
 				"AppName":   AppName,
 				"Error":     err.Error()})
 		return err
 	}
 
 	// subscribe to alerts
-	stream, _, err := notifyclient.InvokeReadyNotify(context.Background(), ctx.ContextID, ctx.ClientName)
+	stream, _, err := notifyclient.InvokeReadyNotify(ctx, enrollCtx.ContextID, enrollCtx.ClientName)
 	if err != nil {
 		logutils.Error("Failed to subscribe to alerts",
 			logutils.Fields{
-				"ContextID":  ctx.ContextID,
-				"ClientName": ctx.ClientName,
+				"ContextID":  enrollCtx.ContextID,
+				"ClientName": enrollCtx.ClientName,
 				"AppName":    AppName,
 				"Error":      err.Error()})
 		return err
@@ -169,8 +170,8 @@ func (ctx *EnrollmentContext) Update(contextID string) error {
 	if err := stream.CloseSend(); err != nil {
 		logutils.Error("Failed to close the send stream",
 			logutils.Fields{
-				"ContextID":  ctx.ContextID,
-				"ClientName": ctx.ClientName,
+				"ContextID":  enrollCtx.ContextID,
+				"ClientName": enrollCtx.ClientName,
 				"AppName":    AppName,
 				"Error":      err.Error()})
 		return err
@@ -180,24 +181,24 @@ func (ctx *EnrollmentContext) Update(contextID string) error {
 }
 
 // IssuingClusterHandle returns the handle of certificate issuing cluster
-func (ctx *EnrollmentContext) IssuingClusterHandle() (interface{}, error) {
+func (enrollCtx *EnrollmentContext) IssuingClusterHandle(ctx context.Context) (interface{}, error) {
 	var (
 		handle interface{}
 		err    error
 	)
 
 	// add handle for the issuing cluster
-	handle, err = ctx.AppContext.AddCluster(context.Background(), ctx.AppHandle,
-		strings.Join([]string{ctx.CaCert.Spec.IssuingCluster.ClusterProvider, ctx.CaCert.Spec.IssuingCluster.Cluster}, "+"))
+	handle, err = enrollCtx.AppContext.AddCluster(ctx, enrollCtx.AppHandle,
+		strings.Join([]string{enrollCtx.CaCert.Spec.IssuingCluster.ClusterProvider, enrollCtx.CaCert.Spec.IssuingCluster.Cluster}, "+"))
 	if err != nil {
 		logutils.Error("Failed to add the issuing cluster",
 			logutils.Fields{
 				"Error": err.Error()})
 
-		if er := ctx.AppContext.DeleteCompositeApp(context.Background()); er != nil {
+		if er := enrollCtx.AppContext.DeleteCompositeApp(ctx); er != nil {
 			logutils.Error("Failed to delete the compositeApp",
 				logutils.Fields{
-					"ContextID": ctx.ContextID,
+					"ContextID": enrollCtx.ContextID,
 					"Error":     er.Error()})
 			return handle, er
 		}
@@ -210,7 +211,7 @@ func (ctx *EnrollmentContext) IssuingClusterHandle() (interface{}, error) {
 }
 
 // VerifyEnrollmentState verify the caCert enrollment state
-func VerifyEnrollmentState(stateInfo state.StateInfo) (enrollmentContextID string, err error) {
+func VerifyEnrollmentState(ctx context.Context, stateInfo state.StateInfo) (enrollmentContextID string, err error) {
 	// get the caCert enrollemnt instantiation state
 	enrollmentContextID = state.GetLastContextIdFromStateInfo(stateInfo)
 	if len(enrollmentContextID) == 0 {
@@ -221,7 +222,7 @@ func VerifyEnrollmentState(stateInfo state.StateInfo) (enrollmentContextID strin
 		return "", err
 	}
 
-	status, err := state.GetAppContextStatus(context.Background(), enrollmentContextID)
+	status, err := state.GetAppContextStatus(ctx, enrollmentContextID)
 	if err != nil {
 		logutils.Error("Failed to get the appContext status",
 			logutils.Fields{
@@ -244,9 +245,9 @@ func VerifyEnrollmentState(stateInfo state.StateInfo) (enrollmentContextID strin
 }
 
 // ValidateEnrollmentStatus verify the caCert enrollment status
-func ValidateEnrollmentStatus(stateInfo state.StateInfo) (readyCount int, err error) {
+func ValidateEnrollmentStatus(ctx context.Context, stateInfo state.StateInfo) (readyCount int, err error) {
 	//  verify the status of the enrollemnt
-	certEnrollmentStatus, err := Status(stateInfo, "", "ready", "all", make([]string, 0), make([]string, 0), make([]string, 0))
+	certEnrollmentStatus, err := Status(ctx, stateInfo, "", "ready", "all", make([]string, 0), make([]string, 0), make([]string, 0))
 	if err != nil {
 		return readyCount, err
 	}

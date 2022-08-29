@@ -5,6 +5,7 @@
 package api_test
 
 import (
+	"context"
 	"errors"
 	"net/http"
 
@@ -25,7 +26,7 @@ func init() {
 	api.CertificateSchemaJson = "../../json-schemas/certificate.json"
 }
 
-func (m *mockLogicalCloudCertManager) CreateCert(cert module.CaCert, project string, failIfExists bool) (module.CaCert, bool, error) {
+func (m *mockLogicalCloudCertManager) CreateCert(ctx context.Context, cert module.CaCert, project string, failIfExists bool) (module.CaCert, bool, error) {
 	iExists := false
 	index := 0
 
@@ -58,7 +59,7 @@ func (m *mockLogicalCloudCertManager) CreateCert(cert module.CaCert, project str
 	return m.Items[len(m.Items)-1], iExists, nil
 
 }
-func (m *mockLogicalCloudCertManager) DeleteCert(cert, project string) error {
+func (m *mockLogicalCloudCertManager) DeleteCert(ctx context.Context, cert, project string) error {
 	if m.Err != nil {
 		return m.Err
 	}
@@ -79,7 +80,7 @@ func (m *mockLogicalCloudCertManager) DeleteCert(cert, project string) error {
 
 }
 
-func (m *mockLogicalCloudCertManager) GetAllCert(project string) ([]module.CaCert, error) {
+func (m *mockLogicalCloudCertManager) GetAllCert(ctx context.Context, project string) ([]module.CaCert, error) {
 	if m.Err != nil {
 		return []module.CaCert{}, m.Err
 	}
@@ -90,7 +91,7 @@ func (m *mockLogicalCloudCertManager) GetAllCert(project string) ([]module.CaCer
 	return certs, nil
 
 }
-func (m *mockLogicalCloudCertManager) GetCert(cert, project string) (module.CaCert, error) {
+func (m *mockLogicalCloudCertManager) GetCert(ctx context.Context, cert, project string) (module.CaCert, error) {
 	if m.Err != nil {
 		return module.CaCert{}, m.Err
 	}

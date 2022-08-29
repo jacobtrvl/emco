@@ -4,6 +4,7 @@
 package logicalcloud
 
 import (
+	"context"
 	"reflect"
 
 	"gitlab.com/project-emco/core/emco-base/src/ca-certs/pkg/certificate/distribution"
@@ -15,10 +16,10 @@ import (
 // CaCertManager exposes all the caCert functionalities
 type CaCertManager interface {
 	// Certificates
-	CreateCert(cert module.CaCert, project string, failIfExists bool) (module.CaCert, bool, error)
-	DeleteCert(cert, project string) error
-	GetAllCert(project string) ([]module.CaCert, error)
-	GetCert(cert, project string) (module.CaCert, error)
+	CreateCert(ctx context.Context, cert module.CaCert, project string, failIfExists bool) (module.CaCert, bool, error)
+	DeleteCert(ctx context.Context, cert, project string) error
+	GetAllCert(ctx context.Context, project string) ([]module.CaCert, error)
+	GetCert(ctx context.Context, cert, project string) (module.CaCert, error)
 }
 
 // CaCertKey represents the resources associated with a caCert
@@ -37,7 +38,7 @@ func NewCaCertClient() *CaCertClient {
 }
 
 // CreateCert creates a caCert
-func (c *CaCertClient) CreateCert(cert module.CaCert, project string, failIfExists bool) (module.CaCert, bool, error) {
+func (c *CaCertClient) CreateCert(ctx context.Context, cert module.CaCert, project string, failIfExists bool) (module.CaCert, bool, error) {
 	certExists := false
 	ck := CaCertKey{
 		Cert:    cert.MetaData.Name,
@@ -45,7 +46,7 @@ func (c *CaCertClient) CreateCert(cert module.CaCert, project string, failIfExis
 
 	cc := module.NewCaCertClient(ck)
 
-	if cer, err := cc.GetCert(); err == nil &&
+	if cer, err := cc.GetCert(ctx); err == nil &&
 		!reflect.DeepEqual(cer, module.CaCert{}) {
 		certExists = true
 	}
@@ -60,19 +61,19 @@ func (c *CaCertClient) CreateCert(cert module.CaCert, project string, failIfExis
 
 	if certExists {
 		// check the enrollment state
-		if err := verifyEnrollmentStateBeforeUpdate(cert.MetaData.Name, project); err != nil {
+		if err := verifyEnrollmentStateBeforeUpdate(ctx, cert.MetaData.Name, project); err != nil {
 			return module.CaCert{}, certExists, err
 		}
 
 		// check the distribution state
-		if err := verifyDistributionStateBeforeUpdate(cert.MetaData.Name, project); err != nil {
+		if err := verifyDistributionStateBeforeUpdate(ctx, cert.MetaData.Name, project); err != nil {
 			return module.CaCert{}, certExists, err
 		}
 
-		return cert, certExists, cc.UpdateCert(cert)
+		return cert, certExists, cc.UpdateCert(ctx, cert)
 	}
 
-	_, certExists, err := cc.CreateCert(cert, failIfExists)
+	_, certExists, err := cc.CreateCert(ctx, cert, failIfExists)
 	if err != nil {
 		return module.CaCert{}, certExists, err
 	}
@@ -83,7 +84,7 @@ func (c *CaCertClient) CreateCert(cert module.CaCert, project string, failIfExis
 		Project:    project,
 		Enrollment: enrollment.AppName}
 	sc := module.NewStateClient(ek)
-	if err := sc.Create(""); err != nil {
+	if err := sc.Create(ctx, ""); err != nil {
 		return module.CaCert{}, certExists, err
 	}
 
@@ -93,7 +94,7 @@ func (c *CaCertClient) CreateCert(cert module.CaCert, project string, failIfExis
 		Project:      project,
 		Distribution: distribution.AppName}
 	sc = module.NewStateClient(dk)
-	if err := sc.Create(""); err != nil {
+	if err := sc.Create(ctx, ""); err != nil {
 		return module.CaCert{}, certExists, err
 	}
 
@@ -101,9 +102,9 @@ func (c *CaCertClient) CreateCert(cert module.CaCert, project string, failIfExis
 }
 
 // DeleteCert deletes a given logicalCloud caCert
-func (c *CaCertClient) DeleteCert(cert, project string) error {
+func (c *CaCertClient) DeleteCert(ctx context.Context, cert, project string) error {
 	// check the enrollment state
-	if err := verifyEnrollmentStateBeforeDelete(cert, project); err != nil {
+	if err := verifyEnrollmentStateBeforeDelete(ctx, cert, project); err != nil {
 		// if the StateInfo cannot be found, then a caCert record may not present
 		switch e := err.(type) {
 		case *emcoerror.Error:
@@ -116,7 +117,7 @@ func (c *CaCertClient) DeleteCert(cert, project string) error {
 	}
 
 	// check the distribution state
-	if err := verifyDistributionStateBeforeDelete(cert, project); err != nil {
+	if err := verifyDistributionStateBeforeDelete(ctx, cert, project); err != nil {
 		// if the StateInfo cannot be found, then a caCert record may not present
 		switch e := err.(type) {
 		case *emcoerror.Error:
@@ -134,7 +135,7 @@ func (c *CaCertClient) DeleteCert(cert, project string) error {
 		Project:    project,
 		Enrollment: enrollment.AppName}
 	sc := module.NewStateClient(ek)
-	if err := sc.Delete(); err != nil {
+	if err := sc.Delete(ctx); err != nil {
 		return err
 	}
 
@@ -144,7 +145,7 @@ func (c *CaCertClient) DeleteCert(cert, project string) error {
 		Project:      project,
 		Distribution: distribution.AppName}
 	sc = module.NewStateClient(dk)
-	if err := sc.Delete(); err != nil {
+	if err := sc.Delete(ctx); err != nil {
 		return err
 	}
 
@@ -153,64 +154,64 @@ func (c *CaCertClient) DeleteCert(cert, project string) error {
 		Cert:    cert,
 		Project: project}
 
-	return module.NewCaCertClient(ck).DeleteCert()
+	return module.NewCaCertClient(ck).DeleteCert(ctx)
 }
 
 // GetAllCert returns all the logicalCloud caCert
-func (c *CaCertClient) GetAllCert(project string) ([]module.CaCert, error) {
+func (c *CaCertClient) GetAllCert(ctx context.Context, project string) ([]module.CaCert, error) {
 	ck := CaCertKey{
 		Project: project}
 
-	return module.NewCaCertClient(ck).GetAllCert()
+	return module.NewCaCertClient(ck).GetAllCert(ctx)
 }
 
 // GetCert returns the logicalCloud caCert
-func (c *CaCertClient) GetCert(cert, project string) (module.CaCert, error) {
+func (c *CaCertClient) GetCert(ctx context.Context, cert, project string) (module.CaCert, error) {
 	ck := CaCertKey{
 		Cert:    cert,
 		Project: project}
 
-	return module.NewCaCertClient(ck).GetCert()
+	return module.NewCaCertClient(ck).GetCert(ctx)
 }
 
 // verifyEnrollmentStateBeforeDelete
-func verifyEnrollmentStateBeforeDelete(cert, project string) error {
+func verifyEnrollmentStateBeforeDelete(ctx context.Context, cert, project string) error {
 	k := EnrollmentKey{
 		Cert:       cert,
 		Project:    project,
 		Enrollment: enrollment.AppName}
 
-	return module.NewCaCertClient(k).VerifyStateBeforeDelete(cert, enrollment.AppName)
+	return module.NewCaCertClient(k).VerifyStateBeforeDelete(ctx, cert, enrollment.AppName)
 }
 
 // verifyDistributionStateBeforeDelete
-func verifyDistributionStateBeforeDelete(cert, project string) error {
+func verifyDistributionStateBeforeDelete(ctx context.Context, cert, project string) error {
 	k := DistributionKey{
 		Cert:         cert,
 		Project:      project,
 		Distribution: distribution.AppName}
 
-	return module.NewCaCertClient(k).VerifyStateBeforeDelete(cert, distribution.AppName)
+	return module.NewCaCertClient(k).VerifyStateBeforeDelete(ctx, cert, distribution.AppName)
 
 }
 
 // verifyEnrollmentStateBeforeUpdate
-func verifyEnrollmentStateBeforeUpdate(cert, project string) error {
+func verifyEnrollmentStateBeforeUpdate(ctx context.Context, cert, project string) error {
 	k := EnrollmentKey{
 		Cert:       cert,
 		Project:    project,
 		Enrollment: enrollment.AppName}
 
-	return module.NewCaCertClient(k).VerifyStateBeforeUpdate(cert, enrollment.AppName)
+	return module.NewCaCertClient(k).VerifyStateBeforeUpdate(ctx, cert, enrollment.AppName)
 }
 
 // verifyDistributionStateBeforeUpdate
-func verifyDistributionStateBeforeUpdate(cert, project string) error {
+func verifyDistributionStateBeforeUpdate(ctx context.Context, cert, project string) error {
 	k := DistributionKey{
 		Cert:         cert,
 		Project:      project,
 		Distribution: distribution.AppName}
 
-	return module.NewCaCertClient(k).VerifyStateBeforeUpdate(cert, distribution.AppName)
+	return module.NewCaCertClient(k).VerifyStateBeforeUpdate(ctx, cert, distribution.AppName)
 
 }

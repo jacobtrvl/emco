@@ -16,10 +16,10 @@ import (
 
 // ClusterGroupManager exposes all the clusterGroup functionalities
 type ClusterGroupManager interface {
-	CreateClusterGroup(cluster ClusterGroup, failIfExists bool) (ClusterGroup, bool, error)
-	DeleteClusterGroup() error
-	GetAllClusterGroups() ([]ClusterGroup, error)
-	GetClusterGroup() (ClusterGroup, error)
+	CreateClusterGroup(ctx context.Context, cluster ClusterGroup, failIfExists bool) (ClusterGroup, bool, error)
+	DeleteClusterGroup(ctx context.Context) error
+	GetAllClusterGroups(ctx context.Context) ([]ClusterGroup, error)
+	GetClusterGroup(ctx context.Context) (ClusterGroup, error)
 }
 
 // ClusterGroupClient holds the client properties
@@ -38,10 +38,10 @@ func NewClusterGroupClient(dbKey interface{}) *ClusterGroupClient {
 }
 
 // CreateClusterGroup creates a clusterGroup
-func (c *ClusterGroupClient) CreateClusterGroup(group ClusterGroup, failIfExists bool) (ClusterGroup, bool, error) {
+func (c *ClusterGroupClient) CreateClusterGroup(ctx context.Context, group ClusterGroup, failIfExists bool) (ClusterGroup, bool, error) {
 	cExists := false
 
-	if clr, err := c.GetClusterGroup(); err == nil &&
+	if clr, err := c.GetClusterGroup(ctx); err == nil &&
 		!reflect.DeepEqual(clr, ClusterGroup{}) {
 		cExists = true
 	}
@@ -54,7 +54,7 @@ func (c *ClusterGroupClient) CreateClusterGroup(group ClusterGroup, failIfExists
 		)
 	}
 
-	if err := db.DBconn.Insert(context.Background(), c.dbInfo.StoreName, c.dbKey, nil, c.dbInfo.TagMeta, group); err != nil {
+	if err := db.DBconn.Insert(ctx, c.dbInfo.StoreName, c.dbKey, nil, c.dbInfo.TagMeta, group); err != nil {
 		return ClusterGroup{}, cExists, err
 	}
 
@@ -62,13 +62,13 @@ func (c *ClusterGroupClient) CreateClusterGroup(group ClusterGroup, failIfExists
 }
 
 // DeleteClusterGroup deletes a clusterGroup
-func (c *ClusterGroupClient) DeleteClusterGroup() error {
-	return db.DBconn.Remove(context.Background(), c.dbInfo.StoreName, c.dbKey)
+func (c *ClusterGroupClient) DeleteClusterGroup(ctx context.Context) error {
+	return db.DBconn.Remove(ctx, c.dbInfo.StoreName, c.dbKey)
 }
 
 // GetAllClusterGroups returns  all the clusterGroup
-func (c *ClusterGroupClient) GetAllClusterGroups() ([]ClusterGroup, error) {
-	values, err := db.DBconn.Find(context.Background(), c.dbInfo.StoreName, c.dbKey, c.dbInfo.TagMeta)
+func (c *ClusterGroupClient) GetAllClusterGroups(ctx context.Context) ([]ClusterGroup, error) {
+	values, err := db.DBconn.Find(ctx, c.dbInfo.StoreName, c.dbKey, c.dbInfo.TagMeta)
 	if err != nil {
 		return []ClusterGroup{}, err
 	}
@@ -86,8 +86,8 @@ func (c *ClusterGroupClient) GetAllClusterGroups() ([]ClusterGroup, error) {
 }
 
 // GetClusterGroup returns the clusterGroup
-func (c *ClusterGroupClient) GetClusterGroup() (ClusterGroup, error) {
-	value, err := db.DBconn.Find(context.Background(), c.dbInfo.StoreName, c.dbKey, c.dbInfo.TagMeta)
+func (c *ClusterGroupClient) GetClusterGroup(ctx context.Context) (ClusterGroup, error) {
+	value, err := db.DBconn.Find(ctx, c.dbInfo.StoreName, c.dbKey, c.dbInfo.TagMeta)
 	if err != nil {
 		return ClusterGroup{}, err
 	}
@@ -114,35 +114,35 @@ func (c *ClusterGroupClient) GetClusterGroup() (ClusterGroup, error) {
 }
 
 // GetClusters returns the list of clusters based on the logicalcloud and scope
-func GetClusters(group ClusterGroup, project, logicalcloud string) (clusters []string, err error) {
+func GetClusters(ctx context.Context, group ClusterGroup, project, logicalcloud string) (clusters []string, err error) {
 	if len(logicalcloud) > 0 {
-		return getLogicalCloudReferencedClusters(group, project, logicalcloud)
+		return getLogicalCloudReferencedClusters(ctx, group, project, logicalcloud)
 	}
 
-	return getClusters(group)
+	return getClusters(ctx, group)
 }
 
 // getClusters returns the list of clusters based on the scope
-func getClusters(group ClusterGroup) (clusters []string, err error) {
+func getClusters(ctx context.Context, group ClusterGroup) (clusters []string, err error) {
 	clusters = []string{}
 	switch strings.ToLower(group.Spec.Scope) {
 	case "name":
 		// get cluster by provider and the name
-		if _, err = clm.NewClusterClient().GetCluster(context.Background(), group.Spec.Provider, group.Spec.Cluster); err != nil {
+		if _, err = clm.NewClusterClient().GetCluster(ctx, group.Spec.Provider, group.Spec.Cluster); err != nil {
 			return clusters, err
 		}
 
 		clusters = append(clusters, group.Spec.Cluster)
 	case "label":
 		// get clusters by label
-		list, err := clm.NewClusterClient().GetClustersWithLabel(context.Background(), group.Spec.Provider, group.Spec.Label)
+		list, err := clm.NewClusterClient().GetClustersWithLabel(ctx, group.Spec.Provider, group.Spec.Label)
 		if err != nil {
 			return clusters, err
 		}
 
 		for _, name := range list {
 			// get cluster by provider and the name
-			if _, err = clm.NewClusterClient().GetCluster(context.Background(), group.Spec.Provider, name); err != nil {
+			if _, err = clm.NewClusterClient().GetCluster(ctx, group.Spec.Provider, name); err != nil {
 				return clusters, err
 			}
 		}
@@ -154,14 +154,14 @@ func getClusters(group ClusterGroup) (clusters []string, err error) {
 }
 
 // getLogicalCloudReferencedClusters returns the list of clusters part of the logicalCloud
-func getLogicalCloudReferencedClusters(group ClusterGroup, project, logicalCloud string) ([]string, error) {
-	cList, err := getClusters(group)
+func getLogicalCloudReferencedClusters(ctx context.Context, group ClusterGroup, project, logicalCloud string) ([]string, error) {
+	cList, err := getClusters(ctx, group)
 	if err != nil {
 		return []string{}, err
 	}
 
 	// get all the clusters referenced by the project and logicalCloud
-	cListLc, err := dcm.NewClusterClient().GetAllClusters(context.Background(), project, logicalCloud)
+	cListLc, err := dcm.NewClusterClient().GetAllClusters(ctx, project, logicalCloud)
 	if err != nil {
 		return []string{}, err
 	}

@@ -23,33 +23,34 @@ import (
 )
 
 // createCertManagerCertificateRequest creates a certificaterequest to generate the certificate
-func (ctx *EnrollmentContext) createCertManagerCertificateRequest() error {
-	name := certmanagerissuer.CertificateRequestName(ctx.ContextID, ctx.CaCert.MetaData.Name, ctx.ClusterGroup.Spec.Provider, ctx.Cluster)
-	if _, exists := ctx.Resources.CertificateRequest[name]; exists {
+func (enrollCtx *EnrollmentContext) createCertManagerCertificateRequest(ctx context.Context) error {
+	name := certmanagerissuer.CertificateRequestName(enrollCtx.ContextID, enrollCtx.CaCert.MetaData.Name, enrollCtx.ClusterGroup.Spec.Provider, enrollCtx.Cluster)
+	if _, exists := enrollCtx.Resources.CertificateRequest[name]; exists {
 		// a certificaterequest already exists
 		return nil
 	}
 
-	commonName := strings.Join([]string{ctx.CaCert.MetaData.Name, ctx.ClusterGroup.Spec.Provider, ctx.Cluster, "ca"}, "-")
-	if len(ctx.CaCert.Spec.CertificateSigningInfo.Subject.Names.CommonNamePrefix) > 0 {
-		commonName = strings.Join([]string{commonName, ctx.CaCert.Spec.CertificateSigningInfo.Subject.Names.CommonNamePrefix}, "-")
+	commonName := strings.Join([]string{enrollCtx.CaCert.MetaData.Name, enrollCtx.ClusterGroup.Spec.Provider, enrollCtx.Cluster, "ca"}, "-")
+	if len(enrollCtx.CaCert.Spec.CertificateSigningInfo.Subject.Names.CommonNamePrefix) > 0 {
+		commonName = strings.Join([]string{commonName, enrollCtx.CaCert.Spec.CertificateSigningInfo.Subject.Names.CommonNamePrefix}, "-")
 	}
 
 	// This needs to be a unique name for each cluster
-	ctx.CaCert.Spec.CertificateSigningInfo.Subject.Names.CommonName = commonName
+	enrollCtx.CaCert.Spec.CertificateSigningInfo.Subject.Names.CommonName = commonName
 
 	// check if a cluster specific commonName is available
-	if val, err := clm.NewClusterClient().GetClusterKvPairsValue(context.Background(), ctx.ClusterGroup.Spec.Provider, ctx.Cluster, "csrData", "commonName"); err == nil {
+
+	if val, err := clm.NewClusterClient().GetClusterKvPairsValue(ctx, enrollCtx.ClusterGroup.Spec.Provider, enrollCtx.Cluster, "csrData", "commonName"); err == nil {
 		v, e := module.GetValue(val)
 		if e != nil {
 			return e
 		}
 
-		ctx.CaCert.Spec.CertificateSigningInfo.Subject.Names.CommonName = v
+		enrollCtx.CaCert.Spec.CertificateSigningInfo.Subject.Names.CommonName = v
 	}
 
 	// generate the private key for the csr
-	pemBlock, err := certificate.GeneratePrivateKey(ctx.CaCert.Spec.CertificateSigningInfo.KeySize)
+	pemBlock, err := certificate.GeneratePrivateKey(enrollCtx.CaCert.Spec.CertificateSigningInfo.KeySize)
 	if err != nil {
 		return err
 	}
@@ -61,84 +62,84 @@ func (ctx *EnrollmentContext) createCertManagerCertificateRequest() error {
 	}
 
 	// create a certificate signing request
-	request, err := ctx.createCertificateSigningRequest(pk)
+	request, err := enrollCtx.createCertificateSigningRequest(pk)
 	if err != nil {
 		return err
 	}
 
 	// create the cert-manager CertificateRequest resource
-	cr, err := certmanagerissuer.CreateCertificateRequest(ctx.CaCert, name, request)
+	cr, err := certmanagerissuer.CreateCertificateRequest(enrollCtx.CaCert, name, request)
 	if err != nil {
 		return err
 	}
 
 	// add the CertificateRequest resource in to the appContext
-	if err := module.AddResource(ctx.AppContext, cr, ctx.IssuerHandle, module.ResourceName(cr.ObjectMeta.Name, cr.TypeMeta.Kind)); err != nil {
+	if err := module.AddResource(ctx, enrollCtx.AppContext, cr, enrollCtx.IssuerHandle, module.ResourceName(cr.ObjectMeta.Name, cr.TypeMeta.Kind)); err != nil {
 		return err
 	}
 
-	ctx.Resources.CertificateRequest[name] = cr
+	enrollCtx.Resources.CertificateRequest[name] = cr
 
-	ctx.ResOrder = append(ctx.ResOrder, module.ResourceName(cr.ObjectMeta.Name, cr.TypeMeta.Kind))
+	enrollCtx.ResOrder = append(enrollCtx.ResOrder, module.ResourceName(cr.ObjectMeta.Name, cr.TypeMeta.Kind))
 
 	// save the PK in mongo
-	return ctx.savePrivateKey(name, base64.StdEncoding.EncodeToString(pem.EncodeToMemory(pemBlock)))
+	return enrollCtx.savePrivateKey(ctx, name, base64.StdEncoding.EncodeToString(pem.EncodeToMemory(pemBlock)))
 
 }
 
 // createCertificateSigningRequest creates a certificate signing request
-func (ctx *EnrollmentContext) createCertificateSigningRequest(pk *rsa.PrivateKey) ([]byte, error) {
+func (enrollCtx *EnrollmentContext) createCertificateSigningRequest(pk *rsa.PrivateKey) ([]byte, error) {
 	return certificate.CreateCertificateSigningRequest(x509.CertificateRequest{
-		Version:            ctx.CaCert.Spec.CertificateSigningInfo.Version,
-		SignatureAlgorithm: certificate.SignatureAlgorithm(ctx.CaCert.Spec.CertificateSigningInfo.Algorithm.SignatureAlgorithm),
-		PublicKeyAlgorithm: certificate.PublicKeyAlgorithm(ctx.CaCert.Spec.CertificateSigningInfo.Algorithm.PublicKeyAlgorithm),
+		Version:            enrollCtx.CaCert.Spec.CertificateSigningInfo.Version,
+		SignatureAlgorithm: certificate.SignatureAlgorithm(enrollCtx.CaCert.Spec.CertificateSigningInfo.Algorithm.SignatureAlgorithm),
+		PublicKeyAlgorithm: certificate.PublicKeyAlgorithm(enrollCtx.CaCert.Spec.CertificateSigningInfo.Algorithm.PublicKeyAlgorithm),
 		Subject: pkix.Name{
-			Country:            ctx.CaCert.Spec.CertificateSigningInfo.Subject.Locale.Country,
-			Locality:           ctx.CaCert.Spec.CertificateSigningInfo.Subject.Locale.Locality,
-			PostalCode:         ctx.CaCert.Spec.CertificateSigningInfo.Subject.Locale.PostalCode,
-			Province:           ctx.CaCert.Spec.CertificateSigningInfo.Subject.Locale.Province,
-			StreetAddress:      ctx.CaCert.Spec.CertificateSigningInfo.Subject.Locale.StreetAddress,
-			CommonName:         ctx.CaCert.Spec.CertificateSigningInfo.Subject.Names.CommonName,
-			Organization:       ctx.CaCert.Spec.CertificateSigningInfo.Subject.Organization.Names,
-			OrganizationalUnit: ctx.CaCert.Spec.CertificateSigningInfo.Subject.Organization.Units},
-		DNSNames:       ctx.CaCert.Spec.CertificateSigningInfo.DNSNames,
-		EmailAddresses: ctx.CaCert.Spec.CertificateSigningInfo.EmailAddresses}, pk)
+			Country:            enrollCtx.CaCert.Spec.CertificateSigningInfo.Subject.Locale.Country,
+			Locality:           enrollCtx.CaCert.Spec.CertificateSigningInfo.Subject.Locale.Locality,
+			PostalCode:         enrollCtx.CaCert.Spec.CertificateSigningInfo.Subject.Locale.PostalCode,
+			Province:           enrollCtx.CaCert.Spec.CertificateSigningInfo.Subject.Locale.Province,
+			StreetAddress:      enrollCtx.CaCert.Spec.CertificateSigningInfo.Subject.Locale.StreetAddress,
+			CommonName:         enrollCtx.CaCert.Spec.CertificateSigningInfo.Subject.Names.CommonName,
+			Organization:       enrollCtx.CaCert.Spec.CertificateSigningInfo.Subject.Organization.Names,
+			OrganizationalUnit: enrollCtx.CaCert.Spec.CertificateSigningInfo.Subject.Organization.Units},
+		DNSNames:       enrollCtx.CaCert.Spec.CertificateSigningInfo.DNSNames,
+		EmailAddresses: enrollCtx.CaCert.Spec.CertificateSigningInfo.EmailAddresses}, pk)
 }
 
 // savePrivateKey saves the rsa private key in mongo
-func (ctx *EnrollmentContext) savePrivateKey(name, val string) error {
+func (enrollCtx *EnrollmentContext) savePrivateKey(ctx context.Context, name, val string) error {
 	dbKey := module.DBKey{
-		Cert:            ctx.CaCert.MetaData.Name,
-		Cluster:         ctx.Cluster,
-		ClusterProvider: ctx.ClusterGroup.Spec.Provider,
-		ContextID:       ctx.ContextID}
+		Cert:            enrollCtx.CaCert.MetaData.Name,
+		Cluster:         enrollCtx.Cluster,
+		ClusterProvider: enrollCtx.ClusterGroup.Spec.Provider,
+		ContextID:       enrollCtx.ContextID}
 	key := module.Key{
 		Name: name,
 		Val:  val}
 
-	return module.NewKeyClient(dbKey).Save(key)
+	return module.NewKeyClient(dbKey).Save(ctx, key)
 }
 
 // deletePrivateKey delete the rsa private key from mongo
-func (ctx *EnrollmentContext) deletePrivateKey() error {
+func (enrollCtx *EnrollmentContext) deletePrivateKey(ctx context.Context) error {
 	dbKey := module.DBKey{
-		Cert:            ctx.CaCert.MetaData.Name,
-		Cluster:         ctx.Cluster,
-		ClusterProvider: ctx.ClusterGroup.Spec.Provider,
-		ContextID:       ctx.ContextID}
+		Cert:            enrollCtx.CaCert.MetaData.Name,
+		Cluster:         enrollCtx.Cluster,
+		ClusterProvider: enrollCtx.ClusterGroup.Spec.Provider,
+		ContextID:       enrollCtx.ContextID}
 
-	return module.NewKeyClient(dbKey).Delete()
+	return module.NewKeyClient(dbKey).Delete(ctx)
 }
 
 // privateKeyExists verifies the rsa private key exists in mongo
-func (ctx *EnrollmentContext) privateKeyExists() bool {
+func (enrollCtx *EnrollmentContext) privateKeyExists(ctx context.Context) bool {
 	dbKey := module.DBKey{
-		Cert:            ctx.CaCert.MetaData.Name,
-		Cluster:         ctx.Cluster,
-		ClusterProvider: ctx.ClusterGroup.Spec.Provider,
-		ContextID:       ctx.ContextID}
+		Cert:            enrollCtx.CaCert.MetaData.Name,
+		Cluster:         enrollCtx.Cluster,
+		ClusterProvider: enrollCtx.ClusterGroup.Spec.Provider,
+		ContextID:       enrollCtx.ContextID}
 
-	if k, err := module.NewKeyClient(dbKey).Get(); err == nil &&
+	if k, err := module.NewKeyClient(dbKey).Get(ctx); err == nil &&
 		!reflect.DeepEqual(k, module.Key{}) {
 		return true
 	}
@@ -147,21 +148,21 @@ func (ctx *EnrollmentContext) privateKeyExists() bool {
 }
 
 // createCertManagerCertificate creates a cert-manager certificate resource to generate the key and the cert
-func (ctx *EnrollmentContext) createCertManagerCertificate() error {
-	name := certmanagerissuer.CertificateName(ctx.ContextID, ctx.CaCert.MetaData.Name, ctx.ClusterGroup.Spec.Provider, ctx.Cluster)
-	if _, exists := ctx.Resources.Certificate[name]; exists {
+func (enrollCtx *EnrollmentContext) createCertManagerCertificate(ctx context.Context) error {
+	name := certmanagerissuer.CertificateName(enrollCtx.ContextID, enrollCtx.CaCert.MetaData.Name, enrollCtx.ClusterGroup.Spec.Provider, enrollCtx.Cluster)
+	if _, exists := enrollCtx.Resources.Certificate[name]; exists {
 		// a certificate already exists
 		return nil
 	}
 
 	// create a Secret to store the certificate
-	sName := certmanagerissuer.SecretName(ctx.ContextID, ctx.CaCert.MetaData.Name, ctx.ClusterGroup.Spec.Provider, ctx.Cluster)
+	sName := certmanagerissuer.SecretName(enrollCtx.ContextID, enrollCtx.CaCert.MetaData.Name, enrollCtx.ClusterGroup.Spec.Provider, enrollCtx.Cluster)
 	// specify the issuer which uses this secret
-	iName := tcsissuer.TCSIssuerName(ctx.ContextID, ctx.CaCert.MetaData.Name, ctx.ClusterGroup.Spec.Provider, ctx.Cluster)
+	iName := tcsissuer.TCSIssuerName(enrollCtx.ContextID, enrollCtx.CaCert.MetaData.Name, enrollCtx.ClusterGroup.Spec.Provider, enrollCtx.Cluster)
 
 	ns := "default"
-	if len(ctx.Namespace) > 0 {
-		ns = ctx.Namespace
+	if len(enrollCtx.Namespace) > 0 {
+		ns = enrollCtx.Namespace
 	}
 
 	secretTemplate := cmv1.CertificateSecretTemplate{
@@ -170,23 +171,23 @@ func (ctx *EnrollmentContext) createCertManagerCertificate() error {
 			"issuer-namespace": ns,
 		},
 		Labels: map[string]string{
-			"emco/deployment-id": fmt.Sprintf("%s-%s", ctx.ContextID, AppName),
+			"emco/deployment-id": fmt.Sprintf("%s-%s", enrollCtx.ContextID, AppName),
 		},
 	}
 
-	cert, err := certmanagerissuer.CreateCertificate(ctx.CaCert, name, sName, secretTemplate)
+	cert, err := certmanagerissuer.CreateCertificate(enrollCtx.CaCert, name, sName, secretTemplate)
 	if err != nil {
 		return err
 	}
 
 	// add the Certificate resource in to the appContext
-	if err := module.AddResource(ctx.AppContext, cert, ctx.IssuerHandle, module.ResourceName(cert.ObjectMeta.Name, cert.TypeMeta.Kind)); err != nil {
+	if err := module.AddResource(ctx, enrollCtx.AppContext, cert, enrollCtx.IssuerHandle, module.ResourceName(cert.ObjectMeta.Name, cert.TypeMeta.Kind)); err != nil {
 		return err
 	}
 
-	ctx.Resources.Certificate[name] = cert
+	enrollCtx.Resources.Certificate[name] = cert
 
-	ctx.ResOrder = append(ctx.ResOrder, module.ResourceName(cert.ObjectMeta.Name, cert.TypeMeta.Kind))
+	enrollCtx.ResOrder = append(enrollCtx.ResOrder, module.ResourceName(cert.ObjectMeta.Name, cert.TypeMeta.Kind))
 
 	return nil
 }

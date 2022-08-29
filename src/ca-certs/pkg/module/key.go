@@ -12,9 +12,9 @@ import (
 
 // KeyManager exposes all the private key functionalities
 type KeyManager interface {
-	Save(pk string) error
-	Delete(key interface{}) error
-	Get(key interface{}) (CaCert, error)
+	Save(ctx context.Context, pk string) error
+	Delete(ctx context.Context, key interface{}) error
+	Get(ctx context.Context, key interface{}) (CaCert, error)
 }
 
 // DBKey represents the resources associated with a private key
@@ -41,18 +41,18 @@ func NewKeyClient(dbKey interface{}) *KeyClient {
 }
 
 // Save key in the mongo
-func (c *KeyClient) Save(pk Key) error {
-	return db.DBconn.Insert(context.Background(), c.dbInfo.StoreName, c.dbKey, nil, c.dbInfo.TagMeta, pk)
+func (c *KeyClient) Save(ctx context.Context, pk Key) error {
+	return db.DBconn.Insert(ctx, c.dbInfo.StoreName, c.dbKey, nil, c.dbInfo.TagMeta, pk)
 }
 
 // Delete key from mongo
-func (c *KeyClient) Delete() error {
-	return db.DBconn.Remove(context.Background(), c.dbInfo.StoreName, c.dbKey)
+func (c *KeyClient) Delete(ctx context.Context) error {
+	return db.DBconn.Remove(ctx, c.dbInfo.StoreName, c.dbKey)
 }
 
 // Get key from mongo
-func (c *KeyClient) Get() (Key, error) {
-	value, err := db.DBconn.Find(context.Background(), c.dbInfo.StoreName, c.dbKey, c.dbInfo.TagMeta)
+func (c *KeyClient) Get(ctx context.Context) (Key, error) {
+	value, err := db.DBconn.Find(ctx, c.dbInfo.StoreName, c.dbKey, c.dbInfo.TagMeta)
 	if err != nil {
 		return Key{}, err
 	}

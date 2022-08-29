@@ -5,6 +5,7 @@
 package api_test
 
 import (
+	"context"
 	"errors"
 	"net/http"
 
@@ -25,7 +26,7 @@ func init() {
 }
 
 // CreateClusterGroup
-func (m *mockLogicalCloudClusterManager) CreateClusterGroup(cluster module.ClusterGroup, logicalCloud, cert, project string, failIfExists bool) (module.ClusterGroup, bool, error) {
+func (m *mockLogicalCloudClusterManager) CreateClusterGroup(ctx context.Context, cluster module.ClusterGroup, logicalCloud, cert, project string, failIfExists bool) (module.ClusterGroup, bool, error) {
 	if m.Err != nil {
 		return module.ClusterGroup{}, false, m.Err
 	}
@@ -59,7 +60,7 @@ func (m *mockLogicalCloudClusterManager) CreateClusterGroup(cluster module.Clust
 }
 
 // DeleteClusterGroup
-func (m *mockLogicalCloudClusterManager) DeleteClusterGroup(cluster, logicalCloud, cert, project string) error {
+func (m *mockLogicalCloudClusterManager) DeleteClusterGroup(ctx context.Context, cluster, logicalCloud, cert, project string) error {
 	if m.Err != nil {
 		return m.Err
 	}
@@ -80,7 +81,7 @@ func (m *mockLogicalCloudClusterManager) DeleteClusterGroup(cluster, logicalClou
 }
 
 // GetAllClusterGroups
-func (m *mockLogicalCloudClusterManager) GetAllClusterGroups(logicalCloud, cert, project string) ([]module.ClusterGroup, error) {
+func (m *mockLogicalCloudClusterManager) GetAllClusterGroups(ctx context.Context, logicalCloud, cert, project string) ([]module.ClusterGroup, error) {
 	if m.Err != nil {
 		return []module.ClusterGroup{}, m.Err
 	}
@@ -95,7 +96,7 @@ func (m *mockLogicalCloudClusterManager) GetAllClusterGroups(logicalCloud, cert,
 }
 
 // GetClusterGroup
-func (m *mockLogicalCloudClusterManager) GetClusterGroup(cluster, logicalCloud, cert, project string) (module.ClusterGroup, error) {
+func (m *mockLogicalCloudClusterManager) GetClusterGroup(ctx context.Context, cluster, logicalCloud, cert, project string) (module.ClusterGroup, error) {
 	if m.Err != nil {
 		return module.ClusterGroup{}, m.Err
 	}

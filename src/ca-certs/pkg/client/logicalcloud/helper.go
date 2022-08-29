@@ -4,13 +4,14 @@
 package logicalcloud
 
 import (
+	"context"
 	"gitlab.com/project-emco/core/emco-base/src/ca-certs/pkg/module"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 )
 
 // getCertificate retrieves the caCert from db
-func getCertificate(cert, project string) (module.CaCert, error) {
-	caCert, err := NewCaCertClient().GetCert(cert, project)
+func getCertificate(ctx context.Context, cert, project string) (module.CaCert, error) {
+	caCert, err := NewCaCertClient().GetCert(ctx, cert, project)
 	if err != nil {
 		logutils.Error("Failed to retrieve the caCert", logutils.Fields{
 			"Cert":    cert,
@@ -22,9 +23,9 @@ func getCertificate(cert, project string) (module.CaCert, error) {
 }
 
 // getAllLogicalClouds retrieves the logicalCloud(s) from db
-func getAllLogicalClouds(cert, project string) ([]CaCertLogicalCloud, error) {
+func getAllLogicalClouds(ctx context.Context, cert, project string) ([]CaCertLogicalCloud, error) {
 	// get all the logicalCloud(s) within the caCert
-	lcs, err := NewCaCertLogicalCloudClient().GetAllLogicalClouds(cert, project)
+	lcs, err := NewCaCertLogicalCloudClient().GetAllLogicalClouds(ctx, cert, project)
 	if err != nil {
 		logutils.Error("Failed to retrieve the logicalCloud(s)", logutils.Fields{
 			"Cert":    cert,
@@ -36,9 +37,9 @@ func getAllLogicalClouds(cert, project string) ([]CaCertLogicalCloud, error) {
 }
 
 // getAllClusterGroup retrieves the clusterGroup(s) from db
-func getAllClusterGroup(logicalCloud, cert, project string) ([]module.ClusterGroup, error) {
+func getAllClusterGroup(ctx context.Context, logicalCloud, cert, project string) ([]module.ClusterGroup, error) {
 	// get all the clusterGroup(s) within the caCert and logicalCloud
-	clusters, err := NewClusterGroupClient().GetAllClusterGroups(logicalCloud, cert, project)
+	clusters, err := NewClusterGroupClient().GetAllClusterGroups(ctx, logicalCloud, cert, project)
 	if err != nil {
 		logutils.Error("Failed to retrieve the clusterGroup(s)", logutils.Fields{
 			"Cert":         cert,

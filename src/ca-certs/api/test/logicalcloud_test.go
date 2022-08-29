@@ -6,6 +6,7 @@ package api_test
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"io"
@@ -33,7 +34,7 @@ func init() {
 	api.LogicalCloudSchemaJson = "../../json-schemas/logicalCloud.json"
 }
 
-func (m *mockLogicalCloudManager) CreateLogicalCloud(logicalCloud logicalcloud.CaCertLogicalCloud, cert, project string, failIfExists bool) (logicalcloud.CaCertLogicalCloud, bool, error) {
+func (m *mockLogicalCloudManager) CreateLogicalCloud(ctx context.Context, logicalCloud logicalcloud.CaCertLogicalCloud, cert, project string, failIfExists bool) (logicalcloud.CaCertLogicalCloud, bool, error) {
 	iExists := false
 	index := 0
 
@@ -67,7 +68,7 @@ func (m *mockLogicalCloudManager) CreateLogicalCloud(logicalCloud logicalcloud.C
 	return m.Items[len(m.Items)-1], iExists, nil
 
 }
-func (m *mockLogicalCloudManager) DeleteLogicalCloud(logicalCloud, cert, project string) error {
+func (m *mockLogicalCloudManager) DeleteLogicalCloud(ctx context.Context, logicalCloud, cert, project string) error {
 	if m.Err != nil {
 		return m.Err
 	}
@@ -88,7 +89,7 @@ func (m *mockLogicalCloudManager) DeleteLogicalCloud(logicalCloud, cert, project
 
 }
 
-func (m *mockLogicalCloudManager) GetAllLogicalClouds(cert, project string) ([]logicalcloud.CaCertLogicalCloud, error) {
+func (m *mockLogicalCloudManager) GetAllLogicalClouds(ctx context.Context, cert, project string) ([]logicalcloud.CaCertLogicalCloud, error) {
 	if m.Err != nil {
 		return []logicalcloud.CaCertLogicalCloud{}, m.Err
 	}
@@ -99,7 +100,7 @@ func (m *mockLogicalCloudManager) GetAllLogicalClouds(cert, project string) ([]l
 	return certs, nil
 
 }
-func (m *mockLogicalCloudManager) GetLogicalCloud(logicalCloud, cert, project string) (logicalcloud.CaCertLogicalCloud, error) {
+func (m *mockLogicalCloudManager) GetLogicalCloud(ctx context.Context, logicalCloud, cert, project string) (logicalcloud.CaCertLogicalCloud, error) {
 	if m.Err != nil {
 		return logicalcloud.CaCertLogicalCloud{}, m.Err
 	}

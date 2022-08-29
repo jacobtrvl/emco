@@ -25,9 +25,11 @@ func (h *cpCertHandler) handleCertificateCreate(w http.ResponseWriter, r *http.R
 
 // handleCertificateDelete handles the route for deleting a caCert
 func (h *cpCertHandler) handleCertificateDelete(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	// get the route variables
 	vars := _cpVars(mux.Vars(r))
-	if err := h.manager.DeleteCert(vars.cert, vars.clusterProvider); err != nil {
+
+	if err := h.manager.DeleteCert(ctx, vars.cert, vars.clusterProvider); err != nil {
 		apiErr := emcoerror.HandleAPIError(err)
 		http.Error(w, apiErr.Message, apiErr.Status)
 		return
@@ -43,12 +45,13 @@ func (h *cpCertHandler) handleCertificateGet(w http.ResponseWriter, r *http.Requ
 		err   error
 	)
 
+	ctx := r.Context()
 	// get the route variables
 	vars := _cpVars(mux.Vars(r))
 	if len(vars.cert) == 0 {
-		certs, err = h.manager.GetAllCert(vars.clusterProvider)
+		certs, err = h.manager.GetAllCert(ctx, vars.clusterProvider)
 	} else {
-		certs, err = h.manager.GetCert(vars.cert, vars.clusterProvider)
+		certs, err = h.manager.GetCert(ctx, vars.cert, vars.clusterProvider)
 	}
 
 	if err != nil {
@@ -75,6 +78,7 @@ func (h *cpCertHandler) createOrUpdateCertificate(w http.ResponseWriter, r *http
 		return
 	}
 
+	ctx := r.Context()
 	// get the route variables
 	vars := _cpVars(mux.Vars(r))
 
@@ -96,7 +100,7 @@ func (h *cpCertHandler) createOrUpdateCertificate(w http.ResponseWriter, r *http
 		}
 	}
 
-	crt, certExists, err := h.manager.CreateCert(cert, vars.clusterProvider, methodPost)
+	crt, certExists, err := h.manager.CreateCert(ctx, cert, vars.clusterProvider, methodPost)
 	if err != nil {
 		apiErr := emcoerror.HandleAPIError(err)
 		http.Error(w, apiErr.Message, apiErr.Status)

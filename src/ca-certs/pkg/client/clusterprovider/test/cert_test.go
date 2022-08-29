@@ -25,9 +25,10 @@ var _ = Describe("Create Cert",
 		})
 		Context("create a caCert for a clusterProvider", func() {
 			It("returns the caCert, no error and, the exists flag is false", func() {
+				ctx := context.Background()
 				l := len(mockdb.Items)
 				mCert := mockCert("new-cert-1")
-				c, cExists, err := certClient.CreateCert(mCert, "provider1", true)
+				c, cExists, err := certClient.CreateCert(ctx, mCert, "provider1", true)
 				validateError(err, "")
 				Expect(c).To(Equal(mCert))
 				Expect(cExists).To(Equal(false))
@@ -36,9 +37,10 @@ var _ = Describe("Create Cert",
 		})
 		Context("create a caCert for a clusterProvider that already exists", func() {
 			It("returns an error, no caCert and, the exists flag is true", func() {
+				ctx := context.Background()
 				l := len(mockdb.Items)
 				mCert := mockCert("test-cert-1")
-				c, cExists, err := certClient.CreateCert(mCert, "provider1", true)
+				c, cExists, err := certClient.CreateCert(ctx, mCert, "provider1", true)
 				Expect(c).To(Equal(module.CaCert{}))
 				validateError(err, module.CaCertAlreadyExists)
 				Expect(cExists).To(Equal(true))
@@ -55,17 +57,19 @@ var _ = Describe("Delete Cert",
 		})
 		Context("delete an existing caCert", func() {
 			It("returns no error and delete the entry from the db", func() {
+				ctx := context.Background()
 				l := len(mockdb.Items)
-				err := certClient.DeleteCert("test-cert-1", "provider1")
+				err := certClient.DeleteCert(ctx, "test-cert-1", "provider1")
 				validateError(err, "")
 				Expect(len(mockdb.Items)).To(Equal(l - 1))
 			})
 		})
 		Context("delete a nonexisting caCert", func() {
 			It("returns an error and no change in the db", func() {
+				ctx := context.Background()
 				l := len(mockdb.Items)
 				mockdb.Err = errors.New("db Remove resource not found")
-				err := certClient.DeleteCert("non-existing-cert", "provider1")
+				err := certClient.DeleteCert(ctx, "non-existing-cert", "provider1")
 				validateError(err, "db Remove resource not found")
 				Expect(len(mockdb.Items)).To(Equal(l))
 			})
@@ -80,15 +84,17 @@ var _ = Describe("Get All Certs",
 		})
 		Context("get all the caCert intents", func() {
 			It("returns all the caCert intents, no error", func() {
-				certs, err := certClient.GetAllCert("provider1")
+				ctx := context.Background()
+				certs, err := certClient.GetAllCert(ctx, "provider1")
 				validateError(err, "")
 				Expect(len(certs)).To(Equal(len(mockdb.Items)))
 			})
 		})
 		Context("get all the caCert intents without creating any", func() {
 			It("returns an empty array, no error", func() {
+				ctx := context.Background()
 				mockdb.Items = []map[string]map[string][]byte{}
-				certs, err := certClient.GetAllCert("provider1")
+				certs, err := certClient.GetAllCert(ctx, "provider1")
 				validateError(err, "")
 				Expect(len(certs)).To(Equal(0))
 			})
@@ -103,14 +109,16 @@ var _ = Describe("Get Cert",
 		})
 		Context("get an existing caCert", func() {
 			It("returns the caCert, no error", func() {
-				cert, err := certClient.GetCert("test-cert-1", "provider1")
+				ctx := context.Background()
+				cert, err := certClient.GetCert(ctx, "test-cert-1", "provider1")
 				validateError(err, "")
 				validateCert(cert, mockCert("test-cert-1"))
 			})
 		})
 		Context("get a nonexisting caCert", func() {
 			It("returns an error, no caCert", func() {
-				cert, err := certClient.GetCert("non-existing-cert", "provider1")
+				ctx := context.Background()
+				cert, err := certClient.GetCert(ctx, "non-existing-cert", "provider1")
 				validateError(err, module.CaCertNotFound)
 				validateCert(cert, module.CaCert{})
 			})
@@ -137,6 +145,7 @@ func mockCert(name string) module.CaCert {
 
 // populateCertTestData
 func populateCertTestData() {
+	ctx := context.Background()
 	mockdb.Err = nil
 	mockdb.Items = []map[string]map[string][]byte{}
 	mockdb.MarshalErr = nil
@@ -146,20 +155,20 @@ func populateCertTestData() {
 	cpKey := clusterprovider.CaCertKey{
 		Cert:            cert.MetaData.Name,
 		ClusterProvider: "provider1"}
-	_ = mockdb.Insert(context.Background(), "resources", cpKey, nil, "data", cert)
+	_ = mockdb.Insert(ctx, "resources", cpKey, nil, "data", cert)
 
 	// cert 2
 	cert = mockCert("test-cert-2")
 	cpKey = clusterprovider.CaCertKey{
 		Cert:            cert.MetaData.Name,
 		ClusterProvider: "provider1"}
-	_ = mockdb.Insert(context.Background(), "resources", cpKey, nil, "data", cert)
+	_ = mockdb.Insert(ctx, "resources", cpKey, nil, "data", cert)
 
 	// cert 3
 	cert = mockCert("test-cert-3")
 	cpKey = clusterprovider.CaCertKey{
 		Cert:            cert.MetaData.Name,
 		ClusterProvider: "provider1"}
-	_ = mockdb.Insert(context.Background(), "resources", cpKey, nil, "data", cert)
+	_ = mockdb.Insert(ctx, "resources", cpKey, nil, "data", cert)
 
 }

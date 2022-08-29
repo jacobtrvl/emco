@@ -59,7 +59,7 @@ dependencies:
     version: "1.0.0"
     repository: 'file://../workflowmgr'
   - name: ca-certs
-    version: "1.0.0"
+    version: "1.0.1"
     repository: 'file://../ca-certs'
   - name: swc
     version: "1.0.0"

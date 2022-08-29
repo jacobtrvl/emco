@@ -4,6 +4,7 @@
 package certmanagerissuer
 
 import (
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"encoding/pem"
@@ -13,8 +14,6 @@ import (
 
 	cmv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	cmmetav1 "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
-
-	"context"
 
 	"gitlab.com/project-emco/core/emco-base/src/ca-certs/pkg/certissuer"
 	"gitlab.com/project-emco/core/emco-base/src/ca-certs/pkg/module"
@@ -120,7 +119,7 @@ func ValidateCertificateRequest(cr cmv1.CertificateRequest) error {
 }
 
 // RetrieveCertificateRequests retrieves the certificaterequests created by the caCert enrollment
-func RetrieveCertificateRequests(contextID string) ([]cmv1.CertificateRequest, error) {
+func RetrieveCertificateRequests(ctx context.Context, contextID string) ([]cmv1.CertificateRequest, error) {
 	var (
 		appContext                 appcontext.AppContext
 		certificateRequestStatuses []cmv1.CertificateRequest
@@ -129,7 +128,7 @@ func RetrieveCertificateRequests(contextID string) ([]cmv1.CertificateRequest, e
 	)
 
 	// load the appContext
-	_, err := appContext.LoadAppContext(context.Background(), contextID)
+	_, err := appContext.LoadAppContext(ctx, contextID)
 	if err != nil {
 		logutils.Error("Failed to load the appContext",
 			logutils.Fields{
@@ -139,7 +138,7 @@ func RetrieveCertificateRequests(contextID string) ([]cmv1.CertificateRequest, e
 	}
 
 	// get the app instruction for 'order'
-	appsOrder, err := appContext.GetAppInstruction(context.Background(), "order")
+	appsOrder, err := appContext.GetAppInstruction(ctx, "order")
 	if err != nil {
 		logutils.Error("Failed to get the app instruction for the 'order' instruction type",
 			logutils.Fields{
@@ -159,7 +158,7 @@ func RetrieveCertificateRequests(contextID string) ([]cmv1.CertificateRequest, e
 
 	for _, app := range appList["apporder"] {
 		//  get all the clusters associated with the app
-		clusters, err = appContext.GetClusterNames(context.Background(), app)
+		clusters, err = appContext.GetClusterNames(ctx, app)
 		if err != nil {
 			logutils.Error("Failed to get cluster names",
 				logutils.Fields{
@@ -171,7 +170,7 @@ func RetrieveCertificateRequests(contextID string) ([]cmv1.CertificateRequest, e
 
 		for _, cluster := range clusters {
 			// get the resources
-			resources, err := appContext.GetResourceNames(context.Background(), app, cluster)
+			resources, err := appContext.GetResourceNames(ctx, app, cluster)
 			if err != nil {
 				logutils.Error("Failed to get the resource names",
 					logutils.Fields{
@@ -183,7 +182,7 @@ func RetrieveCertificateRequests(contextID string) ([]cmv1.CertificateRequest, e
 			}
 
 			// get the cluster handle
-			cHandle, err := appContext.GetClusterHandle(context.Background(), app, cluster)
+			cHandle, err := appContext.GetClusterHandle(ctx, app, cluster)
 			if err != nil {
 				logutils.Error("Failed to get the cluster handle",
 					logutils.Fields{
@@ -195,7 +194,7 @@ func RetrieveCertificateRequests(contextID string) ([]cmv1.CertificateRequest, e
 			}
 
 			// get the cluster status handle
-			sHandle, err := appContext.GetLevelHandle(context.Background(), cHandle, "status")
+			sHandle, err := appContext.GetLevelHandle(ctx, cHandle, "status")
 			if err != nil {
 				logutils.Error("Failed to get the handle of level 'status'",
 					logutils.Fields{
@@ -212,7 +211,7 @@ func RetrieveCertificateRequests(contextID string) ([]cmv1.CertificateRequest, e
 			statusReady := false
 			for !statusReady {
 				// get the value of 'status' handle
-				val, err := appContext.GetValue(context.Background(), sHandle)
+				val, err := appContext.GetValue(ctx, sHandle)
 				if err != nil {
 					logutils.Error("Failed to get the value of 'status' handle",
 						logutils.Fields{

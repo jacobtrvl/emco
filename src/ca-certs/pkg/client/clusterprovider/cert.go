@@ -4,6 +4,7 @@
 package clusterprovider
 
 import (
+	"context"
 	"reflect"
 
 	"gitlab.com/project-emco/core/emco-base/src/ca-certs/pkg/certificate/distribution"
@@ -15,10 +16,10 @@ import (
 // CaCertManager exposes all the clusterProvider caCert functionalities
 type CaCertManager interface {
 	// Certificates
-	CreateCert(cert module.CaCert, clusterProvider string, failIfExists bool) (module.CaCert, bool, error)
-	DeleteCert(cert, clusterProvider string) error
-	GetAllCert(clusterProvider string) ([]module.CaCert, error)
-	GetCert(cert, clusterProvider string) (module.CaCert, error)
+	CreateCert(ctx context.Context, cert module.CaCert, clusterProvider string, failIfExists bool) (module.CaCert, bool, error)
+	DeleteCert(ctx context.Context, cert, clusterProvider string) error
+	GetAllCert(ctx context.Context, clusterProvider string) ([]module.CaCert, error)
+	GetCert(ctx context.Context, cert, clusterProvider string) (module.CaCert, error)
 }
 
 // CaCertKey represents the resources associated with a clusterProvider caCert
@@ -37,14 +38,14 @@ func NewCaCertClient() *CaCertClient {
 }
 
 // CreateCert creates a clusterProvider caCert
-func (c *CaCertClient) CreateCert(cert module.CaCert, clusterProvider string, failIfExists bool) (module.CaCert, bool, error) {
+func (c *CaCertClient) CreateCert(ctx context.Context, cert module.CaCert, clusterProvider string, failIfExists bool) (module.CaCert, bool, error) {
 	certExists := false
 	ck := CaCertKey{
 		Cert:            cert.MetaData.Name,
 		ClusterProvider: clusterProvider}
 	cc := module.NewCaCertClient(ck)
 
-	if cer, err := cc.GetCert(); err == nil &&
+	if cer, err := cc.GetCert(ctx); err == nil &&
 		!reflect.DeepEqual(cer, module.CaCert{}) {
 		certExists = true
 	}
@@ -59,19 +60,19 @@ func (c *CaCertClient) CreateCert(cert module.CaCert, clusterProvider string, fa
 
 	if certExists {
 		// check the enrollment state
-		if err := verifyEnrollmentStateBeforeUpdate(cert.MetaData.Name, clusterProvider); err != nil {
+		if err := verifyEnrollmentStateBeforeUpdate(ctx, cert.MetaData.Name, clusterProvider); err != nil {
 			return module.CaCert{}, certExists, err
 		}
 
 		// check the distribution state
-		if err := verifyDistributionStateBeforeUpdate(cert.MetaData.Name, clusterProvider); err != nil {
+		if err := verifyDistributionStateBeforeUpdate(ctx, cert.MetaData.Name, clusterProvider); err != nil {
 			return module.CaCert{}, certExists, err
 		}
 
-		return cert, certExists, cc.UpdateCert(cert)
+		return cert, certExists, cc.UpdateCert(ctx, cert)
 	}
 
-	_, certExists, err := cc.CreateCert(cert, failIfExists)
+	_, certExists, err := cc.CreateCert(ctx, cert, failIfExists)
 	if err != nil {
 		return module.CaCert{}, certExists, err
 	}
@@ -82,7 +83,7 @@ func (c *CaCertClient) CreateCert(cert module.CaCert, clusterProvider string, fa
 		ClusterProvider: clusterProvider,
 		Enrollment:      enrollment.AppName}
 	sc := module.NewStateClient(ek)
-	if err := sc.Create(""); err != nil {
+	if err := sc.Create(ctx, ""); err != nil {
 		return module.CaCert{}, certExists, err
 	}
 
@@ -92,7 +93,7 @@ func (c *CaCertClient) CreateCert(cert module.CaCert, clusterProvider string, fa
 		ClusterProvider: clusterProvider,
 		Distribution:    distribution.AppName}
 	sc = module.NewStateClient(dk)
-	if err := sc.Create(""); err != nil {
+	if err := sc.Create(ctx, ""); err != nil {
 		return module.CaCert{}, certExists, err
 	}
 
@@ -100,9 +101,9 @@ func (c *CaCertClient) CreateCert(cert module.CaCert, clusterProvider string, fa
 }
 
 // DeleteCert deletes a given clusterProvider caCert
-func (c *CaCertClient) DeleteCert(cert, clusterProvider string) error {
+func (c *CaCertClient) DeleteCert(ctx context.Context, cert, clusterProvider string) error {
 	// check the enrollment state
-	if err := verifyEnrollmentStateBeforeDelete(cert, clusterProvider); err != nil {
+	if err := verifyEnrollmentStateBeforeDelete(ctx, cert, clusterProvider); err != nil {
 		// if the StateInfo cannot be found, then a caCert record may not present
 		// Continue with the caCert deletion if the error is NotFound
 		// In all other cases, intercept and return the error
@@ -117,7 +118,7 @@ func (c *CaCertClient) DeleteCert(cert, clusterProvider string) error {
 	}
 
 	// check the distribution state
-	if err := verifyDistributionStateBeforeDelete(cert, clusterProvider); err != nil {
+	if err := verifyDistributionStateBeforeDelete(ctx, cert, clusterProvider); err != nil {
 		// if the StateInfo cannot be found, then a caCert record may not present
 		// Continue with the caCert deletion if the error is NotFound
 		// In all other cases, intercept and return the error
@@ -137,7 +138,7 @@ func (c *CaCertClient) DeleteCert(cert, clusterProvider string) error {
 		ClusterProvider: clusterProvider,
 		Enrollment:      enrollment.AppName}
 	sc := module.NewStateClient(ek)
-	if err := sc.Delete(); err != nil {
+	if err := sc.Delete(ctx); err != nil {
 		return err
 	}
 
@@ -147,7 +148,7 @@ func (c *CaCertClient) DeleteCert(cert, clusterProvider string) error {
 		ClusterProvider: clusterProvider,
 		Distribution:    distribution.AppName}
 	sc = module.NewStateClient(dk)
-	if err := sc.Delete(); err != nil {
+	if err := sc.Delete(ctx); err != nil {
 		return err
 	}
 
@@ -156,64 +157,64 @@ func (c *CaCertClient) DeleteCert(cert, clusterProvider string) error {
 		Cert:            cert,
 		ClusterProvider: clusterProvider}
 
-	return module.NewCaCertClient(ck).DeleteCert()
+	return module.NewCaCertClient(ck).DeleteCert(ctx)
 }
 
 // GetAllCert returns all the clusterProvider caCert
-func (c *CaCertClient) GetAllCert(clusterProvider string) ([]module.CaCert, error) {
+func (c *CaCertClient) GetAllCert(ctx context.Context, clusterProvider string) ([]module.CaCert, error) {
 	ck := CaCertKey{
 		ClusterProvider: clusterProvider}
 
-	return module.NewCaCertClient(ck).GetAllCert()
+	return module.NewCaCertClient(ck).GetAllCert(ctx)
 }
 
 // GetCert returns the clusterProvider caCert
-func (c *CaCertClient) GetCert(cert, clusterProvider string) (module.CaCert, error) {
+func (c *CaCertClient) GetCert(ctx context.Context, cert, clusterProvider string) (module.CaCert, error) {
 	ck := CaCertKey{
 		Cert:            cert,
 		ClusterProvider: clusterProvider}
 
-	return module.NewCaCertClient(ck).GetCert()
+	return module.NewCaCertClient(ck).GetCert(ctx)
 }
 
 // verifyEnrollmentStateBeforeDelete
-func verifyEnrollmentStateBeforeDelete(cert, clusterProvider string) error {
+func verifyEnrollmentStateBeforeDelete(ctx context.Context, cert, clusterProvider string) error {
 	k := EnrollmentKey{
 		Cert:            cert,
 		ClusterProvider: clusterProvider,
 		Enrollment:      enrollment.AppName}
 
-	return module.NewCaCertClient(k).VerifyStateBeforeDelete(cert, enrollment.AppName)
+	return module.NewCaCertClient(k).VerifyStateBeforeDelete(ctx, cert, enrollment.AppName)
 }
 
 // verifyDistributionStateBeforeDelete
-func verifyDistributionStateBeforeDelete(cert, clusterProvider string) error {
+func verifyDistributionStateBeforeDelete(ctx context.Context, cert, clusterProvider string) error {
 	k := DistributionKey{
 		Cert:            cert,
 		ClusterProvider: clusterProvider,
 		Distribution:    distribution.AppName}
 
-	return module.NewCaCertClient(k).VerifyStateBeforeDelete(cert, distribution.AppName)
+	return module.NewCaCertClient(k).VerifyStateBeforeDelete(ctx, cert, distribution.AppName)
 
 }
 
 // verifyEnrollmentStateBeforeUpdate
-func verifyEnrollmentStateBeforeUpdate(cert, clusterProvider string) error {
+func verifyEnrollmentStateBeforeUpdate(ctx context.Context, cert, clusterProvider string) error {
 	k := EnrollmentKey{
 		Cert:            cert,
 		ClusterProvider: clusterProvider,
 		Enrollment:      enrollment.AppName}
 
-	return module.NewCaCertClient(k).VerifyStateBeforeUpdate(cert, enrollment.AppName)
+	return module.NewCaCertClient(k).VerifyStateBeforeUpdate(ctx, cert, enrollment.AppName)
 }
 
 // verifyDistributionStateBeforeUpdate
-func verifyDistributionStateBeforeUpdate(cert, clusterProvider string) error {
+func verifyDistributionStateBeforeUpdate(ctx context.Context, cert, clusterProvider string) error {
 	k := DistributionKey{
 		Cert:            cert,
 		ClusterProvider: clusterProvider,
 		Distribution:    distribution.AppName}
 
-	return module.NewCaCertClient(k).VerifyStateBeforeUpdate(cert, distribution.AppName)
+	return module.NewCaCertClient(k).VerifyStateBeforeUpdate(ctx, cert, distribution.AppName)
 
 }
