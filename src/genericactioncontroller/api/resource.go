@@ -43,8 +43,9 @@ func (h resourceHandler) handleResourceCreate(w http.ResponseWriter, r *http.Req
 
 // handleResourceDelete handles the route for deleting Resource from the database
 func (h resourceHandler) handleResourceDelete(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := _rVars(mux.Vars(r))
-	if err := h.client.DeleteResource(vars.resource, vars.project, vars.compositeApp, vars.version,
+	if err := h.client.DeleteResource(ctx, vars.resource, vars.project, vars.compositeApp, vars.version,
 		vars.deploymentIntentGroup, vars.intent); err != nil {
 		apiErr := apierror.HandleErrors(mux.Vars(r), err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -56,9 +57,10 @@ func (h resourceHandler) handleResourceDelete(w http.ResponseWriter, r *http.Req
 
 // handleResourceGet handles the route for retrieving a Resource from the database
 func (h resourceHandler) handleResourceGet(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := _rVars(mux.Vars(r))
 	if len(vars.resource) == 0 {
-		resources, err := h.client.GetAllResources(vars.project, vars.compositeApp, vars.version,
+		resources, err := h.client.GetAllResources(ctx, vars.project, vars.compositeApp, vars.version,
 			vars.deploymentIntentGroup, vars.intent)
 		if err != nil {
 			apiErr := apierror.HandleErrors(mux.Vars(r), err, nil, apiErrors)
@@ -69,7 +71,7 @@ func (h resourceHandler) handleResourceGet(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	resource, err := h.client.GetResource(vars.resource, vars.project, vars.compositeApp, vars.version,
+	resource, err := h.client.GetResource(ctx, vars.resource, vars.project, vars.compositeApp, vars.version,
 		vars.deploymentIntentGroup, vars.intent)
 	if err != nil {
 		apiErr := apierror.HandleErrors(mux.Vars(r), err, nil, apiErrors)
@@ -77,7 +79,7 @@ func (h resourceHandler) handleResourceGet(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	content, err := h.client.GetResourceContent(vars.resource, vars.project, vars.compositeApp, vars.version,
+	content, err := h.client.GetResourceContent(ctx, vars.resource, vars.project, vars.compositeApp, vars.version,
 		vars.deploymentIntentGroup, vars.intent)
 	if err != nil {
 		apiErr := apierror.HandleErrors(mux.Vars(r), err, nil, apiErrors)
@@ -130,6 +132,7 @@ func (h resourceHandler) handleResourceUpdate(w http.ResponseWriter, r *http.Req
 
 // createOrUpdateResource create/update the Resource based on the request method
 func (h resourceHandler) createOrUpdateResource(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	const maxMemory = 16777216 // set maxSize 16MB
 
 	// parse the request body as multipart/form-data
@@ -192,7 +195,7 @@ func (h resourceHandler) createOrUpdateResource(w http.ResponseWriter, r *http.R
 	}
 
 	vars := _rVars(mux.Vars(r))
-	res, rExists, err := h.client.CreateResource(resource, resourceContent,
+	res, rExists, err := h.client.CreateResource(ctx, resource, resourceContent,
 		vars.project, vars.compositeApp, vars.version, vars.deploymentIntentGroup, vars.intent,
 		methodPost)
 	if err != nil {

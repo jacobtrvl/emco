@@ -31,25 +31,25 @@ type UpdateOptions struct {
 }
 
 // UpdateAppContext creates/updates the k8s resources in the given appContext and intent
-func UpdateAppContext(intent, appContextID string) error {
+func UpdateAppContext(ctx context.Context, intent, appContextID string) error {
 	log.Info("Begin app context update",
 		log.Fields{
 			"AppContext": appContextID,
 			"Intent":     intent})
 
 	var appContext appcontext.AppContext
-	if _, err := appContext.LoadAppContext(context.Background(), appContextID); err != nil {
+	if _, err := appContext.LoadAppContext(ctx, appContextID); err != nil {
 		logError("failed to load appContext", appContextID, intent, appcontext.CompositeAppMeta{}, err)
 		return err
 	}
 
-	appMeta, err := appContext.GetCompositeAppMeta(context.Background())
+	appMeta, err := appContext.GetCompositeAppMeta(ctx)
 	if err != nil {
 		logError("failed to get compositeApp meta", appContextID, intent, appcontext.CompositeAppMeta{}, err)
 		return err
 	}
 
-	resources, err := module.NewResourceClient().GetAllResources(
+	resources, err := module.NewResourceClient().GetAllResources(ctx,
 		appMeta.Project, appMeta.CompositeApp, appMeta.Version, appMeta.DeploymentIntentGroup, intent)
 	if err != nil {
 		logError("failed to get resources", appContextID, intent, appMeta, err)
@@ -64,7 +64,7 @@ func UpdateAppContext(intent, appContextID string) error {
 
 	for _, o.Resource = range resources {
 		o.ObjectKind = strings.ToLower(o.Resource.Spec.ResourceGVK.Kind)
-		if err := o.createOrUpdateResource(); err != nil {
+		if err := o.createOrUpdateResource(ctx); err != nil {
 			return err
 		}
 	}
@@ -73,12 +73,12 @@ func UpdateAppContext(intent, appContextID string) error {
 }
 
 // createOrUpdateResource creates a new k8s object or updates the existing one
-func (o *UpdateOptions) createOrUpdateResource() error {
-	if err := o.getResourceContent(); err != nil {
+func (o *UpdateOptions) createOrUpdateResource(ctx context.Context) error {
+	if err := o.getResourceContent(ctx); err != nil {
 		return err
 	}
 
-	if err := o.getAllCustomization(); err != nil {
+	if err := o.getAllCustomization(ctx); err != nil {
 		return err
 	}
 
@@ -86,19 +86,19 @@ func (o *UpdateOptions) createOrUpdateResource() error {
 		if o.ObjectKind == "configmap" ||
 			o.ObjectKind == "secret" ||
 			o.Customization.Spec.PatchType == "merge" {
-			if err := o.getCustomizationContent(); err != nil {
+			if err := o.getCustomizationContent(ctx); err != nil {
 				return err
 			}
 		}
 
 		if strings.ToLower(o.Resource.Spec.NewObject) == "true" {
-			if err := o.createNewResource(); err != nil {
+			if err := o.createNewResource(ctx); err != nil {
 				return err
 			}
 			continue
 		}
 
-		if err := o.updateExistingResource(); err != nil {
+		if err := o.updateExistingResource(ctx); err != nil {
 			return err
 		}
 	}
@@ -107,18 +107,18 @@ func (o *UpdateOptions) createOrUpdateResource() error {
 }
 
 // createNewResource creates a new k8s object
-func (o *UpdateOptions) createNewResource() error {
+func (o *UpdateOptions) createNewResource(ctx context.Context) error {
 	switch o.ObjectKind {
 	case "configmap":
-		if err := o.createConfigMap(); err != nil {
+		if err := o.createConfigMap(ctx); err != nil {
 			return err
 		}
 	case "secret":
-		if err := o.createSecret(); err != nil {
+		if err := o.createSecret(ctx); err != nil {
 			return err
 		}
 	default:
-		if err := o.createK8sResource(); err != nil {
+		if err := o.createK8sResource(ctx); err != nil {
 			return err
 		}
 	}
@@ -127,7 +127,7 @@ func (o *UpdateOptions) createNewResource() error {
 }
 
 // createK8sResource creates a new k8s object
-func (o *UpdateOptions) createK8sResource() error {
+func (o *UpdateOptions) createK8sResource(ctx context.Context) error {
 	if len(o.resourceContent.Content) == 0 {
 		o.logUpdateError(
 			updateError{
@@ -149,7 +149,7 @@ func (o *UpdateOptions) createK8sResource() error {
 		}
 	}
 
-	if err = o.create(value); err != nil {
+	if err = o.create(ctx, value); err != nil {
 		return err
 	}
 
@@ -158,8 +158,8 @@ func (o *UpdateOptions) createK8sResource() error {
 
 // create adds the resource under the app and cluster
 // also add instruction under the given handle and instruction type
-func (o *UpdateOptions) create(data []byte) error {
-	clusters, err := o.getClusterNames()
+func (o *UpdateOptions) create(ctx context.Context, data []byte) error {
+	clusters, err := o.getClusterNames(ctx)
 	if err != nil {
 		return err
 	}
@@ -175,7 +175,7 @@ func (o *UpdateOptions) create(data []byte) error {
 
 	for _, cluster := range clusters {
 		if clusterSpecific == "true" && scope == "label" {
-			isValid, err := isValidClusterToApplyByLabel(provider, cluster, label, mode)
+			isValid, err := isValidClusterToApplyByLabel(ctx, provider, cluster, label, mode)
 			if err != nil {
 				return err
 			}
@@ -185,7 +185,7 @@ func (o *UpdateOptions) create(data []byte) error {
 		}
 
 		if clusterSpecific == "true" && scope == "name" {
-			isValid, err := isValidClusterToApplyByName(provider, cluster, clusterName, mode)
+			isValid, err := isValidClusterToApplyByName(ctx, provider, cluster, clusterName, mode)
 			if err != nil {
 				return err
 			}
@@ -194,23 +194,23 @@ func (o *UpdateOptions) create(data []byte) error {
 			}
 		}
 
-		handle, err := o.getClusterHandle(cluster)
+		handle, err := o.getClusterHandle(ctx, cluster)
 		if err != nil {
 			return err
 		}
 
 		resource := o.Resource.Spec.ResourceGVK.Name + SEPARATOR + o.Resource.Spec.ResourceGVK.Kind
 
-		if err = o.addResource(handle, resource, string(data)); err != nil {
+		if err = o.addResource(ctx, handle, resource, string(data)); err != nil {
 			return err
 		}
 
-		resorder, err := o.getResourceInstruction(cluster)
+		resorder, err := o.getResourceInstruction(ctx, cluster)
 		if err != nil {
 			return err
 		}
 
-		if err = o.addInstruction(handle, resorder, cluster, resource); err != nil {
+		if err = o.addInstruction(ctx, handle, resorder, cluster, resource); err != nil {
 			return err
 		}
 
@@ -220,13 +220,13 @@ func (o *UpdateOptions) create(data []byte) error {
 }
 
 // updateExistingResource update the existing k8s object
-func (o *UpdateOptions) updateExistingResource() error {
+func (o *UpdateOptions) updateExistingResource(ctx context.Context) error {
 	// make sure a patch type is specified
 	if len(o.Customization.Spec.PatchType) == 0 {
 		return errors.New("patch type not defined")
 	}
 
-	clusters, err := o.getClusterNames()
+	clusters, err := o.getClusterNames(ctx)
 	if err != nil {
 		return err
 	}
@@ -243,7 +243,7 @@ func (o *UpdateOptions) updateExistingResource() error {
 
 	for _, cluster := range clusters {
 		if clusterSpecific == "true" && scope == "label" {
-			isValid, err := isValidClusterToApplyByLabel(provider, cluster, label, mode)
+			isValid, err := isValidClusterToApplyByLabel(ctx, provider, cluster, label, mode)
 			if err != nil {
 				return err
 			}
@@ -253,7 +253,7 @@ func (o *UpdateOptions) updateExistingResource() error {
 		}
 
 		if clusterSpecific == "true" && scope == "name" {
-			isValid, err := isValidClusterToApplyByName(provider, cluster, clusterName, mode)
+			isValid, err := isValidClusterToApplyByName(ctx, provider, cluster, clusterName, mode)
 			if err != nil {
 				return err
 			}
@@ -262,13 +262,13 @@ func (o *UpdateOptions) updateExistingResource() error {
 			}
 		}
 
-		handle, err := o.getResourceHandle(cluster, strings.Join([]string{o.Resource.Spec.ResourceGVK.Name,
+		handle, err := o.getResourceHandle(ctx, cluster, strings.Join([]string{o.Resource.Spec.ResourceGVK.Name,
 			o.Resource.Spec.ResourceGVK.Kind}, SEPARATOR))
 		if err != nil {
 			continue
 		}
 
-		val, err := o.getValue(handle)
+		val, err := o.getValue(ctx, handle)
 		if err != nil {
 			continue
 		}
@@ -279,7 +279,7 @@ func (o *UpdateOptions) updateExistingResource() error {
 			return err
 		}
 
-		if err = o.updateResourceValue(handle, string(modifiedPatch)); err != nil {
+		if err = o.updateResourceValue(ctx, handle, string(modifiedPatch)); err != nil {
 			return err
 		}
 	}

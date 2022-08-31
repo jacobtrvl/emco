@@ -36,8 +36,9 @@ func (h genericK8sIntentHandler) handleGenericK8sIntentCreate(w http.ResponseWri
 
 // handleGenericK8sIntentDelete handles the route for deleting GenericK8sIntent from the database
 func (h genericK8sIntentHandler) handleGenericK8sIntentDelete(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := _gkiVars(mux.Vars(r))
-	if err := h.client.DeleteGenericK8sIntent(vars.intent, vars.project, vars.compositeApp,
+	if err := h.client.DeleteGenericK8sIntent(ctx, vars.intent, vars.project, vars.compositeApp,
 		vars.version, vars.deploymentIntentGroup); err != nil {
 		apiErr := apierror.HandleErrors(mux.Vars(r), err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -49,6 +50,7 @@ func (h genericK8sIntentHandler) handleGenericK8sIntentDelete(w http.ResponseWri
 
 // handleGenericK8sIntentGet handles the route for retrieving a GenericK8sIntent from the database
 func (h genericK8sIntentHandler) handleGenericK8sIntentGet(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	var (
 		genericK8sIntent interface{}
 		err              error
@@ -56,10 +58,10 @@ func (h genericK8sIntentHandler) handleGenericK8sIntentGet(w http.ResponseWriter
 
 	vars := _gkiVars(mux.Vars(r))
 	if len(vars.intent) == 0 {
-		genericK8sIntent, err = h.client.GetAllGenericK8sIntents(vars.project, vars.compositeApp,
+		genericK8sIntent, err = h.client.GetAllGenericK8sIntents(ctx, vars.project, vars.compositeApp,
 			vars.version, vars.deploymentIntentGroup)
 	} else {
-		genericK8sIntent, err = h.client.GetGenericK8sIntent(vars.intent, vars.project,
+		genericK8sIntent, err = h.client.GetGenericK8sIntent(ctx, vars.intent, vars.project,
 			vars.compositeApp, vars.version, vars.deploymentIntentGroup)
 	}
 
@@ -79,6 +81,7 @@ func (h genericK8sIntentHandler) handleGenericK8sIntentUpdate(w http.ResponseWri
 
 // createOrUpdateIntent create/update the GenericK8sIntent based on the request method
 func (h genericK8sIntentHandler) createOrUpdateIntent(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	var genericK8sIntent module.GenericK8sIntent
 	if code, err := validateRequestBody(r.Body, &genericK8sIntent, GenericK8sIntentSchemaJson); err != nil {
 		http.Error(w, err.Error(), code)
@@ -104,7 +107,7 @@ func (h genericK8sIntentHandler) createOrUpdateIntent(w http.ResponseWriter, r *
 		}
 	}
 
-	gki, gkiExists, err := h.client.CreateGenericK8sIntent(genericK8sIntent,
+	gki, gkiExists, err := h.client.CreateGenericK8sIntent(ctx, genericK8sIntent,
 		vars.project, vars.compositeApp, vars.version, vars.deploymentIntentGroup,
 		methodPost)
 	if err != nil {

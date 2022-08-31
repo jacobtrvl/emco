@@ -2,6 +2,8 @@
     "database-type": "mongo",
     "database-ip": "emco-mongo",
     "etcd-ip": "emco-etcd",
+    "zipkin-ip": {{ default "" .Values.global.zipkinIp | quote }},
+    "zipkin-port": {{ default "9411" .Values.global.zipkinPort | quote }},
     "service-port": "9020",
     "log-level": {{ .Values.global.loglevel | quote }}
 }

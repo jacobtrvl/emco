@@ -4,6 +4,7 @@
 package action
 
 import (
+	"context"
 	"encoding/base64"
 	"fmt"
 	"strings"
@@ -26,7 +27,7 @@ type Secret struct {
 
 // createSecret create the Secret based on the JSON  patch,
 // content in the template file, and the customization file, if any
-func (o *UpdateOptions) createSecret() error {
+func (o *UpdateOptions) createSecret(ctx context.Context) error {
 	// create a new Secret object based on the template file
 	secret, err := newSecret(o.resourceContent.Content, o.Resource.Spec.ResourceGVK.Name)
 	if err != nil {
@@ -59,7 +60,7 @@ func (o *UpdateOptions) createSecret() error {
 	}
 
 	// create the Secret
-	if err = o.create(value); err != nil {
+	if err = o.create(ctx, value); err != nil {
 		return err
 	}
 

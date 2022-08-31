@@ -8,6 +8,7 @@ import (
 	"reflect"
 
 	"context"
+
 	"github.com/pkg/errors"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/module/types"
@@ -105,17 +106,17 @@ func NewCustomizationClient() *CustomizationClient {
 
 // CustomizationManager exposes all the functionalities related to Customization
 type CustomizationManager interface {
-	CreateCustomization(customization Customization, content CustomizationContent,
+	CreateCustomization(ctx context.Context, customization Customization, content CustomizationContent,
 		project, compositeApp, version, deploymentIntentGroup, intent, resource string,
 		failIfExists bool) (Customization, bool, error)
-	DeleteCustomization(customization, project, compositeApp, version, deploymentIntentGroup, intent, resource string) error
-	GetAllCustomization(project, compositeApp, version, deploymentIntentGroup, intent, resource string) ([]Customization, error)
-	GetCustomization(customization, project, compositeApp, version, deploymentIntentGroup, intent, resource string) (Customization, error)
-	GetCustomizationContent(customization, project, compositeApp, version, deploymentIntentGroup, intent, resource string) (CustomizationContent, error)
+	DeleteCustomization(ctx context.Context, customization, project, compositeApp, version, deploymentIntentGroup, intent, resource string) error
+	GetAllCustomization(ctx context.Context, project, compositeApp, version, deploymentIntentGroup, intent, resource string) ([]Customization, error)
+	GetCustomization(ctx context.Context, customization, project, compositeApp, version, deploymentIntentGroup, intent, resource string) (Customization, error)
+	GetCustomizationContent(ctx context.Context, customization, project, compositeApp, version, deploymentIntentGroup, intent, resource string) (CustomizationContent, error)
 }
 
 // CreateCustomization creates a Customization
-func (cc *CustomizationClient) CreateCustomization(customization Customization, customizationContent CustomizationContent,
+func (cc *CustomizationClient) CreateCustomization(ctx context.Context, customization Customization, customizationContent CustomizationContent,
 	project, compositeApp, version, deploymentIntentGroup, intent, resource string,
 	failIfExists bool) (Customization, bool, error) {
 
@@ -130,7 +131,7 @@ func (cc *CustomizationClient) CreateCustomization(customization Customization, 
 		Resource:              resource,
 	}
 
-	c, err := cc.GetCustomization(
+	c, err := cc.GetCustomization(ctx,
 		customization.Metadata.Name, project, compositeApp, version, deploymentIntentGroup, intent, resource)
 	if err == nil &&
 		!reflect.DeepEqual(c, Customization{}) {
@@ -142,12 +143,12 @@ func (cc *CustomizationClient) CreateCustomization(customization Customization, 
 		return Customization{}, cExists, errors.New("Customization already exists")
 	}
 
-	if err = db.DBconn.Insert(context.Background(), cc.db.storeName, key, nil, cc.db.tagMeta, customization); err != nil {
+	if err = db.DBconn.Insert(ctx, cc.db.storeName, key, nil, cc.db.tagMeta, customization); err != nil {
 		return Customization{}, cExists, err
 	}
 
 	if len(customizationContent.Content) > 0 {
-		if err = db.DBconn.Insert(context.Background(), cc.db.storeName, key, nil, cc.db.tagContent, customizationContent); err != nil {
+		if err = db.DBconn.Insert(ctx, cc.db.storeName, key, nil, cc.db.tagContent, customizationContent); err != nil {
 			return Customization{}, cExists, err
 		}
 	}
@@ -156,7 +157,7 @@ func (cc *CustomizationClient) CreateCustomization(customization Customization, 
 }
 
 // GetCustomization returns a Customization
-func (cc *CustomizationClient) GetCustomization(
+func (cc *CustomizationClient) GetCustomization(ctx context.Context,
 	customization, project, compositeApp, version, deploymentIntentGroup, intent, resource string) (Customization, error) {
 
 	key := CustomizationKey{
@@ -169,7 +170,7 @@ func (cc *CustomizationClient) GetCustomization(
 		Resource:              resource,
 	}
 
-	value, err := db.DBconn.Find(context.Background(), cc.db.storeName, key, cc.db.tagMeta)
+	value, err := db.DBconn.Find(ctx, cc.db.storeName, key, cc.db.tagMeta)
 	if err != nil {
 		return Customization{}, err
 	}
@@ -190,7 +191,7 @@ func (cc *CustomizationClient) GetCustomization(
 }
 
 // GetAllCustomization returns all the Customizations for an Intent and Resource
-func (cc *CustomizationClient) GetAllCustomization(
+func (cc *CustomizationClient) GetAllCustomization(ctx context.Context,
 	project, compositeApp, version, deploymentIntentGroup, intent, resource string) ([]Customization, error) {
 
 	key := CustomizationKey{
@@ -203,7 +204,7 @@ func (cc *CustomizationClient) GetAllCustomization(
 		Resource:              resource,
 	}
 
-	values, err := db.DBconn.Find(context.Background(), cc.db.storeName, key, cc.db.tagMeta)
+	values, err := db.DBconn.Find(ctx, cc.db.storeName, key, cc.db.tagMeta)
 	if err != nil {
 		return []Customization{}, err
 	}
@@ -221,7 +222,7 @@ func (cc *CustomizationClient) GetAllCustomization(
 }
 
 // GetCustomizationContent returns the content of the Customization files
-func (cc *CustomizationClient) GetCustomizationContent(
+func (cc *CustomizationClient) GetCustomizationContent(ctx context.Context,
 	customization, project, compositeApp, version, deploymentIntentGroup, intent, resource string) (CustomizationContent, error) {
 
 	key := CustomizationKey{
@@ -234,7 +235,7 @@ func (cc *CustomizationClient) GetCustomizationContent(
 		Resource:              resource,
 	}
 
-	value, err := db.DBconn.Find(context.Background(), cc.db.storeName, key, cc.db.tagContent)
+	value, err := db.DBconn.Find(ctx, cc.db.storeName, key, cc.db.tagContent)
 	if err != nil {
 		return CustomizationContent{}, err
 	}
@@ -252,7 +253,7 @@ func (cc *CustomizationClient) GetCustomizationContent(
 }
 
 // DeleteCustomization deletes a given Customization
-func (cc *CustomizationClient) DeleteCustomization(
+func (cc *CustomizationClient) DeleteCustomization(ctx context.Context,
 	customization, project, compositeApp, version, deploymentIntentGroup, intent, resource string) error {
 
 	key := CustomizationKey{
@@ -265,5 +266,5 @@ func (cc *CustomizationClient) DeleteCustomization(
 		Resource:              resource,
 	}
 
-	return db.DBconn.Remove(context.Background(), cc.db.storeName, key)
+	return db.DBconn.Remove(ctx, cc.db.storeName, key)
 }

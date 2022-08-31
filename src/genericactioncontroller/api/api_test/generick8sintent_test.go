@@ -6,6 +6,7 @@ package api_test
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"io"
 	"io/ioutil"
@@ -29,7 +30,7 @@ func init() {
 	api.GenericK8sIntentSchemaJson = "../../json-schemas/genericK8sIntent.json"
 }
 
-func (m *mockGenericK8sIntentManager) CreateGenericK8sIntent(gki module.GenericK8sIntent,
+func (m *mockGenericK8sIntentManager) CreateGenericK8sIntent(ctx context.Context, gki module.GenericK8sIntent,
 	project, compositeApp, compositeAppVersion, deploymentIntentGroup string,
 	failIfExists bool) (module.GenericK8sIntent, bool, error) {
 	iExists := false
@@ -61,7 +62,7 @@ func (m *mockGenericK8sIntentManager) CreateGenericK8sIntent(gki module.GenericK
 	return m.Items[len(m.Items)-1], iExists, nil
 }
 
-func (m *mockGenericK8sIntentManager) DeleteGenericK8sIntent(intent, project, compositeApp, compositeAppVersion, deploymentIntentGroup string) error {
+func (m *mockGenericK8sIntentManager) DeleteGenericK8sIntent(ctx context.Context, intent, project, compositeApp, compositeAppVersion, deploymentIntentGroup string) error {
 	if m.Err != nil {
 		return m.Err
 	}
@@ -78,7 +79,7 @@ func (m *mockGenericK8sIntentManager) DeleteGenericK8sIntent(intent, project, co
 	return errors.New("db Remove resource not found") // genericK8sIntent does not exist
 }
 
-func (m *mockGenericK8sIntentManager) GetAllGenericK8sIntents(project, compositeApp, compositeAppVersion, deploymentIntentGroup string) ([]module.GenericK8sIntent, error) {
+func (m *mockGenericK8sIntentManager) GetAllGenericK8sIntents(ctx context.Context, project, compositeApp, compositeAppVersion, deploymentIntentGroup string) ([]module.GenericK8sIntent, error) {
 
 	if m.Err != nil {
 		return []module.GenericK8sIntent{}, m.Err
@@ -90,7 +91,7 @@ func (m *mockGenericK8sIntentManager) GetAllGenericK8sIntents(project, composite
 	return intents, nil
 }
 
-func (m *mockGenericK8sIntentManager) GetGenericK8sIntent(intent, project, compositeApp, compositeAppVersion, deploymentIntentGroup string) (module.GenericK8sIntent, error) {
+func (m *mockGenericK8sIntentManager) GetGenericK8sIntent(ctx context.Context, intent, project, compositeApp, compositeAppVersion, deploymentIntentGroup string) (module.GenericK8sIntent, error) {
 
 	if m.Err != nil {
 		return module.GenericK8sIntent{}, m.Err

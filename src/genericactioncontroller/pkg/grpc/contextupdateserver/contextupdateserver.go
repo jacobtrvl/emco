@@ -23,7 +23,7 @@ func (cs *contextupdateServer) UpdateAppContext(ctx context.Context,
 			"AppContext": req.AppContext,
 			"Intent":     req.IntentName})
 
-	if err := action.UpdateAppContext(req.IntentName, req.AppContext); err != nil {
+	if err := action.UpdateAppContext(ctx, req.IntentName, req.AppContext); err != nil {
 		return &contextpb.ContextUpdateResponse{
 				AppContextUpdated:       false,
 				AppContextUpdateMessage: err.Error()},

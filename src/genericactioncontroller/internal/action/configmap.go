@@ -4,6 +4,7 @@
 package action
 
 import (
+	"context"
 	"encoding/base64"
 	"fmt"
 	"strings"
@@ -25,7 +26,7 @@ type ConfigMap struct {
 
 // createConfigMap create the ConfigMap based on the JSON  patch,
 // content in the template file, and the customization file, if any
-func (o *UpdateOptions) createConfigMap() error {
+func (o *UpdateOptions) createConfigMap(ctx context.Context) error {
 	// create a new ConfigMap object based on the template file
 	configMap, err := newConfigMap(o.resourceContent.Content, o.Resource.Spec.ResourceGVK.Name)
 	if err != nil {
@@ -58,7 +59,7 @@ func (o *UpdateOptions) createConfigMap() error {
 	}
 
 	// create the ConfigMap
-	if err = o.create(value); err != nil {
+	if err = o.create(ctx, value); err != nil {
 		return err
 	}
 

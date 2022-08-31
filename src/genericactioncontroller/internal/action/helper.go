@@ -35,8 +35,8 @@ type updateError struct {
 }
 
 // isValidClusterToApplyByLabel checks if a given cluster falls under the given label and provider
-func isValidClusterToApplyByLabel(provider, clusterName, clusterLabel, mode string) (bool, error) {
-	clusters, err := cluster.NewClusterClient().GetClustersWithLabel(context.Background(), provider, clusterLabel)
+func isValidClusterToApplyByLabel(ctx context.Context, provider, clusterName, clusterLabel, mode string) (bool, error) {
+	clusters, err := cluster.NewClusterClient().GetClustersWithLabel(ctx, provider, clusterLabel)
 	if err != nil {
 		log.Error("Failed to get clusters by the provider and label",
 			log.Fields{
@@ -58,8 +58,8 @@ func isValidClusterToApplyByLabel(provider, clusterName, clusterLabel, mode stri
 }
 
 // isValidClusterToApplyByName checks if a given cluster under a provider matches with the cluster which is authenticated for
-func isValidClusterToApplyByName(provider, authenticatedCluster, givenCluster, mode string) (bool, error) {
-	clusters, err := cluster.NewClusterClient().GetClusters(context.Background(), provider)
+func isValidClusterToApplyByName(ctx context.Context, provider, authenticatedCluster, givenCluster, mode string) (bool, error) {
+	clusters, err := cluster.NewClusterClient().GetClusters(ctx, provider)
 	if err != nil {
 		log.Error("Failed to get clusters by the provider",
 			log.Fields{
@@ -95,8 +95,8 @@ func decodeString(s string) ([]byte, error) {
 }
 
 // getResourceContent retrieves the content of the Resource template from the db
-func (o *UpdateOptions) getResourceContent() error {
-	resourceContent, err := module.NewResourceClient().GetResourceContent(o.Resource.Metadata.Name, o.appMeta.Project,
+func (o *UpdateOptions) getResourceContent(ctx context.Context) error {
+	resourceContent, err := module.NewResourceClient().GetResourceContent(ctx, o.Resource.Metadata.Name, o.appMeta.Project,
 		o.appMeta.CompositeApp, o.appMeta.Version, o.appMeta.DeploymentIntentGroup, o.intent)
 	if err != nil {
 		o.logUpdateError(
@@ -112,8 +112,8 @@ func (o *UpdateOptions) getResourceContent() error {
 }
 
 // getAllCustomization returns all the Customizations for the given Intent and Resource
-func (o *UpdateOptions) getAllCustomization() error {
-	customizations, err := module.NewCustomizationClient().GetAllCustomization(o.appMeta.Project,
+func (o *UpdateOptions) getAllCustomization(ctx context.Context) error {
+	customizations, err := module.NewCustomizationClient().GetAllCustomization(ctx, o.appMeta.Project,
 		o.appMeta.CompositeApp, o.appMeta.Version, o.appMeta.DeploymentIntentGroup, o.intent, o.Resource.Metadata.Name)
 	if err != nil {
 		o.logUpdateError(
@@ -135,8 +135,8 @@ func (o *UpdateOptions) getAllCustomization() error {
 }
 
 // getCustomizationContent retrieves the content of the Customization files from the db
-func (o *UpdateOptions) getCustomizationContent() error {
-	customizationContent, err := module.NewCustomizationClient().GetCustomizationContent(o.Customization.Metadata.Name, o.appMeta.Project,
+func (o *UpdateOptions) getCustomizationContent(ctx context.Context) error {
+	customizationContent, err := module.NewCustomizationClient().GetCustomizationContent(ctx, o.Customization.Metadata.Name, o.appMeta.Project,
 		o.appMeta.CompositeApp, o.appMeta.Version, o.appMeta.DeploymentIntentGroup, o.intent, o.Resource.Metadata.Name)
 	if err != nil {
 		o.logUpdateError(
@@ -152,8 +152,8 @@ func (o *UpdateOptions) getCustomizationContent() error {
 }
 
 // getClusterNames returns a list of all clusters for a given app
-func (o *UpdateOptions) getClusterNames() ([]string, error) {
-	clusters, err := o.appContext.GetClusterNames(context.Background(), o.Resource.Spec.AppName)
+func (o *UpdateOptions) getClusterNames(ctx context.Context) ([]string, error) {
+	clusters, err := o.appContext.GetClusterNames(ctx, o.Resource.Spec.AppName)
 	if err != nil {
 		o.logUpdateError(
 			updateError{
@@ -166,8 +166,8 @@ func (o *UpdateOptions) getClusterNames() ([]string, error) {
 }
 
 // getClusterHandle returns the handle for a given app and cluster
-func (o *UpdateOptions) getClusterHandle(cluster string) (interface{}, error) {
-	handle, err := o.appContext.GetClusterHandle(context.Background(), o.Resource.Spec.AppName, cluster)
+func (o *UpdateOptions) getClusterHandle(ctx context.Context, cluster string) (interface{}, error) {
+	handle, err := o.appContext.GetClusterHandle(ctx, o.Resource.Spec.AppName, cluster)
 	if err != nil {
 		o.logUpdateError(
 			updateError{
@@ -181,8 +181,8 @@ func (o *UpdateOptions) getClusterHandle(cluster string) (interface{}, error) {
 }
 
 // addResource add the resource under the app and cluster
-func (o *UpdateOptions) addResource(handle interface{}, resource, value string) error {
-	if _, err := o.appContext.AddResource(context.Background(), handle, resource, value); err != nil {
+func (o *UpdateOptions) addResource(ctx context.Context, handle interface{}, resource, value string) error {
+	if _, err := o.appContext.AddResource(ctx, handle, resource, value); err != nil {
 		o.logUpdateError(
 			updateError{
 				message: "Failed to add the resource",
@@ -195,8 +195,8 @@ func (o *UpdateOptions) addResource(handle interface{}, resource, value string) 
 }
 
 // getResourceInstruction returns the resource instruction for a given instruction type
-func (o *UpdateOptions) getResourceInstruction(cluster string) (interface{}, error) {
-	resorder, err := o.appContext.GetResourceInstruction(context.Background(), o.Resource.Spec.AppName, cluster, "order")
+func (o *UpdateOptions) getResourceInstruction(ctx context.Context, cluster string) (interface{}, error) {
+	resorder, err := o.appContext.GetResourceInstruction(ctx, o.Resource.Spec.AppName, cluster, "order")
 	if err != nil {
 		o.logUpdateError(
 			updateError{
@@ -210,12 +210,12 @@ func (o *UpdateOptions) getResourceInstruction(cluster string) (interface{}, err
 }
 
 // addInstruction add instruction under the given handle and instruction type
-func (o *UpdateOptions) addInstruction(handle, resorder interface{}, cluster, resource string) error {
+func (o *UpdateOptions) addInstruction(ctx context.Context, handle, resorder interface{}, cluster, resource string) error {
 	v := make(map[string][]string)
 	json.Unmarshal([]byte(resorder.(string)), &v)
 	v["resorder"] = append(v["resorder"], resource)
 	data, _ := json.Marshal(v)
-	if _, err := o.appContext.AddInstruction(context.Background(), handle, "resource", "order", string(data)); err != nil {
+	if _, err := o.appContext.AddInstruction(ctx, handle, "resource", "order", string(data)); err != nil {
 		o.logUpdateError(
 			updateError{
 				message: "Failed to add instruction",
@@ -229,8 +229,8 @@ func (o *UpdateOptions) addInstruction(handle, resorder interface{}, cluster, re
 }
 
 // getResourceHandle returns the handle for the given app, cluster, and resource
-func (o *UpdateOptions) getResourceHandle(cluster, resource string) (interface{}, error) {
-	handle, err := o.appContext.GetResourceHandle(context.Background(), o.Resource.Spec.AppName, cluster, resource)
+func (o *UpdateOptions) getResourceHandle(ctx context.Context, cluster, resource string) (interface{}, error) {
+	handle, err := o.appContext.GetResourceHandle(ctx, o.Resource.Spec.AppName, cluster, resource)
 	if err != nil {
 		o.logUpdateError(
 			updateError{
@@ -244,8 +244,8 @@ func (o *UpdateOptions) getResourceHandle(cluster, resource string) (interface{}
 }
 
 // getValue returns the value for a given handle
-func (o *UpdateOptions) getValue(handle interface{}) (interface{}, error) {
-	val, err := o.appContext.GetValue(context.Background(), handle)
+func (o *UpdateOptions) getValue(ctx context.Context, handle interface{}) (interface{}, error) {
+	val, err := o.appContext.GetValue(ctx, handle)
 	if err != nil {
 		o.logUpdateError(
 			updateError{
@@ -264,8 +264,8 @@ func (o *UpdateOptions) getValue(handle interface{}) (interface{}, error) {
 }
 
 // updateResourceValue updates the resource value using the given handle
-func (o *UpdateOptions) updateResourceValue(handle interface{}, value string) error {
-	if err := o.appContext.UpdateResourceValue(context.Background(), handle, value); err != nil {
+func (o *UpdateOptions) updateResourceValue(ctx context.Context, handle interface{}, value string) error {
+	if err := o.appContext.UpdateResourceValue(ctx, handle, value); err != nil {
 		o.logUpdateError(
 			updateError{
 				message: "Failed to update resource value",

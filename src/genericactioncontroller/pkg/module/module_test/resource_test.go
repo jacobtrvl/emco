@@ -25,9 +25,10 @@ var _ = Describe("Create Resource",
 		})
 		Context("create a resource that does not exist", func() {
 			It("returns the resource, no error and, the exists flag is false", func() {
+				ctx := context.Background()
 				l := len(mockdb.Items)
 				mr := mockResource("new-resource")
-				res, rExists, err := rClient.CreateResource(
+				res, rExists, err := rClient.CreateResource(ctx,
 					mr, module.ResourceContent{}, v.Project, v.CompositeApp, v.Version, v.DeploymentIntentGroup, v.Intent, true)
 				validateError(err, "")
 				validateResource(res, mr)
@@ -37,9 +38,10 @@ var _ = Describe("Create Resource",
 		})
 		Context("create a resource that already exists", func() {
 			It("returns an error, no resource and, the exists flag is true", func() {
+				ctx := context.Background()
 				l := len(mockdb.Items)
 				mr := mockResource("test-resource-1")
-				res, rExists, err := rClient.CreateResource(
+				res, rExists, err := rClient.CreateResource(ctx,
 					mr, module.ResourceContent{}, v.Project, v.CompositeApp, v.Version, v.DeploymentIntentGroup, v.Intent, true)
 				validateError(err, "Resource already exists")
 				validateResource(res, module.Resource{})
@@ -57,8 +59,9 @@ var _ = Describe("Delete Resource",
 		})
 		Context("delete an existing resource", func() {
 			It("returns no error and delete the entry from the db", func() {
+				ctx := context.Background()
 				l := len(mockdb.Items)
-				err := rClient.DeleteResource(
+				err := rClient.DeleteResource(ctx,
 					"test-resource-1", v.Project, v.CompositeApp, v.Version, v.DeploymentIntentGroup, v.Intent)
 				validateError(err, "")
 				Expect(len(mockdb.Items)).To(Equal(l - 1))
@@ -66,9 +69,10 @@ var _ = Describe("Delete Resource",
 		})
 		Context("delete a nonexisting resource", func() {
 			It("returns an error and no change in the db", func() {
+				ctx := context.Background()
 				l := len(mockdb.Items)
 				mockdb.Err = errors.New("db Remove resource not found")
-				err := rClient.DeleteResource(
+				err := rClient.DeleteResource(ctx,
 					"non-existing-resource", v.Project, v.CompositeApp, v.Version, v.DeploymentIntentGroup, v.Intent)
 				validateError(err, "db Remove resource not found")
 				Expect(len(mockdb.Items)).To(Equal(l))
@@ -84,8 +88,9 @@ var _ = Describe("Get All Resources",
 		})
 		Context("get all the resources", func() {
 			It("returns all the resources, no error", func() {
+				ctx := context.Background()
 				l := len(mockdb.Items)
-				res, err := rClient.GetAllResources(
+				res, err := rClient.GetAllResources(ctx,
 					v.Project, v.CompositeApp, v.Version, v.DeploymentIntentGroup, v.Intent)
 				validateError(err, "")
 				Expect(len(res)).To(Equal(l))
@@ -93,8 +98,9 @@ var _ = Describe("Get All Resources",
 		})
 		Context("get all the resources without creating any", func() {
 			It("returns an empty array, no error", func() {
+				ctx := context.Background()
 				mockdb.Items = []map[string]map[string][]byte{}
-				res, err := rClient.GetAllResources(
+				res, err := rClient.GetAllResources(ctx,
 					v.Project, v.CompositeApp, v.Version, v.DeploymentIntentGroup, v.Intent)
 				validateError(err, "")
 				Expect(len(res)).To(Equal(0))
@@ -110,7 +116,8 @@ var _ = Describe("Get Resource",
 		})
 		Context("get an existing resource", func() {
 			It("returns the resource, no error", func() {
-				res, err := rClient.GetResource(
+				ctx := context.Background()
+				res, err := rClient.GetResource(ctx,
 					"test-resource-1", v.Project, v.CompositeApp, v.Version, v.DeploymentIntentGroup, v.Intent)
 				validateError(err, "")
 				validateResource(res, mockResource("test-resource-1"))
@@ -118,7 +125,8 @@ var _ = Describe("Get Resource",
 		})
 		Context("get a nonexisting resource", func() {
 			It("returns an error, no resource", func() {
-				res, err := rClient.GetResource(
+				ctx := context.Background()
+				res, err := rClient.GetResource(ctx,
 					"non-existing-resource", v.Project, v.CompositeApp, v.Version, v.DeploymentIntentGroup, v.Intent)
 				validateError(err, "Resource not found")
 				validateResource(res, module.Resource{})
@@ -134,8 +142,9 @@ var _ = Describe("Get Resource Content",
 		})
 		Context("get the existing resource content", func() {
 			It("returns the resource content, no error", func() {
+				ctx := context.Background()
 				populateResourceContent("test-resource-1")
-				content, err := rClient.GetResourceContent(
+				content, err := rClient.GetResourceContent(ctx,
 					"test-resource-1", v.Project, v.CompositeApp, v.Version, v.DeploymentIntentGroup, v.Intent)
 				validateError(err, "")
 				Expect(content.Content).To(Equal("YXBpVmVyc2lvbjogdjEKa2luZDogQ29"))
@@ -143,7 +152,8 @@ var _ = Describe("Get Resource Content",
 		})
 		Context("get the nonexisting resource content", func() {
 			It("returns no content", func() {
-				content, err := rClient.GetResourceContent(
+				ctx := context.Background()
+				content, err := rClient.GetResourceContent(ctx,
 					"non-existing-resource", v.Project, v.CompositeApp, v.Version, v.DeploymentIntentGroup, v.Intent)
 				validateError(err, "")
 				Expect(content).To(Equal(module.ResourceContent{}))
@@ -185,6 +195,7 @@ func populateResourceTestData() {
 		key module.ResourceKey
 	)
 
+	ctx := context.Background()
 	mockdb.Err = nil
 	mockdb.Items = []map[string]map[string][]byte{}
 	mockdb.MarshalErr = nil
@@ -199,7 +210,7 @@ func populateResourceTestData() {
 		DeploymentIntentGroup: v.DeploymentIntentGroup,
 		GenericK8sIntent:      v.Intent,
 	}
-	_ = mockdb.Insert(context.Background(), "resources", key, nil, "data", r)
+	_ = mockdb.Insert(ctx, "resources", key, nil, "data", r)
 
 	// Resource 2
 	r = mockResource("test-resource-2")
@@ -211,7 +222,7 @@ func populateResourceTestData() {
 		DeploymentIntentGroup: v.DeploymentIntentGroup,
 		GenericK8sIntent:      v.Intent,
 	}
-	_ = mockdb.Insert(context.Background(), "resources", key, nil, "data", r)
+	_ = mockdb.Insert(ctx, "resources", key, nil, "data", r)
 
 	// Resource 3
 	r = mockResource("test-resource-3")
@@ -223,11 +234,12 @@ func populateResourceTestData() {
 		DeploymentIntentGroup: v.DeploymentIntentGroup,
 		GenericK8sIntent:      v.Intent,
 	}
-	_ = mockdb.Insert(context.Background(), "resources", key, nil, "data", r)
+	_ = mockdb.Insert(ctx, "resources", key, nil, "data", r)
 }
 
 // populateResourceContent
 func populateResourceContent(resource string) {
+	ctx := context.Background()
 	key := module.ResourceKey{
 		Resource:              resource,
 		Project:               v.Project,
@@ -239,5 +251,5 @@ func populateResourceContent(resource string) {
 	rContent := module.ResourceContent{
 		Content: "YXBpVmVyc2lvbjogdjEKa2luZDogQ29",
 	}
-	_ = mockdb.Insert(context.Background(), "resources", key, nil, "resourcecontent", rContent)
+	_ = mockdb.Insert(ctx, "resources", key, nil, "resourcecontent", rContent)
 }

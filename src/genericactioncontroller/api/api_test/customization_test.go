@@ -6,6 +6,7 @@ package api_test
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"io"
 	"io/ioutil"
@@ -36,7 +37,7 @@ func init() {
 	api.CustomizationSchemaJson = "../../json-schemas/customization.json"
 }
 
-func (m *mockCustomizationManager) CreateCustomization(customization module.Customization, content module.CustomizationContent,
+func (m *mockCustomizationManager) CreateCustomization(ctx context.Context, customization module.Customization, content module.CustomizationContent,
 	project, compositeApp, version, deploymentIntentGroup, intent, resource string,
 	failIfExists bool) (module.Customization, bool, error) {
 
@@ -73,7 +74,7 @@ func (m *mockCustomizationManager) CreateCustomization(customization module.Cust
 	return m.Items[len(m.Items)-1].Customization, iExists, nil
 }
 
-func (m *mockCustomizationManager) DeleteCustomization(
+func (m *mockCustomizationManager) DeleteCustomization(ctx context.Context,
 	customization, project, compositeApp, version, deploymentIntentGroup, intent, resource string) error {
 
 	if m.Err != nil {
@@ -92,7 +93,7 @@ func (m *mockCustomizationManager) DeleteCustomization(
 	return errors.New("db Remove resource not found") // customization does not exist
 }
 
-func (m *mockCustomizationManager) GetAllCustomization(
+func (m *mockCustomizationManager) GetAllCustomization(ctx context.Context,
 	project, compositeApp, version, deploymentIntentGroup, intent, resource string) ([]module.Customization, error) {
 
 	if m.Err != nil {
@@ -108,7 +109,7 @@ func (m *mockCustomizationManager) GetAllCustomization(
 	return customizations, nil
 }
 
-func (m *mockCustomizationManager) GetCustomization(
+func (m *mockCustomizationManager) GetCustomization(ctx context.Context,
 	customization, project, compositeApp, version, deploymentIntentGroup, intent, resource string) (module.Customization, error) {
 
 	if m.Err != nil {
@@ -124,7 +125,7 @@ func (m *mockCustomizationManager) GetCustomization(
 	return module.Customization{}, errors.New("Customization not found")
 }
 
-func (m *mockCustomizationManager) GetCustomizationContent(
+func (m *mockCustomizationManager) GetCustomizationContent(ctx context.Context,
 	customization, project, compositeApp, version, deploymentIntentGroup, intent, resource string) (module.CustomizationContent, error) {
 
 	if m.Err != nil {

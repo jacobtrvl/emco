@@ -8,6 +8,7 @@ import (
 	"reflect"
 
 	"context"
+
 	"github.com/pkg/errors"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/module/types"
@@ -53,16 +54,16 @@ func NewGenericK8sIntentClient() *GenericK8sIntentClient {
 
 // GenericK8sIntentManager exposes all the functionalities related to GenericK8sIntent
 type GenericK8sIntentManager interface {
-	CreateGenericK8sIntent(gki GenericK8sIntent,
+	CreateGenericK8sIntent(ctx context.Context, gki GenericK8sIntent,
 		project, compositeApp, compositeAppVersion, deploymentIntentGroup string,
 		failIfExists bool) (GenericK8sIntent, bool, error)
-	DeleteGenericK8sIntent(intent, project, compositeApp, compositeAppVersion, deploymentIntentGroup string) error
-	GetAllGenericK8sIntents(project, compositeApp, compositeAppVersion, deploymentIntentGroup string) ([]GenericK8sIntent, error)
-	GetGenericK8sIntent(intent, project, compositeApp, compositeAppVersion, deploymentIntentGroup string) (GenericK8sIntent, error)
+	DeleteGenericK8sIntent(ctx context.Context, intent, project, compositeApp, compositeAppVersion, deploymentIntentGroup string) error
+	GetAllGenericK8sIntents(ctx context.Context, project, compositeApp, compositeAppVersion, deploymentIntentGroup string) ([]GenericK8sIntent, error)
+	GetGenericK8sIntent(ctx context.Context, intent, project, compositeApp, compositeAppVersion, deploymentIntentGroup string) (GenericK8sIntent, error)
 }
 
 // CreateGenericK8sIntent creates a GenericK8sIntent
-func (g *GenericK8sIntentClient) CreateGenericK8sIntent(gki GenericK8sIntent,
+func (g *GenericK8sIntentClient) CreateGenericK8sIntent(ctx context.Context, gki GenericK8sIntent,
 	project, compositeApp, compositeAppVersion, deploymentIntentGroup string,
 	failIfExists bool) (GenericK8sIntent, bool, error) {
 
@@ -75,7 +76,7 @@ func (g *GenericK8sIntentClient) CreateGenericK8sIntent(gki GenericK8sIntent,
 		DeploymentIntentGroup: deploymentIntentGroup,
 	}
 
-	i, err := g.GetGenericK8sIntent(gki.Metadata.Name, project, compositeApp, compositeAppVersion, deploymentIntentGroup)
+	i, err := g.GetGenericK8sIntent(ctx, gki.Metadata.Name, project, compositeApp, compositeAppVersion, deploymentIntentGroup)
 	if err == nil &&
 		!reflect.DeepEqual(i, GenericK8sIntent{}) {
 		gkiExists = true
@@ -86,7 +87,7 @@ func (g *GenericK8sIntentClient) CreateGenericK8sIntent(gki GenericK8sIntent,
 		return GenericK8sIntent{}, gkiExists, errors.New("GenericK8sIntent already exists")
 	}
 
-	if err = db.DBconn.Insert(context.Background(), g.db.storeName, key, nil, g.db.tagMeta, gki); err != nil {
+	if err = db.DBconn.Insert(ctx, g.db.storeName, key, nil, g.db.tagMeta, gki); err != nil {
 		return GenericK8sIntent{}, gkiExists, err
 	}
 
@@ -94,7 +95,7 @@ func (g *GenericK8sIntentClient) CreateGenericK8sIntent(gki GenericK8sIntent,
 }
 
 // GetGenericK8sIntent returns a GenericK8sIntent
-func (g *GenericK8sIntentClient) GetGenericK8sIntent(intent, project, compositeApp, compositeAppVersion,
+func (g *GenericK8sIntentClient) GetGenericK8sIntent(ctx context.Context, intent, project, compositeApp, compositeAppVersion,
 	deploymentIntentGroup string) (GenericK8sIntent, error) {
 
 	key := GenericK8sIntentKey{
@@ -105,7 +106,7 @@ func (g *GenericK8sIntentClient) GetGenericK8sIntent(intent, project, compositeA
 		DeploymentIntentGroup: deploymentIntentGroup,
 	}
 
-	value, err := db.DBconn.Find(context.Background(), g.db.storeName, key, g.db.tagMeta)
+	value, err := db.DBconn.Find(ctx, g.db.storeName, key, g.db.tagMeta)
 	if err != nil {
 		return GenericK8sIntent{}, err
 	}
@@ -126,7 +127,7 @@ func (g *GenericK8sIntentClient) GetGenericK8sIntent(intent, project, compositeA
 }
 
 // GetAllGenericK8sIntents returns all the GenericK8sIntents
-func (g *GenericK8sIntentClient) GetAllGenericK8sIntents(project, compositeApp, compositeAppVersion,
+func (g *GenericK8sIntentClient) GetAllGenericK8sIntents(ctx context.Context, project, compositeApp, compositeAppVersion,
 	deploymentIntentGroup string) ([]GenericK8sIntent, error) {
 
 	key := GenericK8sIntentKey{
@@ -137,7 +138,7 @@ func (g *GenericK8sIntentClient) GetAllGenericK8sIntents(project, compositeApp, 
 		DeploymentIntentGroup: deploymentIntentGroup,
 	}
 
-	values, err := db.DBconn.Find(context.Background(), g.db.storeName, key, g.db.tagMeta)
+	values, err := db.DBconn.Find(ctx, g.db.storeName, key, g.db.tagMeta)
 	if err != nil {
 		return []GenericK8sIntent{}, err
 	}
@@ -155,7 +156,7 @@ func (g *GenericK8sIntentClient) GetAllGenericK8sIntents(project, compositeApp, 
 }
 
 // DeleteGenericK8sIntent deletes a given GenericK8sIntent
-func (g *GenericK8sIntentClient) DeleteGenericK8sIntent(intent, project, compositeApp, compositeAppVersion,
+func (g *GenericK8sIntentClient) DeleteGenericK8sIntent(ctx context.Context, intent, project, compositeApp, compositeAppVersion,
 	deploymentIntentGroup string) error {
 
 	key := GenericK8sIntentKey{
@@ -166,5 +167,5 @@ func (g *GenericK8sIntentClient) DeleteGenericK8sIntent(intent, project, composi
 		DeploymentIntentGroup: deploymentIntentGroup,
 	}
 
-	return db.DBconn.Remove(context.Background(), g.db.storeName, key)
+	return db.DBconn.Remove(ctx, g.db.storeName, key)
 }

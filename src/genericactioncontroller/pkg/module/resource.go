@@ -4,10 +4,10 @@
 package module
 
 import (
+	"context"
 	"encoding/json"
 	"reflect"
 
-	"context"
 	"github.com/pkg/errors"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/module/types"
@@ -75,17 +75,17 @@ func NewResourceClient() *ResourceClient {
 
 // ResourceManager exposes all the functionalities related to Resource
 type ResourceManager interface {
-	CreateResource(res Resource, resContent ResourceContent,
+	CreateResource(ctx context.Context, res Resource, resContent ResourceContent,
 		project, compositeApp, compositeAppVersion, deploymentIntentGroup, genericK8sIntent string,
 		failIfExists bool) (Resource, bool, error)
-	DeleteResource(resource, project, compositeApp, compositeAppVersion, deploymentIntentGroup, genericK8sIntent string) error
-	GetAllResources(project, compositeApp, compositeAppVersion, deploymentIntentGroup, genericK8sIntent string) ([]Resource, error)
-	GetResource(resource, project, compositeApp, compositeAppVersion, deploymentIntentGroup, genericK8sIntent string) (Resource, error)
-	GetResourceContent(resource, project, compositeApp, compositeAppVersion, deploymentIntentGroup, genericK8sIntent string) (ResourceContent, error)
+	DeleteResource(ctx context.Context, resource, project, compositeApp, compositeAppVersion, deploymentIntentGroup, genericK8sIntent string) error
+	GetAllResources(ctx context.Context, project, compositeApp, compositeAppVersion, deploymentIntentGroup, genericK8sIntent string) ([]Resource, error)
+	GetResource(ctx context.Context, resource, project, compositeApp, compositeAppVersion, deploymentIntentGroup, genericK8sIntent string) (Resource, error)
+	GetResourceContent(ctx context.Context, resource, project, compositeApp, compositeAppVersion, deploymentIntentGroup, genericK8sIntent string) (ResourceContent, error)
 }
 
 // CreateResource creates a Resource
-func (rc *ResourceClient) CreateResource(res Resource, resContent ResourceContent,
+func (rc *ResourceClient) CreateResource(ctx context.Context, res Resource, resContent ResourceContent,
 	project, compositeApp, compositeAppVersion, deploymentIntentGroup, genericK8sIntent string,
 	failIfExists bool) (Resource, bool, error) {
 
@@ -99,7 +99,7 @@ func (rc *ResourceClient) CreateResource(res Resource, resContent ResourceConten
 		GenericK8sIntent:      genericK8sIntent,
 	}
 
-	r, err := rc.GetResource(res.Metadata.Name, project, compositeApp, compositeAppVersion, deploymentIntentGroup, genericK8sIntent)
+	r, err := rc.GetResource(ctx, res.Metadata.Name, project, compositeApp, compositeAppVersion, deploymentIntentGroup, genericK8sIntent)
 	if err == nil &&
 		!reflect.DeepEqual(r, Resource{}) {
 		rExists = true
@@ -110,12 +110,12 @@ func (rc *ResourceClient) CreateResource(res Resource, resContent ResourceConten
 		return Resource{}, rExists, errors.New("Resource already exists")
 	}
 
-	if err = db.DBconn.Insert(context.Background(), rc.db.storeName, key, nil, rc.db.tagMeta, res); err != nil {
+	if err = db.DBconn.Insert(ctx, rc.db.storeName, key, nil, rc.db.tagMeta, res); err != nil {
 		return Resource{}, rExists, err
 	}
 
 	if len(resContent.Content) > 0 {
-		if err = db.DBconn.Insert(context.Background(), rc.db.storeName, key, nil, rc.db.tagContent, resContent); err != nil {
+		if err = db.DBconn.Insert(ctx, rc.db.storeName, key, nil, rc.db.tagContent, resContent); err != nil {
 			return Resource{}, rExists, err
 		}
 	}
@@ -124,7 +124,7 @@ func (rc *ResourceClient) CreateResource(res Resource, resContent ResourceConten
 }
 
 // GetResource returns a Resource
-func (rc *ResourceClient) GetResource(resource, project, compositeApp, compositeAppVersion, deploymentIntentGroup, genericK8sIntent string) (Resource, error) {
+func (rc *ResourceClient) GetResource(ctx context.Context, resource, project, compositeApp, compositeAppVersion, deploymentIntentGroup, genericK8sIntent string) (Resource, error) {
 
 	key := ResourceKey{
 		Resource:              resource,
@@ -135,7 +135,7 @@ func (rc *ResourceClient) GetResource(resource, project, compositeApp, composite
 		GenericK8sIntent:      genericK8sIntent,
 	}
 
-	value, err := db.DBconn.Find(context.Background(), rc.db.storeName, key, rc.db.tagMeta)
+	value, err := db.DBconn.Find(ctx, rc.db.storeName, key, rc.db.tagMeta)
 	if err != nil {
 		return Resource{}, err
 	}
@@ -156,7 +156,7 @@ func (rc *ResourceClient) GetResource(resource, project, compositeApp, composite
 }
 
 // GetAllResources returns all the Resources for an Intent
-func (rc *ResourceClient) GetAllResources(project, compositeApp, compositeAppVersion, deploymentIntentGroup,
+func (rc *ResourceClient) GetAllResources(ctx context.Context, project, compositeApp, compositeAppVersion, deploymentIntentGroup,
 	genericK8sIntent string) ([]Resource, error) {
 
 	key := ResourceKey{
@@ -168,7 +168,7 @@ func (rc *ResourceClient) GetAllResources(project, compositeApp, compositeAppVer
 		GenericK8sIntent:      genericK8sIntent,
 	}
 
-	values, err := db.DBconn.Find(context.Background(), rc.db.storeName, key, rc.db.tagMeta)
+	values, err := db.DBconn.Find(ctx, rc.db.storeName, key, rc.db.tagMeta)
 	if err != nil {
 		return []Resource{}, err
 	}
@@ -186,7 +186,7 @@ func (rc *ResourceClient) GetAllResources(project, compositeApp, compositeAppVer
 }
 
 // GetResourceContent returns the content of the Resource template
-func (rc *ResourceClient) GetResourceContent(resource, project, compositeApp, compositeAppVersion,
+func (rc *ResourceClient) GetResourceContent(ctx context.Context, resource, project, compositeApp, compositeAppVersion,
 	deploymentIntentGroup, genericK8sIntent string) (ResourceContent, error) {
 
 	key := ResourceKey{
@@ -198,7 +198,7 @@ func (rc *ResourceClient) GetResourceContent(resource, project, compositeApp, co
 		GenericK8sIntent:      genericK8sIntent,
 	}
 
-	value, err := db.DBconn.Find(context.Background(), rc.db.storeName, key, rc.db.tagContent)
+	value, err := db.DBconn.Find(ctx, rc.db.storeName, key, rc.db.tagContent)
 	if err != nil {
 		return ResourceContent{}, err
 	}
@@ -216,7 +216,7 @@ func (rc *ResourceClient) GetResourceContent(resource, project, compositeApp, co
 }
 
 // DeleteResource deletes a given Resource
-func (rc *ResourceClient) DeleteResource(resource, project, compositeApp, compositeAppVersion,
+func (rc *ResourceClient) DeleteResource(ctx context.Context, resource, project, compositeApp, compositeAppVersion,
 	deploymentIntentGroup, genericK8sIntent string) error {
 
 	key := ResourceKey{
@@ -228,5 +228,5 @@ func (rc *ResourceClient) DeleteResource(resource, project, compositeApp, compos
 		GenericK8sIntent:      genericK8sIntent,
 	}
 
-	return db.DBconn.Remove(context.Background(), rc.db.storeName, key)
+	return db.DBconn.Remove(ctx, rc.db.storeName, key)
 }

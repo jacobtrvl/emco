@@ -6,6 +6,7 @@ package api_test
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"io"
 	"io/ioutil"
@@ -35,7 +36,7 @@ func init() {
 	api.ResourceSchemaJson = "../../json-schemas/resource.json"
 }
 
-func (m *mockResourceManager) CreateResource(res module.Resource, resContent module.ResourceContent,
+func (m *mockResourceManager) CreateResource(ctx context.Context, res module.Resource, resContent module.ResourceContent,
 	project, compositeApp, compositeAppVersion, deploymentIntentGroup, genericK8sIntent string,
 	failIfExists bool) (module.Resource, bool, error) {
 	iExists := false
@@ -71,7 +72,7 @@ func (m *mockResourceManager) CreateResource(res module.Resource, resContent mod
 
 }
 
-func (m *mockResourceManager) GetResource(resource, project, compositeApp, compositeAppVersion, deploymentIntentGroup, genericK8sIntent string) (module.Resource, error) {
+func (m *mockResourceManager) GetResource(ctx context.Context, resource, project, compositeApp, compositeAppVersion, deploymentIntentGroup, genericK8sIntent string) (module.Resource, error) {
 
 	if m.Err != nil {
 		return module.Resource{}, m.Err
@@ -86,7 +87,7 @@ func (m *mockResourceManager) GetResource(resource, project, compositeApp, compo
 	return module.Resource{}, errors.New("Resource not found")
 }
 
-func (m *mockResourceManager) GetResourceContent(resource, project, compositeApp, compositeAppVersion, deploymentIntentGroup, genericK8sIntent string) (module.ResourceContent, error) {
+func (m *mockResourceManager) GetResourceContent(ctx context.Context, resource, project, compositeApp, compositeAppVersion, deploymentIntentGroup, genericK8sIntent string) (module.ResourceContent, error) {
 
 	if m.Err != nil {
 		return module.ResourceContent{}, m.Err
@@ -101,7 +102,7 @@ func (m *mockResourceManager) GetResourceContent(resource, project, compositeApp
 	return module.ResourceContent{}, nil
 }
 
-func (m *mockResourceManager) GetAllResources(project, compositeApp, compositeAppVersion, deploymentIntentGroup, genericK8sIntent string) ([]module.Resource, error) {
+func (m *mockResourceManager) GetAllResources(ctx context.Context, project, compositeApp, compositeAppVersion, deploymentIntentGroup, genericK8sIntent string) ([]module.Resource, error) {
 	if m.Err != nil {
 		return []module.Resource{}, m.Err
 	}
@@ -115,7 +116,7 @@ func (m *mockResourceManager) GetAllResources(project, compositeApp, compositeAp
 	return resources, nil
 }
 
-func (m *mockResourceManager) DeleteResource(resource, project, compositeApp, compositeAppVersion, deploymentIntentGroup, genericK8sIntent string) error {
+func (m *mockResourceManager) DeleteResource(ctx context.Context, resource, project, compositeApp, compositeAppVersion, deploymentIntentGroup, genericK8sIntent string) error {
 	if m.Err != nil {
 		return m.Err
 	}

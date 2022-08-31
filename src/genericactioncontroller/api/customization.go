@@ -41,8 +41,9 @@ func (h customizationHandler) handleCustomizationCreate(w http.ResponseWriter, r
 
 // handleCustomizationDelete handles the route for deleting Customization from the database
 func (h customizationHandler) handleCustomizationDelete(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := _cVars(mux.Vars(r))
-	if err := h.client.DeleteCustomization(vars.customization, vars.project, vars.compositeApp,
+	if err := h.client.DeleteCustomization(ctx, vars.customization, vars.project, vars.compositeApp,
 		vars.version, vars.deploymentIntentGroup, vars.intent, vars.resource); err != nil {
 		apiErr := apierror.HandleErrors(mux.Vars(r), err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -54,9 +55,10 @@ func (h customizationHandler) handleCustomizationDelete(w http.ResponseWriter, r
 
 // handleCustomizationGet handles the route for retrieving a Customization from the database
 func (h customizationHandler) handleCustomizationGet(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := _cVars(mux.Vars(r))
 	if len(vars.customization) == 0 {
-		customizations, err := h.client.GetAllCustomization(vars.project, vars.compositeApp,
+		customizations, err := h.client.GetAllCustomization(ctx, vars.project, vars.compositeApp,
 			vars.version, vars.deploymentIntentGroup, vars.intent, vars.resource)
 		if err != nil {
 			apiErr := apierror.HandleErrors(mux.Vars(r), err, nil, apiErrors)
@@ -67,7 +69,7 @@ func (h customizationHandler) handleCustomizationGet(w http.ResponseWriter, r *h
 		return
 	}
 
-	customization, err := h.client.GetCustomization(vars.customization, vars.project, vars.compositeApp,
+	customization, err := h.client.GetCustomization(ctx, vars.customization, vars.project, vars.compositeApp,
 		vars.version, vars.deploymentIntentGroup, vars.intent, vars.resource)
 	if err != nil {
 		apiErr := apierror.HandleErrors(mux.Vars(r), err, nil, apiErrors)
@@ -75,7 +77,7 @@ func (h customizationHandler) handleCustomizationGet(w http.ResponseWriter, r *h
 		return
 	}
 
-	content, err := h.client.GetCustomizationContent(vars.customization, vars.project, vars.compositeApp,
+	content, err := h.client.GetCustomizationContent(ctx, vars.customization, vars.project, vars.compositeApp,
 		vars.version, vars.deploymentIntentGroup, vars.intent, vars.resource)
 	if err != nil {
 		apiErr := apierror.HandleErrors(mux.Vars(r), err, nil, apiErrors)
@@ -130,6 +132,7 @@ func (h customizationHandler) handleCustomizationUpdate(w http.ResponseWriter, r
 
 // createOrUpdateCustomization create/update the Customization based on the request method
 func (h customizationHandler) createOrUpdateCustomization(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	const maxMemory = 16777216 // set maxSize 16MB
 
 	// parse the request body as multipart/form-data
@@ -187,7 +190,7 @@ func (h customizationHandler) createOrUpdateCustomization(w http.ResponseWriter,
 		methodPost = true
 	}
 
-	c, cExists, err := h.client.CreateCustomization(customization, customizationContent,
+	c, cExists, err := h.client.CreateCustomization(ctx, customization, customizationContent,
 		vars.project, vars.compositeApp, vars.version, vars.deploymentIntentGroup, vars.intent, vars.resource,
 		methodPost)
 	if err != nil {
