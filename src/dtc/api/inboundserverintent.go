@@ -8,7 +8,6 @@ import (
 	"io"
 	"net/http"
 
-	"context"
 	"github.com/gorilla/mux"
 	pkgerrors "github.com/pkg/errors"
 	"gitlab.com/project-emco/core/emco-base/src/dtc/pkg/module"
@@ -35,6 +34,7 @@ func validateInboundServerIntentInputs(isi module.InboundServerIntent) error {
 }
 
 func (h inboundserverintentHandler) createHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	var isi module.InboundServerIntent
 	vars := mux.Vars(r)
 	project := vars["project"]
@@ -43,7 +43,7 @@ func (h inboundserverintentHandler) createHandler(w http.ResponseWriter, r *http
 	deploymentIntentGroupName := vars["deploymentIntentGroup"]
 	trafficIntentGroupName := vars["trafficGroupIntent"]
 	// check if the deploymentIntentGrpName exists
-	_, err := orcmod.NewDeploymentIntentGroupClient().GetDeploymentIntentGroup(context.Background(), deploymentIntentGroupName, project, compositeApp, compositeAppVersion)
+	_, err := orcmod.NewDeploymentIntentGroupClient().GetDeploymentIntentGroup(ctx, deploymentIntentGroupName, project, compositeApp, compositeAppVersion)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -81,7 +81,7 @@ func (h inboundserverintentHandler) createHandler(w http.ResponseWriter, r *http
 		return
 	}
 
-	ret, err := h.client.CreateServerInboundIntent(isi, project, compositeApp, compositeAppVersion, deploymentIntentGroupName, trafficIntentGroupName, false)
+	ret, err := h.client.CreateServerInboundIntent(ctx, isi, project, compositeApp, compositeAppVersion, deploymentIntentGroupName, trafficIntentGroupName, false)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, isi, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -99,6 +99,7 @@ func (h inboundserverintentHandler) createHandler(w http.ResponseWriter, r *http
 	return
 }
 func (h inboundserverintentHandler) putHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	var isi module.InboundServerIntent
 	vars := mux.Vars(r)
 	name := vars["inboundServerIntent"]
@@ -108,7 +109,7 @@ func (h inboundserverintentHandler) putHandler(w http.ResponseWriter, r *http.Re
 	deploymentIntentGroupName := vars["deploymentIntentGroup"]
 	trafficIntentGroupName := vars["trafficGroupIntent"]
 	// check if the deploymentIntentGrpName exists
-	_, err := orcmod.NewDeploymentIntentGroupClient().GetDeploymentIntentGroup(context.Background(), deploymentIntentGroupName, project, compositeApp, compositeAppVersion)
+	_, err := orcmod.NewDeploymentIntentGroupClient().GetDeploymentIntentGroup(ctx, deploymentIntentGroupName, project, compositeApp, compositeAppVersion)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -149,7 +150,7 @@ func (h inboundserverintentHandler) putHandler(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	ret, err := h.client.CreateServerInboundIntent(isi, project, compositeApp, compositeAppVersion, deploymentIntentGroupName, trafficIntentGroupName, true)
+	ret, err := h.client.CreateServerInboundIntent(ctx, isi, project, compositeApp, compositeAppVersion, deploymentIntentGroupName, trafficIntentGroupName, true)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, isi, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -167,6 +168,7 @@ func (h inboundserverintentHandler) putHandler(w http.ResponseWriter, r *http.Re
 }
 
 func (h inboundserverintentHandler) getHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	name := vars["inboundServerIntent"]
 	project := vars["project"]
@@ -179,9 +181,9 @@ func (h inboundserverintentHandler) getHandler(w http.ResponseWriter, r *http.Re
 	var err error
 
 	if len(name) == 0 {
-		ret, err = h.client.GetServerInboundIntents(project, compositeApp, compositeAppVersion, deploymentIntentGroupName, trafficIntentGroupName)
+		ret, err = h.client.GetServerInboundIntents(ctx, project, compositeApp, compositeAppVersion, deploymentIntentGroupName, trafficIntentGroupName)
 	} else {
-		ret, err = h.client.GetServerInboundIntent(name, project, compositeApp, compositeAppVersion, deploymentIntentGroupName, trafficIntentGroupName)
+		ret, err = h.client.GetServerInboundIntent(ctx, name, project, compositeApp, compositeAppVersion, deploymentIntentGroupName, trafficIntentGroupName)
 	}
 
 	if err != nil {
@@ -200,6 +202,7 @@ func (h inboundserverintentHandler) getHandler(w http.ResponseWriter, r *http.Re
 	}
 }
 func (h inboundserverintentHandler) deleteHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	name := vars["inboundServerIntent"]
 	project := vars["project"]
@@ -208,7 +211,7 @@ func (h inboundserverintentHandler) deleteHandler(w http.ResponseWriter, r *http
 	deploymentIntentGroupName := vars["deploymentIntentGroup"]
 	trafficIntentGroupName := vars["trafficGroupIntent"]
 
-	err := h.client.DeleteServerInboundIntent(name, project, compositeApp, compositeAppVersion, deploymentIntentGroupName, trafficIntentGroupName)
+	err := h.client.DeleteServerInboundIntent(ctx, name, project, compositeApp, compositeAppVersion, deploymentIntentGroupName, trafficIntentGroupName)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)

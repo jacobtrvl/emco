@@ -5,6 +5,7 @@ package module
 
 import (
 	"context"
+
 	pkgerrors "github.com/pkg/errors"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
 )
@@ -21,10 +22,10 @@ type InboundClientsAccessIntentSpec struct {
 }
 
 type InboundClientsAccessIntentManager interface {
-	CreateClientsAccessInboundIntent(tci InboundClientsAccessIntent, project, compositeapp, compositeappversion, deploymentIntentGroupName, trafficintentgroupName, inboundintentname, inboundclientsintentname string, exists bool) (InboundClientsAccessIntent, error)
-	GetClientsAccessInboundIntents(project, compositeapp, compositeappversion, deploymentintentgroupname, trafficintentgroupname, inboundintentname, inboundclientsintentname string) ([]InboundClientsAccessIntent, error)
-	GetClientsAccessInboundIntent(name, project, compositeapp, compositeappversion, deploymentintentGroupName, trafficintentgroupname, inboundintentname, inboundclientsintentname string) (InboundClientsAccessIntent, error)
-	DeleteClientsAccessInboundIntent(name, project, compositeapp, compositeappversion, deploymentintentgroupname, trafficintentgroupname, inboundserverintentname, inboundclientsintentname string) error
+	CreateClientsAccessInboundIntent(ctx context.Context, tci InboundClientsAccessIntent, project, compositeapp, compositeappversion, deploymentIntentGroupName, trafficintentgroupName, inboundintentname, inboundclientsintentname string, exists bool) (InboundClientsAccessIntent, error)
+	GetClientsAccessInboundIntents(ctx context.Context, project, compositeapp, compositeappversion, deploymentintentgroupname, trafficintentgroupname, inboundintentname, inboundclientsintentname string) ([]InboundClientsAccessIntent, error)
+	GetClientsAccessInboundIntent(ctx context.Context, name, project, compositeapp, compositeappversion, deploymentintentGroupName, trafficintentgroupname, inboundintentname, inboundclientsintentname string) (InboundClientsAccessIntent, error)
+	DeleteClientsAccessInboundIntent(ctx context.Context, name, project, compositeapp, compositeappversion, deploymentintentgroupname, trafficintentgroupname, inboundserverintentname, inboundclientsintentname string) error
 }
 
 type InboundClientsAccessIntentDbClient struct {
@@ -52,7 +53,7 @@ func NewClientsAccessInboundIntentClient() *InboundClientsAccessIntentDbClient {
 	}
 }
 
-func (v InboundClientsAccessIntentDbClient) CreateClientsAccessInboundIntent(icai InboundClientsAccessIntent, project, compositeapp, compositeappversion, deploymentintentgroupname, trafficintentgroupname, inboundserverintentname, inboundclientsintentname string, exists bool) (InboundClientsAccessIntent, error) {
+func (v InboundClientsAccessIntentDbClient) CreateClientsAccessInboundIntent(ctx context.Context, icai InboundClientsAccessIntent, project, compositeapp, compositeappversion, deploymentintentgroupname, trafficintentgroupname, inboundserverintentname, inboundclientsintentname string, exists bool) (InboundClientsAccessIntent, error) {
 
 	//Construct key and tag to select the entry
 	key := InboundClientsAccessIntentKey{
@@ -67,12 +68,12 @@ func (v InboundClientsAccessIntentDbClient) CreateClientsAccessInboundIntent(ica
 	}
 
 	//Check if this InboundClientsAccessIntent already exists
-	_, err := v.GetClientsAccessInboundIntent(icai.Metadata.Name, project, compositeapp, compositeappversion, deploymentintentgroupname, trafficintentgroupname, inboundserverintentname, inboundclientsintentname)
+	_, err := v.GetClientsAccessInboundIntent(ctx, icai.Metadata.Name, project, compositeapp, compositeappversion, deploymentintentgroupname, trafficintentgroupname, inboundserverintentname, inboundclientsintentname)
 	if err == nil && !exists {
 		return InboundClientsAccessIntent{}, pkgerrors.New("InboundClientsAccessIntent already exists")
 	}
 
-	err = db.DBconn.Insert(context.Background(), v.db.storeName, key, nil, v.db.tagMeta, icai)
+	err = db.DBconn.Insert(ctx, v.db.storeName, key, nil, v.db.tagMeta, icai)
 	if err != nil {
 		return InboundClientsAccessIntent{}, pkgerrors.Wrap(err, "Creating DB Entry")
 	}
@@ -82,7 +83,7 @@ func (v InboundClientsAccessIntentDbClient) CreateClientsAccessInboundIntent(ica
 }
 
 // GetClientsAccessInboundIntent returns the InboundClientsAccessIntent
-func (v *InboundClientsAccessIntentDbClient) GetClientsAccessInboundIntent(name, project, compositeapp, compositeappversion, deploymentintentgroupname, trafficintentgroupname, inboundserverintentname, inboundclientsintentname string) (InboundClientsAccessIntent, error) {
+func (v *InboundClientsAccessIntentDbClient) GetClientsAccessInboundIntent(ctx context.Context, name, project, compositeapp, compositeappversion, deploymentintentgroupname, trafficintentgroupname, inboundserverintentname, inboundclientsintentname string) (InboundClientsAccessIntent, error) {
 
 	//Construct key and tag to select the entry
 	key := InboundClientsAccessIntentKey{
@@ -96,7 +97,7 @@ func (v *InboundClientsAccessIntentDbClient) GetClientsAccessInboundIntent(name,
 		InboundClientsAccessIntentName: name,
 	}
 
-	value, err := db.DBconn.Find(context.Background(), v.db.storeName, key, v.db.tagMeta)
+	value, err := db.DBconn.Find(ctx, v.db.storeName, key, v.db.tagMeta)
 	if err != nil {
 		return InboundClientsAccessIntent{}, err
 	} else if len(value) == 0 {
@@ -117,7 +118,7 @@ func (v *InboundClientsAccessIntentDbClient) GetClientsAccessInboundIntent(name,
 }
 
 // GetClientsAccessInboundIntents returns all of the InboundClientsAccessIntent for corresponding name
-func (v *InboundClientsAccessIntentDbClient) GetClientsAccessInboundIntents(project, compositeapp, compositeappversion, deploymentintentgroupname, trafficintentgroupname, inboundserverintentname, inboundclientsintentname string) ([]InboundClientsAccessIntent, error) {
+func (v *InboundClientsAccessIntentDbClient) GetClientsAccessInboundIntents(ctx context.Context, project, compositeapp, compositeappversion, deploymentintentgroupname, trafficintentgroupname, inboundserverintentname, inboundclientsintentname string) ([]InboundClientsAccessIntent, error) {
 
 	//Construct key and tag to select the entry
 	key := InboundClientsAccessIntentKey{
@@ -132,7 +133,7 @@ func (v *InboundClientsAccessIntentDbClient) GetClientsAccessInboundIntents(proj
 	}
 
 	var resp []InboundClientsAccessIntent
-	values, err := db.DBconn.Find(context.Background(), v.db.storeName, key, v.db.tagMeta)
+	values, err := db.DBconn.Find(ctx, v.db.storeName, key, v.db.tagMeta)
 	if err != nil {
 		return []InboundClientsAccessIntent{}, err
 	}
@@ -151,7 +152,7 @@ func (v *InboundClientsAccessIntentDbClient) GetClientsAccessInboundIntents(proj
 }
 
 // Delete the ClientsInboundAccessIntent from database
-func (v *InboundClientsAccessIntentDbClient) DeleteClientsAccessInboundIntent(name, project, compositeapp, compositeappversion, deploymentintentgroupname, trafficintentgroupname, inboundserverintentname, inboundclientsintentname string) error {
+func (v *InboundClientsAccessIntentDbClient) DeleteClientsAccessInboundIntent(ctx context.Context, name, project, compositeapp, compositeappversion, deploymentintentgroupname, trafficintentgroupname, inboundserverintentname, inboundclientsintentname string) error {
 
 	//Construct key and tag to select the entry
 	key := InboundClientsAccessIntentKey{
@@ -165,6 +166,6 @@ func (v *InboundClientsAccessIntentDbClient) DeleteClientsAccessInboundIntent(na
 		InboundClientsAccessIntentName: name,
 	}
 
-	err := db.DBconn.Remove(context.Background(), v.db.storeName, key)
+	err := db.DBconn.Remove(ctx, v.db.storeName, key)
 	return err
 }

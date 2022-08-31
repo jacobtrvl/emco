@@ -3,6 +3,7 @@
 package mocks
 
 import (
+	"context"
 	module "gitlab.com/project-emco/core/emco-base/src/dtc/pkg/module"
 	mock "github.com/stretchr/testify/mock"
 )
@@ -13,8 +14,8 @@ type TrafficGroupIntentManager struct {
 }
 
 // CreateTrafficGroupIntent provides a mock function with given fields: tci, project, compositeapp, compositeappversion, deploymentIntentGroupName, exists
-func (_m *TrafficGroupIntentManager) CreateTrafficGroupIntent(tci module.TrafficGroupIntent, project string, compositeapp string, compositeappversion string, deploymentIntentGroupName string, exists bool) (module.TrafficGroupIntent, error) {
-	ret := _m.Called(tci, project, compositeapp, compositeappversion, deploymentIntentGroupName, exists)
+func (_m *TrafficGroupIntentManager) CreateTrafficGroupIntent(ctx context.Context, tci module.TrafficGroupIntent, project string, compositeapp string, compositeappversion string, deploymentIntentGroupName string, exists bool) (module.TrafficGroupIntent, error) {
+	ret := _m.Called(ctx, tci, project, compositeapp, compositeappversion, deploymentIntentGroupName, exists)
 
 	var r0 module.TrafficGroupIntent
 	if rf, ok := ret.Get(0).(func(module.TrafficGroupIntent, string, string, string, string, bool) module.TrafficGroupIntent); ok {
@@ -34,8 +35,8 @@ func (_m *TrafficGroupIntentManager) CreateTrafficGroupIntent(tci module.Traffic
 }
 
 // DeleteTrafficGroupIntent provides a mock function with given fields: name, project, compositeapp, compositeappversion, dig
-func (_m *TrafficGroupIntentManager) DeleteTrafficGroupIntent(name string, project string, compositeapp string, compositeappversion string, dig string) error {
-	ret := _m.Called(name, project, compositeapp, compositeappversion, dig)
+func (_m *TrafficGroupIntentManager) DeleteTrafficGroupIntent(ctx context.Context, name string, project string, compositeapp string, compositeappversion string, dig string) error {
+	ret := _m.Called(ctx, name, project, compositeapp, compositeappversion, dig)
 
 	var r0 error
 	if rf, ok := ret.Get(0).(func(string, string, string, string, string) error); ok {
@@ -48,8 +49,8 @@ func (_m *TrafficGroupIntentManager) DeleteTrafficGroupIntent(name string, proje
 }
 
 // GetTrafficGroupIntent provides a mock function with given fields: name, project, compositeapp, compositeappversion, dig
-func (_m *TrafficGroupIntentManager) GetTrafficGroupIntent(name string, project string, compositeapp string, compositeappversion string, dig string) (module.TrafficGroupIntent, error) {
-	ret := _m.Called(name, project, compositeapp, compositeappversion, dig)
+func (_m *TrafficGroupIntentManager) GetTrafficGroupIntent(ctx context.Context, name string, project string, compositeapp string, compositeappversion string, dig string) (module.TrafficGroupIntent, error) {
+	ret := _m.Called(ctx, name, project, compositeapp, compositeappversion, dig)
 
 	var r0 module.TrafficGroupIntent
 	if rf, ok := ret.Get(0).(func(string, string, string, string, string) module.TrafficGroupIntent); ok {
@@ -69,8 +70,8 @@ func (_m *TrafficGroupIntentManager) GetTrafficGroupIntent(name string, project 
 }
 
 // GetTrafficGroupIntents provides a mock function with given fields: project, compositeapp, compositeappversion, dig
-func (_m *TrafficGroupIntentManager) GetTrafficGroupIntents(project string, compositeapp string, compositeappversion string, dig string) ([]module.TrafficGroupIntent, error) {
-	ret := _m.Called(project, compositeapp, compositeappversion, dig)
+func (_m *TrafficGroupIntentManager) GetTrafficGroupIntents(ctx context.Context, project string, compositeapp string, compositeappversion string, dig string) ([]module.TrafficGroupIntent, error) {
+	ret := _m.Called(ctx, project, compositeapp, compositeappversion, dig)
 
 	var r0 []module.TrafficGroupIntent
 	if rf, ok := ret.Get(0).(func(string, string, string, string) []module.TrafficGroupIntent); ok {

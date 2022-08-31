@@ -5,6 +5,7 @@ package module
 
 import (
 	"context"
+
 	pkgerrors "github.com/pkg/errors"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
 )
@@ -43,11 +44,11 @@ type ExternalCertInfo struct {
 }
 
 type InboundServerIntentManager interface {
-	CreateServerInboundIntent(isi InboundServerIntent, project, compositeapp, compositeappversion, deploymentIntentGroupName, trafficintentgroupname string, exists bool) (InboundServerIntent, error)
-	GetServerInboundIntent(name, project, compositeapp, compositeappversion, dig, trafficintentgroupname string) (InboundServerIntent, error)
+	CreateServerInboundIntent(ctx context.Context, isi InboundServerIntent, project, compositeapp, compositeappversion, deploymentIntentGroupName, trafficintentgroupname string, exists bool) (InboundServerIntent, error)
+	GetServerInboundIntent(ctx context.Context, name, project, compositeapp, compositeappversion, dig, trafficintentgroupname string) (InboundServerIntent, error)
 
-	GetServerInboundIntents(project, compositeapp, compositeappversion, dig, intentName string) ([]InboundServerIntent, error)
-	DeleteServerInboundIntent(name, project, compositeapp, compositeappversion, dig, trafficintentgroupname string) error
+	GetServerInboundIntents(ctx context.Context, project, compositeapp, compositeappversion, dig, intentName string) ([]InboundServerIntent, error)
+	DeleteServerInboundIntent(ctx context.Context, name, project, compositeapp, compositeappversion, dig, trafficintentgroupname string) error
 }
 
 type InboundServerIntentDbClient struct {
@@ -73,7 +74,7 @@ func NewServerInboundIntentClient() *InboundServerIntentDbClient {
 	}
 }
 
-func (v InboundServerIntentDbClient) CreateServerInboundIntent(isi InboundServerIntent, project, compositeapp, compositeappversion, deploymentintentgroupname, trafficintentgroupname string, exists bool) (InboundServerIntent, error) {
+func (v InboundServerIntentDbClient) CreateServerInboundIntent(ctx context.Context, isi InboundServerIntent, project, compositeapp, compositeappversion, deploymentintentgroupname, trafficintentgroupname string, exists bool) (InboundServerIntent, error) {
 
 	//Construct key and tag to select the entry
 	key := InboundServerIntentKey{
@@ -86,12 +87,12 @@ func (v InboundServerIntentDbClient) CreateServerInboundIntent(isi InboundServer
 	}
 
 	//Check if this ServerInboundIntent already exists
-	_, err := v.GetServerInboundIntent(isi.Metadata.Name, project, compositeapp, compositeappversion, deploymentintentgroupname, trafficintentgroupname)
+	_, err := v.GetServerInboundIntent(ctx, isi.Metadata.Name, project, compositeapp, compositeappversion, deploymentintentgroupname, trafficintentgroupname)
 	if err == nil && !exists {
 		return InboundServerIntent{}, pkgerrors.New("ServerInboundIntent already exists")
 	}
 
-	err = db.DBconn.Insert(context.Background(), v.db.storeName, key, nil, v.db.tagMeta, isi)
+	err = db.DBconn.Insert(ctx, v.db.storeName, key, nil, v.db.tagMeta, isi)
 	if err != nil {
 		return InboundServerIntent{}, pkgerrors.Wrap(err, "Creating DB Entry")
 	}
@@ -100,7 +101,7 @@ func (v InboundServerIntentDbClient) CreateServerInboundIntent(isi InboundServer
 }
 
 // GetServerInboundIntent returns the ServerInboundIntent for corresponding name
-func (v *InboundServerIntentDbClient) GetServerInboundIntent(name, project, compositeapp, compositeappversion, dig, trafficintentgroupname string) (InboundServerIntent, error) {
+func (v *InboundServerIntentDbClient) GetServerInboundIntent(ctx context.Context, name, project, compositeapp, compositeappversion, dig, trafficintentgroupname string) (InboundServerIntent, error) {
 
 	//Construct key and tag to select the entry
 	key := InboundServerIntentKey{
@@ -112,7 +113,7 @@ func (v *InboundServerIntentDbClient) GetServerInboundIntent(name, project, comp
 		ServerInboundIntentName:   name,
 	}
 
-	value, err := db.DBconn.Find(context.Background(), v.db.storeName, key, v.db.tagMeta)
+	value, err := db.DBconn.Find(ctx, v.db.storeName, key, v.db.tagMeta)
 	if err != nil {
 		return InboundServerIntent{}, err
 	} else if len(value) == 0 {
@@ -133,7 +134,7 @@ func (v *InboundServerIntentDbClient) GetServerInboundIntent(name, project, comp
 }
 
 // GetServerInboundIntents returns all of the ServerInboundIntents
-func (v *InboundServerIntentDbClient) GetServerInboundIntents(project, compositeapp, compositeappversion, deploymentintentgroupname, trafficintentgroupname string) ([]InboundServerIntent, error) {
+func (v *InboundServerIntentDbClient) GetServerInboundIntents(ctx context.Context, project, compositeapp, compositeappversion, deploymentintentgroupname, trafficintentgroupname string) ([]InboundServerIntent, error) {
 
 	//Construct key and tag to select the entry
 	key := InboundServerIntentKey{
@@ -146,7 +147,7 @@ func (v *InboundServerIntentDbClient) GetServerInboundIntents(project, composite
 	}
 
 	var resp []InboundServerIntent
-	values, err := db.DBconn.Find(context.Background(), v.db.storeName, key, v.db.tagMeta)
+	values, err := db.DBconn.Find(ctx, v.db.storeName, key, v.db.tagMeta)
 	if err != nil {
 		return []InboundServerIntent{}, err
 	}
@@ -164,7 +165,7 @@ func (v *InboundServerIntentDbClient) GetServerInboundIntents(project, composite
 }
 
 // Delete the  ServerInboundIntents from database
-func (v *InboundServerIntentDbClient) DeleteServerInboundIntent(name, project, compositeapp, compositeappversion, dig, trafficintentgroupname string) error {
+func (v *InboundServerIntentDbClient) DeleteServerInboundIntent(ctx context.Context, name, project, compositeapp, compositeappversion, dig, trafficintentgroupname string) error {
 
 	//Construct key and tag to select the entry
 	key := InboundServerIntentKey{
@@ -176,6 +177,6 @@ func (v *InboundServerIntentDbClient) DeleteServerInboundIntent(name, project, c
 		ServerInboundIntentName:   name,
 	}
 
-	err := db.DBconn.Remove(context.Background(), v.db.storeName, key)
+	err := db.DBconn.Remove(ctx, v.db.storeName, key)
 	return err
 }

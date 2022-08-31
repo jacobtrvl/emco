@@ -3,12 +3,13 @@
 package module_test
 
 import (
+	"context"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	pkgerrors "github.com/pkg/errors"
 	"gitlab.com/project-emco/core/emco-base/src/dtc/pkg/module"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
-	pkgerrors "github.com/pkg/errors"
 )
 
 var _ = Describe("Inboundserverintent", func() {
@@ -52,9 +53,10 @@ var _ = Describe("Inboundserverintent", func() {
 
 	Describe("Create server intent", func() {
 		It("with pre created traffic intent should return nil", func() {
-			_, err := (*TGIDBC).CreateTrafficGroupIntent(TGI, "test", "capp1", "v1", "dig", false)
+			ctx := context.Background()
+			_, err := (*TGIDBC).CreateTrafficGroupIntent(ctx, TGI, "test", "capp1", "v1", "dig", false)
 			Expect(err).To(BeNil())
-			_, err = (*ISIDBC).CreateServerInboundIntent(ISI, "test", "capp1", "v1", "dig", "testtgi", false)
+			_, err = (*ISIDBC).CreateServerInboundIntent(ctx, ISI, "test", "capp1", "v1", "dig", "testtgi", false)
 			Expect(err).To(BeNil())
 		})
 		/* DTC code does not check for the parent resource - so this test is no longer valid
@@ -64,28 +66,31 @@ var _ = Describe("Inboundserverintent", func() {
 		})
 		*/
 		It("create again should return error", func() {
-			_, err := (*TGIDBC).CreateTrafficGroupIntent(TGI, "test", "capp1", "v1", "dig", false)
+			ctx := context.Background()
+			_, err := (*TGIDBC).CreateTrafficGroupIntent(ctx, TGI, "test", "capp1", "v1", "dig", false)
 			Expect(err).To(BeNil())
-			_, err = (*ISIDBC).CreateServerInboundIntent(ISI, "test", "capp1", "v1", "dig", "testtgi", false)
+			_, err = (*ISIDBC).CreateServerInboundIntent(ctx, ISI, "test", "capp1", "v1", "dig", "testtgi", false)
 			Expect(err).To(BeNil())
-			_, err = (*ISIDBC).CreateServerInboundIntent(ISI, "test", "capp1", "v1", "dig", "testtgi", false)
+			_, err = (*ISIDBC).CreateServerInboundIntent(ctx, ISI, "test", "capp1", "v1", "dig", "testtgi", false)
 			Expect(err).To(HaveOccurred())
 		})
 		It("followed by get server intent should return nil", func() {
-			_, err := (*TGIDBC).CreateTrafficGroupIntent(TGI, "test", "capp1", "v1", "dig", false)
+			ctx := context.Background()
+			_, err := (*TGIDBC).CreateTrafficGroupIntent(ctx, TGI, "test", "capp1", "v1", "dig", false)
 			Expect(err).To(BeNil())
-			_, err = (*ISIDBC).CreateServerInboundIntent(ISI, "test", "capp1", "v1", "dig", "testtgi", false)
+			_, err = (*ISIDBC).CreateServerInboundIntent(ctx, ISI, "test", "capp1", "v1", "dig", "testtgi", false)
 			Expect(err).To(BeNil())
-			isi, err := (*ISIDBC).GetServerInboundIntent("testisi", "test", "capp1", "v1", "dig", "testtgi")
+			isi, err := (*ISIDBC).GetServerInboundIntent(ctx, "testisi", "test", "capp1", "v1", "dig", "testtgi")
 			Expect(err).To(BeNil())
 			Expect(isi).Should(Equal(ISI))
 		})
 		It("followed by delete server intent should return nil", func() {
-			_, err := (*TGIDBC).CreateTrafficGroupIntent(TGI, "test", "capp1", "v1", "dig", false)
+			ctx := context.Background()
+			_, err := (*TGIDBC).CreateTrafficGroupIntent(ctx, TGI, "test", "capp1", "v1", "dig", false)
 			Expect(err).To(BeNil())
-			_, err = (*ISIDBC).CreateServerInboundIntent(ISI, "test", "capp1", "v1", "dig", "testtgi", false)
+			_, err = (*ISIDBC).CreateServerInboundIntent(ctx, ISI, "test", "capp1", "v1", "dig", "testtgi", false)
 			Expect(err).To(BeNil())
-			err = (*ISIDBC).DeleteServerInboundIntent("testisi", "test", "capp1", "v1", "dig", "testtgi")
+			err = (*ISIDBC).DeleteServerInboundIntent(ctx, "testisi", "test", "capp1", "v1", "dig", "testtgi")
 			Expect(err).To(BeNil())
 		})
 
@@ -93,33 +98,38 @@ var _ = Describe("Inboundserverintent", func() {
 
 	Describe("Get server intent", func() {
 		It("should return error for non-existing record", func() {
-			_, err := (*ISIDBC).GetServerInboundIntent("testisi", "test", "capp1", "v1", "dig", "testtgi")
+			ctx := context.Background()
+			_, err := (*ISIDBC).GetServerInboundIntent(ctx, "testisi", "test", "capp1", "v1", "dig", "testtgi")
 			Expect(err).To(HaveOccurred())
 		})
 
 	})
 	Describe("Get server intents", func() {
 		It("should return error for non-existing record", func() {
+			ctx := context.Background()
 			mdb.Err = pkgerrors.New("Inbound server intent not found")
-			_, err := (*ISIDBC).GetServerInboundIntents("test", "capp1", "v1", "dig", "testtgi")
+			_, err := (*ISIDBC).GetServerInboundIntents(ctx, "test", "capp1", "v1", "dig", "testtgi")
 			Expect(err).To(HaveOccurred())
 		})
 
 	})
 	Describe("Delete server intent", func() {
 		It("should return error for non-existing record", func() {
+			ctx := context.Background()
 			mdb.Err = pkgerrors.New("db Remove resource not found")
-			err := (*ISIDBC).DeleteServerInboundIntent("testisi", "test", "capp1", "v1", "dig", "testtgi")
+			err := (*ISIDBC).DeleteServerInboundIntent(ctx, "testisi", "test", "capp1", "v1", "dig", "testtgi")
 			Expect(err).To(HaveOccurred())
 		})
 		It("should return error for deleting parent without deleting child", func() {
+			ctx := context.Background()
 			mdb.Err = pkgerrors.New("Cannot delete parent without deleting child references first")
-			err := (*ISIDBC).DeleteServerInboundIntent("testisi", "test", "capp1", "v1", "dig", "testtgi")
+			err := (*ISIDBC).DeleteServerInboundIntent(ctx, "testisi", "test", "capp1", "v1", "dig", "testtgi")
 			Expect(err).To(HaveOccurred())
 		})
 		It("should return error for general db error", func() {
+			ctx := context.Background()
 			mdb.Err = pkgerrors.New("db Remove error")
-			err := (*ISIDBC).DeleteServerInboundIntent("testisi", "test", "capp1", "v1", "dig", "testtgi")
+			err := (*ISIDBC).DeleteServerInboundIntent(ctx, "testisi", "test", "capp1", "v1", "dig", "testtgi")
 			Expect(err).To(HaveOccurred())
 		})
 

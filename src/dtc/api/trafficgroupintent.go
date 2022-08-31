@@ -8,7 +8,6 @@ import (
 	"io"
 	"net/http"
 
-	"context"
 	"github.com/gorilla/mux"
 	pkgerrors "github.com/pkg/errors"
 	"gitlab.com/project-emco/core/emco-base/src/dtc/pkg/module"
@@ -35,6 +34,7 @@ func validateTrafficGroupIntentInputs(tgi module.TrafficGroupIntent) error {
 }
 
 func (h trafficgroupintentHandler) createHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	var tgi module.TrafficGroupIntent
 	vars := mux.Vars(r)
 	project := vars["project"]
@@ -43,7 +43,7 @@ func (h trafficgroupintentHandler) createHandler(w http.ResponseWriter, r *http.
 	deploymentIntentGroupName := vars["deploymentIntentGroup"]
 
 	// check if the deploymentIntentGrpName exists
-	_, err := orcmod.NewDeploymentIntentGroupClient().GetDeploymentIntentGroup(context.Background(), deploymentIntentGroupName, project, compositeApp, compositeAppVersion)
+	_, err := orcmod.NewDeploymentIntentGroupClient().GetDeploymentIntentGroup(ctx, deploymentIntentGroupName, project, compositeApp, compositeAppVersion)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -82,7 +82,7 @@ func (h trafficgroupintentHandler) createHandler(w http.ResponseWriter, r *http.
 		return
 	}
 
-	ret, err := h.client.CreateTrafficGroupIntent(tgi, project, compositeApp, compositeAppVersion, deploymentIntentGroupName, false)
+	ret, err := h.client.CreateTrafficGroupIntent(ctx, tgi, project, compositeApp, compositeAppVersion, deploymentIntentGroupName, false)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, tgi, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -100,6 +100,7 @@ func (h trafficgroupintentHandler) createHandler(w http.ResponseWriter, r *http.
 	return
 }
 func (h trafficgroupintentHandler) putHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	var tgi module.TrafficGroupIntent
 	vars := mux.Vars(r)
 	name := vars["trafficGroupIntent"]
@@ -109,7 +110,7 @@ func (h trafficgroupintentHandler) putHandler(w http.ResponseWriter, r *http.Req
 	deployIntentGroup := vars["deploymentIntentGroup"]
 
 	// check if the deploymentIntentGrpName exists
-	_, err := orcmod.NewDeploymentIntentGroupClient().GetDeploymentIntentGroup(context.Background(), deployIntentGroup, project, compositeApp, compositeAppVersion)
+	_, err := orcmod.NewDeploymentIntentGroupClient().GetDeploymentIntentGroup(ctx, deployIntentGroup, project, compositeApp, compositeAppVersion)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -149,7 +150,7 @@ func (h trafficgroupintentHandler) putHandler(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	ret, err := h.client.CreateTrafficGroupIntent(tgi, project, compositeApp, compositeAppVersion, deployIntentGroup, true)
+	ret, err := h.client.CreateTrafficGroupIntent(ctx, tgi, project, compositeApp, compositeAppVersion, deployIntentGroup, true)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, tgi, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -166,6 +167,7 @@ func (h trafficgroupintentHandler) putHandler(w http.ResponseWriter, r *http.Req
 	}
 }
 func (h trafficgroupintentHandler) getHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	name := vars["trafficGroupIntent"]
 	project := vars["project"]
@@ -176,9 +178,9 @@ func (h trafficgroupintentHandler) getHandler(w http.ResponseWriter, r *http.Req
 	var err error
 
 	if len(name) == 0 {
-		ret, err = h.client.GetTrafficGroupIntents(project, compositeApp, compositeAppVersion, deployIntentGroup)
+		ret, err = h.client.GetTrafficGroupIntents(ctx, project, compositeApp, compositeAppVersion, deployIntentGroup)
 	} else {
-		ret, err = h.client.GetTrafficGroupIntent(name, project, compositeApp, compositeAppVersion, deployIntentGroup)
+		ret, err = h.client.GetTrafficGroupIntent(ctx, name, project, compositeApp, compositeAppVersion, deployIntentGroup)
 	}
 
 	if err != nil {
@@ -197,6 +199,7 @@ func (h trafficgroupintentHandler) getHandler(w http.ResponseWriter, r *http.Req
 	}
 }
 func (h trafficgroupintentHandler) deleteHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	name := vars["trafficGroupIntent"]
 	project := vars["project"]
@@ -204,7 +207,7 @@ func (h trafficgroupintentHandler) deleteHandler(w http.ResponseWriter, r *http.
 	compositeAppVersion := vars["compositeAppVersion"]
 	deployIntentGroup := vars["deploymentIntentGroup"]
 
-	err := h.client.DeleteTrafficGroupIntent(name, project, compositeApp, compositeAppVersion, deployIntentGroup)
+	err := h.client.DeleteTrafficGroupIntent(ctx, name, project, compositeApp, compositeAppVersion, deployIntentGroup)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)

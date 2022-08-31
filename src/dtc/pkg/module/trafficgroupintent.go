@@ -5,6 +5,7 @@ package module
 
 import (
 	"context"
+
 	pkgerrors "github.com/pkg/errors"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
 )
@@ -14,11 +15,11 @@ type TrafficGroupIntent struct {
 }
 
 type TrafficGroupIntentManager interface {
-	CreateTrafficGroupIntent(tci TrafficGroupIntent, project, compositeapp, compositeappversion, deploymentIntentGroupName string, exists bool) (TrafficGroupIntent, error)
+	CreateTrafficGroupIntent(ctx context.Context, tci TrafficGroupIntent, project, compositeapp, compositeappversion, deploymentIntentGroupName string, exists bool) (TrafficGroupIntent, error)
 
-	GetTrafficGroupIntent(name, project, compositeapp, compositeappversion, dig string) (TrafficGroupIntent, error)
-	GetTrafficGroupIntents(project, compositeapp, compositeappversion, dig string) ([]TrafficGroupIntent, error)
-	DeleteTrafficGroupIntent(name, project, compositeapp, compositeappversion, dig string) error
+	GetTrafficGroupIntent(ctx context.Context, name, project, compositeapp, compositeappversion, dig string) (TrafficGroupIntent, error)
+	GetTrafficGroupIntents(ctx context.Context, project, compositeapp, compositeappversion, dig string) ([]TrafficGroupIntent, error)
+	DeleteTrafficGroupIntent(ctx context.Context, name, project, compositeapp, compositeappversion, dig string) error
 }
 
 type TrafficGroupIntentDbClient struct {
@@ -43,7 +44,7 @@ func NewTrafficGroupIntentClient() *TrafficGroupIntentDbClient {
 	}
 }
 
-func (v TrafficGroupIntentDbClient) CreateTrafficGroupIntent(tci TrafficGroupIntent, project, compositeapp, compositeappversion, deploymentintentgroupname string, exists bool) (TrafficGroupIntent, error) {
+func (v TrafficGroupIntentDbClient) CreateTrafficGroupIntent(ctx context.Context, tci TrafficGroupIntent, project, compositeapp, compositeappversion, deploymentintentgroupname string, exists bool) (TrafficGroupIntent, error) {
 
 	//Construct key and tag to select the entry
 	key := TrafficGroupIntentKey{
@@ -54,12 +55,12 @@ func (v TrafficGroupIntentDbClient) CreateTrafficGroupIntent(tci TrafficGroupInt
 		DeploymentIntentGroupName: deploymentintentgroupname,
 	}
 	//Check if this TrafficGroupIntent already exists
-	_, err := v.GetTrafficGroupIntent(tci.Metadata.Name, project, compositeapp, compositeappversion, deploymentintentgroupname)
+	_, err := v.GetTrafficGroupIntent(ctx, tci.Metadata.Name, project, compositeapp, compositeappversion, deploymentintentgroupname)
 	if err == nil && !exists {
 		return TrafficGroupIntent{}, pkgerrors.New("TrafficGroupIntent already exists")
 	}
 
-	err = db.DBconn.Insert(context.Background(), v.db.storeName, key, nil, v.db.tagMeta, tci)
+	err = db.DBconn.Insert(ctx, v.db.storeName, key, nil, v.db.tagMeta, tci)
 	if err != nil {
 		return TrafficGroupIntent{}, pkgerrors.Wrap(err, "Creating DB Entry")
 	}
@@ -68,7 +69,7 @@ func (v TrafficGroupIntentDbClient) CreateTrafficGroupIntent(tci TrafficGroupInt
 }
 
 // GetTrafficGroupIntent returns the TrafficGroupIntent for corresponding name
-func (v *TrafficGroupIntentDbClient) GetTrafficGroupIntent(name, project, compositeapp, compositeappversion, dig string) (TrafficGroupIntent, error) {
+func (v *TrafficGroupIntentDbClient) GetTrafficGroupIntent(ctx context.Context, name, project, compositeapp, compositeappversion, dig string) (TrafficGroupIntent, error) {
 
 	//Construct key and tag to select the entry
 	key := TrafficGroupIntentKey{
@@ -79,7 +80,7 @@ func (v *TrafficGroupIntentDbClient) GetTrafficGroupIntent(name, project, compos
 		DeploymentIntentGroupName: dig,
 	}
 
-	value, err := db.DBconn.Find(context.Background(), v.db.storeName, key, v.db.tagMeta)
+	value, err := db.DBconn.Find(ctx, v.db.storeName, key, v.db.tagMeta)
 	if err != nil {
 		return TrafficGroupIntent{}, err
 	} else if len(value) == 0 {
@@ -102,7 +103,7 @@ func (v *TrafficGroupIntentDbClient) GetTrafficGroupIntent(name, project, compos
 }
 
 // GetTrafficGroupIntents returns all of the TrafficGroupIntents
-func (v *TrafficGroupIntentDbClient) GetTrafficGroupIntents(project, compositeapp, compositeappversion, dig string) ([]TrafficGroupIntent, error) {
+func (v *TrafficGroupIntentDbClient) GetTrafficGroupIntents(ctx context.Context, project, compositeapp, compositeappversion, dig string) ([]TrafficGroupIntent, error) {
 
 	//Construct key and tag to select the entry
 	key := TrafficGroupIntentKey{
@@ -114,7 +115,7 @@ func (v *TrafficGroupIntentDbClient) GetTrafficGroupIntents(project, compositeap
 	}
 
 	var resp []TrafficGroupIntent
-	values, err := db.DBconn.Find(context.Background(), v.db.storeName, key, v.db.tagMeta)
+	values, err := db.DBconn.Find(ctx, v.db.storeName, key, v.db.tagMeta)
 	if err != nil {
 		return []TrafficGroupIntent{}, err
 	}
@@ -132,7 +133,7 @@ func (v *TrafficGroupIntentDbClient) GetTrafficGroupIntents(project, compositeap
 }
 
 // Delete the  TrafficGroupIntent from database
-func (v *TrafficGroupIntentDbClient) DeleteTrafficGroupIntent(name, project, compositeapp, compositeappversion, dig string) error {
+func (v *TrafficGroupIntentDbClient) DeleteTrafficGroupIntent(ctx context.Context, name, project, compositeapp, compositeappversion, dig string) error {
 
 	//Construct key and tag to select the entry
 	key := TrafficGroupIntentKey{
@@ -143,6 +144,6 @@ func (v *TrafficGroupIntentDbClient) DeleteTrafficGroupIntent(name, project, com
 		DeploymentIntentGroupName: dig,
 	}
 
-	err := db.DBconn.Remove(context.Background(), v.db.storeName, key)
+	err := db.DBconn.Remove(ctx, v.db.storeName, key)
 	return err
 }

@@ -8,7 +8,6 @@ import (
 	"io"
 	"net/http"
 
-	"context"
 	"github.com/gorilla/mux"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/apierror"
 	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
@@ -28,6 +27,7 @@ type controllerHandler struct {
 
 // Create handles creation of the controller entry in the database
 func (h controllerHandler) createHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	var m controller.Controller
 
 	err := json.NewDecoder(r.Body).Decode(&m)
@@ -50,7 +50,7 @@ func (h controllerHandler) createHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	ret, err := h.client.CreateController(context.Background(), m, false)
+	ret, err := h.client.CreateController(ctx, m, false)
 	if err != nil {
 		apiErr := apierror.HandleErrors(mux.Vars(r), err, m, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -69,6 +69,7 @@ func (h controllerHandler) createHandler(w http.ResponseWriter, r *http.Request)
 
 // Put handles creation or update of the controller entry in the database
 func (h controllerHandler) putHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	var m controller.Controller
 	vars := mux.Vars(r)
 	name := vars["dtcController"]
@@ -100,7 +101,7 @@ func (h controllerHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ret, err := h.client.CreateController(context.Background(), m, true)
+	ret, err := h.client.CreateController(ctx, m, true)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, m, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -120,6 +121,7 @@ func (h controllerHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 // Get handles GET operations on a particular controller Name
 // Returns a controller
 func (h controllerHandler) getHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	name := vars["dtcController"]
 	var ret interface{}
@@ -127,9 +129,9 @@ func (h controllerHandler) getHandler(w http.ResponseWriter, r *http.Request) {
 
 	// handle the get all controllers case
 	if len(name) == 0 {
-		ret, err = h.client.GetControllers(context.Background())
+		ret, err = h.client.GetControllers(ctx)
 	} else {
-		ret, err = h.client.GetController(context.Background(), name)
+		ret, err = h.client.GetController(ctx, name)
 	}
 
 	if err != nil {
@@ -150,10 +152,11 @@ func (h controllerHandler) getHandler(w http.ResponseWriter, r *http.Request) {
 
 // Delete handles DELETE operations on a particular controller Name
 func (h controllerHandler) deleteHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	name := vars["dtcController"]
 
-	err := h.client.DeleteController(context.Background(), name)
+	err := h.client.DeleteController(ctx, name)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)

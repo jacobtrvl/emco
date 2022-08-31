@@ -3,6 +3,7 @@
 package mocks
 
 import (
+	"context"
 	module "gitlab.com/project-emco/core/emco-base/src/dtc/pkg/module"
 	mock "github.com/stretchr/testify/mock"
 )
@@ -13,8 +14,8 @@ type InboundClientsIntentManager struct {
 }
 
 // CreateClientsInboundIntent provides a mock function with given fields: tci, project, compositeapp, compositeappversion, deploymentIntentGroupName, trafficIntentGroupName, inboundIntentName, exists
-func (_m *InboundClientsIntentManager) CreateClientsInboundIntent(tci module.InboundClientsIntent, project string, compositeapp string, compositeappversion string, deploymentIntentGroupName string, trafficIntentGroupName string, inboundIntentName string, exists bool) (module.InboundClientsIntent, error) {
-	ret := _m.Called(tci, project, compositeapp, compositeappversion, deploymentIntentGroupName, trafficIntentGroupName, inboundIntentName, exists)
+func (_m *InboundClientsIntentManager) CreateClientsInboundIntent(ctx context.Context, tci module.InboundClientsIntent, project string, compositeapp string, compositeappversion string, deploymentIntentGroupName string, trafficIntentGroupName string, inboundIntentName string, exists bool) (module.InboundClientsIntent, error) {
+	ret := _m.Called(ctx, tci, project, compositeapp, compositeappversion, deploymentIntentGroupName, trafficIntentGroupName, inboundIntentName, exists)
 
 	var r0 module.InboundClientsIntent
 	if rf, ok := ret.Get(0).(func(module.InboundClientsIntent, string, string, string, string, string, string, bool) module.InboundClientsIntent); ok {
@@ -34,8 +35,8 @@ func (_m *InboundClientsIntentManager) CreateClientsInboundIntent(tci module.Inb
 }
 
 // DeleteClientsInboundIntent provides a mock function with given fields: name, project, compositeapp, compositeappversion, deploymentintentgroupname, trafficintentgroupname, inboundserverintentname
-func (_m *InboundClientsIntentManager) DeleteClientsInboundIntent(name string, project string, compositeapp string, compositeappversion string, deploymentintentgroupname string, trafficintentgroupname string, inboundserverintentname string) error {
-	ret := _m.Called(name, project, compositeapp, compositeappversion, deploymentintentgroupname, trafficintentgroupname, inboundserverintentname)
+func (_m *InboundClientsIntentManager) DeleteClientsInboundIntent(ctx context.Context, name string, project string, compositeapp string, compositeappversion string, deploymentintentgroupname string, trafficintentgroupname string, inboundserverintentname string) error {
+	ret := _m.Called(ctx, name, project, compositeapp, compositeappversion, deploymentintentgroupname, trafficintentgroupname, inboundserverintentname)
 
 	var r0 error
 	if rf, ok := ret.Get(0).(func(string, string, string, string, string, string, string) error); ok {
@@ -48,8 +49,8 @@ func (_m *InboundClientsIntentManager) DeleteClientsInboundIntent(name string, p
 }
 
 // GetClientsInboundIntent provides a mock function with given fields: name, project, compositeapp, compositeappversion, deploymentIntentGroupName, trafficintentgroupname, inboundIntentName
-func (_m *InboundClientsIntentManager) GetClientsInboundIntent(name string, project string, compositeapp string, compositeappversion string, deploymentIntentGroupName string, trafficintentgroupname string, inboundIntentName string) (module.InboundClientsIntent, error) {
-	ret := _m.Called(name, project, compositeapp, compositeappversion, deploymentIntentGroupName, trafficintentgroupname, inboundIntentName)
+func (_m *InboundClientsIntentManager) GetClientsInboundIntent(ctx context.Context, name string, project string, compositeapp string, compositeappversion string, deploymentIntentGroupName string, trafficintentgroupname string, inboundIntentName string) (module.InboundClientsIntent, error) {
+	ret := _m.Called(ctx, name, project, compositeapp, compositeappversion, deploymentIntentGroupName, trafficintentgroupname, inboundIntentName)
 
 	var r0 module.InboundClientsIntent
 	if rf, ok := ret.Get(0).(func(string, string, string, string, string, string, string) module.InboundClientsIntent); ok {
@@ -69,8 +70,8 @@ func (_m *InboundClientsIntentManager) GetClientsInboundIntent(name string, proj
 }
 
 // GetClientsInboundIntents provides a mock function with given fields: project, compositeapp, compositeappversion, deploymentIntentGroupName, trafficintentgroupname, inboundIntentName
-func (_m *InboundClientsIntentManager) GetClientsInboundIntents(project string, compositeapp string, compositeappversion string, deploymentIntentGroupName string, trafficintentgroupname string, inboundIntentName string) ([]module.InboundClientsIntent, error) {
-	ret := _m.Called(project, compositeapp, compositeappversion, deploymentIntentGroupName, trafficintentgroupname, inboundIntentName)
+func (_m *InboundClientsIntentManager) GetClientsInboundIntents(ctx context.Context, project string, compositeapp string, compositeappversion string, deploymentIntentGroupName string, trafficintentgroupname string, inboundIntentName string) ([]module.InboundClientsIntent, error) {
+	ret := _m.Called(ctx, project, compositeapp, compositeappversion, deploymentIntentGroupName, trafficintentgroupname, inboundIntentName)
 
 	var r0 []module.InboundClientsIntent
 	if rf, ok := ret.Get(0).(func(string, string, string, string, string, string) []module.InboundClientsIntent); ok {

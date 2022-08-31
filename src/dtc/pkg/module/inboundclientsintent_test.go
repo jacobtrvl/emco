@@ -3,12 +3,13 @@
 package module_test
 
 import (
+	"context"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	pkgerrors "github.com/pkg/errors"
 	"gitlab.com/project-emco/core/emco-base/src/dtc/pkg/module"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
-	pkgerrors "github.com/pkg/errors"
 )
 
 var _ = Describe("Inboundclientsintent", func() {
@@ -64,11 +65,12 @@ var _ = Describe("Inboundclientsintent", func() {
 
 	Describe("Create client intent", func() {
 		It("with pre created traffic and server intent should return nil", func() {
-			_, err := (*TGIDBC).CreateTrafficGroupIntent(TGI, "test", "capp1", "v1", "dig", false)
+			ctx := context.Background()
+			_, err := (*TGIDBC).CreateTrafficGroupIntent(ctx, TGI, "test", "capp1", "v1", "dig", false)
 			Expect(err).To(BeNil())
-			_, err = (*ISIDBC).CreateServerInboundIntent(ISI, "test", "capp1", "v1", "dig", "testtgi", false)
+			_, err = (*ISIDBC).CreateServerInboundIntent(ctx, ISI, "test", "capp1", "v1", "dig", "testtgi", false)
 			Expect(err).To(BeNil())
-			_, err = (*ICIDBC).CreateClientsInboundIntent(ICI, "test", "capp1", "v1", "dig", "testtgi", "testisi", false)
+			_, err = (*ICIDBC).CreateClientsInboundIntent(ctx, ICI, "test", "capp1", "v1", "dig", "testtgi", "testisi", false)
 			Expect(err).To(BeNil())
 		})
 		/* The DTC code no longer checks for parent resource so test is not valid
@@ -79,33 +81,36 @@ var _ = Describe("Inboundclientsintent", func() {
 		*/
 
 		It("create again should return error", func() {
-			_, err := (*TGIDBC).CreateTrafficGroupIntent(TGI, "test", "capp1", "v1", "dig", false)
+			ctx := context.Background()
+			_, err := (*TGIDBC).CreateTrafficGroupIntent(ctx, TGI, "test", "capp1", "v1", "dig", false)
 			Expect(err).To(BeNil())
-			_, err = (*ISIDBC).CreateServerInboundIntent(ISI, "test", "capp1", "v1", "dig", "testtgi", false)
-			_, err = (*ICIDBC).CreateClientsInboundIntent(ICI, "test", "capp1", "v1", "dig", "testtgi", "testisi", false)
+			_, err = (*ISIDBC).CreateServerInboundIntent(ctx, ISI, "test", "capp1", "v1", "dig", "testtgi", false)
+			_, err = (*ICIDBC).CreateClientsInboundIntent(ctx, ICI, "test", "capp1", "v1", "dig", "testtgi", "testisi", false)
 			Expect(err).To(BeNil())
-			_, err = (*ICIDBC).CreateClientsInboundIntent(ICI, "test", "capp1", "v1", "dig", "testtgi", "testisi", false)
+			_, err = (*ICIDBC).CreateClientsInboundIntent(ctx, ICI, "test", "capp1", "v1", "dig", "testtgi", "testisi", false)
 			Expect(err).To(HaveOccurred())
 		})
 		It("followed by get clients intent should return nil", func() {
-			_, err := (*TGIDBC).CreateTrafficGroupIntent(TGI, "test", "capp1", "v1", "dig", false)
+			ctx := context.Background()
+			_, err := (*TGIDBC).CreateTrafficGroupIntent(ctx, TGI, "test", "capp1", "v1", "dig", false)
 			Expect(err).To(BeNil())
-			_, err = (*ISIDBC).CreateServerInboundIntent(ISI, "test", "capp1", "v1", "dig", "testtgi", false)
+			_, err = (*ISIDBC).CreateServerInboundIntent(ctx, ISI, "test", "capp1", "v1", "dig", "testtgi", false)
 			Expect(err).To(BeNil())
-			_, err = (*ICIDBC).CreateClientsInboundIntent(ICI, "test", "capp1", "v1", "dig", "testtgi", "testisi", false)
+			_, err = (*ICIDBC).CreateClientsInboundIntent(ctx, ICI, "test", "capp1", "v1", "dig", "testtgi", "testisi", false)
 			Expect(err).To(BeNil())
-			ici, err := (*ICIDBC).GetClientsInboundIntent("testici", "test", "capp1", "v1", "dig", "testtgi", "testisi")
+			ici, err := (*ICIDBC).GetClientsInboundIntent(ctx, "testici", "test", "capp1", "v1", "dig", "testtgi", "testisi")
 			Expect(err).To(BeNil())
 			Expect(ici).Should(Equal(ICI))
 		})
 		It("followed by delete clients intent should return nil", func() {
-			_, err := (*TGIDBC).CreateTrafficGroupIntent(TGI, "test", "capp1", "v1", "dig", false)
+			ctx := context.Background()
+			_, err := (*TGIDBC).CreateTrafficGroupIntent(ctx, TGI, "test", "capp1", "v1", "dig", false)
 			Expect(err).To(BeNil())
-			_, err = (*ISIDBC).CreateServerInboundIntent(ISI, "test", "capp1", "v1", "dig", "testtgi", false)
+			_, err = (*ISIDBC).CreateServerInboundIntent(ctx, ISI, "test", "capp1", "v1", "dig", "testtgi", false)
 			Expect(err).To(BeNil())
-			_, err = (*ICIDBC).CreateClientsInboundIntent(ICI, "test", "capp1", "v1", "dig", "testtgi", "testisi", false)
+			_, err = (*ICIDBC).CreateClientsInboundIntent(ctx, ICI, "test", "capp1", "v1", "dig", "testtgi", "testisi", false)
 			Expect(err).To(BeNil())
-			err = (*ICIDBC).DeleteClientsInboundIntent("testici", "test", "capp1", "v1", "dig", "testtgi", "testisi")
+			err = (*ICIDBC).DeleteClientsInboundIntent(ctx, "testici", "test", "capp1", "v1", "dig", "testtgi", "testisi")
 			Expect(err).To(BeNil())
 		})
 
@@ -113,33 +118,38 @@ var _ = Describe("Inboundclientsintent", func() {
 
 	Describe("Get client intent", func() {
 		It("should return error for non-existing record", func() {
-			_, err := (*ICIDBC).GetClientsInboundIntent("testici", "test", "capp1", "v1", "dig", "testtgi", "testisi")
+			ctx := context.Background()
+			_, err := (*ICIDBC).GetClientsInboundIntent(ctx, "testici", "test", "capp1", "v1", "dig", "testtgi", "testisi")
 			Expect(err).To(HaveOccurred())
 		})
 
 	})
 	Describe("Get clients intents", func() {
 		It("should return error for non-existing record", func() {
+			ctx := context.Background()
 			mdb.Err = pkgerrors.New("Inbound clients intent not found")
-			_, err := (*ICIDBC).GetClientsInboundIntents("test", "capp1", "v1", "dig", "testtgi", "testisi")
+			_, err := (*ICIDBC).GetClientsInboundIntents(ctx, "test", "capp1", "v1", "dig", "testtgi", "testisi")
 			Expect(err).To(HaveOccurred())
 		})
 
 	})
 	Describe("Delete client intent", func() {
 		It("should return error for non-existing record", func() {
+			ctx := context.Background()
 			mdb.Err = pkgerrors.New("db Remove resource not found")
-			err := (*ICIDBC).DeleteClientsInboundIntent("testici", "test", "capp1", "v1", "dig", "testtgi", "testisi")
+			err := (*ICIDBC).DeleteClientsInboundIntent(ctx, "testici", "test", "capp1", "v1", "dig", "testtgi", "testisi")
 			Expect(err).To(HaveOccurred())
 		})
 		It("should return error for deleting parent without deleting child", func() {
+			ctx := context.Background()
 			mdb.Err = pkgerrors.New("Cannot delete parent without deleting child references first")
-			err := (*ICIDBC).DeleteClientsInboundIntent("testici", "test", "capp1", "v1", "dig", "testtgi", "testisi")
+			err := (*ICIDBC).DeleteClientsInboundIntent(ctx, "testici", "test", "capp1", "v1", "dig", "testtgi", "testisi")
 			Expect(err).To(HaveOccurred())
 		})
 		It("should return error for general db error", func() {
+			ctx := context.Background()
 			mdb.Err = pkgerrors.New("db Remove error")
-			err := (*ICIDBC).DeleteClientsInboundIntent("testici", "test", "capp1", "v1", "dig", "testtgi", "testisi")
+			err := (*ICIDBC).DeleteClientsInboundIntent(ctx, "testici", "test", "capp1", "v1", "dig", "testtgi", "testisi")
 			Expect(err).To(HaveOccurred())
 		})
 

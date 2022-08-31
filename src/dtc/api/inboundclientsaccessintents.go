@@ -8,7 +8,6 @@ import (
 	"io"
 	"net/http"
 
-	"context"
 	"github.com/gorilla/mux"
 	pkgerrors "github.com/pkg/errors"
 	"gitlab.com/project-emco/core/emco-base/src/dtc/pkg/module"
@@ -35,6 +34,7 @@ func validateInboundClientsAccessIntentInputs(icai module.InboundClientsAccessIn
 }
 
 func (h inboundclientsaccessintentHandler) createHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	var icai module.InboundClientsAccessIntent
 	vars := mux.Vars(r)
 	project := vars["project"]
@@ -45,7 +45,7 @@ func (h inboundclientsaccessintentHandler) createHandler(w http.ResponseWriter, 
 	inboundIntentName := vars["inboundServerIntent"]
 	inboundClientIntentName := vars["inboundClientsIntent"]
 	// check if the deploymentIntentGrpName exists
-	_, err := orcmod.NewDeploymentIntentGroupClient().GetDeploymentIntentGroup(context.Background(), deploymentIntentGroupName, project, compositeApp, compositeAppVersion)
+	_, err := orcmod.NewDeploymentIntentGroupClient().GetDeploymentIntentGroup(ctx, deploymentIntentGroupName, project, compositeApp, compositeAppVersion)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -85,7 +85,7 @@ func (h inboundclientsaccessintentHandler) createHandler(w http.ResponseWriter, 
 		return
 	}
 
-	ret, err := h.client.CreateClientsAccessInboundIntent(icai, project, compositeApp, compositeAppVersion, deploymentIntentGroupName, trafficIntentGroupName, inboundIntentName, inboundClientIntentName, false)
+	ret, err := h.client.CreateClientsAccessInboundIntent(ctx, icai, project, compositeApp, compositeAppVersion, deploymentIntentGroupName, trafficIntentGroupName, inboundIntentName, inboundClientIntentName, false)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, icai, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -103,6 +103,7 @@ func (h inboundclientsaccessintentHandler) createHandler(w http.ResponseWriter, 
 	return
 }
 func (h inboundclientsaccessintentHandler) putHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	var icai module.InboundClientsAccessIntent
 	vars := mux.Vars(r)
 	name := vars["inboundClientsAccessIntent"]
@@ -115,7 +116,7 @@ func (h inboundclientsaccessintentHandler) putHandler(w http.ResponseWriter, r *
 	inboundClientIntentName := vars["inboundClientsIntent"]
 
 	// check if the deploymentIntentGrpName exists
-	_, err := orcmod.NewDeploymentIntentGroupClient().GetDeploymentIntentGroup(context.Background(), deploymentIntentGroupName, project, compositeApp, compositeAppVersion)
+	_, err := orcmod.NewDeploymentIntentGroupClient().GetDeploymentIntentGroup(ctx, deploymentIntentGroupName, project, compositeApp, compositeAppVersion)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -155,7 +156,7 @@ func (h inboundclientsaccessintentHandler) putHandler(w http.ResponseWriter, r *
 		return
 	}
 
-	ret, err := h.client.CreateClientsAccessInboundIntent(icai, project, compositeApp, compositeAppVersion, deploymentIntentGroupName, trafficIntentGroupName, inboundIntentName, inboundClientIntentName, true)
+	ret, err := h.client.CreateClientsAccessInboundIntent(ctx, icai, project, compositeApp, compositeAppVersion, deploymentIntentGroupName, trafficIntentGroupName, inboundIntentName, inboundClientIntentName, true)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, icai, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -173,6 +174,7 @@ func (h inboundclientsaccessintentHandler) putHandler(w http.ResponseWriter, r *
 }
 
 func (h inboundclientsaccessintentHandler) getHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	name := vars["inboundClientsAccessIntent"]
 	project := vars["project"]
@@ -187,9 +189,9 @@ func (h inboundclientsaccessintentHandler) getHandler(w http.ResponseWriter, r *
 	var err error
 
 	if len(name) == 0 {
-		ret, err = h.client.GetClientsAccessInboundIntents(project, compositeApp, compositeAppVersion, deploymentIntentGroupName, trafficIntentGroupName, inboundIntentName, inboundClientIntentName)
+		ret, err = h.client.GetClientsAccessInboundIntents(ctx, project, compositeApp, compositeAppVersion, deploymentIntentGroupName, trafficIntentGroupName, inboundIntentName, inboundClientIntentName)
 	} else {
-		ret, err = h.client.GetClientsAccessInboundIntent(name, project, compositeApp, compositeAppVersion, deploymentIntentGroupName, trafficIntentGroupName, inboundIntentName, inboundClientIntentName)
+		ret, err = h.client.GetClientsAccessInboundIntent(ctx, name, project, compositeApp, compositeAppVersion, deploymentIntentGroupName, trafficIntentGroupName, inboundIntentName, inboundClientIntentName)
 	}
 
 	if err != nil {
@@ -208,6 +210,7 @@ func (h inboundclientsaccessintentHandler) getHandler(w http.ResponseWriter, r *
 	}
 }
 func (h inboundclientsaccessintentHandler) deleteHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	name := vars["inboundClientsAccessIntent"]
 	project := vars["project"]
@@ -218,7 +221,7 @@ func (h inboundclientsaccessintentHandler) deleteHandler(w http.ResponseWriter, 
 	inboundIntentName := vars["inboundServerIntent"]
 	inboundClientIntentName := vars["inboundClientsIntent"]
 
-	err := h.client.DeleteClientsAccessInboundIntent(name, project, compositeApp, compositeAppVersion, deploymentIntentGroupName, trafficIntentGroupName, inboundIntentName, inboundClientIntentName)
+	err := h.client.DeleteClientsAccessInboundIntent(ctx, name, project, compositeApp, compositeAppVersion, deploymentIntentGroupName, trafficIntentGroupName, inboundIntentName, inboundClientIntentName)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)

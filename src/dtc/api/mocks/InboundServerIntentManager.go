@@ -3,6 +3,7 @@
 package mocks
 
 import (
+	"context"
 	module "gitlab.com/project-emco/core/emco-base/src/dtc/pkg/module"
 	mock "github.com/stretchr/testify/mock"
 )
@@ -13,8 +14,8 @@ type InboundServerIntentManager struct {
 }
 
 // CreateServerInboundIntent provides a mock function with given fields: isi, project, compositeapp, compositeappversion, deploymentIntentGroupName, trafficintentgroupname, exists
-func (_m *InboundServerIntentManager) CreateServerInboundIntent(isi module.InboundServerIntent, project string, compositeapp string, compositeappversion string, deploymentIntentGroupName string, trafficintentgroupname string, exists bool) (module.InboundServerIntent, error) {
-	ret := _m.Called(isi, project, compositeapp, compositeappversion, deploymentIntentGroupName, trafficintentgroupname, exists)
+func (_m *InboundServerIntentManager) CreateServerInboundIntent(ctx context.Context, isi module.InboundServerIntent, project string, compositeapp string, compositeappversion string, deploymentIntentGroupName string, trafficintentgroupname string, exists bool) (module.InboundServerIntent, error) {
+	ret := _m.Called(ctx, isi, project, compositeapp, compositeappversion, deploymentIntentGroupName, trafficintentgroupname, exists)
 
 	var r0 module.InboundServerIntent
 	if rf, ok := ret.Get(0).(func(module.InboundServerIntent, string, string, string, string, string, bool) module.InboundServerIntent); ok {
@@ -34,8 +35,8 @@ func (_m *InboundServerIntentManager) CreateServerInboundIntent(isi module.Inbou
 }
 
 // DeleteServerInboundIntent provides a mock function with given fields: name, project, compositeapp, compositeappversion, dig, trafficintentgroupname
-func (_m *InboundServerIntentManager) DeleteServerInboundIntent(name string, project string, compositeapp string, compositeappversion string, dig string, trafficintentgroupname string) error {
-	ret := _m.Called(name, project, compositeapp, compositeappversion, dig, trafficintentgroupname)
+func (_m *InboundServerIntentManager) DeleteServerInboundIntent(ctx context.Context, name string, project string, compositeapp string, compositeappversion string, dig string, trafficintentgroupname string) error {
+	ret := _m.Called(ctx, name, project, compositeapp, compositeappversion, dig, trafficintentgroupname)
 
 	var r0 error
 	if rf, ok := ret.Get(0).(func(string, string, string, string, string, string) error); ok {
@@ -48,8 +49,8 @@ func (_m *InboundServerIntentManager) DeleteServerInboundIntent(name string, pro
 }
 
 // GetServerInboundIntent provides a mock function with given fields: name, project, compositeapp, compositeappversion, dig, trafficintentgroupname
-func (_m *InboundServerIntentManager) GetServerInboundIntent(name string, project string, compositeapp string, compositeappversion string, dig string, trafficintentgroupname string) (module.InboundServerIntent, error) {
-	ret := _m.Called(name, project, compositeapp, compositeappversion, dig, trafficintentgroupname)
+func (_m *InboundServerIntentManager) GetServerInboundIntent(ctx context.Context, name string, project string, compositeapp string, compositeappversion string, dig string, trafficintentgroupname string) (module.InboundServerIntent, error) {
+	ret := _m.Called(ctx, name, project, compositeapp, compositeappversion, dig, trafficintentgroupname)
 
 	var r0 module.InboundServerIntent
 	if rf, ok := ret.Get(0).(func(string, string, string, string, string, string) module.InboundServerIntent); ok {
@@ -69,8 +70,8 @@ func (_m *InboundServerIntentManager) GetServerInboundIntent(name string, projec
 }
 
 // GetServerInboundIntents provides a mock function with given fields: project, compositeapp, compositeappversion, dig, intentName
-func (_m *InboundServerIntentManager) GetServerInboundIntents(project string, compositeapp string, compositeappversion string, dig string, intentName string) ([]module.InboundServerIntent, error) {
-	ret := _m.Called(project, compositeapp, compositeappversion, dig, intentName)
+func (_m *InboundServerIntentManager) GetServerInboundIntents(ctx context.Context, project string, compositeapp string, compositeappversion string, dig string, intentName string) ([]module.InboundServerIntent, error) {
+	ret := _m.Called(ctx, project, compositeapp, compositeappversion, dig, intentName)
 
 	var r0 []module.InboundServerIntent
 	if rf, ok := ret.Get(0).(func(string, string, string, string, string) []module.InboundServerIntent); ok {

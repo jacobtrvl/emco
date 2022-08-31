@@ -29,7 +29,7 @@ dependencies:
     version: "1.0.1"
     repository: 'file://../dcm'
   - name: dtc
-    version: "1.0.0"
+    version: "1.0.1"
     repository: 'file://../dtc'
   - name: nps
     version: "1.0.0"

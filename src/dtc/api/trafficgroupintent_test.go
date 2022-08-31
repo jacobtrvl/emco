@@ -13,6 +13,7 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	pkgerrors "github.com/pkg/errors"
+	"github.com/stretchr/testify/mock"
 	"gitlab.com/project-emco/core/emco-base/src/dtc/api/mocks"
 	"gitlab.com/project-emco/core/emco-base/src/dtc/pkg/module"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
@@ -41,24 +42,24 @@ var _ = Describe("Trafficgroupintenthandler", func() {
 	}
 
 	BeforeEach(func() {
-
+		ctx := context.Background()
 		mdb = new(db.MockDB)
 		mdb.Err = nil
 		db.DBconn = mdb
 		c := orcmod.NewClient()
-		_, err := c.Project.CreateProject(context.Background(), orcmod.Project{MetaData: orcmod.ProjectMetaData{Name: "test-project", Description: "test", UserData1: "userData1", UserData2: "userData2"}}, false)
+		_, err := c.Project.CreateProject(ctx, orcmod.Project{MetaData: orcmod.ProjectMetaData{Name: "test-project", Description: "test", UserData1: "userData1", UserData2: "userData2"}}, false)
 		if err != nil {
 			fmt.Println(err)
 			return
 		}
-		_, err = c.CompositeApp.CreateCompositeApp(context.Background(), orcmod.CompositeApp{Metadata: orcmod.CompositeAppMetaData{Name: "test-compositeapp", Description: "test", UserData1: "userData1", UserData2: "userData2"}, Spec: orcmod.CompositeAppSpec{Version: "v1"}}, "test-project", false)
+		_, err = c.CompositeApp.CreateCompositeApp(ctx, orcmod.CompositeApp{Metadata: orcmod.CompositeAppMetaData{Name: "test-compositeapp", Description: "test", UserData1: "userData1", UserData2: "userData2"}, Spec: orcmod.CompositeAppSpec{Version: "v1"}}, "test-project", false)
 		if err != nil {
 			fmt.Println(err)
 			return
 		}
 
 		list := []orcmod.OverrideValues{}
-		_, _, err = c.DeploymentIntentGroup.CreateDeploymentIntentGroup(context.Background(), orcmod.DeploymentIntentGroup{MetaData: orcmod.DepMetaData{Name: "test-dig", Description: "test", UserData1: "userData1", UserData2: "userData2"}, Spec: orcmod.DepSpecData{Profile: "prof1", Version: "v1", OverrideValuesObj: list, LogicalCloud: "lc1"}}, "test-project", "test-compositeapp", "v1", true)
+		_, _, err = c.DeploymentIntentGroup.CreateDeploymentIntentGroup(ctx, orcmod.DeploymentIntentGroup{MetaData: orcmod.DepMetaData{Name: "test-dig", Description: "test", UserData1: "userData1", UserData2: "userData2"}, Spec: orcmod.DepSpecData{Profile: "prof1", Version: "v1", OverrideValuesObj: list, LogicalCloud: "lc1"}}, "test-project", "test-compositeapp", "v1", true)
 		if err != nil {
 			fmt.Println(err)
 			return
@@ -69,7 +70,7 @@ var _ = Describe("Trafficgroupintenthandler", func() {
 		func(t testCase) {
 			// set up client mock responses
 
-			t.client.On("CreateTrafficGroupIntent", t.inStruct, "test-project", "test-compositeapp", "v1", "test-dig", false).Return(t.mockVal, t.mockError)
+			t.client.On("CreateTrafficGroupIntent", mock.Anything, t.inStruct, "test-project", "test-compositeapp", "v1", "test-dig", false).Return(t.mockVal, t.mockError)
 
 			// make HTTP request
 			request := httptest.NewRequest("POST", "/v2/projects/test-project/composite-apps/test-compositeapp/v1/deployment-intent-groups/test-dig/traffic-group-intents", t.inputReader)
@@ -216,7 +217,7 @@ var _ = Describe("Trafficgroupintenthandler", func() {
 		func(t testCase) {
 			// set up client mock responses
 
-			t.client.On("CreateTrafficGroupIntent", t.inStruct, "test-project", "test-compositeapp", "v1", "test-dig", true).Return(t.mockVal, t.mockError)
+			t.client.On("CreateTrafficGroupIntent", mock.Anything, t.inStruct, "test-project", "test-compositeapp", "v1", "test-dig", true).Return(t.mockVal, t.mockError)
 
 			// make HTTP request
 			request := httptest.NewRequest("PUT", "/v2/projects/test-project/composite-apps/test-compositeapp/v1/deployment-intent-groups/test-dig/traffic-group-intents/"+t.inputName, t.inputReader)
@@ -368,7 +369,7 @@ var _ = Describe("Trafficgroupintenthandler", func() {
 		func(t testCase) {
 			// set up client mock responses
 
-			t.client.On("GetTrafficGroupIntents", "test-project", "test-compositeapp", "v1", "test-dig").Return(t.mockVals, t.mockError)
+			t.client.On("GetTrafficGroupIntents", mock.Anything, "test-project", "test-compositeapp", "v1", "test-dig").Return(t.mockVals, t.mockError)
 
 			// make HTTP request
 			request := httptest.NewRequest("GET", "/v2/projects/test-project/composite-apps/test-compositeapp/v1/deployment-intent-groups/test-dig/traffic-group-intents", nil)
@@ -422,7 +423,7 @@ var _ = Describe("Trafficgroupintenthandler", func() {
 		func(t testCase) {
 			// set up client mock responses
 
-			t.client.On("GetTrafficGroupIntent", t.inputName, "test-project", "test-compositeapp", "v1", "test-dig").Return(t.mockVal, t.mockError)
+			t.client.On("GetTrafficGroupIntent", mock.Anything, t.inputName, "test-project", "test-compositeapp", "v1", "test-dig").Return(t.mockVal, t.mockError)
 
 			// make HTTP request
 			request := httptest.NewRequest("GET", "/v2/projects/test-project/composite-apps/test-compositeapp/v1/deployment-intent-groups/test-dig/traffic-group-intents/"+t.inputName, nil)
@@ -469,7 +470,7 @@ var _ = Describe("Trafficgroupintenthandler", func() {
 		func(t testCase) {
 			// set up client mock responses
 
-			t.client.On("DeleteTrafficGroupIntent", t.inputName, "test-project", "test-compositeapp", "v1", "test-dig").Return(t.mockError)
+			t.client.On("DeleteTrafficGroupIntent", mock.Anything, t.inputName, "test-project", "test-compositeapp", "v1", "test-dig").Return(t.mockError)
 
 			// make HTTP request
 			request := httptest.NewRequest("DELETE", "/v2/projects/test-project/composite-apps/test-compositeapp/v1/deployment-intent-groups/test-dig/traffic-group-intents/"+t.inputName, nil)
