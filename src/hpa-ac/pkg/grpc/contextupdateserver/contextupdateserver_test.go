@@ -35,17 +35,18 @@ type contextForCompositeApp struct {
 }
 
 func makeAppContextForCompositeApp(p, ca, v, rName, dig string, namespace string, level string) (contextForCompositeApp, error) {
+	ctx := context.Background()
 	appCtx := appcontext.AppContext{}
 	ctxval, err := appCtx.InitAppContext()
 	if err != nil {
 		return contextForCompositeApp{}, pkgerrors.Wrap(err, "Error creating AppContext CompositeApp")
 	}
-	compositeHandle, err := appCtx.CreateCompositeApp(context.Background())
+	compositeHandle, err := appCtx.CreateCompositeApp(ctx)
 	if err != nil {
 		return contextForCompositeApp{}, pkgerrors.Wrap(err, "Error creating CompositeApp handle")
 	}
 	compMetadata := appcontext.CompositeAppMeta{Project: p, CompositeApp: ca, Version: v, Release: rName, DeploymentIntentGroup: dig, Namespace: namespace, Level: level}
-	err = appCtx.AddCompositeAppMeta(context.Background(), compMetadata)
+	err = appCtx.AddCompositeAppMeta(ctx, compMetadata)
 	if err != nil {
 		return contextForCompositeApp{}, pkgerrors.Wrap(err, "Error Adding CompositeAppMeta")
 	}

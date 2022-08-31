@@ -4,6 +4,7 @@
 package api
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 
@@ -29,7 +30,7 @@ type mockIntentManager struct {
 	Err               error
 }
 
-func (m *mockIntentManager) AddIntent(a hpaModel.DeploymentHpaIntent, p string, ca string, v string, di string, exists bool) (hpaModel.DeploymentHpaIntent, error) {
+func (m *mockIntentManager) AddIntent(ctx context.Context, a hpaModel.DeploymentHpaIntent, p string, ca string, v string, di string, exists bool) (hpaModel.DeploymentHpaIntent, error) {
 	if m.Err != nil {
 		return hpaModel.DeploymentHpaIntent{}, m.Err
 	}
@@ -37,7 +38,7 @@ func (m *mockIntentManager) AddIntent(a hpaModel.DeploymentHpaIntent, p string, 
 	return m.Items[0], nil
 }
 
-func (m *mockIntentManager) GetIntent(name string, p string, ca string, v string, di string) (hpaModel.DeploymentHpaIntent, bool, error) {
+func (m *mockIntentManager) GetIntent(ctx context.Context, name string, p string, ca string, v string, di string) (hpaModel.DeploymentHpaIntent, bool, error) {
 	if m.Err != nil {
 		return hpaModel.DeploymentHpaIntent{}, false, m.Err
 	}
@@ -45,7 +46,7 @@ func (m *mockIntentManager) GetIntent(name string, p string, ca string, v string
 	return m.Items[0], true, nil
 }
 
-func (m *mockIntentManager) GetAllIntents(p string, ca string, v string, di string) ([]hpaModel.DeploymentHpaIntent, error) {
+func (m *mockIntentManager) GetAllIntents(ctx context.Context, p string, ca string, v string, di string) ([]hpaModel.DeploymentHpaIntent, error) {
 
 	if m.Err != nil {
 		return []hpaModel.DeploymentHpaIntent{}, m.Err
@@ -54,7 +55,7 @@ func (m *mockIntentManager) GetAllIntents(p string, ca string, v string, di stri
 	return m.Items, nil
 }
 
-func (m *mockIntentManager) GetAllIntentsByApp(app string, p string, ca string, v string, di string) ([]hpaModel.DeploymentHpaIntent, error) {
+func (m *mockIntentManager) GetAllIntentsByApp(ctx context.Context, app string, p string, ca string, v string, di string) ([]hpaModel.DeploymentHpaIntent, error) {
 
 	if m.Err != nil {
 		return []hpaModel.DeploymentHpaIntent{}, m.Err
@@ -63,7 +64,7 @@ func (m *mockIntentManager) GetAllIntentsByApp(app string, p string, ca string, 
 	return m.Items, nil
 }
 
-func (m *mockIntentManager) GetIntentByName(i string, p string, ca string, v string, di string) (hpaModel.DeploymentHpaIntent, error) {
+func (m *mockIntentManager) GetIntentByName(ctx context.Context, i string, p string, ca string, v string, di string) (hpaModel.DeploymentHpaIntent, error) {
 
 	if m.Err != nil {
 		return hpaModel.DeploymentHpaIntent{}, m.Err
@@ -72,12 +73,12 @@ func (m *mockIntentManager) GetIntentByName(i string, p string, ca string, v str
 	return m.Items[0], nil
 }
 
-func (m *mockIntentManager) DeleteIntent(i string, p string, ca string, v string, di string) error {
+func (m *mockIntentManager) DeleteIntent(ctx context.Context, i string, p string, ca string, v string, di string) error {
 	return m.Err
 }
 
 // consumers
-func (m *mockIntentManager) AddConsumer(a hpaModel.HpaResourceConsumer, p string, ca string, v string, di string, i string, exists bool) (hpaModel.HpaResourceConsumer, error) {
+func (m *mockIntentManager) AddConsumer(ctx context.Context, a hpaModel.HpaResourceConsumer, p string, ca string, v string, di string, i string, exists bool) (hpaModel.HpaResourceConsumer, error) {
 	if m.Err != nil {
 		return hpaModel.HpaResourceConsumer{}, m.Err
 	}
@@ -85,33 +86,33 @@ func (m *mockIntentManager) AddConsumer(a hpaModel.HpaResourceConsumer, p string
 	return m.ConsumerItems[0], nil
 }
 
-func (m *mockIntentManager) GetConsumer(cn string, p string, ca string, v string, di string, i string) (hpaModel.HpaResourceConsumer, bool, error) {
+func (m *mockIntentManager) GetConsumer(ctx context.Context, cn string, p string, ca string, v string, di string, i string) (hpaModel.HpaResourceConsumer, bool, error) {
 	if m.Err != nil {
 		return hpaModel.HpaResourceConsumer{}, false, m.Err
 	}
 	return m.ConsumerItems[0], false, nil
 }
 
-func (m *mockIntentManager) GetAllConsumers(p, ca, v, di, i string) ([]hpaModel.HpaResourceConsumer, error) {
+func (m *mockIntentManager) GetAllConsumers(ctx context.Context, p, ca, v, di, i string) ([]hpaModel.HpaResourceConsumer, error) {
 	if m.Err != nil {
 		return []hpaModel.HpaResourceConsumer{}, m.Err
 	}
 	return m.ConsumerItems, nil
 }
 
-func (m *mockIntentManager) GetConsumerByName(cn, p, ca, v, di, i string) (hpaModel.HpaResourceConsumer, error) {
+func (m *mockIntentManager) GetConsumerByName(ctx context.Context, cn, p, ca, v, di, i string) (hpaModel.HpaResourceConsumer, error) {
 	if m.Err != nil {
 		return hpaModel.HpaResourceConsumer{}, m.Err
 	}
 	return m.ConsumerItems[0], nil
 }
 
-func (m *mockIntentManager) DeleteConsumer(cn, p string, ca string, v string, di string, i string) error {
+func (m *mockIntentManager) DeleteConsumer(ctx context.Context, cn, p string, ca string, v string, di string, i string) error {
 	return nil
 }
 
 // resources
-func (m *mockIntentManager) AddResource(a hpaModel.HpaResourceRequirement, p string, ca string, v string, di string, i string, cn string, exists bool) (hpaModel.HpaResourceRequirement, error) {
+func (m *mockIntentManager) AddResource(ctx context.Context, a hpaModel.HpaResourceRequirement, p string, ca string, v string, di string, i string, cn string, exists bool) (hpaModel.HpaResourceRequirement, error) {
 	if m.Err != nil {
 		return hpaModel.HpaResourceRequirement{}, m.Err
 	}
@@ -119,7 +120,7 @@ func (m *mockIntentManager) AddResource(a hpaModel.HpaResourceRequirement, p str
 	return m.ResourceItems[0], nil
 }
 
-func (m *mockIntentManager) GetResource(rn string, p string, ca string, v string, di string, i string, cn string) (hpaModel.HpaResourceRequirement, bool, error) {
+func (m *mockIntentManager) GetResource(ctx context.Context, rn string, p string, ca string, v string, di string, i string, cn string) (hpaModel.HpaResourceRequirement, bool, error) {
 	if m.Err != nil {
 		return hpaModel.HpaResourceRequirement{}, false, m.Err
 	}
@@ -127,7 +128,7 @@ func (m *mockIntentManager) GetResource(rn string, p string, ca string, v string
 	return m.ResourceItems[0], false, nil
 }
 
-func (m *mockIntentManager) GetAllResources(p, ca, v, di, i, cn string) ([]hpaModel.HpaResourceRequirement, error) {
+func (m *mockIntentManager) GetAllResources(ctx context.Context, p, ca, v, di, i, cn string) ([]hpaModel.HpaResourceRequirement, error) {
 	if m.Err != nil {
 		return []hpaModel.HpaResourceRequirement{}, m.Err
 	}
@@ -136,7 +137,7 @@ func (m *mockIntentManager) GetAllResources(p, ca, v, di, i, cn string) ([]hpaMo
 
 }
 
-func (m *mockIntentManager) GetResourceByName(rn, p, ca, v, di, i, cn string) (hpaModel.HpaResourceRequirement, error) {
+func (m *mockIntentManager) GetResourceByName(ctx context.Context, rn, p, ca, v, di, i, cn string) (hpaModel.HpaResourceRequirement, error) {
 	if m.Err != nil {
 		return hpaModel.HpaResourceRequirement{}, m.Err
 	}
@@ -144,6 +145,6 @@ func (m *mockIntentManager) GetResourceByName(rn, p, ca, v, di, i, cn string) (h
 	return m.ResourceItems[0], nil
 }
 
-func (m *mockIntentManager) DeleteResource(rn string, p string, ca string, v string, di string, i string, cn string) error {
+func (m *mockIntentManager) DeleteResource(ctx context.Context, rn string, p string, ca string, v string, di string, i string, cn string) error {
 	return nil
 }

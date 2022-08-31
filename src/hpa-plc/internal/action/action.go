@@ -23,16 +23,16 @@ import (
 )
 
 // FilterClusters .. Filter clusters based on hpa-intents attached to the AppContext ID
-func FilterClusters(appContextID string) error {
+func FilterClusters(ctx context.Context, appContextID string) error {
 	var ac appcontext.AppContext
 	log.Warn("FilterClusters .. start", log.Fields{"appContextID": appContextID})
-	_, err := ac.LoadAppContext(context.Background(), appContextID)
+	_, err := ac.LoadAppContext(ctx, appContextID)
 	if err != nil {
 		log.Error("FilterClusters .. Error getting AppContext", log.Fields{"appContextID": appContextID})
 		return pkgerrors.Wrapf(err, "FilterClusters .. Error getting AppContext with Id: %v", appContextID)
 	}
 
-	caMeta, err := ac.GetCompositeAppMeta(context.Background())
+	caMeta, err := ac.GetCompositeAppMeta(ctx)
 	if err != nil {
 		log.Error("FilterClusters .. Error getting metadata for AppContext", log.Fields{"appContextID": appContextID})
 		return pkgerrors.Wrapf(err, "FilterClusters .. Error getting metadata for AppContext with Id: %v", appContextID)
@@ -46,7 +46,7 @@ func FilterClusters(appContextID string) error {
 	log.Info("FilterClusters .. AppContext details", log.Fields{"project": project, "compositeApp": compositeApp, "deploymentGroup": deploymentIntentGroup})
 
 	// Get all apps in this composite app
-	apps, err := orchModuleLib.NewAppClient().GetApps(context.Background(), project, compositeApp, compositeAppVersion)
+	apps, err := orchModuleLib.NewAppClient().GetApps(ctx, project, compositeApp, compositeAppVersion)
 	if err != nil {
 		log.Error("FilterClusters .. Not finding the compositeApp attached apps", log.Fields{"appContextID": appContextID, "compositeApp": compositeApp})
 		return pkgerrors.Wrapf(err, "FilterClusters .. Not finding the compositeApp[%s] attached apps", compositeApp)
@@ -69,7 +69,7 @@ func FilterClusters(appContextID string) error {
 
 	// Dump group-clusters map
 	for index, eachApp := range allAppNames {
-		grpMap, _ := ac.GetClusterGroupMap(context.Background(), eachApp)
+		grpMap, _ := ac.GetClusterGroupMap(ctx, eachApp)
 		log.Warn("FilterClusters .. ClusterGroupMap dump before invoking HPA Placement filtering",
 			log.Fields{"index": index, "appContextID": appContextID, "appName": eachApp, "group-map_size": len(grpMap), "groupMap": grpMap})
 	}
@@ -77,7 +77,7 @@ func FilterClusters(appContextID string) error {
 	// Iterate through all apps of the Composite App
 	for appIndex, eachApp := range allAppNames {
 		// Handle all hpa Intents of the app
-		hpaIntents, err := hpaModuleLib.NewHpaPlacementClient().GetAllIntentsByApp(eachApp, project, compositeApp, compositeAppVersion, deploymentIntentGroup)
+		hpaIntents, err := hpaModuleLib.NewHpaPlacementClient().GetAllIntentsByApp(ctx, eachApp, project, compositeApp, compositeAppVersion, deploymentIntentGroup)
 		if err != nil {
 			log.Error("FilterClusters .. Error getting hpa Intents", log.Fields{"project": project, "compositeApp": compositeApp, "deploymentGroup": deploymentIntentGroup})
 			return pkgerrors.Wrapf(err, "FilterClusters .. Error getting hpa Intents for project[%v] compositeApp[%v] compositeVersion[%v] deploymentGroup[%v] not found", project, compositeApp, compositeAppVersion, deploymentIntentGroup)
@@ -110,7 +110,7 @@ func FilterClusters(appContextID string) error {
 				"app-name":                hpaIntent.Spec.AppName,
 			})
 
-			grpMap, err := ac.GetClusterGroupMap(context.Background(), hpaIntent.Spec.AppName)
+			grpMap, err := ac.GetClusterGroupMap(ctx, hpaIntent.Spec.AppName)
 			if err != nil {
 				log.Error("FilterClusters .. Error getting GroupMap for app", log.Fields{"appName": hpaIntent.Spec.AppName, "groupMap": grpMap})
 				return pkgerrors.Wrapf(err, "FilterClusters .. Error getting GroupMap for app[%s], groupMap[%s]", hpaIntent.Spec.AppName, grpMap)
@@ -125,7 +125,7 @@ func FilterClusters(appContextID string) error {
 				hpaQualifiedNodes := make([]string, 0)
 
 				// Get all clusters for the current App from the AppContext
-				getclusters, err := ac.GetClusterNames(context.Background(), hpaIntent.Spec.AppName)
+				getclusters, err := ac.GetClusterNames(ctx, hpaIntent.Spec.AppName)
 				log.Info("FilterClusters .. GetClusterNames for app Info.", log.Fields{
 					"clusters":                getclusters,
 					"project":                 project,
@@ -146,7 +146,7 @@ func FilterClusters(appContextID string) error {
 				} // for clusters
 
 				// Initialize cluster/node resource Info
-				err = initializeResourceInfo(context.TODO(), &hpaIntent, &clusterResourceInfoMap, &clusterResourceObjMap)
+				err = initializeResourceInfo(ctx, &hpaIntent, &clusterResourceInfoMap, &clusterResourceObjMap)
 				if err != nil {
 					log.Error("FilterClusters .. Hpa Intent initializeResourceInfo error=> ", log.Fields{
 						"clusters": clusters,
@@ -161,7 +161,7 @@ func FilterClusters(appContextID string) error {
 					"clusterResourceObjMap": clusterResourceObjMap})
 
 				// Handle all hpa Consumers
-				hpaConsumers, err := hpaModuleLib.NewHpaPlacementClient().GetAllConsumers(project, compositeApp, compositeAppVersion, deploymentIntentGroup, hpaIntent.MetaData.Name)
+				hpaConsumers, err := hpaModuleLib.NewHpaPlacementClient().GetAllConsumers(ctx, project, compositeApp, compositeAppVersion, deploymentIntentGroup, hpaIntent.MetaData.Name)
 				if err != nil {
 					log.Error("FilterClusters .. Error GetAllConsumers.", log.Fields{
 						"hpa-intent": hpaIntent,
@@ -182,7 +182,7 @@ func FilterClusters(appContextID string) error {
 						"hpa-consumer": hpaConsumer})
 
 					// Handle all hpa Resurces
-					hpaResources, err := hpaModuleLib.NewHpaPlacementClient().GetAllResources(project, compositeApp, compositeAppVersion, deploymentIntentGroup, hpaIntent.MetaData.Name, hpaConsumer.MetaData.Name)
+					hpaResources, err := hpaModuleLib.NewHpaPlacementClient().GetAllResources(ctx, project, compositeApp, compositeAppVersion, deploymentIntentGroup, hpaIntent.MetaData.Name, hpaConsumer.MetaData.Name)
 					if err != nil {
 						log.Error("FilterClusters .. Error GetAllResources.", log.Fields{
 							"hpa-intent":   hpaIntent,
@@ -228,7 +228,7 @@ func FilterClusters(appContextID string) error {
 						hpaResourceLocal := hpaResource
 						if !(*(hpaResource.Spec.Allocatable)) {
 							isNonAllocResPresent = true
-							status, qualifiedClusterToNodesMap, err := filterNonAllocResource(hpaIntent.MetaData.Name, hpaIntent.Spec.AppName, &hpaResourceLocal, &clusterResourceObjMap, &clusterResourceInfoMap, clusters)
+							status, qualifiedClusterToNodesMap, err := filterNonAllocResource(ctx, hpaIntent.MetaData.Name, hpaIntent.Spec.AppName, &hpaResourceLocal, &clusterResourceObjMap, &clusterResourceInfoMap, clusters)
 							if !status {
 								log.Error("FilterClusters ..  filterNonAllocResource Failed. None of the clusters match the hpa-nonalloc-resource rules!!",
 									log.Fields{"appContextID": appContextID,
@@ -361,7 +361,7 @@ func FilterClusters(appContextID string) error {
 							if *(hpaResource.Spec.Allocatable) {
 								isAllocResPresent = true
 								kubeResToHpaResourceMap[hpaResource.Spec.Resource.Name] = hpaResource
-								status, qualifiedClusterToNodesMap, err := filterAllocResource(hpaIntent.MetaData.Name, hpaIntent.Spec.AppName, &hpaResourceLocal, &clusterResourceObjMap, &clusterResourceInfoMap, clusters, (replicaCount == hpaConsumer.Spec.Replicas))
+								status, qualifiedClusterToNodesMap, err := filterAllocResource(ctx, hpaIntent.MetaData.Name, hpaIntent.Spec.AppName, &hpaResourceLocal, &clusterResourceObjMap, &clusterResourceInfoMap, clusters, (replicaCount == hpaConsumer.Spec.Replicas))
 								if !status {
 									log.Error("FilterClusters .. filterAllocResource Failed .. None of the clusters match the hpa-alloc-resource rules!!",
 										log.Fields{"appContextID": appContextID, "isNonAllocResPresent": isNonAllocResPresent,
@@ -518,12 +518,12 @@ func FilterClusters(appContextID string) error {
 					log.Info("filterResource .. Delete non-qualified cluster", log.Fields{"cluster-index": i, "cluster": clExtra, "appname": hpaIntent.Spec.AppName})
 
 					// Delete the cluster from AppContext if not matching HPA rules
-					ch, err := ac.GetClusterHandle(context.Background(), hpaIntent.Spec.AppName, clExtra)
+					ch, err := ac.GetClusterHandle(ctx, hpaIntent.Spec.AppName, clExtra)
 					if err != nil {
 						log.Error("filterResource .. Unable to get cluster handle", log.Fields{"cluster": clExtra, "appname": hpaIntent.Spec.AppName})
 						return pkgerrors.Wrapf(err, "filterResource .. Unable to get cluster handle. appName[%s] cluster[%s]", hpaIntent.Spec.AppName, clExtra)
 					}
-					err = ac.DeleteCluster(context.Background(), ch)
+					err = ac.DeleteCluster(ctx, ch)
 					if err != nil {
 						log.Error("filterResource .. Unable to delete cluster", log.Fields{"cluster": clExtra, "appname": hpaIntent.Spec.AppName})
 						return pkgerrors.Wrapf(err, "filterResource .. Unable to delete cluster. appName[%s] cluster[%s]", hpaIntent.Spec.AppName, clExtra)
@@ -535,7 +535,7 @@ func FilterClusters(appContextID string) error {
 
 	// Dump group-clusters map
 	for index, eachApp := range allAppNames {
-		grpMap, _ := ac.GetClusterGroupMap(context.Background(), eachApp)
+		grpMap, _ := ac.GetClusterGroupMap(ctx, eachApp)
 		log.Warn("FilterClusters .. ClusterGroupMap dump after invoking HPA Placement filtering.",
 			log.Fields{"index": index, "appContextID": appContextID,
 				"project": project, "compositeApp": compositeApp,
@@ -546,7 +546,7 @@ func FilterClusters(appContextID string) error {
 }
 
 //filterAllocResource ... filter w.r.t hpa resource
-func filterAllocResource(intentName string, appName string, hpaResource *hpaModel.HpaResourceRequirement, clusterResourceObjMap *intentRs.ClusterResourceObjMap, clusterResourceInfoMap *intentRs.ClusterResourceInfoMap, clusters []string, rollbackNeeded bool) (bool, map[string]([]string), error) {
+func filterAllocResource(ctx context.Context, intentName string, appName string, hpaResource *hpaModel.HpaResourceRequirement, clusterResourceObjMap *intentRs.ClusterResourceObjMap, clusterResourceInfoMap *intentRs.ClusterResourceInfoMap, clusters []string, rollbackNeeded bool) (bool, map[string]([]string), error) {
 	log.Info("filterAllocResource .. start", log.Fields{
 		"intent-name":    intentName,
 		"app-name":       appName,
@@ -560,7 +560,7 @@ func filterAllocResource(intentName string, appName string, hpaResource *hpaMode
 	matched := false
 
 	// Populate cluster/node resource Info
-	err := PopulateClustersResources(context.TODO(), hpaResource, clusterResourceInfoMap, clusterResourceObjMap)
+	err := PopulateClustersResources(ctx, hpaResource, clusterResourceInfoMap, clusterResourceObjMap)
 	if err != nil {
 		log.Error("filterAllocResource .. Hpa Intent PopulateClustersResources error=> ", log.Fields{
 			"intent-name": intentName,
@@ -596,7 +596,7 @@ func filterAllocResource(intentName string, appName string, hpaResource *hpaMode
 			if _, ok := (*clusterResourceInfoMap)[cl]; ok {
 				clusterResourceInfo := (*clusterResourceInfoMap)[cl]
 
-				matched = rsAllocatable.Qualified(context.TODO(), clusterResourceInfo.ClusterName, *hpaResource)
+				matched = rsAllocatable.Qualified(ctx, clusterResourceInfo.ClusterName, *hpaResource)
 				qualifiedNodes = rsAllocatable.GetQualifiedNodes(hpaResource.Spec.Resource.Name)
 
 				if len(qualifiedNodes) > 0 {
@@ -648,7 +648,7 @@ func filterAllocResource(intentName string, appName string, hpaResource *hpaMode
 }
 
 //filterNonAllocResource ... filter w.r.t hpa resource
-func filterNonAllocResource(intentName string, appName string, hpaResource *hpaModel.HpaResourceRequirement, clusterResourceObjMap *intentRs.ClusterResourceObjMap, clusterResourceInfoMap *intentRs.ClusterResourceInfoMap, clusters []string) (bool, map[string]([]string), error) {
+func filterNonAllocResource(ctx context.Context, intentName string, appName string, hpaResource *hpaModel.HpaResourceRequirement, clusterResourceObjMap *intentRs.ClusterResourceObjMap, clusterResourceInfoMap *intentRs.ClusterResourceInfoMap, clusters []string) (bool, map[string]([]string), error) {
 	log.Info("filterNonAllocResource .. start", log.Fields{
 		"intent-name":  intentName,
 		"app-name":     appName,
@@ -661,7 +661,7 @@ func filterNonAllocResource(intentName string, appName string, hpaResource *hpaM
 	matched := false
 
 	// Populate cluster/node resource Info
-	err := PopulateClustersResources(context.TODO(), hpaResource, clusterResourceInfoMap, clusterResourceObjMap)
+	err := PopulateClustersResources(ctx, hpaResource, clusterResourceInfoMap, clusterResourceObjMap)
 	if err != nil {
 		log.Error("filterNonAllocResource .. Hpa Intent PopulateClustersResources error=> ", log.Fields{
 			"intent-name": intentName,
@@ -693,7 +693,7 @@ func filterNonAllocResource(intentName string, appName string, hpaResource *hpaM
 				if _, ok := (*clusterResourceInfoMap)[cl]; ok {
 					clusterResourceInfo := (*clusterResourceInfoMap)[cl]
 
-					matched = rsNonAllocatable.Qualified(context.TODO(), clusterResourceInfo.ClusterName, *hpaResource)
+					matched = rsNonAllocatable.Qualified(ctx, clusterResourceInfo.ClusterName, *hpaResource)
 					qualifiedNodes = rsNonAllocatable.GetQualifiedNodes()
 					if len(qualifiedNodes) > 0 {
 						matched = true
@@ -775,7 +775,7 @@ func PopulateClustersResources(ctx context.Context, hpaResource *hpaModel.HpaRes
 				// Pull Cluster labels from db & Tokenize received cluster-detail into provider-name & cluster-name
 				if strings.Contains(cluster.ClusterName, "+") {
 					tokens := strings.Split(cluster.ClusterName, "+")
-					nodeLabels, err := GetKubeClusterLabels(tokens[0], tokens[1])
+					nodeLabels, err := GetKubeClusterLabels(ctx, tokens[0], tokens[1])
 					if err != nil {
 						log.Error("PopulateClustersResources .. Unable to find the cluster labels", log.Fields{"cluster": cluster.ClusterName, "hpa-resource-name": hpaResource.MetaData.Name})
 					} else {
@@ -892,9 +892,9 @@ func Publish(ctx context.Context, req *clmcontrollerpb.ClmControllerEventRequest
 	var err error = nil
 	switch req.Event {
 	case clmcontrollerpb.ClmControllerEventType_CLUSTER_CREATED, clmcontrollerpb.ClmControllerEventType_CLUSTER_UPDATED:
-		err = SaveClusterLabelsDB(req.ProviderName, req.ClusterName)
+		err = SaveClusterLabelsDB(ctx, req.ProviderName, req.ClusterName)
 	case clmcontrollerpb.ClmControllerEventType_CLUSTER_DELETED:
-		err = DeleteKubeClusterLabelsDB(req.ProviderName, req.ClusterName)
+		err = DeleteKubeClusterLabelsDB(ctx, req.ProviderName, req.ClusterName)
 	default:
 		log.Warn("Publish .. Received Unknown event", log.Fields{"req": req, "event": req.Event.String()})
 	}

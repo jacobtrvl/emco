@@ -4,9 +4,9 @@
 package module
 
 import (
+	"context"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
 
-	"context"
 	pkgerrors "github.com/pkg/errors"
 	hpaModel "gitlab.com/project-emco/core/emco-base/src/hpa-plc/pkg/model"
 	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
@@ -16,9 +16,9 @@ import (
  AddResource ... AddResource adds a given consumer to the hpa-hpaIntent and stores in the db.
  Other input parameters for it - projectName, compositeAppName, version, DeploymentIntentgroupName, intentName, consumerName
 */
-func (c *HpaPlacementClient) AddResource(a hpaModel.HpaResourceRequirement, p string, ca string, v string, di string, i string, cn string, exists bool) (hpaModel.HpaResourceRequirement, error) {
+func (c *HpaPlacementClient) AddResource(ctx context.Context, a hpaModel.HpaResourceRequirement, p string, ca string, v string, di string, i string, cn string, exists bool) (hpaModel.HpaResourceRequirement, error) {
 	//Check for the Resource already exists here.
-	res, _, err := c.GetResource(a.MetaData.Name, p, ca, v, di, i, cn)
+	res, _, err := c.GetResource(ctx, a.MetaData.Name, p, ca, v, di, i, cn)
 	if err == nil && !exists {
 		log.Error("AddResource ... Resource already exists", log.Fields{"hpaResource": a.MetaData.Name, "err": err, "res-received": res})
 		return hpaModel.HpaResourceRequirement{}, pkgerrors.New("Resource already exists")
@@ -35,7 +35,7 @@ func (c *HpaPlacementClient) AddResource(a hpaModel.HpaResourceRequirement, p st
 	}
 
 	log.Info("AddResource ... Creating DB entry", log.Fields{"StoreName": c.db.StoreName, "key": dbKey, "project": p, "compositeApp": ca, "compositeAppVersion": v, "dep-group": di, "hpaIntent": i, "hpaConsumer": cn, "hpaResource": a.MetaData.Name})
-	err = db.DBconn.Insert(context.Background(), c.db.StoreName, dbKey, nil, c.db.TagMetaData, a)
+	err = db.DBconn.Insert(ctx, c.db.StoreName, dbKey, nil, c.db.TagMetaData, a)
 	if err != nil {
 		log.Error("AddResource ... DB Error .. Creating DB entry error", log.Fields{"hpaResource": a.MetaData.Name})
 		return hpaModel.HpaResourceRequirement{}, pkgerrors.Wrap(err, "Creating DB Entry")
@@ -47,7 +47,7 @@ func (c *HpaPlacementClient) AddResource(a hpaModel.HpaResourceRequirement, p st
  GetResource ... takes in an ConsumerName, IntentName, ProjectName, CompositeAppName, Version, DeploymentIntentGroup and intentName.
  It returns the Resource.
 */
-func (c *HpaPlacementClient) GetResource(rn string, p string, ca string, v string, di string, i string, cn string) (hpaModel.HpaResourceRequirement, bool, error) {
+func (c *HpaPlacementClient) GetResource(ctx context.Context, rn string, p string, ca string, v string, di string, i string, cn string) (hpaModel.HpaResourceRequirement, bool, error) {
 
 	dbKey := HpaResourceKey{
 		ResourceName:          rn,
@@ -59,7 +59,7 @@ func (c *HpaPlacementClient) GetResource(rn string, p string, ca string, v strin
 		DeploymentIntentGroup: di,
 	}
 
-	result, err := db.DBconn.Find(context.Background(), c.db.StoreName, dbKey, c.db.TagMetaData)
+	result, err := db.DBconn.Find(ctx, c.db.StoreName, dbKey, c.db.TagMetaData)
 	if err != nil {
 		log.Error("GetResource ... DB Error .. Get Resource error", log.Fields{"hpaResource": rn})
 		return hpaModel.HpaResourceRequirement{}, false, err
@@ -85,7 +85,7 @@ func (c *HpaPlacementClient) GetResource(rn string, p string, ca string, v strin
  GetAllResources ... takes in projectName, CompositeAppName, CompositeAppVersion, DeploymentGroup,
  DeploymentIntentName, ConsumerName . It returns ListOfResources.
 */
-func (c HpaPlacementClient) GetAllResources(p, ca, v, di, i, cn string) ([]hpaModel.HpaResourceRequirement, error) {
+func (c HpaPlacementClient) GetAllResources(ctx context.Context, p, ca, v, di, i, cn string) ([]hpaModel.HpaResourceRequirement, error) {
 
 	dbKey := HpaResourceKey{
 		ResourceName:          "",
@@ -97,7 +97,7 @@ func (c HpaPlacementClient) GetAllResources(p, ca, v, di, i, cn string) ([]hpaMo
 		DeploymentIntentGroup: di,
 	}
 
-	result, err := db.DBconn.Find(context.Background(), c.db.StoreName, dbKey, c.db.TagMetaData)
+	result, err := db.DBconn.Find(ctx, c.db.StoreName, dbKey, c.db.TagMetaData)
 	if err != nil {
 		log.Error("GetAllResources ... DB Error .. Get HpaResources db error", log.Fields{"hpaConsumer": cn})
 		return []hpaModel.HpaResourceRequirement{}, err
@@ -123,7 +123,7 @@ func (c HpaPlacementClient) GetAllResources(p, ca, v, di, i, cn string) ([]hpaMo
  GetResourceByName ... takes in IntentName, projectName, CompositeAppName, CompositeAppVersion,
  deploymentIntentGroupName, intentName and consumerName returns the list of resource under the consumerName.
 */
-func (c HpaPlacementClient) GetResourceByName(rn, p, ca, v, di, i, cn string) (hpaModel.HpaResourceRequirement, error) {
+func (c HpaPlacementClient) GetResourceByName(ctx context.Context, rn, p, ca, v, di, i, cn string) (hpaModel.HpaResourceRequirement, error) {
 
 	dbKey := HpaResourceKey{
 		ResourceName:          rn,
@@ -135,7 +135,7 @@ func (c HpaPlacementClient) GetResourceByName(rn, p, ca, v, di, i, cn string) (h
 		DeploymentIntentGroup: di,
 	}
 
-	result, err := db.DBconn.Find(context.Background(), c.db.StoreName, dbKey, c.db.TagMetaData)
+	result, err := db.DBconn.Find(ctx, c.db.StoreName, dbKey, c.db.TagMetaData)
 	if err != nil {
 		log.Error("GetResourceByName ... DB Error .. Get HpaResource error", log.Fields{"hpaResource": rn})
 		return hpaModel.HpaResourceRequirement{}, err
@@ -155,7 +155,7 @@ func (c HpaPlacementClient) GetResourceByName(rn, p, ca, v, di, i, cn string) (h
 }
 
 // DeleteResource ... deletes a given resource tied to project, composite app and deployment intent group, intent name, consumer name
-func (c HpaPlacementClient) DeleteResource(rn string, p string, ca string, v string, di string, i string, cn string) error {
+func (c HpaPlacementClient) DeleteResource(ctx context.Context, rn string, p string, ca string, v string, di string, i string, cn string) error {
 	dbKey := HpaResourceKey{
 		ResourceName:          rn,
 		ConsumerName:          cn,
@@ -167,14 +167,14 @@ func (c HpaPlacementClient) DeleteResource(rn string, p string, ca string, v str
 	}
 
 	//Check for the Resource already exists
-	_, _, err := c.GetResource(rn, p, ca, v, di, i, cn)
+	_, _, err := c.GetResource(ctx, rn, p, ca, v, di, i, cn)
 	if err != nil {
 		log.Error("DeleteResource ... Resource does not exist", log.Fields{"hpaResource": rn, "err": err})
 		return err
 	}
 
 	log.Info("DeleteResource ... Delete Hpa Consumer entry", log.Fields{"StoreName": c.db.StoreName, "key": dbKey, "project": p, "compositeApp": ca, "compositeAppVersion": v, "dep-group": di, "hpaIntent": i, "hpaConsumer": cn, "hpaResource": rn})
-	err = db.DBconn.Remove(context.Background(), c.db.StoreName, dbKey)
+	err = db.DBconn.Remove(ctx, c.db.StoreName, dbKey)
 	if err != nil {
 		log.Error("DeleteResource ... DB Error .. Delete Hpa Resource entry error", log.Fields{"err": err, "StoreName": c.db.StoreName, "key": dbKey, "project": p, "compositeApp": ca, "compositeAppVersion": v, "dep-group": di, "hpaIntent": i, "hpaConsumer": cn})
 		return pkgerrors.Wrap(err, "DB Error .. Delete Hpa Resource entry error")

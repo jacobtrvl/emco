@@ -4,6 +4,7 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -27,6 +28,7 @@ deployment-intent-groups/{deployment-intent-group-name}/hpa-intents/{intent-name
 */
 // Add Hpa Intent resource
 func (h HpaPlacementIntentHandler) addHpaResourceHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	var hpa hpaModel.HpaResourceRequirement
 	reqDump, _ := httputil.DumpRequest(r, true)
 	log.Info(":: addHpaResourceHandler .. start ::", log.Fields{"req": string(reqDump)})
@@ -60,12 +62,12 @@ func (h HpaPlacementIntentHandler) addHpaResourceHandler(w http.ResponseWriter, 
 	cn := vars["consumer-name"]
 
 	// check resource dependencies(consumer) validity
-	if !validateDependents(&w, &h, &hpa, p, ca, v, di, i, cn) {
+	if !validateDependents(ctx, &w, &h, &hpa, p, ca, v, di, i, cn) {
 		return
 	}
 
 	log.Info(":: AddResource .. Req ::", log.Fields{"project": p, "composite-app": ca, "composite-app-ver": v, "dep-group": di, "intent-name": i, "consumer-name": cn, "resource-name": hpa.MetaData.Name})
-	resource, err := h.client.AddResource(hpa, p, ca, v, di, i, cn, false)
+	resource, err := h.client.AddResource(ctx, hpa, p, ca, v, di, i, cn, false)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, hpa, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -90,6 +92,7 @@ deployment-intent-groups/{deployment-intent-group-name}/hpa-intents/{intent-name
 */
 // Query Hpa Intent resource
 func (h HpaPlacementIntentHandler) getHpaResourceHandlerByName(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	reqDump, _ := httputil.DumpRequest(r, true)
 	log.Info(":: getHpaResourceHandlerByName .. start ::", log.Fields{"req": string(reqDump)})
 
@@ -106,7 +109,7 @@ func (h HpaPlacementIntentHandler) getHpaResourceHandlerByName(w http.ResponseWr
 		return
 	}
 
-	resource, err := h.client.GetResourceByName(rN, p, ca, v, di, i, cn)
+	resource, err := h.client.GetResourceByName(ctx, rN, p, ca, v, di, i, cn)
 	if err != nil {
 		apiErr := apierror.HandleErrors(mux.Vars(r), err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -130,6 +133,7 @@ deployment-intent-groups/{deployment-intent-group-name}/hpa-intents/{intent-name
 */
 // Get Hpa Intent resource
 func (h HpaPlacementIntentHandler) getHpaResourceHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	reqDump, _ := httputil.DumpRequest(r, true)
 	log.Info(":: getHpaResourceHandler .. start ::", log.Fields{"req": string(reqDump)})
 	p, ca, v, di, i, cn, name, err := parseHpaResourceReqParameters(&w, r)
@@ -141,9 +145,9 @@ func (h HpaPlacementIntentHandler) getHpaResourceHandler(w http.ResponseWriter, 
 
 	var resources interface{}
 	if len(name) == 0 {
-		resources, err = h.client.GetAllResources(p, ca, v, di, i, cn)
+		resources, err = h.client.GetAllResources(ctx, p, ca, v, di, i, cn)
 	} else {
-		resources, _, err = h.client.GetResource(name, p, ca, v, di, i, cn)
+		resources, _, err = h.client.GetResource(ctx, name, p, ca, v, di, i, cn)
 	}
 
 	if err != nil {
@@ -169,6 +173,7 @@ deployment-intent-groups/{deployment-intent-group-name}/hpa-intents/{intent-name
 */
 // Update Hpa Intent resource
 func (h HpaPlacementIntentHandler) putHpaResourceHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	var hpa hpaModel.HpaResourceRequirement
 	reqDump, _ := httputil.DumpRequest(r, true)
 	log.Info(":: putHpaResourceHandler .. start ::", log.Fields{"req": string(reqDump)})
@@ -201,7 +206,7 @@ func (h HpaPlacementIntentHandler) putHpaResourceHandler(w http.ResponseWriter, 
 	}
 
 	// check resource dependencies(consumer) validity
-	if !validateDependents(&w, &h, &hpa, p, ca, v, di, i, cn) {
+	if !validateDependents(ctx, &w, &h, &hpa, p, ca, v, di, i, cn) {
 		return
 	}
 
@@ -213,7 +218,7 @@ func (h HpaPlacementIntentHandler) putHpaResourceHandler(w http.ResponseWriter, 
 	}
 
 	log.Info(":: putHpaResourceHandler .. Req ::", log.Fields{"project": p, "composite-app": ca, "composite-app-ver": v, "dep-group": di, "intent-name": name})
-	resource, err := h.client.AddResource(hpa, p, ca, v, di, i, cn, true)
+	resource, err := h.client.AddResource(ctx, hpa, p, ca, v, di, i, cn, true)
 	if err != nil {
 		apiErr := apierror.HandleErrors(mux.Vars(r), err, hpa, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -238,6 +243,7 @@ deployment-intent-groups/{deployment-intent-group-name}/hpa-intents/{intent-name
 */
 // Delete Hpa Intent resource
 func (h HpaPlacementIntentHandler) deleteHpaResourceHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	reqDump, _ := httputil.DumpRequest(r, true)
 	log.Info(":: deleteHpaResourceHandler .. start ::", log.Fields{"req": string(reqDump)})
 
@@ -249,14 +255,14 @@ func (h HpaPlacementIntentHandler) deleteHpaResourceHandler(w http.ResponseWrite
 	}
 	log.Info(":: deleteHpaResourceHandler .. Req ::", log.Fields{"project": p, "composite-app": ca, "composite-app-ver": v, "dep-group": di, "intent-name": i, "consumer-name": cn, "resource-name": name})
 
-	_, _, err = h.client.GetResource(name, p, ca, v, di, i, cn)
+	_, _, err = h.client.GetResource(ctx, name, p, ca, v, di, i, cn)
 	if err != nil {
 		apiErr := apierror.HandleErrors(mux.Vars(r), err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
 		return
 	}
 
-	err = h.client.DeleteResource(name, p, ca, v, di, i, cn)
+	err = h.client.DeleteResource(ctx, name, p, ca, v, di, i, cn)
 	if err != nil {
 		apiErr := apierror.HandleErrors(mux.Vars(r), err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -273,6 +279,7 @@ deployment-intent-groups/{deployment-intent-group-name}/hpa-intents/{intent-name
 */
 // Delete Hpa Intent resource
 func (h HpaPlacementIntentHandler) deleteAllHpaResourcesHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	reqDump, _ := httputil.DumpRequest(r, true)
 	log.Info(":: deleteAllHpaResourceHandler .. start ::", log.Fields{"req": string(reqDump)})
 
@@ -284,14 +291,14 @@ func (h HpaPlacementIntentHandler) deleteAllHpaResourcesHandler(w http.ResponseW
 	}
 	log.Info(":: deleteAllHpaResourcesHandler .. Req ::", log.Fields{"project": p, "composite-app": ca, "composite-app-ver": v, "dep-group": di, "intent-name": i, "consumer-name": cn, "resource-name": name})
 
-	hpaResources, err := h.client.GetAllResources(p, ca, v, di, i, cn)
+	hpaResources, err := h.client.GetAllResources(ctx, p, ca, v, di, i, cn)
 	if err != nil {
 		apiErr := apierror.HandleErrors(mux.Vars(r), err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
 		return
 	}
 	for _, hpaResource := range hpaResources {
-		err = h.client.DeleteResource(hpaResource.MetaData.Name, p, ca, v, di, i, cn)
+		err = h.client.DeleteResource(ctx, hpaResource.MetaData.Name, p, ca, v, di, i, cn)
 		if err != nil {
 			apiErr := apierror.HandleErrors(mux.Vars(r), err, nil, apiErrors)
 			http.Error(w, apiErr.Message, apiErr.Status)
@@ -335,11 +342,11 @@ func validateConsumerSpec(w *http.ResponseWriter, name string) {
 	}
 }
 
-func validateDependents(w *http.ResponseWriter, h *HpaPlacementIntentHandler, hpa *hpaModel.HpaResourceRequirement, p string, ca string, v string, di string, i string, cn string) bool {
+func validateDependents(ctx context.Context, w *http.ResponseWriter, h *HpaPlacementIntentHandler, hpa *hpaModel.HpaResourceRequirement, p string, ca string, v string, di string, i string, cn string) bool {
 	log.Info(":: validateDependents .. start", log.Fields{"hpa-resource": hpa})
 
 	//Check for the Consumer already exists here.
-	res, _, err := h.client.GetConsumer(cn, p, ca, v, di, i)
+	res, _, err := h.client.GetConsumer(ctx, cn, p, ca, v, di, i)
 	if err != nil {
 		log.Error(":: validateDependents .. Consumer not found.", log.Fields{"consumer-name": cn, "Error": err})
 		http.Error(*w, err.Error(), http.StatusNotFound)

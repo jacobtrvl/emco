@@ -87,7 +87,7 @@ func (p *NFDResource) PopulateResourceInfo(ctx context.Context, clusterName stri
 	defer con.RemoveClient()
 
 	// Get Kube Client handle
-	c, err := con.GetClient(context.Background(), clusterName, "0", "default")
+	c, err := con.GetClient(ctx, clusterName, "0", "default")
 	if err != nil {
 		log.Error("Error in creating kubeconfig client", log.Fields{
 			"error":        err,
@@ -97,7 +97,7 @@ func (p *NFDResource) PopulateResourceInfo(ctx context.Context, clusterName stri
 	}
 
 	if c != nil {
-		if nodeLabels, err := c.GetNodeLabels(context.TODO()); err == nil {
+		if nodeLabels, err := c.GetNodeLabels(ctx); err == nil {
 			p.nodeLabels = nodeLabels
 		}
 		p.configLoaded = true

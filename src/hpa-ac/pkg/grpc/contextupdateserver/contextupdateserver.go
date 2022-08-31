@@ -21,7 +21,7 @@ func (cs *contextupdateServer) UpdateAppContext(ctx context.Context, req *contex
 	log.Info("Received Update App Context request .. start", log.Fields{"req": req})
 
 	if (req != nil) && (len(req.AppContext) > 0) {
-		err := action.UpdateAppContext(req.IntentName, req.AppContext)
+		err := action.UpdateAppContext(ctx, req.IntentName, req.AppContext)
 		if err != nil {
 			log.Error("Received Update App Context request .. internal error.", log.Fields{"req": req, "err": err})
 			return &contextpb.ContextUpdateResponse{AppContextUpdated: false, AppContextUpdateMessage: err.Error()}, nil

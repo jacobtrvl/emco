@@ -4,6 +4,7 @@
 package module
 
 import (
+	"context"
 	"encoding/json"
 
 	hpaModel "gitlab.com/project-emco/core/emco-base/src/hpa-plc/pkg/model"
@@ -12,26 +13,26 @@ import (
 // HpaPlacementManager .. Manager is an interface exposing the HpaPlacementIntent functionality
 type HpaPlacementManager interface {
 	// intents
-	AddIntent(a hpaModel.DeploymentHpaIntent, p string, ca string, v string, di string, exists bool) (hpaModel.DeploymentHpaIntent, error)
-	GetIntent(i string, p string, ca string, v string, di string) (hpaModel.DeploymentHpaIntent, bool, error)
-	GetAllIntents(p, ca, v, di string) ([]hpaModel.DeploymentHpaIntent, error)
-	GetAllIntentsByApp(app, p, ca, v, di string) ([]hpaModel.DeploymentHpaIntent, error)
-	GetIntentByName(i, p, ca, v, di string) (hpaModel.DeploymentHpaIntent, error)
-	DeleteIntent(i string, p string, ca string, v string, di string) error
+	AddIntent(ctx context.Context, a hpaModel.DeploymentHpaIntent, p string, ca string, v string, di string, exists bool) (hpaModel.DeploymentHpaIntent, error)
+	GetIntent(ctx context.Context, i string, p string, ca string, v string, di string) (hpaModel.DeploymentHpaIntent, bool, error)
+	GetAllIntents(ctx context.Context, p, ca, v, di string) ([]hpaModel.DeploymentHpaIntent, error)
+	GetAllIntentsByApp(ctx context.Context, app, p, ca, v, di string) ([]hpaModel.DeploymentHpaIntent, error)
+	GetIntentByName(ctx context.Context, i, p, ca, v, di string) (hpaModel.DeploymentHpaIntent, error)
+	DeleteIntent(ctx context.Context, i string, p string, ca string, v string, di string) error
 
 	// consumers
-	AddConsumer(a hpaModel.HpaResourceConsumer, p string, ca string, v string, di string, i string, exists bool) (hpaModel.HpaResourceConsumer, error)
-	GetConsumer(cn string, p string, ca string, v string, di string, i string) (hpaModel.HpaResourceConsumer, bool, error)
-	GetAllConsumers(p, ca, v, di, i string) ([]hpaModel.HpaResourceConsumer, error)
-	GetConsumerByName(cn, p, ca, v, di, i string) (hpaModel.HpaResourceConsumer, error)
-	DeleteConsumer(cn, p string, ca string, v string, di string, i string) error
+	AddConsumer(ctx context.Context, a hpaModel.HpaResourceConsumer, p string, ca string, v string, di string, i string, exists bool) (hpaModel.HpaResourceConsumer, error)
+	GetConsumer(ctx context.Context, cn string, p string, ca string, v string, di string, i string) (hpaModel.HpaResourceConsumer, bool, error)
+	GetAllConsumers(ctx context.Context, p, ca, v, di, i string) ([]hpaModel.HpaResourceConsumer, error)
+	GetConsumerByName(ctx context.Context, cn, p, ca, v, di, i string) (hpaModel.HpaResourceConsumer, error)
+	DeleteConsumer(ctx context.Context, cn, p string, ca string, v string, di string, i string) error
 
 	// resources
-	AddResource(a hpaModel.HpaResourceRequirement, p string, ca string, v string, di string, i string, cn string, exists bool) (hpaModel.HpaResourceRequirement, error)
-	GetResource(rn string, p string, ca string, v string, di string, i string, cn string) (hpaModel.HpaResourceRequirement, bool, error)
-	GetAllResources(p, ca, v, di, i, cn string) ([]hpaModel.HpaResourceRequirement, error)
-	GetResourceByName(rn, p, ca, v, di, i, cn string) (hpaModel.HpaResourceRequirement, error)
-	DeleteResource(rn string, p string, ca string, v string, di string, i string, cn string) error
+	AddResource(ctx context.Context, a hpaModel.HpaResourceRequirement, p string, ca string, v string, di string, i string, cn string, exists bool) (hpaModel.HpaResourceRequirement, error)
+	GetResource(ctx context.Context, rn string, p string, ca string, v string, di string, i string, cn string) (hpaModel.HpaResourceRequirement, bool, error)
+	GetAllResources(ctx context.Context, p, ca, v, di, i, cn string) ([]hpaModel.HpaResourceRequirement, error)
+	GetResourceByName(ctx context.Context, rn, p, ca, v, di, i, cn string) (hpaModel.HpaResourceRequirement, error)
+	DeleteResource(ctx context.Context, rn string, p string, ca string, v string, di string, i string, cn string) error
 }
 
 // HpaPlacementClient implements the HpaPlacementManager interface

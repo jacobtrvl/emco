@@ -16,9 +16,9 @@ import (
 AddIntent adds a given intent to the deployment-intent-group and stores in the db.
 Other input parameters for it - projectName, compositeAppName, version, DeploymentIntentgroupName
 */
-func (c *HpaPlacementClient) AddIntent(a hpaModel.DeploymentHpaIntent, p string, ca string, v string, di string, exists bool) (hpaModel.DeploymentHpaIntent, error) {
+func (c *HpaPlacementClient) AddIntent(ctx context.Context, a hpaModel.DeploymentHpaIntent, p string, ca string, v string, di string, exists bool) (hpaModel.DeploymentHpaIntent, error) {
 	//Check for the intent already exists here.
-	res, dependentErrStaus, err := c.GetIntent(a.MetaData.Name, p, ca, v, di)
+	res, dependentErrStaus, err := c.GetIntent(ctx, a.MetaData.Name, p, ca, v, di)
 	if err != nil && dependentErrStaus == true {
 		log.Error("AddIntent ... Intent dependency check failed", log.Fields{"hpaIntent": a.MetaData.Name, "err": err, "res-received": res})
 		return hpaModel.DeploymentHpaIntent{}, err
@@ -36,7 +36,7 @@ func (c *HpaPlacementClient) AddIntent(a hpaModel.DeploymentHpaIntent, p string,
 	}
 
 	log.Info("AddIntent ... Creating DB entry", log.Fields{"StoreName": c.db.StoreName, "key": dbKey, "project": p, "compositeApp": ca, "compositeAppVersion": v, "deploymentIntentGroup": di, "hpaIntent": a.MetaData.Name})
-	err = db.DBconn.Insert(context.Background(), c.db.StoreName, dbKey, nil, c.db.TagMetaData, a)
+	err = db.DBconn.Insert(ctx, c.db.StoreName, dbKey, nil, c.db.TagMetaData, a)
 	if err != nil {
 		log.Error("AddIntent ... DB Error .. Creating DB entry error", log.Fields{"StoreName": c.db.StoreName, "akey": dbKey, "project": p, "compositeApp": ca, "compositeAppVersion": v, "deploymentIntentGroup": di, "hpaIntent": a.MetaData.Name})
 		return hpaModel.DeploymentHpaIntent{}, pkgerrors.Wrap(err, "Creating DB Entry")
@@ -48,7 +48,7 @@ func (c *HpaPlacementClient) AddIntent(a hpaModel.DeploymentHpaIntent, p string,
 GetIntent takes in an IntentName, ProjectName, CompositeAppName, Version and DeploymentIntentGroup.
 It returns the Intent.
 */
-func (c *HpaPlacementClient) GetIntent(i string, p string, ca string, v string, di string) (hpaModel.DeploymentHpaIntent, bool, error) {
+func (c *HpaPlacementClient) GetIntent(ctx context.Context, i string, p string, ca string, v string, di string) (hpaModel.DeploymentHpaIntent, bool, error) {
 
 	dbKey := HpaIntentKey{
 		IntentName:            i,
@@ -58,7 +58,7 @@ func (c *HpaPlacementClient) GetIntent(i string, p string, ca string, v string, 
 		DeploymentIntentGroup: di,
 	}
 
-	result, err := db.DBconn.Find(context.Background(), c.db.StoreName, dbKey, c.db.TagMetaData)
+	result, err := db.DBconn.Find(ctx, c.db.StoreName, dbKey, c.db.TagMetaData)
 	if err != nil {
 		log.Error("GetIntent ... DB Error .. Get Intent error", log.Fields{"hpaIntent": i, "err": err})
 		return hpaModel.DeploymentHpaIntent{}, false, err
@@ -84,7 +84,7 @@ func (c *HpaPlacementClient) GetIntent(i string, p string, ca string, v string, 
 GetAllIntents takes in projectName, CompositeAppName, CompositeAppVersion,
 DeploymentIntentName . It returns ListOfIntents.
 */
-func (c HpaPlacementClient) GetAllIntents(p string, ca string, v string, di string) ([]hpaModel.DeploymentHpaIntent, error) {
+func (c HpaPlacementClient) GetAllIntents(ctx context.Context, p string, ca string, v string, di string) ([]hpaModel.DeploymentHpaIntent, error) {
 
 	dbKey := HpaIntentKey{
 		IntentName:            "",
@@ -94,7 +94,7 @@ func (c HpaPlacementClient) GetAllIntents(p string, ca string, v string, di stri
 		DeploymentIntentGroup: di,
 	}
 
-	result, err := db.DBconn.Find(context.Background(), c.db.StoreName, dbKey, c.db.TagMetaData)
+	result, err := db.DBconn.Find(ctx, c.db.StoreName, dbKey, c.db.TagMetaData)
 	if err != nil {
 		log.Error("GetAllIntents ... DB Error .. Get HpaIntents db error", log.Fields{"StoreName": c.db.StoreName, "project": p, "compositeApp": ca, "compositeAppVersion": v, "deploymentIntentGroup": di, "len_result": len(result), "err": err})
 		return []hpaModel.DeploymentHpaIntent{}, err
@@ -120,7 +120,7 @@ func (c HpaPlacementClient) GetAllIntents(p string, ca string, v string, di stri
 GetAllIntentsByApp takes in appName, projectName, CompositeAppName, CompositeAppVersion,
 DeploymentIntentName . It returns ListOfIntents.
 */
-func (c HpaPlacementClient) GetAllIntentsByApp(app string, p string, ca string, v string, di string) ([]hpaModel.DeploymentHpaIntent, error) {
+func (c HpaPlacementClient) GetAllIntentsByApp(ctx context.Context, app string, p string, ca string, v string, di string) ([]hpaModel.DeploymentHpaIntent, error) {
 
 	dbKey := HpaIntentKey{
 		IntentName:            "",
@@ -130,7 +130,7 @@ func (c HpaPlacementClient) GetAllIntentsByApp(app string, p string, ca string, 
 		DeploymentIntentGroup: di,
 	}
 
-	result, err := db.DBconn.Find(context.Background(), c.db.StoreName, dbKey, c.db.TagMetaData)
+	result, err := db.DBconn.Find(ctx, c.db.StoreName, dbKey, c.db.TagMetaData)
 	if err != nil {
 		log.Error("GetAllIntentsByApp .. DB Error", log.Fields{"StoreName": c.db.StoreName, "project": p, "compositeApp": ca, "compositeAppVersion": v, "deploymentIntentGroup": di, "len_result": len(result), "err": err})
 		return []hpaModel.DeploymentHpaIntent{}, err
@@ -159,7 +159,7 @@ func (c HpaPlacementClient) GetAllIntentsByApp(app string, p string, ca string, 
 GetIntentByName takes in IntentName, projectName, CompositeAppName, CompositeAppVersion
 and deploymentIntentGroupName returns the list of intents under the IntentName.
 */
-func (c HpaPlacementClient) GetIntentByName(i string, p string, ca string, v string, di string) (hpaModel.DeploymentHpaIntent, error) {
+func (c HpaPlacementClient) GetIntentByName(ctx context.Context, i string, p string, ca string, v string, di string) (hpaModel.DeploymentHpaIntent, error) {
 
 	dbKey := HpaIntentKey{
 		IntentName:            i,
@@ -169,7 +169,7 @@ func (c HpaPlacementClient) GetIntentByName(i string, p string, ca string, v str
 		DeploymentIntentGroup: di,
 	}
 
-	result, err := db.DBconn.Find(context.Background(), c.db.StoreName, dbKey, c.db.TagMetaData)
+	result, err := db.DBconn.Find(ctx, c.db.StoreName, dbKey, c.db.TagMetaData)
 	if err != nil {
 		log.Error("GetIntentByName ... DB Error .. Get HpaIntent error", log.Fields{"hpaIntent": i})
 		return hpaModel.DeploymentHpaIntent{}, err
@@ -189,7 +189,7 @@ func (c HpaPlacementClient) GetIntentByName(i string, p string, ca string, v str
 }
 
 // DeleteIntent deletes a given intent tied to project, composite app and deployment intent group
-func (c HpaPlacementClient) DeleteIntent(i string, p string, ca string, v string, di string) error {
+func (c HpaPlacementClient) DeleteIntent(ctx context.Context, i string, p string, ca string, v string, di string) error {
 	dbKey := HpaIntentKey{
 		IntentName:            i,
 		Project:               p,
@@ -199,14 +199,14 @@ func (c HpaPlacementClient) DeleteIntent(i string, p string, ca string, v string
 	}
 
 	//Check for the Intent already exists
-	_, _, err := c.GetIntent(i, p, ca, v, di)
+	_, _, err := c.GetIntent(ctx, i, p, ca, v, di)
 	if err != nil {
 		log.Error("DeleteIntent ... Intent does not exist", log.Fields{"hpaIntent": i, "err": err})
 		return err
 	}
 
 	log.Info("DeleteIntent ... Delete Hpa Intent entry", log.Fields{"StoreName": c.db.StoreName, "key": dbKey, "project": p, "compositeApp": ca, "compositeAppVersion": v, "deploymentIntentGroup": di, "hpaIntent": i})
-	err = db.DBconn.Remove(context.Background(), c.db.StoreName, dbKey)
+	err = db.DBconn.Remove(ctx, c.db.StoreName, dbKey)
 	if err != nil {
 		log.Error("DeleteIntent ... DB Error .. Delete Hpa Intent entry error", log.Fields{"err": err, "StoreName": c.db.StoreName, "key": dbKey, "project": p, "compositeApp": ca, "compositeAppVersion": v, "deploymentIntentGroup": di, "hpaIntent": i})
 		return pkgerrors.Wrapf(err, "DB Error .. Delete Hpa Intent[%s] DB Error", i)

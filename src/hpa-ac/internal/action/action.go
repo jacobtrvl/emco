@@ -4,6 +4,7 @@
 package action
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -15,8 +16,6 @@ import (
 	hpaModel "gitlab.com/project-emco/core/emco-base/src/hpa-plc/pkg/model"
 	hpaModuleLib "gitlab.com/project-emco/core/emco-base/src/hpa-plc/pkg/module"
 	orchModuleLib "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/module"
-
-	"context"
 
 	jyaml "github.com/ghodss/yaml"
 	pkgerrors "github.com/pkg/errors"
@@ -30,17 +29,17 @@ import (
 const SEPARATOR = "+"
 
 // UpdateAppContext breaks down the spec from hpa placement controller and updates appcontext for rsync
-func UpdateAppContext(intentName, appContextID string) error {
+func UpdateAppContext(ctx context.Context, intentName, appContextID string) error {
 	log.Info("UpdateAppContext HPA .. start", log.Fields{"intent-name": intentName, "appcontext": appContextID})
 
 	var ac appcontext.AppContext
-	_, err := ac.LoadAppContext(context.Background(), appContextID)
+	_, err := ac.LoadAppContext(ctx, appContextID)
 	if err != nil {
 		log.Error("UpdateAppContext HPA ..Loading AppContext failed.", log.Fields{"intent-name": intentName, "appcontext": appContextID, "Error": err})
 		return pkgerrors.Errorf("UpdateAppContext HPA .. Error in loading AppContext failed. Internal error")
 	}
 
-	caMeta, err := ac.GetCompositeAppMeta(context.Background())
+	caMeta, err := ac.GetCompositeAppMeta(ctx)
 	if err != nil {
 		log.Error("UpdateAppContext HPA .. Error in getting App metadata.", log.Fields{"intent-name": intentName, "appcontext": appContextID, "Error": err})
 		return pkgerrors.Errorf("UpdateAppContext HPA .. Error in getting App metadata. Internal error")
@@ -52,7 +51,7 @@ func UpdateAppContext(intentName, appContextID string) error {
 	deploymentIntentGroup := caMeta.DeploymentIntentGroup
 
 	// Get all apps in this composite app
-	apps, err := orchModuleLib.NewAppClient().GetApps(context.Background(), project, compositeApp, compositeAppVersion)
+	apps, err := orchModuleLib.NewAppClient().GetApps(ctx, project, compositeApp, compositeAppVersion)
 	if err != nil {
 		log.Error("UpdateAppContext HPA .. Not finding the compositeApp attached apps", log.Fields{"appContextID": appContextID, "compositeApp": compositeApp, "caMeta": caMeta, "err": err})
 		return nil
@@ -66,7 +65,7 @@ func UpdateAppContext(intentName, appContextID string) error {
 	// Iterate through all apps of the Composite App
 	for appIndex, eachApp := range allAppNames {
 		// Handle all hpa Intents of the app
-		hpaIntents, err := hpaModuleLib.NewHpaPlacementClient().GetAllIntentsByApp(eachApp, project, compositeApp, compositeAppVersion, deploymentIntentGroup)
+		hpaIntents, err := hpaModuleLib.NewHpaPlacementClient().GetAllIntentsByApp(ctx, eachApp, project, compositeApp, compositeAppVersion, deploymentIntentGroup)
 		if err != nil {
 			log.Error("FilterClusters .. Error getting hpa Intents", log.Fields{"project": project, "compositeApp": compositeApp, "deploymentGroup": deploymentIntentGroup})
 			//return pkgerrors.Wrapf(err, "FilterClusters .. Error getting hpa Intents for project[%v] compositeApp[%v] compositeVersion[%v] deploymentGroup[%v] not found", project, compositeApp, compositeAppVersion, deploymentIntentGroup)
@@ -93,7 +92,7 @@ func UpdateAppContext(intentName, appContextID string) error {
 			})
 
 			// Handle all hpa Consumers
-			hpaConsumers, err := hpaModuleLib.NewHpaPlacementClient().GetAllConsumers(project, compositeApp, compositeAppVersion, deploymentIntentGroup, hpaIntent.MetaData.Name)
+			hpaConsumers, err := hpaModuleLib.NewHpaPlacementClient().GetAllConsumers(ctx, project, compositeApp, compositeAppVersion, deploymentIntentGroup, hpaIntent.MetaData.Name)
 			if err != nil {
 				log.Error("UpdateAppContext HPA .. Error in GetAllConsumers.", log.Fields{
 					"hpa-intent-name": hpaIntent.MetaData.Name,
@@ -110,7 +109,7 @@ func UpdateAppContext(intentName, appContextID string) error {
 					"hpa-consumer": hpaConsumer})
 
 				// Handle all hpa Resources
-				hpaResources, err := hpaModuleLib.NewHpaPlacementClient().GetAllResources(project, compositeApp, compositeAppVersion, deploymentIntentGroup, hpaIntent.MetaData.Name, hpaConsumer.MetaData.Name)
+				hpaResources, err := hpaModuleLib.NewHpaPlacementClient().GetAllResources(ctx, project, compositeApp, compositeAppVersion, deploymentIntentGroup, hpaIntent.MetaData.Name, hpaConsumer.MetaData.Name)
 				if err != nil {
 					log.Error("UpdateAppContext HPA .. Error in GetAllResources.", log.Fields{
 						"hpa-intent-name": hpaIntent.MetaData.Name,
@@ -127,7 +126,7 @@ func UpdateAppContext(intentName, appContextID string) error {
 
 					// If consumer spec name in resource key matches this consumer spec name, we can add the resource to this consumer spec
 					// Assuming all consumer is deployment here. Can be of other types
-					hpaclusters, err := ac.GetClusterNames(context.Background(), hpaIntent.Spec.AppName)
+					hpaclusters, err := ac.GetClusterNames(ctx, hpaIntent.Spec.AppName)
 					if err != nil {
 						log.Error("UpdateAppContext HPA .. Error in GetClusterNames.", log.Fields{
 							"hpa-intent-name": hpaIntent.MetaData.Name,
@@ -141,7 +140,7 @@ func UpdateAppContext(intentName, appContextID string) error {
 						var deployRes []string
 						deployRes = make([]string, 0)
 						if len(hpaConsumer.Spec.Name) == 0 {
-							deployResDB, err := ac.GetResourceNames(context.Background(), hpaIntent.Spec.AppName, cluster)
+							deployResDB, err := ac.GetResourceNames(ctx, hpaIntent.Spec.AppName, cluster)
 							if err != nil {
 								log.Error("UpdateAppContext HPA .. Error in GetResourceNames.", log.Fields{
 									"hpa-intent-name": hpaIntent.MetaData.Name,
@@ -174,7 +173,7 @@ func UpdateAppContext(intentName, appContextID string) error {
 							"deployment-resources": deployRes})
 
 						for _, resName := range deployRes {
-							res, err := getResource(ac, resName, cluster, hpaIntent.Spec.AppName)
+							res, err := getResource(ctx, ac, resName, cluster, hpaIntent.Spec.AppName)
 							if err != nil {
 								log.Error("UpdateAppContext HPA .. Error in fetching resource handle from app context.", log.Fields{
 									"hpa-intent-name": hpaIntent.MetaData.Name,
@@ -233,7 +232,7 @@ func UpdateAppContext(intentName, appContextID string) error {
 
 							// Update resource in AppContext
 							log.Info("UpdateAppContext HPA .. Update spec in db", log.Fields{"val": string(y)})
-							err = updateResource(ac, resName, cluster, hpaIntent.Spec.AppName, string(y))
+							err = updateResource(ctx, ac, resName, cluster, hpaIntent.Spec.AppName, string(y))
 							if err != nil {
 								log.Error("UpdateAppContext HPA .. error while updating app context resource handle", log.Fields{
 									"error": err,
@@ -259,13 +258,13 @@ func UpdateAppContext(intentName, appContextID string) error {
 	return nil
 }
 
-func getResource(ac appcontext.AppContext, name string, cluster string, app string) ([]byte, error) {
+func getResource(ctx context.Context, ac appcontext.AppContext, name string, cluster string, app string) ([]byte, error) {
 	log.Info("getResource .. start.", log.Fields{
 		"res-name": name,
 		"app-name": app,
 		"cluster":  cluster})
 	var byteRes []byte
-	rh, err := ac.GetResourceHandle(context.Background(), app, cluster, name)
+	rh, err := ac.GetResourceHandle(ctx, app, cluster, name)
 	if err != nil {
 		log.Error("getResource .. App Context resource handle not found", log.Fields{
 			"resource-name": name,
@@ -274,7 +273,7 @@ func getResource(ac appcontext.AppContext, name string, cluster string, app stri
 		})
 		return nil, err
 	}
-	r, err := ac.GetValue(context.Background(), rh)
+	r, err := ac.GetValue(ctx, rh)
 	if err != nil {
 		log.Error("getResource .. Error retrieving resource from App Context", log.Fields{
 			"error":           err,
@@ -292,13 +291,13 @@ func getResource(ac appcontext.AppContext, name string, cluster string, app stri
 	return byteRes, nil
 }
 
-func updateResource(ac appcontext.AppContext, name string, cluster string, app string, spec string) error {
+func updateResource(ctx context.Context, ac appcontext.AppContext, name string, cluster string, app string, spec string) error {
 	log.Info("updateResource .. start.", log.Fields{
 		"res-name": name,
 		"app-name": app,
 		"cluster":  cluster})
 
-	rh, err := ac.GetResourceHandle(context.Background(), app, cluster, name)
+	rh, err := ac.GetResourceHandle(ctx, app, cluster, name)
 	if err != nil {
 		log.Error("updateResource .. App Context resource handle not found", log.Fields{
 			"resource-name": name,
@@ -309,7 +308,7 @@ func updateResource(ac appcontext.AppContext, name string, cluster string, app s
 	}
 
 	// Update resource in AppContext
-	err = ac.UpdateResourceValue(context.Background(), rh, spec)
+	err = ac.UpdateResourceValue(ctx, rh, spec)
 	if err != nil {
 		log.Error("updateResource ..  updating app context resource handle", log.Fields{
 			"error":           err,

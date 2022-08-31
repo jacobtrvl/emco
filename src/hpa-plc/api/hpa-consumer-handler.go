@@ -26,6 +26,7 @@ deployment-intent-groups/{deployment-intent-group-name}/hpa-intents/{intent-name
 */
 // Add Hpa Intent Consumer
 func (h HpaPlacementIntentHandler) addHpaConsumerHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	var hpa hpaModel.HpaResourceConsumer
 	reqDump, _ := httputil.DumpRequest(r, true)
 	log.Info(":: addHpaConsumerHandler .. start ::", log.Fields{"req": string(reqDump)})
@@ -58,7 +59,7 @@ func (h HpaPlacementIntentHandler) addHpaConsumerHandler(w http.ResponseWriter, 
 	i := vars["intent-name"]
 
 	log.Info(":: AddConsumer .. Req ::", log.Fields{"project": p, "composite-app": ca, "composite-app-ver": v, "dep-group": di, "intent-name": i, "consumer-name": hpa.MetaData.Name})
-	consumer, err := h.client.AddConsumer(hpa, p, ca, v, di, i, false)
+	consumer, err := h.client.AddConsumer(ctx, hpa, p, ca, v, di, i, false)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, hpa, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -83,6 +84,7 @@ deployment-intent-groups/{deployment-intent-group-name}/hpa-intents/{intent-name
 */
 // Query Hpa Intent Consumer
 func (h HpaPlacementIntentHandler) getHpaConsumerHandlerByName(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	reqDump, _ := httputil.DumpRequest(r, true)
 	log.Info(":: getHpaConsumerHandlerByName .. start ::", log.Fields{"req": string(reqDump)})
 
@@ -99,7 +101,7 @@ func (h HpaPlacementIntentHandler) getHpaConsumerHandlerByName(w http.ResponseWr
 		return
 	}
 
-	consumer, err := h.client.GetConsumerByName(cN, p, ca, v, di, i)
+	consumer, err := h.client.GetConsumerByName(ctx, cN, p, ca, v, di, i)
 	if err != nil {
 		apiErr := apierror.HandleErrors(mux.Vars(r), err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -123,6 +125,7 @@ deployment-intent-groups/{deployment-intent-group-name}/hpa-intents/{intent-name
 */
 // Get Hpa Intent Consumer
 func (h HpaPlacementIntentHandler) getHpaConsumerHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	reqDump, _ := httputil.DumpRequest(r, true)
 	log.Info(":: getHpaConsumerHandler .. start ::", log.Fields{"req": string(reqDump)})
 	p, ca, v, di, i, name, err := parseHpaConsumerReqParameters(&w, r)
@@ -134,9 +137,9 @@ func (h HpaPlacementIntentHandler) getHpaConsumerHandler(w http.ResponseWriter, 
 
 	var consumers interface{}
 	if len(name) == 0 {
-		consumers, err = h.client.GetAllConsumers(p, ca, v, di, i)
+		consumers, err = h.client.GetAllConsumers(ctx, p, ca, v, di, i)
 	} else {
-		consumers, _, err = h.client.GetConsumer(name, p, ca, v, di, i)
+		consumers, _, err = h.client.GetConsumer(ctx, name, p, ca, v, di, i)
 	}
 
 	if err != nil {
@@ -162,6 +165,7 @@ deployment-intent-groups/{deployment-intent-group-name}/hpa-intents/{intent-name
 */
 // Update Hpa Intent Consumer
 func (h HpaPlacementIntentHandler) putHpaConsumerHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	var hpa hpaModel.HpaResourceConsumer
 	reqDump, _ := httputil.DumpRequest(r, true)
 	log.Info(":: putHpaConsumerHandler .. start ::", log.Fields{"req": string(reqDump)})
@@ -201,7 +205,7 @@ func (h HpaPlacementIntentHandler) putHpaConsumerHandler(w http.ResponseWriter, 
 	}
 
 	log.Info(":: putHpaConsumerHandler .. Req ::", log.Fields{"project": p, "composite-app": ca, "composite-app-ver": v, "dep-group": di, "intent-name": name})
-	consumer, err := h.client.AddConsumer(hpa, p, ca, v, di, i, true)
+	consumer, err := h.client.AddConsumer(ctx, hpa, p, ca, v, di, i, true)
 	if err != nil {
 		apiErr := apierror.HandleErrors(mux.Vars(r), err, hpa, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -226,6 +230,7 @@ deployment-intent-groups/{deployment-intent-group-name}/hpa-intents/{intent-name
 */
 // Delete Hpa Intent Consumer
 func (h HpaPlacementIntentHandler) deleteHpaConsumerHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	reqDump, _ := httputil.DumpRequest(r, true)
 	log.Info(":: deleteHpaConsumerHandler .. start ::", log.Fields{"req": string(reqDump)})
 
@@ -237,14 +242,14 @@ func (h HpaPlacementIntentHandler) deleteHpaConsumerHandler(w http.ResponseWrite
 	}
 	log.Info(":: deleteHpaConsumerHandler .. Req ::", log.Fields{"project": p, "composite-app": ca, "composite-app-ver": v, "dep-group": di, "intent-name": i, "consumer-name": name})
 
-	_, _, err = h.client.GetConsumer(name, p, ca, v, di, i)
+	_, _, err = h.client.GetConsumer(ctx, name, p, ca, v, di, i)
 	if err != nil {
 		apiErr := apierror.HandleErrors(mux.Vars(r), err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
 		return
 	}
 
-	err = h.client.DeleteConsumer(name, p, ca, v, di, i)
+	err = h.client.DeleteConsumer(ctx, name, p, ca, v, di, i)
 	if err != nil {
 		apiErr := apierror.HandleErrors(mux.Vars(r), err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -261,6 +266,7 @@ deployment-intent-groups/{deployment-intent-group-name}/hpa-intents/{intent-name
 */
 // Delete all Hpa Intent Consumers
 func (h HpaPlacementIntentHandler) deleteAllHpaConsumersHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	reqDump, _ := httputil.DumpRequest(r, true)
 	log.Info(":: deleteAllHpaConsumersHandler .. start ::", log.Fields{"req": string(reqDump)})
 
@@ -272,14 +278,14 @@ func (h HpaPlacementIntentHandler) deleteAllHpaConsumersHandler(w http.ResponseW
 	}
 	log.Info(":: deleteAllHpaConsumersHandler .. Req ::", log.Fields{"project": p, "composite-app": ca, "composite-app-ver": v, "dep-group": di, "intent-name": i, "consumer-name": name})
 
-	hpaConsumers, err := h.client.GetAllConsumers(p, ca, v, di, i)
+	hpaConsumers, err := h.client.GetAllConsumers(ctx, p, ca, v, di, i)
 	if err != nil {
 		apiErr := apierror.HandleErrors(mux.Vars(r), err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
 		return
 	}
 	for _, hpaConsumer := range hpaConsumers {
-		err = h.client.DeleteConsumer(hpaConsumer.MetaData.Name, p, ca, v, di, i)
+		err = h.client.DeleteConsumer(ctx, hpaConsumer.MetaData.Name, p, ca, v, di, i)
 		if err != nil {
 			apiErr := apierror.HandleErrors(mux.Vars(r), err, nil, apiErrors)
 			http.Error(w, apiErr.Message, apiErr.Status)

@@ -4,6 +4,7 @@
 package module
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 	"strings"
@@ -236,10 +237,11 @@ func TestCreateResource(t *testing.T) {
 	fmt.Printf("\n================== TestCreateResource .. total_testcase_count[%d] ==================\n", len(testCases))
 	for i, testCase := range testCases {
 		t.Run(testCase.label, func(t *testing.T) {
+			ctx := context.Background()
 			fmt.Printf("\n================== TestCreateResource .. testcase_count[%d] testcase_name[%s] ==================\n", i, testCase.label)
 			db.DBconn = testCase.mockdb
 			impl := NewHpaPlacementClient()
-			got, err := impl.AddResource(testCase.inp, "project1", "compositeapp1", "version1", "dgroup1", "intent1", "consumer1", false)
+			got, err := impl.AddResource(ctx, testCase.inp, "project1", "compositeapp1", "version1", "dgroup1", "intent1", "consumer1", false)
 			if err != nil {
 				if testCase.expectedError == "" {
 					t.Fatalf("Create returned an unexpected-error[%s] expected[%s]", err, testCase.expectedError)
@@ -382,10 +384,11 @@ func TestUpdateResource(t *testing.T) {
 	fmt.Printf("\n================== TestUpdateResource .. total_testcase_count[%d] ==================\n", len(testCases))
 	for i, testCase := range testCases {
 		t.Run(testCase.label, func(t *testing.T) {
+			ctx := context.Background()
 			fmt.Printf("\n================== TestUpdateResource .. testcase_count[%d] testcase_name[%s] ==================\n", i, testCase.label)
 			db.DBconn = testCase.mockdb
 			impl := NewHpaPlacementClient()
-			got, err := impl.AddResource(testCase.inp, "project1", "compositeapp1", "version1", "dgroup1", "intent1", "consumer1", true)
+			got, err := impl.AddResource(ctx, testCase.inp, "project1", "compositeapp1", "version1", "dgroup1", "intent1", "consumer1", true)
 			if err != nil {
 				if testCase.expectedError == "" {
 					t.Fatalf("Update returned an unexpected error [%s]", err)
@@ -731,9 +734,10 @@ func TestGetAllResources(t *testing.T) {
 	for i, testCase := range testCases {
 		fmt.Printf("\n================== TestGetAllResourcess .. testcase_count[%d] testcase_name[%s] ==================\n", i, testCase.label)
 		t.Run(testCase.label, func(t *testing.T) {
+			ctx := context.Background()
 			db.DBconn = testCase.mockdb
 			impl := NewHpaPlacementClient()
-			got, err := impl.GetAllResources("project1", "compositeapp1", "version1", "dgroup1", "intent1", "consumer1")
+			got, err := impl.GetAllResources(ctx, "project1", "compositeapp1", "version1", "dgroup1", "intent1", "consumer1")
 			if err != nil {
 				if testCase.expectedError == "" {
 					t.Fatalf("Get returned an unexpected error: %s", err)
@@ -1077,9 +1081,10 @@ func TestGetResource(t *testing.T) {
 	for i, testCase := range testCases {
 		fmt.Printf("\n================== TestGetResource .. testcase_count[%d] testcase_name[%s] ==================\n", i, testCase.label)
 		t.Run(testCase.label, func(t *testing.T) {
+			ctx := context.Background()
 			db.DBconn = testCase.mockdb
 			impl := NewHpaPlacementClient()
-			got, _, err := impl.GetResource(testCase.name, "project1", "compositeapp1", "version1", "dgroup1", "intent1", "consumer1")
+			got, _, err := impl.GetResource(ctx, testCase.name, "project1", "compositeapp1", "version1", "dgroup1", "intent1", "consumer1")
 			if err != nil {
 				if testCase.expectedError == "" {
 					t.Fatalf("Get returned an unexpected error: %s", err)
@@ -1233,9 +1238,10 @@ func TestGetResourceByName(t *testing.T) {
 	for i, testCase := range testCases {
 		fmt.Printf("\n================== TestGetResourceByName .. testcase_count[%d] testcase_name[%s] ==================\n", i, testCase.label)
 		t.Run(testCase.label, func(t *testing.T) {
+			ctx := context.Background()
 			db.DBconn = testCase.mockdb
 			impl := NewHpaPlacementClient()
-			got, err := impl.GetResourceByName(testCase.name, "project1", "compositeapp1", "version1", "dgroup1", "intent1", "consumer1")
+			got, err := impl.GetResourceByName(ctx, testCase.name, "project1", "compositeapp1", "version1", "dgroup1", "intent1", "consumer1")
 			if err != nil {
 				if testCase.expectedError == "" {
 					t.Fatalf("Get returned an unexpected error: %s", err)
@@ -1370,9 +1376,10 @@ func TestDeleteResource(t *testing.T) {
 	for i, testCase := range testCases {
 		fmt.Printf("\n================== TestDeleteResource .. testcase_count[%d] testcase_name[%s] ==================\n", i, testCase.label)
 		t.Run(testCase.label, func(t *testing.T) {
+			ctx := context.Background()
 			db.DBconn = testCase.mockdb
 			impl := NewHpaPlacementClient()
-			err := impl.DeleteResource(testCase.name, "project1", "compositeapp1", "version1", "dgroup1", "intent1", "consumer1")
+			err := impl.DeleteResource(ctx, testCase.name, "project1", "compositeapp1", "version1", "dgroup1", "intent1", "consumer1")
 			if err != nil {
 				if testCase.expectedError == "" {
 					t.Fatalf("Delete returned an unexpected-error[%s] expected[%s]", err, testCase.expectedError)

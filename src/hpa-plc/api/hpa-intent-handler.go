@@ -26,6 +26,7 @@ deployment-intent-groups/{deployment-intent-group-name}/hpa-intents
 */
 // Add Hpa Intent in Deployment Group
 func (h HpaPlacementIntentHandler) addHpaIntentHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	var hpa hpaModel.DeploymentHpaIntent
 	reqDump, _ := httputil.DumpRequest(r, true)
 	log.Info(":: addHpaIntentHandler .. start ::", log.Fields{"req": string(reqDump)})
@@ -57,7 +58,7 @@ func (h HpaPlacementIntentHandler) addHpaIntentHandler(w http.ResponseWriter, r 
 	d := vars["deployment-intent-group-name"]
 
 	log.Info(":: addHpaIntentHandler .. Req ::", log.Fields{"project": p, "composite-app": ca, "composite-app-ver": v, "dep-group": d, "intent-name": hpa.MetaData.Name})
-	intent, err := h.client.AddIntent(hpa, p, ca, v, d, false)
+	intent, err := h.client.AddIntent(ctx, hpa, p, ca, v, d, false)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, hpa, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -82,6 +83,7 @@ deployment-intent-groups/{deployment-intent-group-name}?intent=<intent>
 */
 // Query Hpa Intent in Deployment Group
 func (h HpaPlacementIntentHandler) getHpaIntentByNameHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	reqDump, _ := httputil.DumpRequest(r, true)
 	log.Info(":: getHpaIntentByNameHandler .. start ::", log.Fields{"req": string(reqDump)})
 
@@ -98,7 +100,7 @@ func (h HpaPlacementIntentHandler) getHpaIntentByNameHandler(w http.ResponseWrit
 		return
 	}
 
-	intent, err := h.client.GetIntentByName(iN, p, ca, v, di)
+	intent, err := h.client.GetIntentByName(ctx, iN, p, ca, v, di)
 	if err != nil {
 		apiErr := apierror.HandleErrors(mux.Vars(r), err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -123,6 +125,7 @@ deployment-intent-groups/{deployment-intent-group-name}/hpa-intents/{intent-name
 */
 // Get Hpa Intent in Deployment Group
 func (h HpaPlacementIntentHandler) getHpaIntentHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	reqDump, _ := httputil.DumpRequest(r, true)
 	log.Info(":: getHpaIntentHandler .. start ::", log.Fields{"req": string(reqDump)})
 	p, ca, v, di, name, err := parseHpaIntentReqParameters(&w, r)
@@ -134,9 +137,9 @@ func (h HpaPlacementIntentHandler) getHpaIntentHandler(w http.ResponseWriter, r 
 
 	var intents interface{}
 	if len(name) == 0 {
-		intents, err = h.client.GetAllIntents(p, ca, v, di)
+		intents, err = h.client.GetAllIntents(ctx, p, ca, v, di)
 	} else {
-		intents, _, err = h.client.GetIntent(name, p, ca, v, di)
+		intents, _, err = h.client.GetIntent(ctx, name, p, ca, v, di)
 	}
 
 	if err != nil {
@@ -163,6 +166,7 @@ deployment-intent-groups/{deployment-intent-group-name}/hpa-intents/{intent-name
 */
 // Update Hpa Intent in Deployment Group
 func (h HpaPlacementIntentHandler) putHpaIntentHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	var hpa hpaModel.DeploymentHpaIntent
 	reqDump, _ := httputil.DumpRequest(r, true)
 	log.Info(":: putHpaIntentHandler .. start ::", log.Fields{"req": string(reqDump)})
@@ -202,7 +206,7 @@ func (h HpaPlacementIntentHandler) putHpaIntentHandler(w http.ResponseWriter, r 
 	}
 
 	log.Info(":: putHpaIntentHandler .. Req ::", log.Fields{"project": p, "composite-app": ca, "composite-app-ver": v, "dep-group": di, "intent-name": name})
-	intent, err := h.client.AddIntent(hpa, p, ca, v, di, true)
+	intent, err := h.client.AddIntent(ctx, hpa, p, ca, v, di, true)
 	if err != nil {
 		apiErr := apierror.HandleErrors(mux.Vars(r), err, hpa, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -227,6 +231,7 @@ deployment-intent-groups/{deployment-intent-group-name}/hpa-intents/{intent-name
 */
 // Delete Hpa Intent in Deployment Group
 func (h HpaPlacementIntentHandler) deleteHpaIntentHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	reqDump, _ := httputil.DumpRequest(r, true)
 	log.Info(":: deleteHpaIntentHandler .. start ::", log.Fields{"req": string(reqDump)})
 
@@ -238,14 +243,14 @@ func (h HpaPlacementIntentHandler) deleteHpaIntentHandler(w http.ResponseWriter,
 	}
 	log.Info(":: deleteHpaIntentHandler .. Req ::", log.Fields{"project": p, "composite-app": ca, "composite-app-ver": v, "dep-group": di, "intent-name": name})
 
-	_, _, err = h.client.GetIntent(name, p, ca, v, di)
+	_, _, err = h.client.GetIntent(ctx, name, p, ca, v, di)
 	if err != nil {
 		apiErr := apierror.HandleErrors(mux.Vars(r), err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
 		return
 	}
 
-	err = h.client.DeleteIntent(name, p, ca, v, di)
+	err = h.client.DeleteIntent(ctx, name, p, ca, v, di)
 	if err != nil {
 		apiErr := apierror.HandleErrors(mux.Vars(r), err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -262,6 +267,7 @@ deployment-intent-groups/{deployment-intent-group-name}/hpa-intents
 */
 // Delete all Hpa Intents in Deployment Group
 func (h HpaPlacementIntentHandler) deleteAllHpaIntentsHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	reqDump, _ := httputil.DumpRequest(r, true)
 	log.Info(":: deleteAllHpaIntentsHandler .. start ::", log.Fields{"req": string(reqDump)})
 
@@ -273,14 +279,14 @@ func (h HpaPlacementIntentHandler) deleteAllHpaIntentsHandler(w http.ResponseWri
 	}
 	log.Info(":: deleteAllHpaIntentsHandler .. Req ::", log.Fields{"project": p, "composite-app": ca, "composite-app-ver": v, "dep-group": di, "intent-name": name})
 
-	hpaintents, err := h.client.GetAllIntents(p, ca, v, di)
+	hpaintents, err := h.client.GetAllIntents(ctx, p, ca, v, di)
 	if err != nil {
 		apiErr := apierror.HandleErrors(mux.Vars(r), err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
 		return
 	}
 	for _, hpaIntent := range hpaintents {
-		err = h.client.DeleteIntent(hpaIntent.MetaData.Name, p, ca, v, di)
+		err = h.client.DeleteIntent(ctx, hpaIntent.MetaData.Name, p, ca, v, di)
 		if err != nil {
 			apiErr := apierror.HandleErrors(mux.Vars(r), err, nil, apiErrors)
 			http.Error(w, apiErr.Message, apiErr.Status)

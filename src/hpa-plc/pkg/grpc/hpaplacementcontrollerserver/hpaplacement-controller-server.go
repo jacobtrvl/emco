@@ -22,7 +22,7 @@ func (cs *HpaPlacementcontrollerServer) FilterClusters(ctx context.Context, req 
 	log.Info("Received HPA FilterClusters request .. start", log.Fields{"ctx": ctx, "req": req})
 
 	if (req != nil) && (len(req.AppContext) > 0) {
-		err := action.FilterClusters(req.AppContext)
+		err := action.FilterClusters(ctx, req.AppContext)
 		if err != nil {
 			log.Error("Received HPA FilterClusters request .. internal error.", log.Fields{"req": req, "err": err})
 			return &placementcontrollerpb.ResourceResponse{AppContext: req.AppContext, Status: false, Message: err.Error()}, nil

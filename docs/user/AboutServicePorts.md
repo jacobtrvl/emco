@@ -23,6 +23,7 @@ Here is the list of all EMCO services, controllers and subcontrollers where port
     GAC_CONTROL_PORT=9033
     GAC_SERVICE_PORT=9020
     HPAAC_CONTROL_PORT=9042
+    HPAAC_SERVICE_PORT=9041
     HPAPLC_CONTROL_PORT=9099
     HPAPLC_SERVICE_PORT=9091
     ITS_CONTROL_PORT=9040
@@ -51,6 +52,7 @@ And here is the equivalent list, but for the default node ports used by each, wh
     GAC_CONTROL_PORT=30433
     GAC_SERVICE_PORT=30420
     HPAAC_CONTROL_PORT=30442
+    HPAAC_SERVICE_PORT=30441
     HPAPLC_CONTROL_PORT=30499
     HPAPLC_SERVICE_PORT=30491
     ITS_CONTROL_PORT=30440

@@ -29,17 +29,18 @@ type contextForCompositeApp struct {
 }
 
 func makeAppContextForCompositeApp(p, ca, v, rName, dig string, namespace string, level string) (contextForCompositeApp, error) {
+	ctx := context.Background()
 	appCtx := appcontext.AppContext{}
 	ctxval, err := appCtx.InitAppContext()
 	if err != nil {
 		return contextForCompositeApp{}, pkgerrors.Wrap(err, "Error creating AppContext CompositeApp")
 	}
-	compositeHandle, err := appCtx.CreateCompositeApp(context.Background())
+	compositeHandle, err := appCtx.CreateCompositeApp(ctx)
 	if err != nil {
 		return contextForCompositeApp{}, pkgerrors.Wrap(err, "Error creating CompositeApp handle")
 	}
 	compMetadata := appcontext.CompositeAppMeta{Project: p, CompositeApp: ca, Version: v, Release: rName, DeploymentIntentGroup: dig, Namespace: namespace, Level: level}
-	err = appCtx.AddCompositeAppMeta(context.Background(), compMetadata)
+	err = appCtx.AddCompositeAppMeta(ctx, compMetadata)
 	if err != nil {
 		return contextForCompositeApp{}, pkgerrors.Wrap(err, "Error Adding CompositeAppMeta")
 	}
@@ -358,23 +359,24 @@ var _ = Describe("HPA-PLACEMENT-CONTROLLER", func() {
 
 		// Initialize etcd with default values
 		var err error
+		ctx := context.Background()
 		cfca, err = makeAppContextForCompositeApp(project, compApp, version, release, dig, namespace, logicCloud)
 		Expect(err).To(BeNil())
 
-		cap, err := cfca.context.AddApp(context.Background(), cfca.compositeAppHandle, app1)
+		cap, err := cfca.context.AddApp(ctx, cfca.compositeAppHandle, app1)
 		Expect(err).To(BeNil())
 
-		ch, err := cfca.context.AddCluster(context.Background(), cap, "provider1-cluster1")
+		ch, err := cfca.context.AddCluster(ctx, cap, "provider1-cluster1")
 		Expect(err).To(BeNil())
 
-		sap, err := cfca.context.AddApp(context.Background(), cfca.compositeAppHandle, app2)
+		sap, err := cfca.context.AddApp(ctx, cfca.compositeAppHandle, app2)
 		Expect(err).To(BeNil())
 
-		sh, err := cfca.context.AddCluster(context.Background(), sap, "provider1-cluster2")
+		sh, err := cfca.context.AddCluster(ctx, sap, "provider1-cluster2")
 		Expect(err).To(BeNil())
-		err = cfca.context.AddClusterMetaGrp(context.Background(), ch, "1")
+		err = cfca.context.AddClusterMetaGrp(ctx, ch, "1")
 		Expect(err).To(BeNil())
-		err = cfca.context.AddClusterMetaGrp(context.Background(), sh, "1")
+		err = cfca.context.AddClusterMetaGrp(ctx, sh, "1")
 		Expect(err).To(BeNil())
 
 		// Use Kube Fake client for unit-testing
@@ -393,12 +395,14 @@ var _ = Describe("HPA-PLACEMENT-CONTROLLER", func() {
 	Describe("Filter Clusters", func() {
 
 		It("*** GINKGO ACTION TESTCASE: successful allocatable-resource filter-clusters", func() {
+			ctx := context.Background()
 			contextID := fmt.Sprintf("%v", cfca.ctxval)
-			err := action.FilterClusters(contextID)
+			err := action.FilterClusters(ctx, contextID)
 			Expect(err).To(BeNil())
 		})
 
 		It("*** GINKGO ACTION TESTCASE: successful non-allocatable-resource filter-cluster", func() {
+			ctx := context.Background()
 			(mdb.Items[0])[hpaMod.HpaResourceKey{ResourceName: "", ConsumerName: hpaConsumerName1, IntentName: hpaIntentName1,
 				Project: project, CompositeApp: compApp,
 				Version: version, DeploymentIntentGroup: dig}.String()] = map[string][]byte{
@@ -417,16 +421,18 @@ var _ = Describe("HPA-PLACEMENT-CONTROLLER", func() {
 			}
 
 			contextID := fmt.Sprintf("%v", cfca.ctxval)
-			err := action.FilterClusters(contextID)
+			err := action.FilterClusters(ctx, contextID)
 			Expect(err).To(BeNil())
 		})
 
 		It("*** GINKGO ACTION TESTCASE: unsuccessful action to due to invalid app-context", func() {
-			err := action.FilterClusters("1234")
+			ctx := context.Background()
+			err := action.FilterClusters(ctx, "1234")
 			Expect(err).To(HaveOccurred())
 		})
 
 		It("*** GINKGO ACTION TESTCASE: unsuccessful allocatable-resource filter-clusters due to invalid request count", func() {
+			ctx := context.Background()
 			(mdb.Items[0])[hpaMod.HpaResourceKey{ResourceName: "", ConsumerName: hpaConsumerName1, IntentName: hpaIntentName1,
 				Project: project, CompositeApp: compApp,
 				Version: version, DeploymentIntentGroup: dig}.String()] = map[string][]byte{
@@ -445,11 +451,12 @@ var _ = Describe("HPA-PLACEMENT-CONTROLLER", func() {
 			}
 
 			contextID := fmt.Sprintf("%v", cfca.ctxval)
-			err := action.FilterClusters(contextID)
+			err := action.FilterClusters(ctx, contextID)
 			Expect(err).To(HaveOccurred())
 		})
 
 		It("*** GINKGO ACTION TESTCASE: unsuccessful allocatable-resource filter-clusters due to non-exsiting k8s resource name", func() {
+			ctx := context.Background()
 			(mdb.Items[0])[hpaMod.HpaResourceKey{ResourceName: "", ConsumerName: hpaConsumerName1, IntentName: hpaIntentName1,
 				Project: project, CompositeApp: compApp,
 				Version: version, DeploymentIntentGroup: dig}.String()] = map[string][]byte{
@@ -468,11 +475,12 @@ var _ = Describe("HPA-PLACEMENT-CONTROLLER", func() {
 			}
 
 			contextID := fmt.Sprintf("%v", cfca.ctxval)
-			err := action.FilterClusters(contextID)
+			err := action.FilterClusters(ctx, contextID)
 			Expect(err).To(HaveOccurred())
 		})
 
 		It("*** GINKGO ACTION TESTCASE: unsuccessful non-allocatable-resource filter-cluster due to non-existing label", func() {
+			ctx := context.Background()
 			(mdb.Items[0])[hpaMod.HpaResourceKey{ResourceName: "", ConsumerName: hpaConsumerName1, IntentName: hpaIntentName1,
 				Project: project, CompositeApp: compApp,
 				Version: version, DeploymentIntentGroup: dig}.String()] = map[string][]byte{
@@ -491,19 +499,21 @@ var _ = Describe("HPA-PLACEMENT-CONTROLLER", func() {
 			}
 
 			contextID := fmt.Sprintf("%v", cfca.ctxval)
-			err := action.FilterClusters(contextID)
+			err := action.FilterClusters(ctx, contextID)
 			Expect(err).To(HaveOccurred())
 		})
 
 		It("*** GINKGO ACTION TESTCASE: unsuccessful filter-cluster when there are no apps in composite-app apps", func() {
+			ctx := context.Background()
 			(mdb.Items[0])[orchMod.AppKey{App: "", Project: project, CompositeApp: compApp, CompositeAppVersion: version}.String()] = nil
 			(mdb.Items[1])[orchMod.AppKey{App: "", Project: project, CompositeApp: compApp, CompositeAppVersion: version}.String()] = nil
 			contextID := fmt.Sprintf("%v", cfca.ctxval)
-			err := action.FilterClusters(contextID)
+			err := action.FilterClusters(ctx, contextID)
 			Expect(err).To(HaveOccurred())
 		})
 
 		It("*** GINKGO ACTION TESTCASE: successful filter-cluster when hpa-intent app is not one of composite-app apps", func() {
+			ctx := context.Background()
 			(mdb.Items[0])[orchMod.AppKey{App: "", Project: project, CompositeApp: compApp, CompositeAppVersion: version}.String()] = map[string][]byte{
 				"data": []byte(
 					"{" +
@@ -519,21 +529,23 @@ var _ = Describe("HPA-PLACEMENT-CONTROLLER", func() {
 						"}"),
 			}
 			contextID := fmt.Sprintf("%v", cfca.ctxval)
-			err := action.FilterClusters(contextID)
+			err := action.FilterClusters(ctx, contextID)
 			Expect(err).To(BeNil())
 		})
 
 		It("failed filter-cluster with NO hpa-intents", func() {
+			ctx := context.Background()
 			(mdb.Items[0])[hpaMod.HpaIntentKey{IntentName: "",
 				Project: project, CompositeApp: compApp,
 				Version: version, DeploymentIntentGroup: dig}.String()] = nil
 			contextID := fmt.Sprintf("%v", cfca.ctxval)
-			err := action.FilterClusters(contextID)
+			err := action.FilterClusters(ctx, contextID)
 			Expect(err).To(BeNil())
 
 		})
 
 		It("*** GINKGO ACTION TESTCASE: Successful hpa-intent filter-cluster for non-existing hpa-consumers", func() {
+			ctx := context.Background()
 			(mdb.Items[0])[hpaMod.HpaIntentKey{IntentName: "",
 				Project: project, CompositeApp: compApp,
 				Version: version, DeploymentIntentGroup: dig}.String()] = map[string][]byte{
@@ -549,12 +561,13 @@ var _ = Describe("HPA-PLACEMENT-CONTROLLER", func() {
 						"}"),
 			}
 			contextID := fmt.Sprintf("%v", cfca.ctxval)
-			err := action.FilterClusters(contextID)
+			err := action.FilterClusters(ctx, contextID)
 			Expect(err).To(BeNil())
 
 		})
 
 		It("*** GINKGO ACTION TESTCASE: Successful filter-cluster for non-existing hpa-consumer", func() {
+			ctx := context.Background()
 			(mdb.Items[0])[hpaMod.HpaConsumerKey{ConsumerName: "", IntentName: hpaIntentName1,
 				Project: project, CompositeApp: compApp,
 				Version: version, DeploymentIntentGroup: dig}.String()] = map[string][]byte{
@@ -571,21 +584,23 @@ var _ = Describe("HPA-PLACEMENT-CONTROLLER", func() {
 						"}"),
 			}
 			contextID := fmt.Sprintf("%v", cfca.ctxval)
-			err := action.FilterClusters(contextID)
+			err := action.FilterClusters(ctx, contextID)
 			Expect(err).To(BeNil())
 		})
 
 		It("*** GINKGO ACTION TESTCASE: successful filter-cluster with NO hpa-resources", func() {
+			ctx := context.Background()
 			(mdb.Items[0])[hpaMod.HpaResourceKey{ResourceName: "", ConsumerName: hpaConsumerName1, IntentName: hpaIntentName1,
 				Project: project, CompositeApp: compApp,
 				Version: version, DeploymentIntentGroup: dig}.String()] = nil
 
 			contextID := fmt.Sprintf("%v", cfca.ctxval)
-			err := action.FilterClusters(contextID)
+			err := action.FilterClusters(ctx, contextID)
 			Expect(err).To(BeNil())
 		})
 
 		It("*** GINKGO ACTION TESTCASE: successful non-allocatable resource filter-cluster with maximum replicaCount", func() {
+			ctx := context.Background()
 			(mdb.Items[0])[hpaMod.HpaConsumerKey{ConsumerName: "", IntentName: hpaIntentName1,
 				Project: project, CompositeApp: compApp,
 				Version: version, DeploymentIntentGroup: dig}.String()] = map[string][]byte{
@@ -621,20 +636,22 @@ var _ = Describe("HPA-PLACEMENT-CONTROLLER", func() {
 			}
 
 			contextID := fmt.Sprintf("%v", cfca.ctxval)
-			err := action.FilterClusters(contextID)
+			err := action.FilterClusters(ctx, contextID)
 			Expect(err).To(BeNil())
 		})
 
 		It("*** GINKGO ACTION TESTCASE: unsuccessful filter-clusters with original kube client", func() {
+			ctx := context.Background()
 			// Use Kube Fake client for unit-testing
 			connector.IsTestKubeClient = false
 
 			contextID := fmt.Sprintf("%v", cfca.ctxval)
-			err := action.FilterClusters(contextID)
+			err := action.FilterClusters(ctx, contextID)
 			Expect(err).To(HaveOccurred())
 		})
 
 		It("*** GINKGO ACTION TESTCASE: unsuccessful filter-cluster with maximum replicaCount", func() {
+			ctx := context.Background()
 			(mdb.Items[0])[hpaMod.HpaConsumerKey{ConsumerName: "", IntentName: hpaIntentName1,
 				Project: project, CompositeApp: compApp,
 				Version: version, DeploymentIntentGroup: dig}.String()] = map[string][]byte{
@@ -669,16 +686,17 @@ var _ = Describe("HPA-PLACEMENT-CONTROLLER", func() {
 						"}"),
 			}
 			contextID := fmt.Sprintf("%v", cfca.ctxval)
-			err := action.FilterClusters(contextID)
+			err := action.FilterClusters(ctx, contextID)
 			Expect(err).To(HaveOccurred())
 		})
 
 		It("*** GINKGO ACTION TESTCASE: successful filter-cluster with NO hpa-consumers", func() {
+			ctx := context.Background()
 			(mdb.Items[0])[hpaMod.HpaConsumerKey{ConsumerName: "", IntentName: hpaIntentName1,
 				Project: project, CompositeApp: compApp,
 				Version: version, DeploymentIntentGroup: dig}.String()] = nil
 			contextID := fmt.Sprintf("%v", cfca.ctxval)
-			err := action.FilterClusters(contextID)
+			err := action.FilterClusters(ctx, contextID)
 			Expect(err).To(BeNil())
 		})
 
@@ -729,6 +747,7 @@ var _ = Describe("HPA-PLACEMENT-CONTROLLER", func() {
 		})
 
 		It("*** GINKGO ACTION TESTCASE: successful get labels", func() {
+			ctx := context.Background()
 			var req clmcontrollerpb.ClmControllerEventRequest
 			req.ProviderName = "provider1"
 			req.ClusterName = "cluster1"
@@ -737,7 +756,7 @@ var _ = Describe("HPA-PLACEMENT-CONTROLLER", func() {
 			err := action.Publish(context.TODO(), &req)
 			Expect(err).To(BeNil())
 
-			_, err = action.GetKubeClusterLabels("provider1", "cluster1")
+			_, err = action.GetKubeClusterLabels(ctx, "provider1", "cluster1")
 			Expect(err).To(BeNil())
 		})
 
@@ -770,6 +789,7 @@ var _ = Describe("HPA-PLACEMENT-CONTROLLER", func() {
 		})
 
 		It("*** GINKGO ACTION TESTCASE: unsuccessful get labels cluster-create", func() {
+			ctx := context.Background()
 			var req clmcontrollerpb.ClmControllerEventRequest
 			req.ProviderName = "provider1"
 			req.ClusterName = "cluster1"
@@ -779,7 +799,7 @@ var _ = Describe("HPA-PLACEMENT-CONTROLLER", func() {
 			Expect(err).To(BeNil())
 
 			mdb.Err = pkgerrors.New("Error")
-			_, err = action.GetKubeClusterLabels("provider1", "cluster1")
+			_, err = action.GetKubeClusterLabels(ctx, "provider1", "cluster1")
 			Expect(err).To(HaveOccurred())
 		})
 

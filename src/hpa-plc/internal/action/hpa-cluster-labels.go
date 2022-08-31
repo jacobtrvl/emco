@@ -38,7 +38,7 @@ type KubeClusterInfo struct {
 }
 
 // SaveClusterLabelsDB - save Cluster Labels to DB
-func SaveClusterLabelsDB(provider string, cluster string) error {
+func SaveClusterLabelsDB(ctx context.Context, provider string, cluster string) error {
 	log.Info("SaveClusterLabelsDB .. start", log.Fields{
 		"clusterProvider": provider,
 		"cluster":         cluster,
@@ -58,7 +58,7 @@ func SaveClusterLabelsDB(provider string, cluster string) error {
 
 	clusterFQDN := (provider + "+" + cluster)
 	// Get Kube Client handle
-	c, err := con.GetClient(context.Background(), clusterFQDN, "0", "default")
+	c, err := con.GetClient(ctx, clusterFQDN, "0", "default")
 	if err != nil {
 		log.Error("SaveClusterLabelsDB .. Error in creating kubeconfig client", logutils.Fields{
 			"error":       err,
@@ -68,7 +68,7 @@ func SaveClusterLabelsDB(provider string, cluster string) error {
 	}
 
 	// Fetch K8s Cluster Nodes & store in db
-	nodeList, err := c.GetClusterNodes(context.TODO())
+	nodeList, err := c.GetClusterNodes(ctx)
 	if err != nil {
 		log.Error("SaveClusterLabelsDB .. Error in fetching K8s Cluster Nodes", log.Fields{
 			"clusterFQDN": clusterFQDN})
@@ -78,7 +78,7 @@ func SaveClusterLabelsDB(provider string, cluster string) error {
 	for _, node := range nodeList.Items {
 		clInfo.NodeNames = append(clInfo.NodeNames, node.Name)
 	}
-	err = db.DBconn.Insert(context.Background(), clmClusterCollectionName, key, nil, tagClusterNodes, clInfo)
+	err = db.DBconn.Insert(ctx, clmClusterCollectionName, key, nil, tagClusterNodes, clInfo)
 	if err != nil {
 		log.Error("SaveClusterLabelsDB .. Error in creating DB Entry for Cluster Nodes", log.Fields{"clusterFQDN": clusterFQDN})
 		return pkgerrors.Wrapf(err, "SaveClusterLabelsDB .. Error in creating DB Entry for cluster[%s] to store Cluster Nodes", clusterFQDN)
@@ -88,7 +88,7 @@ func SaveClusterLabelsDB(provider string, cluster string) error {
 		"nodes":       clInfo.NodeNames})
 
 	// Fetch K8s Cluster Labels & store in db
-	nodeLabels, err := c.GetNodeLabels(context.TODO())
+	nodeLabels, err := c.GetNodeLabels(ctx)
 	if err != nil {
 		log.Error("SaveClusterLabelsDB .. Error in fetching K8s Cluster Labels", log.Fields{
 			"clusterFQDN": clusterFQDN})
@@ -96,7 +96,7 @@ func SaveClusterLabelsDB(provider string, cluster string) error {
 	}
 	log.Info("SaveClusterLabelsDB .. Node Labels", log.Fields{"clusterFQDN": clusterFQDN, "kubeNodeLabelsMap": nodeLabels})
 
-	err = db.DBconn.Insert(context.Background(), clmClusterCollectionName, key, nil, tagClusterLabels, nodeLabels)
+	err = db.DBconn.Insert(ctx, clmClusterCollectionName, key, nil, tagClusterLabels, nodeLabels)
 	if err != nil {
 		log.Error("SaveClusterLabelsDB .. Error in creating DB Entry for Cluster Labels", log.Fields{"clusterFQDN": clusterFQDN})
 		return pkgerrors.Wrapf(err, "SaveClusterLabelsDB .. Error in creating DB Entry for clusterFQDN[%s] to store Cluster Labels", clusterFQDN)
@@ -112,7 +112,7 @@ func SaveClusterLabelsDB(provider string, cluster string) error {
 }
 
 // GetKubeClusterLabels .. returns the Cluster Labels of K8s cluster
-func GetKubeClusterLabels(provider, cluster string) (map[string](map[string]string), error) {
+func GetKubeClusterLabels(ctx context.Context, provider, cluster string) (map[string](map[string]string), error) {
 	log.Info("GetKubeClusterLabels .. start ", log.Fields{
 		"clusterProvider": provider,
 		"cluster":         cluster})
@@ -124,7 +124,7 @@ func GetKubeClusterLabels(provider, cluster string) (map[string](map[string]stri
 		ClusterControllerData: hpaClusterControllerData,
 	}
 
-	values, err := db.DBconn.Find(context.Background(), clmClusterCollectionName, key, tagClusterLabels)
+	values, err := db.DBconn.Find(ctx, clmClusterCollectionName, key, tagClusterLabels)
 	if err != nil {
 		log.Error("GetKubeClusterLabels .. Error in getting Kube Cluster Labels", log.Fields{
 			"clusterProvider": provider,
@@ -156,7 +156,7 @@ func GetKubeClusterLabels(provider, cluster string) (map[string](map[string]stri
 }
 
 // DeleteKubeClusterLabelsDB .. delete cluster Labels from db
-func DeleteKubeClusterLabelsDB(provider, cluster string) error {
+func DeleteKubeClusterLabelsDB(ctx context.Context, provider, cluster string) error {
 	log.Info("DeleteKubeClusterLabelsDB .. start ", log.Fields{
 		"clusterProvider": provider,
 		"cluster":         cluster})
@@ -168,7 +168,7 @@ func DeleteKubeClusterLabelsDB(provider, cluster string) error {
 		ClusterControllerData: hpaClusterControllerData,
 	}
 
-	values, err := db.DBconn.Find(context.Background(), clmClusterCollectionName, key, tagClusterLabels)
+	values, err := db.DBconn.Find(ctx, clmClusterCollectionName, key, tagClusterLabels)
 	if err != nil {
 		log.Error("DeleteKubeClusterLabelsDB .. Error in getting Kube Cluster Labels", log.Fields{
 			"clusterProvider": provider,
@@ -178,7 +178,7 @@ func DeleteKubeClusterLabelsDB(provider, cluster string) error {
 	}
 
 	log.Info("DeleteKubeClusterLabelsDB ... Delete Cluster labels entry", log.Fields{"StoreName": clmClusterCollectionName, "key": key})
-	err = db.DBconn.Remove(context.Background(), clmClusterCollectionName, key)
+	err = db.DBconn.Remove(ctx, clmClusterCollectionName, key)
 	if err != nil {
 		log.Error("DeleteKubeClusterLabelsDB ... DB Error .. Delete Cluster labels entry error", log.Fields{"err": err, "StoreName": clmClusterCollectionName, "key": key})
 		return pkgerrors.Wrapf(err, "DeleteKubeClusterLabelsDB ... DB Error .. Delete Cluster labels for key[%s] DB Error", key)

@@ -54,6 +54,14 @@ service:
   externalPort: 9042
   nodePort: 42
 
+serviceInternal:
+  type: NodePort
+  name: hpaac
+  portName: hpaac-service
+  internalPort: 9041
+  externalPort: 9041
+  nodePort: 41
+
 ingress:
   enabled: false
 

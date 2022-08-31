@@ -151,7 +151,7 @@ func (p *GenericResource) PopulateResourceInfo(ctx context.Context, clusterName 
 	defer con.RemoveClient()
 
 	// Get Kube Client handle
-	c, err := con.GetClient(context.Background(), clusterName, "0", "default")
+	c, err := con.GetClient(ctx, clusterName, "0", "default")
 	if err != nil {
 		log.Error("Error in creating kubeconfig client", log.Fields{
 			"error":        err,
@@ -160,7 +160,7 @@ func (p *GenericResource) PopulateResourceInfo(ctx context.Context, clusterName 
 		return 0, nil, err
 	}
 
-	if clusterGenericCount, _, nodeGenericMap, err := c.GetAvailableNodeResources(context.TODO(), hpaResource.Spec.Resource.Name); err == nil {
+	if clusterGenericCount, _, nodeGenericMap, err := c.GetAvailableNodeResources(ctx, hpaResource.Spec.Resource.Name); err == nil {
 		p.clusterAvailCount[hpaResource.Spec.Resource.Name] = clusterGenericCount
 		p.nodeResMap[hpaResource.Spec.Resource.Name] = make(map[string]int64)
 		p.nodeResMap[hpaResource.Spec.Resource.Name] = nodeGenericMap

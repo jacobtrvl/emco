@@ -4,6 +4,7 @@
 package module
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 	"strings"
@@ -312,10 +313,11 @@ func TestCreateConsumer(t *testing.T) {
 	fmt.Printf("\n================== TestCreateConsumer .. total_testcase_count[%d] ==================\n", len(testCases))
 	for i, testCase := range testCases {
 		t.Run(testCase.label, func(t *testing.T) {
+			ctx := context.Background()
 			fmt.Printf("\n================== TestCreateConsumer .. testcase_count[%d] testcase_name[%s] ==================\n", i, testCase.label)
 			db.DBconn = testCase.mockdb
 			impl := NewHpaPlacementClient()
-			got, err := impl.AddConsumer(testCase.inp, "project1", "compositeapp1", "version1", "dgroup1", "intent1", false)
+			got, err := impl.AddConsumer(ctx, testCase.inp, "project1", "compositeapp1", "version1", "dgroup1", "intent1", false)
 			if err != nil {
 				if testCase.expectedError == "" {
 					t.Fatalf("Create returned an unexpected-error[%s] expected[%s]", err, testCase.expectedError)
@@ -446,10 +448,11 @@ func TestUpdateConsumer(t *testing.T) {
 	fmt.Printf("\n================== TestUpdateConsumer .. total_testcase_count[%d] ==================\n", len(testCases))
 	for i, testCase := range testCases {
 		t.Run(testCase.label, func(t *testing.T) {
+			ctx := context.Background()
 			fmt.Printf("\n================== TestUpdateConsumer .. testcase_count[%d] testcase_name[%s] ==================\n", i, testCase.label)
 			db.DBconn = testCase.mockdb
 			impl := NewHpaPlacementClient()
-			got, err := impl.AddConsumer(testCase.inp, "project1", "compositeapp1", "version1", "dgroup1", "intent1", true)
+			got, err := impl.AddConsumer(ctx, testCase.inp, "project1", "compositeapp1", "version1", "dgroup1", "intent1", true)
 			if err != nil {
 				if testCase.expectedError == "" {
 					t.Fatalf("Update returned an unexpected error [%s]", err)
@@ -754,9 +757,10 @@ func TestGetAllConsumers(t *testing.T) {
 	for i, testCase := range testCases {
 		fmt.Printf("\n================== TestGetAllConsumers .. testcase_count[%d] testcase_name[%s] ==================\n", i, testCase.label)
 		t.Run(testCase.label, func(t *testing.T) {
+			ctx := context.Background()
 			db.DBconn = testCase.mockdb
 			impl := NewHpaPlacementClient()
-			got, err := impl.GetAllConsumers("project1", "compositeapp1", "version1", "dgroup1", "intent1")
+			got, err := impl.GetAllConsumers(ctx, "project1", "compositeapp1", "version1", "dgroup1", "intent1")
 			if err != nil {
 				if testCase.expectedError == "" {
 					t.Fatalf("Get returned an unexpected error: %s", err)
@@ -1058,9 +1062,10 @@ func TestGetConsumer(t *testing.T) {
 	for i, testCase := range testCases {
 		fmt.Printf("\n================== TestGetConsumer .. testcase_count[%d] testcase_name[%s] ==================\n", i, testCase.label)
 		t.Run(testCase.label, func(t *testing.T) {
+			ctx := context.Background()
 			db.DBconn = testCase.mockdb
 			impl := NewHpaPlacementClient()
-			got, _, err := impl.GetConsumer(testCase.name, "project1", "compositeapp1", "version1", "dgroup1", "intent1")
+			got, _, err := impl.GetConsumer(ctx, testCase.name, "project1", "compositeapp1", "version1", "dgroup1", "intent1")
 			if err != nil {
 				if testCase.expectedError == "" {
 					t.Fatalf("Get returned an unexpected error: %s", err)
@@ -1198,9 +1203,10 @@ func TestGetConsumerByName(t *testing.T) {
 	for i, testCase := range testCases {
 		fmt.Printf("\n================== TestGetConsumerByName .. testcase_count[%d] testcase_name[%s] ==================\n", i, testCase.label)
 		t.Run(testCase.label, func(t *testing.T) {
+			ctx := context.Background()
 			db.DBconn = testCase.mockdb
 			impl := NewHpaPlacementClient()
-			got, err := impl.GetConsumerByName(testCase.name, "project1", "compositeapp1", "version1", "dgroup1", "intent1")
+			got, err := impl.GetConsumerByName(ctx, testCase.name, "project1", "compositeapp1", "version1", "dgroup1", "intent1")
 			if err != nil {
 				if testCase.expectedError == "" {
 					t.Fatalf("Get returned an unexpected error: %s", err)
@@ -1397,9 +1403,10 @@ func TestDeleteConsumer(t *testing.T) {
 	for i, testCase := range testCases {
 		fmt.Printf("\n================== TestDeleteConsumer .. testcase_count[%d] testcase_name[%s] ==================\n", i, testCase.label)
 		t.Run(testCase.label, func(t *testing.T) {
+			ctx := context.Background()
 			db.DBconn = testCase.mockdb
 			impl := NewHpaPlacementClient()
-			err := impl.DeleteConsumer(testCase.name, "project1", "compositeapp1", "version1", "dgroup1", "intent1")
+			err := impl.DeleteConsumer(ctx, testCase.name, "project1", "compositeapp1", "version1", "dgroup1", "intent1")
 			if err != nil {
 				if testCase.expectedError == "" {
 					t.Fatalf("Delete returned an unexpected-error[%s] expected[%s]", err, testCase.expectedError)

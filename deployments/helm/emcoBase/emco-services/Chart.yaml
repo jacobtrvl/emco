@@ -50,10 +50,10 @@ dependencies:
     version: "1.0.0"
     repository: 'file://../sfcclient'
   - name: hpa-ac
-    version: "1.0.0"
+    version: "1.0.1"
     repository: 'file://../hpa-ac'
   - name: hpa-plc
-    version: "1.0.0"
+    version: "1.0.1"
     repository: 'file://../hpa-plc'
   - name: workflowmgr
     version: "1.0.0"

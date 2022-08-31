@@ -27,17 +27,18 @@ type contextForCompositeApp struct {
 }
 
 func makeAppContextForCompositeApp(p, ca, v, rName, dig string, namespace string, level string) (contextForCompositeApp, error) {
+	ctx := context.Background()
 	appCtx := appcontext.AppContext{}
 	ctxval, err := appCtx.InitAppContext()
 	if err != nil {
 		return contextForCompositeApp{}, pkgerrors.Wrap(err, "Error creating AppContext CompositeApp")
 	}
-	compositeHandle, err := appCtx.CreateCompositeApp(context.Background())
+	compositeHandle, err := appCtx.CreateCompositeApp(ctx)
 	if err != nil {
 		return contextForCompositeApp{}, pkgerrors.Wrap(err, "Error creating CompositeApp handle")
 	}
 	compMetadata := appcontext.CompositeAppMeta{Project: p, CompositeApp: ca, Version: v, Release: rName, DeploymentIntentGroup: dig, Namespace: namespace, Level: level}
-	err = appCtx.AddCompositeAppMeta(context.Background(), compMetadata)
+	err = appCtx.AddCompositeAppMeta(ctx, compMetadata)
 	if err != nil {
 		return contextForCompositeApp{}, pkgerrors.Wrap(err, "Error Adding CompositeAppMeta")
 	}
@@ -312,31 +313,34 @@ spec:
 
 		// Initialize etcd with default values
 		var err error
+		ctx := context.Background()
 		cfca, err = makeAppContextForCompositeApp(project, compApp, version, release, dig, namespace, logicCloud)
 		Expect(err).To(BeNil())
 
-		cap, err = cfca.context.AddApp(context.Background(), cfca.compositeAppHandle, app1)
+		cap, err = cfca.context.AddApp(ctx, cfca.compositeAppHandle, app1)
 		Expect(err).To(BeNil())
-		capcl, err = cfca.context.AddCluster(context.Background(), cap, "provider1-cluster1")
+		capcl, err = cfca.context.AddCluster(ctx, cap, "provider1-cluster1")
 		Expect(err).To(BeNil())
 
-		sap, err = cfca.context.AddApp(context.Background(), cfca.compositeAppHandle, app2)
+		sap, err = cfca.context.AddApp(ctx, cfca.compositeAppHandle, app2)
 		Expect(err).To(BeNil())
-		_, err = cfca.context.AddCluster(context.Background(), sap, "provider1-cluster2")
+		_, err = cfca.context.AddCluster(ctx, sap, "provider1-cluster2")
 		Expect(err).To(BeNil())
 	})
 
 	Describe("Update context", func() {
 		It("*** GINKGO TESTCASE: successful allocatable-resource update-context", func() {
-			_, err := cfca.context.AddResource(context.Background(), capcl, deploymentName1+"+Deployment", deploymentSpec)
+			ctx := context.Background()
+			_, err := cfca.context.AddResource(ctx, capcl, deploymentName1+"+Deployment", deploymentSpec)
 			Expect(err).To(BeNil())
 
 			contextID := fmt.Sprintf("%v", cfca.ctxval)
-			err = action.UpdateAppContext("hpa-action-controller", contextID)
+			err = action.UpdateAppContext(ctx, "hpa-action-controller", contextID)
 			Expect(err).To(BeNil())
 		})
 
 		It("*** GINKGO TESTCASE: successful allocatable-resource update-context with replica-count > 1", func() {
+			ctx := context.Background()
 			(mdb.Items[0])[hpaMod.HpaConsumerKey{ConsumerName: "", IntentName: hpaIntentName1,
 				Project: project, CompositeApp: compApp,
 				Version: version, DeploymentIntentGroup: dig}.String()] = map[string][]byte{
@@ -353,15 +357,16 @@ spec:
 						"\"container\":\"" + containerName1 + "\"}" +
 						"}"),
 			}
-			_, err := cfca.context.AddResource(context.Background(), capcl, deploymentName1+"+Deployment", deploymentSpec)
+			_, err := cfca.context.AddResource(ctx, capcl, deploymentName1+"+Deployment", deploymentSpec)
 			Expect(err).To(BeNil())
 
 			contextID := fmt.Sprintf("%v", cfca.ctxval)
-			err = action.UpdateAppContext("hpa-action-controller", contextID)
+			err = action.UpdateAppContext(ctx, "hpa-action-controller", contextID)
 			Expect(err).To(BeNil())
 		})
 
 		It("*** GINKGO TESTCASE: successful allocatable-resource update-context with replica-count = 0", func() {
+			ctx := context.Background()
 			(mdb.Items[0])[hpaMod.HpaConsumerKey{ConsumerName: "", IntentName: hpaIntentName1,
 				Project: project, CompositeApp: compApp,
 				Version: version, DeploymentIntentGroup: dig}.String()] = map[string][]byte{
@@ -378,15 +383,16 @@ spec:
 						"\"container\":\"" + containerName1 + "\"}" +
 						"}"),
 			}
-			_, err := cfca.context.AddResource(context.Background(), capcl, deploymentName1+"+Deployment", deploymentSpec)
+			_, err := cfca.context.AddResource(ctx, capcl, deploymentName1+"+Deployment", deploymentSpec)
 			Expect(err).To(BeNil())
 
 			contextID := fmt.Sprintf("%v", cfca.ctxval)
-			err = action.UpdateAppContext("hpa-action-controller", contextID)
+			err = action.UpdateAppContext(ctx, "hpa-action-controller", contextID)
 			Expect(err).To(BeNil())
 		})
 
 		It("*** GINKGO TESTCASE: successful memory allocatable-resource update-context even if limits is zero", func() {
+			ctx := context.Background()
 			(mdb.Items[0])[hpaMod.HpaResourceKey{ResourceName: "", ConsumerName: hpaConsumerName1, IntentName: hpaIntentName1,
 				Project: project, CompositeApp: compApp,
 				Version: version, DeploymentIntentGroup: dig}.String()] = map[string][]byte{
@@ -404,15 +410,16 @@ spec:
 						"}"),
 			}
 
-			_, err := cfca.context.AddResource(context.Background(), capcl, deploymentName1+"+Deployment", deploymentSpec)
+			_, err := cfca.context.AddResource(ctx, capcl, deploymentName1+"+Deployment", deploymentSpec)
 			Expect(err).To(BeNil())
 
 			contextID := fmt.Sprintf("%v", cfca.ctxval)
-			err = action.UpdateAppContext("hpa-action-controller", contextID)
+			err = action.UpdateAppContext(ctx, "hpa-action-controller", contextID)
 			Expect(err).To(BeNil())
 		})
 
 		It("*** GINKGO TESTCASE: successful memory allocatable-resource update-context even if limits is zero", func() {
+			ctx := context.Background()
 			(mdb.Items[0])[hpaMod.HpaResourceKey{ResourceName: "", ConsumerName: hpaConsumerName1, IntentName: hpaIntentName1,
 				Project: project, CompositeApp: compApp,
 				Version: version, DeploymentIntentGroup: dig}.String()] = map[string][]byte{
@@ -430,15 +437,16 @@ spec:
 						"}"),
 			}
 
-			_, err := cfca.context.AddResource(context.Background(), capcl, deploymentName1+"+Deployment", deploymentSpec)
+			_, err := cfca.context.AddResource(ctx, capcl, deploymentName1+"+Deployment", deploymentSpec)
 			Expect(err).To(BeNil())
 
 			contextID := fmt.Sprintf("%v", cfca.ctxval)
-			err = action.UpdateAppContext("hpa-action-controller", contextID)
+			err = action.UpdateAppContext(ctx, "hpa-action-controller", contextID)
 			Expect(err).To(BeNil())
 		})
 
 		It("*** GINKGO TESTCASE: successful non-allocatable-resource update-context", func() {
+			ctx := context.Background()
 			(mdb.Items[0])[hpaMod.HpaResourceKey{ResourceName: "", ConsumerName: hpaConsumerName1, IntentName: hpaIntentName1,
 				Project: project, CompositeApp: compApp,
 				Version: version, DeploymentIntentGroup: dig}.String()] = map[string][]byte{
@@ -456,15 +464,16 @@ spec:
 						"}"),
 			}
 
-			_, err := cfca.context.AddResource(context.Background(), capcl, deploymentName1+"+Deployment", deploymentSpec)
+			_, err := cfca.context.AddResource(ctx, capcl, deploymentName1+"+Deployment", deploymentSpec)
 			Expect(err).To(BeNil())
 
 			contextID := fmt.Sprintf("%v", cfca.ctxval)
-			err = action.UpdateAppContext("hpa-action-controller", contextID)
+			err = action.UpdateAppContext(ctx, "hpa-action-controller", contextID)
 			Expect(err).To(BeNil())
 		})
 
 		It("*** GINKGO TESTCASE: successful allocatable-resource update-context even if limits is zero", func() {
+			ctx := context.Background()
 			(mdb.Items[0])[hpaMod.HpaResourceKey{ResourceName: "", ConsumerName: hpaConsumerName1, IntentName: hpaIntentName1,
 				Project: project, CompositeApp: compApp,
 				Version: version, DeploymentIntentGroup: dig}.String()] = map[string][]byte{
@@ -482,57 +491,63 @@ spec:
 						"}"),
 			}
 
-			_, err := cfca.context.AddResource(context.Background(), capcl, deploymentName1+"+Deployment", deploymentSpec)
+			_, err := cfca.context.AddResource(ctx, capcl, deploymentName1+"+Deployment", deploymentSpec)
 			Expect(err).To(BeNil())
 
 			contextID := fmt.Sprintf("%v", cfca.ctxval)
-			err = action.UpdateAppContext("hpa-action-controller", contextID)
+			err = action.UpdateAppContext(ctx, "hpa-action-controller", contextID)
 			Expect(err).To(BeNil())
 		})
 
 		It("*** GINKGO TESTCASE: successful update-context due to non-presence of metadata in deployment-spec", func() {
-			_, err := cfca.context.AddResource(context.Background(), capcl, deploymentName1+"+Deployment", badDeploymentSpecNoMeta)
+			ctx := context.Background()
+			_, err := cfca.context.AddResource(ctx, capcl, deploymentName1+"+Deployment", badDeploymentSpecNoMeta)
 			Expect(err).To(BeNil())
 
 			contextID := fmt.Sprintf("%v", cfca.ctxval)
-			err = action.UpdateAppContext("hpa-action-controller", contextID)
+			err = action.UpdateAppContext(ctx, "hpa-action-controller", contextID)
 			Expect(err).To(BeNil())
 		})
 
 		It("*** GINKGO TESTCASE: successful update-context due to non-presence of spec in deployment-spec", func() {
-			_, err := cfca.context.AddResource(context.Background(), capcl, deploymentName1+"+Deployment", badDeploymentSpec1)
+			ctx := context.Background()
+			_, err := cfca.context.AddResource(ctx, capcl, deploymentName1+"+Deployment", badDeploymentSpec1)
 			Expect(err).To(BeNil())
 
 			contextID := fmt.Sprintf("%v", cfca.ctxval)
-			err = action.UpdateAppContext("hpa-action-controller", contextID)
+			err = action.UpdateAppContext(ctx, "hpa-action-controller", contextID)
 			Expect(err).To(BeNil())
 		})
 
 		It("*** GINKGO TESTCASE: successful update-context due to non-presence of spec template in deployment-spec", func() {
-			_, err := cfca.context.AddResource(context.Background(), capcl, deploymentName1+"+Deployment", badDeploymentSpec2)
+			ctx := context.Background()
+			_, err := cfca.context.AddResource(ctx, capcl, deploymentName1+"+Deployment", badDeploymentSpec2)
 			Expect(err).To(BeNil())
 
 			contextID := fmt.Sprintf("%v", cfca.ctxval)
-			err = action.UpdateAppContext("hpa-action-controller", contextID)
+			err = action.UpdateAppContext(ctx, "hpa-action-controller", contextID)
 			Expect(err).To(BeNil())
 		})
 
 		It("*** GINKGO TESTCASE: unsuccessful update-context due to invalid deploymentspec in etcd", func() {
+			ctx := context.Background()
 			contextID := fmt.Sprintf("%v", cfca.ctxval)
-			err := action.UpdateAppContext("hpa-action-controller", contextID)
+			err := action.UpdateAppContext(ctx, "hpa-action-controller", contextID)
 			Expect(err).To(HaveOccurred())
 		})
 
 		It("*** GINKGO TESTCASE: unsuccessful update-context due to bad deployment-name allocatable-resource hpa-resource spec", func() {
-			_, err := cfca.context.AddResource(context.Background(), capcl, deploymentName1+"+Deployment", badDeploymentSpec3)
+			ctx := context.Background()
+			_, err := cfca.context.AddResource(ctx, capcl, deploymentName1+"+Deployment", badDeploymentSpec3)
 			Expect(err).To(BeNil())
 
 			contextID := fmt.Sprintf("%v", cfca.ctxval)
-			err = action.UpdateAppContext("hpa-action-controller", contextID)
+			err = action.UpdateAppContext(ctx, "hpa-action-controller", contextID)
 			Expect(err).To(HaveOccurred())
 		})
 
 		It("*** GINKGO TESTCASE: unsuccessful update-context due to bad deployment-name non-allocatable-resource hpa-resource spec", func() {
+			ctx := context.Background()
 			(mdb.Items[0])[hpaMod.HpaResourceKey{ResourceName: "", ConsumerName: hpaConsumerName1, IntentName: hpaIntentName1,
 				Project: project, CompositeApp: compApp,
 				Version: version, DeploymentIntentGroup: dig}.String()] = map[string][]byte{
@@ -549,31 +564,34 @@ spec:
 						"}" +
 						"}"),
 			}
-			_, err := cfca.context.AddResource(context.Background(), capcl, deploymentName1+"+Deployment", badDeploymentSpec3)
+			_, err := cfca.context.AddResource(ctx, capcl, deploymentName1+"+Deployment", badDeploymentSpec3)
 			Expect(err).To(BeNil())
 
 			contextID := fmt.Sprintf("%v", cfca.ctxval)
-			err = action.UpdateAppContext("hpa-action-controller", contextID)
+			err = action.UpdateAppContext(ctx, "hpa-action-controller", contextID)
 			Expect(err).To(HaveOccurred())
 		})
 
 		It("*** GINKGO TESTCASE: unsuccessful update-context due to bad container-name allocatable-resource hpa-resource spec", func() {
-			_, err := cfca.context.AddResource(context.Background(), capcl, deploymentName1+"+Deployment", badDeploymentSpec4)
+			ctx := context.Background()
+			_, err := cfca.context.AddResource(ctx, capcl, deploymentName1+"+Deployment", badDeploymentSpec4)
 			Expect(err).To(BeNil())
 
 			contextID := fmt.Sprintf("%v", cfca.ctxval)
-			err = action.UpdateAppContext("hpa-action-controller", contextID)
+			err = action.UpdateAppContext(ctx, "hpa-action-controller", contextID)
 			Expect(err).To(HaveOccurred())
 		})
 
 		It("*** GINKGO TESTCASE: successful update-context when hpa-intent app is associated with composite-app with NO apps", func() {
+			ctx := context.Background()
 			(mdb.Items[0])[orchMod.AppKey{App: "", Project: project, CompositeApp: compApp, CompositeAppVersion: version}.String()] = nil
 			contextID := fmt.Sprintf("%v", cfca.ctxval)
-			err := action.UpdateAppContext("hpa-action-controller", contextID)
+			err := action.UpdateAppContext(ctx, "hpa-action-controller", contextID)
 			Expect(err).To(BeNil())
 		})
 
 		It("*** GINKGO TESTCASE: successful update-context when hpa-intent app is not one of composite-app apps", func() {
+			ctx := context.Background()
 			(mdb.Items[0])[orchMod.AppKey{App: "", Project: project, CompositeApp: compApp, CompositeAppVersion: version}.String()] = map[string][]byte{
 				"data": []byte(
 					"{" +
@@ -589,20 +607,22 @@ spec:
 						"}"),
 			}
 			contextID := fmt.Sprintf("%v", cfca.ctxval)
-			err := action.UpdateAppContext("hpa-action-controller", contextID)
+			err := action.UpdateAppContext(ctx, "hpa-action-controller", contextID)
 			Expect(err).To(BeNil())
 		})
 
 		It("*** GINKGO TESTCASE: successful update-context for non-existing hpa-intents", func() {
+			ctx := context.Background()
 			(mdb.Items[0])[hpaMod.HpaIntentKey{IntentName: "",
 				Project: project, CompositeApp: compApp,
 				Version: version, DeploymentIntentGroup: dig}.String()] = nil
 			contextID := fmt.Sprintf("%v", cfca.ctxval)
-			err := action.UpdateAppContext("hpa-action-controller", contextID)
+			err := action.UpdateAppContext(ctx, "hpa-action-controller", contextID)
 			Expect(err).To(BeNil())
 		})
 
 		It("*** GINKGO TESTCASE: successful update-context for non-existing hpa-intent", func() {
+			ctx := context.Background()
 			(mdb.Items[0])[hpaMod.HpaIntentKey{IntentName: "",
 				Project: project, CompositeApp: compApp,
 				Version: version, DeploymentIntentGroup: dig}.String()] = map[string][]byte{
@@ -618,20 +638,22 @@ spec:
 						"}"),
 			}
 			contextID := fmt.Sprintf("%v", cfca.ctxval)
-			err := action.UpdateAppContext("hpa-action-controller", contextID)
+			err := action.UpdateAppContext(ctx, "hpa-action-controller", contextID)
 			Expect(err).To(BeNil())
 		})
 
 		It("*** GINKGO TESTCASE: successful update-context for non-existing hpa-consumers", func() {
+			ctx := context.Background()
 			(mdb.Items[0])[hpaMod.HpaConsumerKey{ConsumerName: "", IntentName: hpaIntentName1,
 				Project: project, CompositeApp: compApp,
 				Version: version, DeploymentIntentGroup: dig}.String()] = nil
 			contextID := fmt.Sprintf("%v", cfca.ctxval)
-			err := action.UpdateAppContext("hpa-action-controller", contextID)
+			err := action.UpdateAppContext(ctx, "hpa-action-controller", contextID)
 			Expect(err).To(BeNil())
 		})
 
 		It("*** GINKGO TESTCASE: successful update-context for non-existing hpa-consumer", func() {
+			ctx := context.Background()
 			(mdb.Items[0])[hpaMod.HpaConsumerKey{ConsumerName: "", IntentName: hpaIntentName1,
 				Project: project, CompositeApp: compApp,
 				Version: version, DeploymentIntentGroup: dig}.String()] = map[string][]byte{
@@ -648,49 +670,54 @@ spec:
 						"}"),
 			}
 			contextID := fmt.Sprintf("%v", cfca.ctxval)
-			err := action.UpdateAppContext("hpa-action-controller", contextID)
+			err := action.UpdateAppContext(ctx, "hpa-action-controller", contextID)
 			Expect(err).To(BeNil())
 		})
 
 		It("*** GINKGO TESTCASE: successful update-context due to non-existing hpa-resources", func() {
+			ctx := context.Background()
 			(mdb.Items[0])[hpaMod.HpaResourceKey{ResourceName: "", ConsumerName: hpaConsumerName1, IntentName: hpaIntentName1,
 				Project: project, CompositeApp: compApp,
 				Version: version, DeploymentIntentGroup: dig}.String()] = nil
-			_, err := cfca.context.AddResource(context.Background(), capcl, deploymentName1+"+Deployment", badDeploymentSpec3)
+			_, err := cfca.context.AddResource(ctx, capcl, deploymentName1+"+Deployment", badDeploymentSpec3)
 			Expect(err).To(BeNil())
 
 			contextID := fmt.Sprintf("%v", cfca.ctxval)
-			err = action.UpdateAppContext("hpa-action-controller", contextID)
+			err = action.UpdateAppContext(ctx, "hpa-action-controller", contextID)
 			Expect(err).To(BeNil())
 		})
 
 		It("*** GINKGO TESTCASE: successful update-context due to non-existing hpa-resource", func() {
+			ctx := context.Background()
 			(mdb.Items[0])[hpaMod.HpaResourceKey{ResourceName: "", ConsumerName: hpaConsumerName1, IntentName: hpaIntentName1,
 				Project: project, CompositeApp: compApp,
 				Version: version, DeploymentIntentGroup: dig}.String()] = map[string][]byte{}
-			_, err := cfca.context.AddResource(context.Background(), capcl, deploymentName1+"+Deployment", badDeploymentSpec3)
+			_, err := cfca.context.AddResource(ctx, capcl, deploymentName1+"+Deployment", badDeploymentSpec3)
 			Expect(err).To(BeNil())
 
 			contextID := fmt.Sprintf("%v", cfca.ctxval)
-			err = action.UpdateAppContext("hpa-action-controller", contextID)
+			err = action.UpdateAppContext(ctx, "hpa-action-controller", contextID)
 			Expect(err).To(BeNil())
 		})
 
 		It("*** GINKGO TESTCASE: failed update-context for non-existing resource deployment spec", func() {
-			_, err := cfca.context.AddResource(context.Background(), capcl, deploymentName1+"+Deployment", badDeploymentSpec)
+			ctx := context.Background()
+			_, err := cfca.context.AddResource(ctx, capcl, deploymentName1+"+Deployment", badDeploymentSpec)
 			Expect(err).To(BeNil())
 
 			contextID := fmt.Sprintf("%v", cfca.ctxval)
-			err = action.UpdateAppContext("hpa-action-controller", contextID)
+			err = action.UpdateAppContext(ctx, "hpa-action-controller", contextID)
 			Expect(err).To(HaveOccurred())
 		})
 
 		It("*** GINKGO TESTCASE: failed update-context with nil contextID", func() {
-			err := action.UpdateAppContext("hpa-action-controller", "")
+			ctx := context.Background()
+			err := action.UpdateAppContext(ctx, "hpa-action-controller", "")
 			Expect(err).To(HaveOccurred())
 		})
 
 		It("*** GINKGO TESTCASE: successful update-context with nil contextID", func() {
+			ctx := context.Background()
 			(mdb.Items[0])[hpaMod.HpaConsumerKey{ConsumerName: "", IntentName: hpaIntentName1,
 				Project: project, CompositeApp: compApp,
 				Version: version, DeploymentIntentGroup: dig}.String()] = map[string][]byte{
@@ -724,7 +751,7 @@ spec:
 			}
 
 			contextID := fmt.Sprintf("%v", cfca.ctxval)
-			err := action.UpdateAppContext("hpa-action-controller", contextID)
+			err := action.UpdateAppContext(ctx, "hpa-action-controller", contextID)
 			Expect(err).To(BeNil())
 		})
 	})

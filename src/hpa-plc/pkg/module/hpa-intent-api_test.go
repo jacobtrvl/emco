@@ -4,6 +4,7 @@
 package module
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 	"strings"
@@ -11,10 +12,10 @@ import (
 
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
 
+	pkgerrors "github.com/pkg/errors"
 	hpaModel "gitlab.com/project-emco/core/emco-base/src/hpa-plc/pkg/model"
 	orchMod "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/module"
 	mtypes "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/module/types"
-	pkgerrors "github.com/pkg/errors"
 )
 
 func TestCreateIntent(t *testing.T) {
@@ -263,10 +264,11 @@ func TestCreateIntent(t *testing.T) {
 	fmt.Printf("\n================== TestCreateIntent .. total_testcase_count[%d] ==================\n", len(testCases))
 	for i, testCase := range testCases {
 		t.Run(testCase.label, func(t *testing.T) {
+			ctx := context.Background()
 			fmt.Printf("\n================== TestCreateIntent .. testcase_count[%d] testcase_name[%s] ==================\n", i, testCase.label)
 			db.DBconn = testCase.mockdb
 			impl := NewHpaPlacementClient()
-			got, err := impl.AddIntent(testCase.inp, "project1", "compositeapp1", "version1", "dgroup1", false)
+			got, err := impl.AddIntent(ctx, testCase.inp, "project1", "compositeapp1", "version1", "dgroup1", false)
 			if err != nil {
 				if testCase.expectedError == "" {
 					t.Fatalf("Create returned an unexpected-error[%s] expected[%s]", err, testCase.expectedError)
@@ -385,10 +387,11 @@ func TestUpdateIntent(t *testing.T) {
 	fmt.Printf("\n================== TestUpdateIntent .. total_testcase_count[%d] ==================\n", len(testCases))
 	for i, testCase := range testCases {
 		t.Run(testCase.label, func(t *testing.T) {
+			ctx := context.Background()
 			fmt.Printf("\n================== TestUpdateIntent .. testcase_count[%d] testcase_name[%s] ==================\n", i, testCase.label)
 			db.DBconn = testCase.mockdb
 			impl := NewHpaPlacementClient()
-			got, err := impl.AddIntent(testCase.inp, "project1", "compositeapp1", "version1", "dgroup1", true)
+			got, err := impl.AddIntent(ctx, testCase.inp, "project1", "compositeapp1", "version1", "dgroup1", true)
 			if err != nil {
 				if testCase.expectedError == "" {
 					t.Fatalf("Update returned an unexpected error [%s]", err)
@@ -577,9 +580,10 @@ func TestGetAllIntents(t *testing.T) {
 	for i, testCase := range testCases {
 		fmt.Printf("\n================== TestGetAllIntents .. testcase_count[%d] testcase_name[%s] ==================\n", i, testCase.label)
 		t.Run(testCase.label, func(t *testing.T) {
+			ctx := context.Background()
 			db.DBconn = testCase.mockdb
 			impl := NewHpaPlacementClient()
-			got, err := impl.GetAllIntents("project1", "compositeapp1", "version1", "dgroup1")
+			got, err := impl.GetAllIntents(ctx, "project1", "compositeapp1", "version1", "dgroup1")
 			if err != nil {
 				if testCase.expectedError == "" {
 					t.Fatalf("Get returned an unexpected error: %s", err)
@@ -712,9 +716,10 @@ func TestGetAllIntentsByApp(t *testing.T) {
 	for i, testCase := range testCases {
 		fmt.Printf("\n================== TestGetAllIntentsByApp .. testcase_count[%d] testcase_name[%s] ==================\n", i, testCase.label)
 		t.Run(testCase.label, func(t *testing.T) {
+			ctx := context.Background()
 			db.DBconn = testCase.mockdb
 			impl := NewHpaPlacementClient()
-			got, err := impl.GetAllIntentsByApp("testApp1", "project1", "compositeapp1", "version1", "dgroup1")
+			got, err := impl.GetAllIntentsByApp(ctx, "testApp1", "project1", "compositeapp1", "version1", "dgroup1")
 			if err != nil {
 				if testCase.expectedError == "" {
 					t.Fatalf("Get returned an unexpected error: %s", err)
@@ -835,9 +840,10 @@ func TestGetIntent(t *testing.T) {
 	for i, testCase := range testCases {
 		fmt.Printf("\n================== TestGetIntent .. testcase_count[%d] testcase_name[%s] ==================\n", i, testCase.label)
 		t.Run(testCase.label, func(t *testing.T) {
+			ctx := context.Background()
 			db.DBconn = testCase.mockdb
 			impl := NewHpaPlacementClient()
-			got, _, err := impl.GetIntent(testCase.name, "project1", "compositeapp1", "version1", "dgroup1")
+			got, _, err := impl.GetIntent(ctx, testCase.name, "project1", "compositeapp1", "version1", "dgroup1")
 			if err != nil {
 				if testCase.expectedError == "" {
 					t.Fatalf("Get returned an unexpected error: %s", err)
@@ -961,9 +967,10 @@ func TestGetIntentByName(t *testing.T) {
 	for i, testCase := range testCases {
 		fmt.Printf("\n================== GetIntentByName .. testcase_count[%d] testcase_name[%s] ==================\n", i, testCase.label)
 		t.Run(testCase.label, func(t *testing.T) {
+			ctx := context.Background()
 			db.DBconn = testCase.mockdb
 			impl := NewHpaPlacementClient()
-			got, err := impl.GetIntentByName(testCase.name, "project1", "compositeapp1", "version1", "dgroup1")
+			got, err := impl.GetIntentByName(ctx, testCase.name, "project1", "compositeapp1", "version1", "dgroup1")
 			if err != nil {
 				if testCase.expectedError == "" {
 					t.Fatalf("Get returned an unexpected error: %s", err)
@@ -1148,9 +1155,10 @@ func TestDeleteIntent(t *testing.T) {
 	for i, testCase := range testCases {
 		fmt.Printf("\n================== TestDeleteIntent .. testcase_count[%d] testcase_name[%s] ==================\n", i, testCase.label)
 		t.Run(testCase.label, func(t *testing.T) {
+			ctx := context.Background()
 			db.DBconn = testCase.mockdb
 			impl := NewHpaPlacementClient()
-			err := impl.DeleteIntent(testCase.name, "project1", "compositeapp1", "version1", "dgroup1")
+			err := impl.DeleteIntent(ctx, testCase.name, "project1", "compositeapp1", "version1", "dgroup1")
 			if err != nil {
 				if testCase.expectedError == "" {
 					t.Fatalf("Delete returned an unexpected-error[%s] expected[%s]", err, testCase.expectedError)
