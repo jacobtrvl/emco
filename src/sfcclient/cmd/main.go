@@ -6,25 +6,24 @@ package main
 import (
 	"context"
 	"math/rand"
-	"net/http"
 	"os"
 	"os/signal"
 	"time"
 
-	"github.com/gorilla/handlers"
 	register "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/grpc"
-	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/config"
 	contextDb "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/contextdb"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
 	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
+	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/module/controller"
 	"gitlab.com/project-emco/core/emco-base/src/sfcclient/api"
 	"gitlab.com/project-emco/core/emco-base/src/sfcclient/pkg/grpc/contextupdateserver"
 )
 
 func main() {
+	ctx := context.Background()
 	rand.Seed(time.Now().UnixNano())
 
-	err := db.InitializeDatabaseConnection(context.Background(), "emco")
+	err := db.InitializeDatabaseConnection(ctx, "emco")
 	if err != nil {
 		log.Error("Unable to initialize mongo database connection", log.Fields{"Error": err})
 		os.Exit(1)
@@ -35,34 +34,31 @@ func main() {
 		os.Exit(1)
 	}
 
-	httpRouter := api.NewRouter(nil)
-	loggedRouter := handlers.LoggingHandler(os.Stdout, httpRouter)
-	log.Info("Starting SFC Client Action  Controller", log.Fields{"Port": config.GetConfiguration().ServicePort})
-
-	httpServer := &http.Server{
-		Handler: loggedRouter,
-		Addr:    ":" + config.GetConfiguration().ServicePort,
+	grpcServer, err := register.NewGrpcServer("sfcclient", "SFCCLIENT_NAME", 9058,
+		register.RegisterContextUpdateService, contextupdateserver.NewContextupdateServer())
+	if err != nil {
+		log.Error("GRPC server failed to start", log.Fields{"Error": err})
+		os.Exit(1)
 	}
 
-	go func() {
-		err := register.StartGrpcServer("sfcclient", "SFCCLIENT_NAME", 9058,
-			register.RegisterContextUpdateService, contextupdateserver.NewContextupdateServer())
-		if err != nil {
-			log.Error("GRPC server failed to start", log.Fields{"Error": err})
-			os.Exit(1)
-		}
-	}()
+	server, err := controller.NewControllerServer("orchestrator",
+		api.NewRouter(nil),
+		grpcServer)
+	if err != nil {
+		log.Error("Unable to create server", log.Fields{"Error": err})
+		os.Exit(1)
+	}
 
 	connectionsClose := make(chan struct{})
 	go func() {
 		c := make(chan os.Signal, 1)
 		signal.Notify(c, os.Interrupt)
 		<-c
-		httpServer.Shutdown(context.Background())
+		server.Shutdown(ctx)
 		close(connectionsClose)
 	}()
 
-	err = httpServer.ListenAndServe()
+	err = server.ListenAndServe()
 	if err != nil {
 		log.Error("HTTP server failed", log.Fields{"Error": err})
 	}

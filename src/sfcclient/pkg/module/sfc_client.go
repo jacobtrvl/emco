@@ -4,16 +4,16 @@
 package module
 
 import (
+	"context"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
 	orchmod "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/module"
 	"gitlab.com/project-emco/core/emco-base/src/sfcclient/pkg/model"
 
-	"context"
 	pkgerrors "github.com/pkg/errors"
 )
 
 // CreateSfcClientIntent - create a new SfcClientIntent
-func (v *SfcClient) CreateSfcClientIntent(intent model.SfcClientIntent, pr, ca, caver, dig string, exists bool) (model.SfcClientIntent, error) {
+func (v *SfcClient) CreateSfcClientIntent(ctx context.Context, intent model.SfcClientIntent, pr, ca, caver, dig string, exists bool) (model.SfcClientIntent, error) {
 	//Construct key and tag to select the entry
 	key := model.SfcClientIntentKey{
 		Project:             pr,
@@ -24,12 +24,12 @@ func (v *SfcClient) CreateSfcClientIntent(intent model.SfcClientIntent, pr, ca, 
 	}
 
 	//Check if this SFC Client Intent already exists
-	_, err := v.GetSfcClientIntent(intent.Metadata.Name, pr, ca, caver, dig)
+	_, err := v.GetSfcClientIntent(ctx, intent.Metadata.Name, pr, ca, caver, dig)
 	if err == nil && !exists {
 		return model.SfcClientIntent{}, pkgerrors.New("SFC Client Intent already exists")
 	}
 
-	err = db.DBconn.Insert(context.Background(), v.db.storeName, key, nil, v.db.tagMeta, intent)
+	err = db.DBconn.Insert(ctx, v.db.storeName, key, nil, v.db.tagMeta, intent)
 	if err != nil {
 		return model.SfcClientIntent{}, pkgerrors.Wrap(err, "Creating DB Entry")
 	}
@@ -38,7 +38,7 @@ func (v *SfcClient) CreateSfcClientIntent(intent model.SfcClientIntent, pr, ca, 
 }
 
 // GetSfcClientIntent returns the SfcClientIntent for corresponding name
-func (v *SfcClient) GetSfcClientIntent(name, pr, ca, caver, dig string) (model.SfcClientIntent, error) {
+func (v *SfcClient) GetSfcClientIntent(ctx context.Context, name, pr, ca, caver, dig string) (model.SfcClientIntent, error) {
 	//Construct key and tag to select the entry
 	key := model.SfcClientIntentKey{
 		Project:             pr,
@@ -48,7 +48,7 @@ func (v *SfcClient) GetSfcClientIntent(name, pr, ca, caver, dig string) (model.S
 		SfcClientIntent:     name,
 	}
 
-	value, err := db.DBconn.Find(context.Background(), v.db.storeName, key, v.db.tagMeta)
+	value, err := db.DBconn.Find(ctx, v.db.storeName, key, v.db.tagMeta)
 	if err != nil {
 		return model.SfcClientIntent{}, err
 	} else if len(value) == 0 {
@@ -69,7 +69,7 @@ func (v *SfcClient) GetSfcClientIntent(name, pr, ca, caver, dig string) (model.S
 }
 
 // GetAllSfcClientIntent returns all of the SFC Client Intents for for the given network control intent
-func (v *SfcClient) GetAllSfcClientIntents(pr, ca, caver, dig string) ([]model.SfcClientIntent, error) {
+func (v *SfcClient) GetAllSfcClientIntents(ctx context.Context, pr, ca, caver, dig string) ([]model.SfcClientIntent, error) {
 	//Construct key and tag to select the entry
 	key := model.SfcClientIntentKey{
 		Project:             pr,
@@ -82,12 +82,12 @@ func (v *SfcClient) GetAllSfcClientIntents(pr, ca, caver, dig string) ([]model.S
 	resp := make([]model.SfcClientIntent, 0)
 
 	// Verify the Deployment Intent Group exists
-	_, err := orchmod.NewDeploymentIntentGroupClient().GetDeploymentIntentGroup(context.Background(), dig, pr, ca, caver)
+	_, err := orchmod.NewDeploymentIntentGroupClient().GetDeploymentIntentGroup(ctx, dig, pr, ca, caver)
 	if err != nil {
 		return resp, err
 	}
 
-	values, err := db.DBconn.Find(context.Background(), v.db.storeName, key, v.db.tagMeta)
+	values, err := db.DBconn.Find(ctx, v.db.storeName, key, v.db.tagMeta)
 	if err != nil {
 		return resp, err
 	}
@@ -105,7 +105,7 @@ func (v *SfcClient) GetAllSfcClientIntents(pr, ca, caver, dig string) ([]model.S
 }
 
 // DeleteSfcClientIntent deletes the SfcClientIntent from the database
-func (v *SfcClient) DeleteSfcClientIntent(name, pr, ca, caver, dig string) error {
+func (v *SfcClient) DeleteSfcClientIntent(ctx context.Context, name, pr, ca, caver, dig string) error {
 
 	//Construct key and tag to select the entry
 	key := model.SfcClientIntentKey{
@@ -116,6 +116,6 @@ func (v *SfcClient) DeleteSfcClientIntent(name, pr, ca, caver, dig string) error
 		SfcClientIntent:     name,
 	}
 
-	err := db.DBconn.Remove(context.Background(), v.db.storeName, key)
+	err := db.DBconn.Remove(ctx, v.db.storeName, key)
 	return err
 }

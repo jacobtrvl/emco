@@ -29,6 +29,7 @@ type sfcHandler struct {
 
 // Create handles creation of the SFC Client Intent entry in the database
 func (h sfcHandler) createHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	var sfcClient model.SfcClientIntent
 	vars := mux.Vars(r)
 	project := vars["project"]
@@ -57,7 +58,7 @@ func (h sfcHandler) createHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ret, err := h.client.CreateSfcClientIntent(sfcClient, project, compositeApp, compositeAppVersion, deployIntentGroup, false)
+	ret, err := h.client.CreateSfcClientIntent(ctx, sfcClient, project, compositeApp, compositeAppVersion, deployIntentGroup, false)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, sfcClient, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -76,6 +77,7 @@ func (h sfcHandler) createHandler(w http.ResponseWriter, r *http.Request) {
 
 // Put handles update of the SFC Client Intent entry in the database
 func (h sfcHandler) putHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	var sfcClient model.SfcClientIntent
 	vars := mux.Vars(r)
 	name := vars["sfcClientIntent"]
@@ -112,7 +114,7 @@ func (h sfcHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ret, err := h.client.CreateSfcClientIntent(sfcClient, project, compositeApp, compositeAppVersion, deployIntentGroup, true)
+	ret, err := h.client.CreateSfcClientIntent(ctx, sfcClient, project, compositeApp, compositeAppVersion, deployIntentGroup, true)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, sfcClient, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -132,6 +134,7 @@ func (h sfcHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 // Get handles GET operations on a particular SFC Client Intent Name
 // Returns an SfcIntent
 func (h sfcHandler) getHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	name := vars["sfcClientIntent"]
 	project := vars["project"]
@@ -142,9 +145,9 @@ func (h sfcHandler) getHandler(w http.ResponseWriter, r *http.Request) {
 	var err error
 
 	if len(name) == 0 {
-		ret, err = h.client.GetAllSfcClientIntents(project, compositeApp, compositeAppVersion, deployIntentGroup)
+		ret, err = h.client.GetAllSfcClientIntents(ctx, project, compositeApp, compositeAppVersion, deployIntentGroup)
 	} else {
-		ret, err = h.client.GetSfcClientIntent(name, project, compositeApp, compositeAppVersion, deployIntentGroup)
+		ret, err = h.client.GetSfcClientIntent(ctx, name, project, compositeApp, compositeAppVersion, deployIntentGroup)
 	}
 
 	if err != nil {
@@ -165,6 +168,7 @@ func (h sfcHandler) getHandler(w http.ResponseWriter, r *http.Request) {
 
 // Delete handles DELETE operations on a particular SFC Client Intent
 func (h sfcHandler) deleteHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	name := vars["sfcClientIntent"]
 	project := vars["project"]
@@ -172,7 +176,7 @@ func (h sfcHandler) deleteHandler(w http.ResponseWriter, r *http.Request) {
 	compositeAppVersion := vars["compositeAppVersion"]
 	deployIntentGroup := vars["deploymentIntentGroup"]
 
-	err := h.client.DeleteSfcClientIntent(name, project, compositeApp, compositeAppVersion, deployIntentGroup)
+	err := h.client.DeleteSfcClientIntent(ctx, name, project, compositeApp, compositeAppVersion, deployIntentGroup)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)

@@ -4,6 +4,7 @@
 package module
 
 import (
+	"context"
 	"gitlab.com/project-emco/core/emco-base/src/sfcclient/pkg/model"
 )
 
@@ -18,10 +19,10 @@ type ClientDbInfo struct {
 // SfcIntentManager is an interface exposing the SFC Intent functionality
 type SfcManager interface {
 	// SFC Intent functions
-	CreateSfcClientIntent(sfc model.SfcClientIntent, pr, ca, caver, dig string, exists bool) (model.SfcClientIntent, error)
-	GetSfcClientIntent(name, pr, ca, caver, dig string) (model.SfcClientIntent, error)
-	GetAllSfcClientIntents(pr, ca, caver, dig string) ([]model.SfcClientIntent, error)
-	DeleteSfcClientIntent(name, pr, ca, caver, dig string) error
+	CreateSfcClientIntent(ctx context.Context, sfc model.SfcClientIntent, pr, ca, caver, dig string, exists bool) (model.SfcClientIntent, error)
+	GetSfcClientIntent(ctx context.Context, name, pr, ca, caver, dig string) (model.SfcClientIntent, error)
+	GetAllSfcClientIntents(ctx context.Context, pr, ca, caver, dig string) ([]model.SfcClientIntent, error)
+	DeleteSfcClientIntent(ctx context.Context, name, pr, ca, caver, dig string) error
 }
 
 // SfcClient implements the Manager

@@ -14,6 +14,7 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	pkgerrors "github.com/pkg/errors"
+	"github.com/stretchr/testify/mock"
 	"gitlab.com/project-emco/core/emco-base/src/sfcclient/api/mocks"
 	"gitlab.com/project-emco/core/emco-base/src/sfcclient/pkg/model"
 )
@@ -38,7 +39,7 @@ var _ = Describe("Sfcintenthandler", func() {
 	DescribeTable("Create SfcClientIntent tests",
 		func(t testCase) {
 			// set up client mock responses
-			t.client.On("CreateSfcClientIntent", t.inStruct, "test-project", "test-compositeapp", "v1", "test-dig", false).Return(t.mockVal, t.mockError)
+			t.client.On("CreateSfcClientIntent", mock.Anything, t.inStruct, "test-project", "test-compositeapp", "v1", "test-dig", false).Return(t.mockVal, t.mockError)
 
 			// make HTTP request
 			request := httptest.NewRequest("POST", "/v2/projects/test-project/composite-apps/test-compositeapp/v1/deployment-intent-groups/test-dig/sfc-clients", t.inputReader)
@@ -497,7 +498,7 @@ var _ = Describe("Sfcintenthandler", func() {
 	DescribeTable("Put SfcClientIntent tests",
 		func(t testCase) {
 			// set up client mock responses
-			t.client.On("CreateSfcClientIntent", t.inStruct, "test-project", "test-compositeapp", "v1", "test-dig", true).Return(t.mockVal, t.mockError)
+			t.client.On("CreateSfcClientIntent", mock.Anything, t.inStruct, "test-project", "test-compositeapp", "v1", "test-dig", true).Return(t.mockVal, t.mockError)
 
 			// make HTTP request
 			request := httptest.NewRequest("PUT", "/v2/projects/test-project/composite-apps/test-compositeapp/v1/deployment-intent-groups/test-dig/sfc-clients/"+t.inputName, t.inputReader)
@@ -797,7 +798,7 @@ var _ = Describe("Sfcintenthandler", func() {
 	DescribeTable("Get List SfcClientIntent tests",
 		func(t testCase) {
 			// set up client mock responses
-			t.client.On("GetAllSfcClientIntents", "test-project", "test-compositeapp", "v1", "test-dig").Return(t.mockVals, t.mockError)
+			t.client.On("GetAllSfcClientIntents", mock.Anything, "test-project", "test-compositeapp", "v1", "test-dig").Return(t.mockVals, t.mockError)
 
 			// make HTTP request
 			request := httptest.NewRequest("GET", "/v2/projects/test-project/composite-apps/test-compositeapp/v1/deployment-intent-groups/test-dig/sfc-clients", nil)
@@ -874,7 +875,7 @@ var _ = Describe("Sfcintenthandler", func() {
 	DescribeTable("Get SfcClientIntent tests",
 		func(t testCase) {
 			// set up client mock responses
-			t.client.On("GetSfcClientIntent", t.inputName, "test-project", "test-compositeapp", "v1", "test-dig").Return(t.mockVal, t.mockError)
+			t.client.On("GetSfcClientIntent", mock.Anything, t.inputName, "test-project", "test-compositeapp", "v1", "test-dig").Return(t.mockVal, t.mockError)
 
 			// make HTTP request
 			request := httptest.NewRequest("GET", "/v2/projects/test-project/composite-apps/test-compositeapp/v1/deployment-intent-groups/test-dig/sfc-clients/"+t.inputName, nil)
@@ -942,7 +943,7 @@ var _ = Describe("Sfcintenthandler", func() {
 	DescribeTable("Delete SfcClientIntent tests",
 		func(t testCase) {
 			// set up client mock responses
-			t.client.On("DeleteSfcClientIntent", t.inputName, "test-project", "test-compositeapp", "v1", "test-dig").Return(t.mockError)
+			t.client.On("DeleteSfcClientIntent", mock.Anything, t.inputName, "test-project", "test-compositeapp", "v1", "test-dig").Return(t.mockError)
 
 			// make HTTP request
 			request := httptest.NewRequest("DELETE", "/v2/projects/test-project/composite-apps/test-compositeapp/v1/deployment-intent-groups/test-dig/sfc-clients/"+t.inputName, nil)

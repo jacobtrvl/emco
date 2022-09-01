@@ -36,7 +36,8 @@ func NewRouter(testClient interface{}) *mux.Router {
 
 	moduleClient = module.NewSfcClient()
 
-	router := mux.NewRouter().PathPrefix("/v2").Subrouter()
+	router := mux.NewRouter()
+	v2Router := router.PathPrefix("/v2").Subrouter()
 
 	const sfcClientIntentsURL = "/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/sfc-clients"
 	const sfcClientIntentsGetURL = sfcClientIntentsURL + "/{sfcClientIntent}"
@@ -44,11 +45,11 @@ func NewRouter(testClient interface{}) *mux.Router {
 	sfcHandler := sfcHandler{
 		client: setClient(moduleClient, testClient).(module.SfcManager),
 	}
-	router.HandleFunc(sfcClientIntentsURL, sfcHandler.createHandler).Methods("POST")
-	router.HandleFunc(sfcClientIntentsURL, sfcHandler.getHandler).Methods("GET")
-	router.HandleFunc(sfcClientIntentsGetURL, sfcHandler.putHandler).Methods("PUT")
-	router.HandleFunc(sfcClientIntentsGetURL, sfcHandler.getHandler).Methods("GET")
-	router.HandleFunc(sfcClientIntentsGetURL, sfcHandler.deleteHandler).Methods("DELETE")
+	v2Router.HandleFunc(sfcClientIntentsURL, sfcHandler.createHandler).Methods("POST")
+	v2Router.HandleFunc(sfcClientIntentsURL, sfcHandler.getHandler).Methods("GET")
+	v2Router.HandleFunc(sfcClientIntentsGetURL, sfcHandler.putHandler).Methods("PUT")
+	v2Router.HandleFunc(sfcClientIntentsGetURL, sfcHandler.getHandler).Methods("GET")
+	v2Router.HandleFunc(sfcClientIntentsGetURL, sfcHandler.deleteHandler).Methods("DELETE")
 
 	return router
 }

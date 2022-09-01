@@ -47,7 +47,7 @@ dependencies:
     version: "1.0.1"
     repository: 'file://../sfc'
   - name: sfcclient
-    version: "1.0.0"
+    version: "1.0.1"
     repository: 'file://../sfcclient'
   - name: hpa-ac
     version: "1.0.1"

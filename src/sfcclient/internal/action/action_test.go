@@ -126,12 +126,13 @@ var _ = Describe("SFC Client Action", func() {
 	)
 
 	BeforeEach(func() {
+		ctx := context.Background()
 		cdb = new(contextdb.MockConDb)
 		cdb.Err = nil
 		contextdb.Db = cdb
 
 		// make an AppContext
-		cid, _ := cacontext.CreateCompApp(context.Background(), TestCA1)
+		cid, _ := cacontext.CreateCompApp(ctx, TestCA1)
 		contextIdCA1 = cid
 
 		// setup the mock DB resources
@@ -287,37 +288,38 @@ var _ = Describe("SFC Client Action", func() {
 		db.DBconn = mdb
 
 		// set up prerequisites - client CA
-		_, err := (*projClient).CreateProject(context.Background(), proj, false)
+		_, err := (*projClient).CreateProject(ctx, proj, false)
 		Expect(err).To(BeNil())
-		_, err = (*caClient).CreateCompositeApp(context.Background(), ca, "testp", false)
+		_, err = (*caClient).CreateCompositeApp(ctx, ca, "testp", false)
 		Expect(err).To(BeNil())
-		_, _, err = (*digClient).CreateDeploymentIntentGroup(context.Background(), dig, "testp", "clientCA", "v1", true)
+		_, _, err = (*digClient).CreateDeploymentIntentGroup(ctx, dig, "testp", "clientCA", "v1", true)
 		Expect(err).To(BeNil())
-		_, err = (*sfcClient).CreateSfcClientIntent(sfcLeftClientIntent, "testp", "clientCA", "v1", "dig1", false)
+		_, err = (*sfcClient).CreateSfcClientIntent(ctx, sfcLeftClientIntent, "testp", "clientCA", "v1", "dig1", false)
 		Expect(err).To(BeNil())
-		_, err = (*sfcClient).CreateSfcClientIntent(sfcRightClientIntent, "testp", "clientCA", "v1", "dig1", false)
+		_, err = (*sfcClient).CreateSfcClientIntent(ctx, sfcRightClientIntent, "testp", "clientCA", "v1", "dig1", false)
 		Expect(err).To(BeNil())
 
 		// set up prerequisites - chain CA
-		_, err = (*caClient).CreateCompositeApp(context.Background(), chainCa, "testp", false)
+		_, err = (*caClient).CreateCompositeApp(ctx, chainCa, "testp", false)
 		Expect(err).To(BeNil())
-		_, _, err = (*digClient).CreateDeploymentIntentGroup(context.Background(), chainDig, "testp", "chainCA", "v1", true)
+		_, _, err = (*digClient).CreateDeploymentIntentGroup(ctx, chainDig, "testp", "chainCA", "v1", true)
 		Expect(err).To(BeNil())
-		_, err = (*sfcIntentClient).CreateSfcIntent(sfcIntent, "testp", "chainCA", "v1", "chainDig1", false)
+		_, err = (*sfcIntentClient).CreateSfcIntent(ctx, sfcIntent, "testp", "chainCA", "v1", "chainDig1", false)
 		Expect(err).To(BeNil())
-		_, err = (*sfcClientSelectorIntentClient).CreateSfcClientSelectorIntent(sfcLeftClientSelectorIntent, "testp", "chainCA", "v1", "chainDig1", "sfcIntentName", false)
+		_, err = (*sfcClientSelectorIntentClient).CreateSfcClientSelectorIntent(ctx, sfcLeftClientSelectorIntent, "testp", "chainCA", "v1", "chainDig1", "sfcIntentName", false)
 		Expect(err).To(BeNil())
-		_, err = (*sfcClientSelectorIntentClient).CreateSfcClientSelectorIntent(sfcRightClientSelectorIntent, "testp", "chainCA", "v1", "chainDig1", "sfcIntentName", false)
+		_, err = (*sfcClientSelectorIntentClient).CreateSfcClientSelectorIntent(ctx, sfcRightClientSelectorIntent, "testp", "chainCA", "v1", "chainDig1", "sfcIntentName", false)
 		Expect(err).To(BeNil())
-		_, err = (*sfcProviderNetworkIntentClient).CreateSfcProviderNetworkIntent(sfcLeftProviderNetworkIntent, "testp", "chainCA", "v1", "chainDig1", "sfcIntentName", false)
+		_, err = (*sfcProviderNetworkIntentClient).CreateSfcProviderNetworkIntent(ctx, sfcLeftProviderNetworkIntent, "testp", "chainCA", "v1", "chainDig1", "sfcIntentName", false)
 		Expect(err).To(BeNil())
-		_, err = (*sfcProviderNetworkIntentClient).CreateSfcProviderNetworkIntent(sfcRightProviderNetworkIntent, "testp", "chainCA", "v1", "chainDig1", "sfcIntentName", false)
+		_, err = (*sfcProviderNetworkIntentClient).CreateSfcProviderNetworkIntent(ctx, sfcRightProviderNetworkIntent, "testp", "chainCA", "v1", "chainDig1", "sfcIntentName", false)
 		Expect(err).To(BeNil())
 	})
 
 	It("Successful Apply SFC to an App Context", func() {
+		ctx := context.Background()
 		// TODO - unit test code needs to be completed (setup of test appcontexts, etc. need work)
-		err := action.UpdateAppContext("netctl", contextIdCA1)
+		err := action.UpdateAppContext(ctx, "netctl", contextIdCA1)
 		Expect(err).To(HaveOccurred())
 	})
 
