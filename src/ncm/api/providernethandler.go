@@ -9,12 +9,12 @@ import (
 	"net/http"
 	"strings"
 
+	pkgerrors "github.com/pkg/errors"
 	netintents "gitlab.com/project-emco/core/emco-base/src/ncm/pkg/networkintents"
 	nettypes "gitlab.com/project-emco/core/emco-base/src/ncm/pkg/networkintents/types"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/apierror"
 	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/validation"
-	pkgerrors "github.com/pkg/errors"
 
 	"github.com/gorilla/mux"
 )
@@ -113,6 +113,7 @@ func validateProviderNetInputs(p netintents.ProviderNet) error {
 
 // Create handles creation of the ProviderNet entry in the database
 func (h providernetHandler) createProviderNetHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	var p netintents.ProviderNet
 	vars := mux.Vars(r)
 	clusterProvider := vars["clusterProvider"]
@@ -152,7 +153,7 @@ func (h providernetHandler) createProviderNetHandler(w http.ResponseWriter, r *h
 		return
 	}
 
-	ret, err := h.client.CreateProviderNet(p, clusterProvider, cluster, false)
+	ret, err := h.client.CreateProviderNet(ctx, p, clusterProvider, cluster, false)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, p, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -171,6 +172,7 @@ func (h providernetHandler) createProviderNetHandler(w http.ResponseWriter, r *h
 
 // Put handles creation/update of the ProviderNet entry in the database
 func (h providernetHandler) putProviderNetHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	var p netintents.ProviderNet
 	vars := mux.Vars(r)
 	clusterProvider := vars["clusterProvider"]
@@ -210,7 +212,7 @@ func (h providernetHandler) putProviderNetHandler(w http.ResponseWriter, r *http
 		return
 	}
 
-	ret, err := h.client.CreateProviderNet(p, clusterProvider, cluster, true)
+	ret, err := h.client.CreateProviderNet(ctx, p, clusterProvider, cluster, true)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, p, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -230,6 +232,7 @@ func (h providernetHandler) putProviderNetHandler(w http.ResponseWriter, r *http
 // Get handles GET operations on a particular ProviderNet Name
 // Returns a ProviderNet
 func (h providernetHandler) getProviderNetHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	clusterProvider := vars["clusterProvider"]
 	cluster := vars["cluster"]
@@ -238,9 +241,9 @@ func (h providernetHandler) getProviderNetHandler(w http.ResponseWriter, r *http
 	var err error
 
 	if len(name) == 0 {
-		ret, err = h.client.GetProviderNets(clusterProvider, cluster)
+		ret, err = h.client.GetProviderNets(ctx, clusterProvider, cluster)
 	} else {
-		ret, err = h.client.GetProviderNet(name, clusterProvider, cluster)
+		ret, err = h.client.GetProviderNet(ctx, name, clusterProvider, cluster)
 	}
 
 	if err != nil {
@@ -261,12 +264,13 @@ func (h providernetHandler) getProviderNetHandler(w http.ResponseWriter, r *http
 
 // Delete handles DELETE operations on a particular ProviderNet  Name
 func (h providernetHandler) deleteProviderNetHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	clusterProvider := vars["clusterProvider"]
 	cluster := vars["cluster"]
 	name := vars["providerNetwork"]
 
-	err := h.client.DeleteProviderNet(name, clusterProvider, cluster)
+	err := h.client.DeleteProviderNet(ctx, name, clusterProvider, cluster)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)

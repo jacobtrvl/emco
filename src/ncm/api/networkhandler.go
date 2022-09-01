@@ -8,12 +8,12 @@ import (
 	"io"
 	"net/http"
 
+	pkgerrors "github.com/pkg/errors"
 	netintents "gitlab.com/project-emco/core/emco-base/src/ncm/pkg/networkintents"
 	nettypes "gitlab.com/project-emco/core/emco-base/src/ncm/pkg/networkintents/types"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/apierror"
 	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/validation"
-	pkgerrors "github.com/pkg/errors"
 
 	"github.com/gorilla/mux"
 )
@@ -60,6 +60,7 @@ func validateNetworkInputs(p netintents.Network) error {
 
 // Create handles creation of the Network entry in the database
 func (h networkHandler) createNetworkHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	var p netintents.Network
 	vars := mux.Vars(r)
 	clusterProvider := vars["clusterProvider"]
@@ -99,7 +100,7 @@ func (h networkHandler) createNetworkHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	ret, err := h.client.CreateNetwork(p, clusterProvider, cluster, false)
+	ret, err := h.client.CreateNetwork(ctx, p, clusterProvider, cluster, false)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, p, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -118,6 +119,7 @@ func (h networkHandler) createNetworkHandler(w http.ResponseWriter, r *http.Requ
 
 // Put handles creation/update of the Network entry in the database
 func (h networkHandler) putNetworkHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	var p netintents.Network
 	vars := mux.Vars(r)
 	clusterProvider := vars["clusterProvider"]
@@ -158,7 +160,7 @@ func (h networkHandler) putNetworkHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	ret, err := h.client.CreateNetwork(p, clusterProvider, cluster, true)
+	ret, err := h.client.CreateNetwork(ctx, p, clusterProvider, cluster, true)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, p, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -178,6 +180,7 @@ func (h networkHandler) putNetworkHandler(w http.ResponseWriter, r *http.Request
 // Get handles GET operations on a particular Network Name
 // Returns a Network
 func (h networkHandler) getNetworkHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	clusterProvider := vars["clusterProvider"]
 	cluster := vars["cluster"]
@@ -186,9 +189,9 @@ func (h networkHandler) getNetworkHandler(w http.ResponseWriter, r *http.Request
 	var err error
 
 	if len(name) == 0 {
-		ret, err = h.client.GetNetworks(clusterProvider, cluster)
+		ret, err = h.client.GetNetworks(ctx, clusterProvider, cluster)
 	} else {
-		ret, err = h.client.GetNetwork(name, clusterProvider, cluster)
+		ret, err = h.client.GetNetwork(ctx, name, clusterProvider, cluster)
 	}
 
 	if err != nil {
@@ -209,12 +212,13 @@ func (h networkHandler) getNetworkHandler(w http.ResponseWriter, r *http.Request
 
 // Delete handles DELETE operations on a particular Network  Name
 func (h networkHandler) deleteNetworkHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	clusterProvider := vars["clusterProvider"]
 	cluster := vars["cluster"]
 	name := vars["network"]
 
-	err := h.client.DeleteNetwork(name, clusterProvider, cluster)
+	err := h.client.DeleteNetwork(ctx, name, clusterProvider, cluster)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)

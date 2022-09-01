@@ -4,6 +4,7 @@
 package ovncontroller
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -17,8 +18,6 @@ import (
 	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 	"gopkg.in/yaml.v2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	"context"
 
 	pkgerrors "github.com/pkg/errors"
 )
@@ -60,7 +59,7 @@ func makeNetworkAttachmentDefinition(name string) (string, error) {
 // controller takes an appcontext as input
 //   finds the cluster(s) associated with the context
 //   queries the network intents and adds resources to the context
-func Apply(ctxVal interface{}, clusterProvider, cluster string) error {
+func Apply(ctx context.Context, ctxVal interface{}, clusterProvider, cluster string) error {
 	type resource struct {
 		name  string
 		value string
@@ -68,11 +67,11 @@ func Apply(ctxVal interface{}, clusterProvider, cluster string) error {
 	var resources []resource
 
 	var ac appcontext.AppContext
-	_, err := ac.LoadAppContext(context.Background(), ctxVal)
+	_, err := ac.LoadAppContext(ctx, ctxVal)
 	if err != nil {
 		return pkgerrors.Wrapf(err, "Error getting AppContext with Id: %v for %v/%v", ctxVal, clusterProvider, cluster)
 	}
-	ckv, err := clusterPkg.NewClusterClient().GetAllClusterKvPairs(context.Background(), clusterProvider, cluster)
+	ckv, err := clusterPkg.NewClusterClient().GetAllClusterKvPairs(ctx, clusterProvider, cluster)
 	var val string
 	if err == nil {
 		for _, kvp := range ckv {
@@ -89,7 +88,7 @@ func Apply(ctxVal interface{}, clusterProvider, cluster string) error {
 	multus := strings.EqualFold(MultusCNINetworking, val)
 
 	// Find all Network Intents for this cluster
-	networkIntents, err := netintents.NewNetworkClient().GetNetworks(clusterProvider, cluster)
+	networkIntents, err := netintents.NewNetworkClient().GetNetworks(ctx, clusterProvider, cluster)
 	if err != nil {
 		return pkgerrors.Wrap(err, "Error finding Network Intents")
 	}
@@ -130,7 +129,7 @@ func Apply(ctxVal interface{}, clusterProvider, cluster string) error {
 	}
 
 	// Find all Provider Network Intents for this cluster
-	providerNetworkIntents, err := netintents.NewProviderNetClient().GetProviderNets(clusterProvider, cluster)
+	providerNetworkIntents, err := netintents.NewProviderNetClient().GetProviderNets(ctx, clusterProvider, cluster)
 	if err != nil {
 		return pkgerrors.Wrap(err, "Error finding Provider Network Intents")
 	}
@@ -175,7 +174,7 @@ func Apply(ctxVal interface{}, clusterProvider, cluster string) error {
 	}
 
 	acCluster := clusterProvider + nettypes.SEPARATOR + cluster
-	clusterhandle, err := ac.GetClusterHandle(context.Background(), nettypes.CONTEXT_CLUSTER_APP, acCluster)
+	clusterhandle, err := ac.GetClusterHandle(ctx, nettypes.CONTEXT_CLUSTER_APP, acCluster)
 	if err != nil {
 		return pkgerrors.Wrap(err, "Error getting cluster handle")
 	}
@@ -190,7 +189,7 @@ func Apply(ctxVal interface{}, clusterProvider, cluster string) error {
 	for _, resource := range resources {
 		orderinstr.Resorder = append(orderinstr.Resorder, resource.name)
 		resdep[resource.name] = "go"
-		_, err := ac.AddResource(context.Background(), clusterhandle, resource.name, resource.value)
+		_, err := ac.AddResource(ctx, clusterhandle, resource.name, resource.value)
 		if err != nil {
 			return pkgerrors.Wrap(err, "Error adding Resource to AppContext")
 		}
@@ -204,11 +203,11 @@ func Apply(ctxVal interface{}, clusterProvider, cluster string) error {
 	if err != nil {
 		return pkgerrors.Wrap(err, "Error marshalling resource dependency instruction")
 	}
-	_, err = ac.AddInstruction(context.Background(), clusterhandle, "resource", "order", string(jresord))
+	_, err = ac.AddInstruction(ctx, clusterhandle, "resource", "order", string(jresord))
 	if err != nil {
 		return pkgerrors.Wrap(err, "Error adding resource order instruction")
 	}
-	_, err = ac.AddInstruction(context.Background(), clusterhandle, "resource", "dependency", string(jresdep))
+	_, err = ac.AddInstruction(ctx, clusterhandle, "resource", "dependency", string(jresdep))
 	if err != nil {
 		return pkgerrors.Wrap(err, "Error adding resource dependency instruction")
 	}

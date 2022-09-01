@@ -14,7 +14,7 @@ dependencies:
     version: "1.0.1"
     repository: 'file://../orchestrator'
   - name: ncm
-    version: "1.0.0"
+    version: "1.0.1"
     repository: 'file://../ncm'
   - name: rsync
     version: "1.0.1"

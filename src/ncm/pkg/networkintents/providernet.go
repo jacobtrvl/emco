@@ -51,10 +51,10 @@ type ProviderNetKey struct {
 
 // Manager is an interface exposing the ProviderNet functionality
 type ProviderNetManager interface {
-	CreateProviderNet(pr ProviderNet, clusterProvider, cluster string, exists bool) (ProviderNet, error)
-	GetProviderNet(name, clusterProvider, cluster string) (ProviderNet, error)
-	GetProviderNets(clusterProvider, cluster string) ([]ProviderNet, error)
-	DeleteProviderNet(name, clusterProvider, cluster string) error
+	CreateProviderNet(ctx context.Context, pr ProviderNet, clusterProvider, cluster string, exists bool) (ProviderNet, error)
+	GetProviderNet(ctx context.Context, name, clusterProvider, cluster string) (ProviderNet, error)
+	GetProviderNets(ctx context.Context, clusterProvider, cluster string) ([]ProviderNet, error)
+	DeleteProviderNet(ctx context.Context, name, clusterProvider, cluster string) error
 }
 
 // ProviderNetClient implements the Manager
@@ -75,10 +75,10 @@ func NewProviderNetClient() *ProviderNetClient {
 }
 
 // CreateProviderNet - create a new ProviderNet
-func (v *ProviderNetClient) CreateProviderNet(p ProviderNet, clusterProvider, cluster string, exists bool) (ProviderNet, error) {
+func (v *ProviderNetClient) CreateProviderNet(ctx context.Context, p ProviderNet, clusterProvider, cluster string, exists bool) (ProviderNet, error) {
 
 	// verify cluster exists and in state to add provider networks
-	s, err := clusterPkg.NewClusterClient().GetClusterState(context.Background(), clusterProvider, cluster)
+	s, err := clusterPkg.NewClusterClient().GetClusterState(ctx, clusterProvider, cluster)
 	if err != nil {
 		return ProviderNet{}, err
 	}
@@ -109,12 +109,12 @@ func (v *ProviderNetClient) CreateProviderNet(p ProviderNet, clusterProvider, cl
 	}
 
 	//Check if this ProviderNet already exists
-	_, err = v.GetProviderNet(p.Metadata.Name, clusterProvider, cluster)
+	_, err = v.GetProviderNet(ctx, p.Metadata.Name, clusterProvider, cluster)
 	if err == nil && !exists {
 		return ProviderNet{}, pkgerrors.New("ProviderNet already exists")
 	}
 
-	err = db.DBconn.Insert(context.Background(), v.db.StoreName, key, nil, v.db.TagMeta, p)
+	err = db.DBconn.Insert(ctx, v.db.StoreName, key, nil, v.db.TagMeta, p)
 	if err != nil {
 		return ProviderNet{}, pkgerrors.Wrap(err, "Creating DB Entry")
 	}
@@ -123,7 +123,7 @@ func (v *ProviderNetClient) CreateProviderNet(p ProviderNet, clusterProvider, cl
 }
 
 // GetProviderNet returns the ProviderNet for corresponding name
-func (v *ProviderNetClient) GetProviderNet(name, clusterProvider, cluster string) (ProviderNet, error) {
+func (v *ProviderNetClient) GetProviderNet(ctx context.Context, name, clusterProvider, cluster string) (ProviderNet, error) {
 
 	//Construct key and tag to select the entry
 	key := ProviderNetKey{
@@ -132,7 +132,7 @@ func (v *ProviderNetClient) GetProviderNet(name, clusterProvider, cluster string
 		ProviderNetName:     name,
 	}
 
-	value, err := db.DBconn.Find(context.Background(), v.db.StoreName, key, v.db.TagMeta)
+	value, err := db.DBconn.Find(ctx, v.db.StoreName, key, v.db.TagMeta)
 	if err != nil {
 		return ProviderNet{}, err
 	}
@@ -155,7 +155,7 @@ func (v *ProviderNetClient) GetProviderNet(name, clusterProvider, cluster string
 }
 
 // GetProviderNetList returns all of the ProviderNet for corresponding name
-func (v *ProviderNetClient) GetProviderNets(clusterProvider, cluster string) ([]ProviderNet, error) {
+func (v *ProviderNetClient) GetProviderNets(ctx context.Context, clusterProvider, cluster string) ([]ProviderNet, error) {
 
 	//Construct key and tag to select the entry
 	key := ProviderNetKey{
@@ -165,7 +165,7 @@ func (v *ProviderNetClient) GetProviderNets(clusterProvider, cluster string) ([]
 	}
 
 	var resp []ProviderNet
-	values, err := db.DBconn.Find(context.Background(), v.db.StoreName, key, v.db.TagMeta)
+	values, err := db.DBconn.Find(ctx, v.db.StoreName, key, v.db.TagMeta)
 	if err != nil {
 		return []ProviderNet{}, err
 	}
@@ -183,9 +183,9 @@ func (v *ProviderNetClient) GetProviderNets(clusterProvider, cluster string) ([]
 }
 
 // Delete the  ProviderNet from database
-func (v *ProviderNetClient) DeleteProviderNet(name, clusterProvider, cluster string) error {
+func (v *ProviderNetClient) DeleteProviderNet(ctx context.Context, name, clusterProvider, cluster string) error {
 	// verify cluster is in a state where provider network intent can be deleted
-	s, err := clusterPkg.NewClusterClient().GetClusterState(context.Background(), clusterProvider, cluster)
+	s, err := clusterPkg.NewClusterClient().GetClusterState(ctx, clusterProvider, cluster)
 	if err != nil {
 		return err
 	}
@@ -219,6 +219,6 @@ func (v *ProviderNetClient) DeleteProviderNet(name, clusterProvider, cluster str
 		ProviderNetName:     name,
 	}
 
-	err = db.DBconn.Remove(context.Background(), v.db.StoreName, key)
+	err = db.DBconn.Remove(ctx, v.db.StoreName, key)
 	return err
 }

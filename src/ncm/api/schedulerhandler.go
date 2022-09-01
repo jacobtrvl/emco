@@ -27,11 +27,12 @@ type schedulerHandler struct {
 
 //  applyClusterHandler handles requests to apply network intents for a cluster
 func (h schedulerHandler) applySchedulerHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	provider := vars["clusterProvider"]
 	cluster := vars["cluster"]
 
-	err := h.client.ApplyNetworkIntents(provider, cluster)
+	err := h.client.ApplyNetworkIntents(ctx, provider, cluster)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -43,11 +44,12 @@ func (h schedulerHandler) applySchedulerHandler(w http.ResponseWriter, r *http.R
 
 //  terminateSchedulerHandler handles requests to terminate network intents for a cluster
 func (h schedulerHandler) terminateSchedulerHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	provider := vars["clusterProvider"]
 	cluster := vars["cluster"]
 
-	err := h.client.TerminateNetworkIntents(provider, cluster)
+	err := h.client.TerminateNetworkIntents(ctx, provider, cluster)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -59,11 +61,12 @@ func (h schedulerHandler) terminateSchedulerHandler(w http.ResponseWriter, r *ht
 
 //  stopSchedulerHandler handles requests to stop instantiation or termination network intents for a cluster
 func (h schedulerHandler) stopSchedulerHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	provider := vars["clusterProvider"]
 	cluster := vars["cluster"]
 
-	err := h.client.StopNetworkIntents(provider, cluster)
+	err := h.client.StopNetworkIntents(ctx, provider, cluster)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -75,6 +78,7 @@ func (h schedulerHandler) stopSchedulerHandler(w http.ResponseWriter, r *http.Re
 
 //  statusSchedulerHandler handles requests to query status of network intents for a cluster
 func (h schedulerHandler) statusSchedulerHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	provider := vars["clusterProvider"]
 	cluster := vars["cluster"]
@@ -179,7 +183,7 @@ func (h schedulerHandler) statusSchedulerHandler(w http.ResponseWriter, r *http.
 		filterResources = make([]string, 0)
 	}
 
-	status, iErr := h.client.NetworkIntentsStatus(provider, cluster, queryInstance, queryType, queryOutput, filterApps, filterClusters, filterResources)
+	status, iErr := h.client.NetworkIntentsStatus(ctx, provider, cluster, queryInstance, queryType, queryOutput, filterApps, filterClusters, filterResources)
 	if iErr != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)

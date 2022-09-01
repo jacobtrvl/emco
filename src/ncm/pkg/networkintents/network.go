@@ -49,10 +49,10 @@ const NETWORK_KIND = "Network"
 
 // Manager is an interface exposing the Network functionality
 type NetworkManager interface {
-	CreateNetwork(pr Network, clusterProvider, cluster string, exists bool) (Network, error)
-	GetNetwork(name, clusterProvider, cluster string) (Network, error)
-	GetNetworks(clusterProvider, cluster string) ([]Network, error)
-	DeleteNetwork(name, clusterProvider, cluster string) error
+	CreateNetwork(ctx context.Context, pr Network, clusterProvider, cluster string, exists bool) (Network, error)
+	GetNetwork(ctx context.Context, name, clusterProvider, cluster string) (Network, error)
+	GetNetworks(ctx context.Context, clusterProvider, cluster string) ([]Network, error)
+	DeleteNetwork(ctx context.Context, name, clusterProvider, cluster string) error
 }
 
 // NetworkClient implements the Manager
@@ -73,7 +73,7 @@ func NewNetworkClient() *NetworkClient {
 }
 
 // CreateNetwork - create a new Network
-func (v *NetworkClient) CreateNetwork(p Network, clusterProvider, cluster string, exists bool) (Network, error) {
+func (v *NetworkClient) CreateNetwork(ctx context.Context, p Network, clusterProvider, cluster string, exists bool) (Network, error) {
 
 	//Construct key and tag to select the entry
 	key := NetworkKey{
@@ -83,7 +83,7 @@ func (v *NetworkClient) CreateNetwork(p Network, clusterProvider, cluster string
 	}
 
 	//Check if cluster exists and in a state for adding network intents
-	s, err := clusterPkg.NewClusterClient().GetClusterState(context.Background(), clusterProvider, cluster)
+	s, err := clusterPkg.NewClusterClient().GetClusterState(ctx, clusterProvider, cluster)
 	if err != nil {
 		return Network{}, err
 	}
@@ -107,12 +107,12 @@ func (v *NetworkClient) CreateNetwork(p Network, clusterProvider, cluster string
 	}
 
 	//Check if this Network already exists
-	_, err = v.GetNetwork(p.Metadata.Name, clusterProvider, cluster)
+	_, err = v.GetNetwork(ctx, p.Metadata.Name, clusterProvider, cluster)
 	if err == nil && !exists {
 		return Network{}, pkgerrors.New("Network already exists")
 	}
 
-	err = db.DBconn.Insert(context.Background(), v.db.StoreName, key, nil, v.db.TagMeta, p)
+	err = db.DBconn.Insert(ctx, v.db.StoreName, key, nil, v.db.TagMeta, p)
 	if err != nil {
 		return Network{}, pkgerrors.Wrap(err, "Creating DB Entry")
 	}
@@ -121,7 +121,7 @@ func (v *NetworkClient) CreateNetwork(p Network, clusterProvider, cluster string
 }
 
 // GetNetwork returns the Network for corresponding name
-func (v *NetworkClient) GetNetwork(name, clusterProvider, cluster string) (Network, error) {
+func (v *NetworkClient) GetNetwork(ctx context.Context, name, clusterProvider, cluster string) (Network, error) {
 
 	//Construct key and tag to select the entry
 	key := NetworkKey{
@@ -130,7 +130,7 @@ func (v *NetworkClient) GetNetwork(name, clusterProvider, cluster string) (Netwo
 		NetworkName:         name,
 	}
 
-	value, err := db.DBconn.Find(context.Background(), v.db.StoreName, key, v.db.TagMeta)
+	value, err := db.DBconn.Find(ctx, v.db.StoreName, key, v.db.TagMeta)
 	if err != nil {
 		return Network{}, err
 	}
@@ -153,7 +153,7 @@ func (v *NetworkClient) GetNetwork(name, clusterProvider, cluster string) (Netwo
 }
 
 // GetNetworkList returns all of the Network for corresponding name
-func (v *NetworkClient) GetNetworks(clusterProvider, cluster string) ([]Network, error) {
+func (v *NetworkClient) GetNetworks(ctx context.Context, clusterProvider, cluster string) ([]Network, error) {
 
 	//Construct key and tag to select the entry
 	key := NetworkKey{
@@ -163,7 +163,7 @@ func (v *NetworkClient) GetNetworks(clusterProvider, cluster string) ([]Network,
 	}
 
 	var resp []Network
-	values, err := db.DBconn.Find(context.Background(), v.db.StoreName, key, v.db.TagMeta)
+	values, err := db.DBconn.Find(ctx, v.db.StoreName, key, v.db.TagMeta)
 	if err != nil {
 		return []Network{}, err
 	}
@@ -181,9 +181,9 @@ func (v *NetworkClient) GetNetworks(clusterProvider, cluster string) ([]Network,
 }
 
 // Delete the  Network from database
-func (v *NetworkClient) DeleteNetwork(name, clusterProvider, cluster string) error {
+func (v *NetworkClient) DeleteNetwork(ctx context.Context, name, clusterProvider, cluster string) error {
 	// verify cluster is in a state where network intent can be deleted
-	s, err := clusterPkg.NewClusterClient().GetClusterState(context.Background(), clusterProvider, cluster)
+	s, err := clusterPkg.NewClusterClient().GetClusterState(ctx, clusterProvider, cluster)
 	if err != nil {
 		return err
 	}
@@ -217,6 +217,6 @@ func (v *NetworkClient) DeleteNetwork(name, clusterProvider, cluster string) err
 		NetworkName:         name,
 	}
 
-	err = db.DBconn.Remove(context.Background(), v.db.StoreName, key)
+	err = db.DBconn.Remove(ctx, v.db.StoreName, key)
 	return err
 }

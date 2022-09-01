@@ -40,7 +40,7 @@ func (d clusterHelpers) GetAppContextId(ctx context.Context, reg *statusnotifypb
 		return "", err
 	}
 
-	si, err := clustermodule.NewClusterClient().GetClusterState(context.Background(), clusterProvider, cluster)
+	si, err := clustermodule.NewClusterClient().GetClusterState(ctx, clusterProvider, cluster)
 	if err != nil {
 		return "", pkgerrors.Wrapf(err, "Cluster state not found: %v+%v", clusterProvider, cluster)
 	}
@@ -54,7 +54,7 @@ func (d clusterHelpers) StatusQuery(ctx context.Context, reg *statusnotifypb.Sta
 		return status.StatusResult{}
 	}
 
-	statusResult, err := scheduler.NewSchedulerClient().GenericNetworkIntentsStatus(clusterProvider, cluster, qStatusInstance, qType, qOutput, qApps, qClusters, qResources)
+	statusResult, err := scheduler.NewSchedulerClient().GenericNetworkIntentsStatus(ctx, clusterProvider, cluster, qStatusInstance, qType, qOutput, qApps, qClusters, qResources)
 	if err != nil {
 		return status.StatusResult{}
 	}
