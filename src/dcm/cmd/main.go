@@ -13,12 +13,25 @@ import (
 	"gitlab.com/project-emco/core/emco-base/src/dcm/api"
 	"gitlab.com/project-emco/core/emco-base/src/dcm/pkg/statusnotify"
 	register "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/grpc"
+	contextDb "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/contextdb"
+	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
 	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/module/controller"
 )
 
 func main() {
 	rand.Seed(time.Now().UnixNano())
+
+	err := db.InitializeDatabaseConnection("emco")
+	if err != nil {
+		log.Error("Unable to initialize mongo database connection", log.Fields{"Error": err})
+		os.Exit(1)
+	}
+	err = contextDb.InitializeContextDatabase()
+	if err != nil {
+		log.Error("Unable to initialize etcd database connection", log.Fields{"Error": err})
+		os.Exit(1)
+	}
 
 	grpcServer, err := register.NewGrpcServer("dcm", "DCM_NAME", 9078,
 		register.RegisterStatusNotifyService, statusnotify.StartStatusNotifyServer())

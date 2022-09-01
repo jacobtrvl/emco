@@ -22,7 +22,6 @@ import (
 	"github.com/soheilhy/cmux"
 	register "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/grpc"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/config"
-	contextDb "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/contextdb"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
 	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/metrics"
@@ -220,18 +219,6 @@ func NewControllerServer(name string, httpRouter *mux.Router, grpcServer *regist
 	}
 
 	prometheus.MustRegister(metrics.NewBuildInfoCollector(name))
-
-	err := db.InitializeDatabaseConnection("emco")
-	if err != nil {
-		log.Error("Unable to initialize mongo database connection", log.Fields{"Error": err})
-		return nil, err
-	}
-
-	err = contextDb.InitializeContextDatabase()
-	if err != nil {
-		log.Error("Unable to initialize etcd database connection", log.Fields{"Error": err})
-		return nil, err
-	}
 
 	httpServerPort := config.GetConfiguration().ServicePort
 	if httpRouter == nil {

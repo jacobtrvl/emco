@@ -17,12 +17,26 @@ import (
 	register "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/grpc"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/grpc/contextupdate"
 	orchplacementcontroller "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/grpc/placementcontroller"
+	contextDb "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/contextdb"
+	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/module/controller"
 	"google.golang.org/grpc"
 )
 
 func main() {
 	rand.Seed(time.Now().UnixNano())
+
+	// Initialize the emco database(Mongo DB)
+	err := db.InitializeDatabaseConnection("emco")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Initialize etcd
+	err = contextDb.InitializeContextDatabase()
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	// Initialize gRPC server, if required
 	grpcServer, err := register.NewGrpcServer("sample", "SERVICE_NAME", 9025,
