@@ -26,7 +26,8 @@ import (
 var moduleClient *orchMod.Client
 
 // UpdateAppContext applies the supplied intent against the given AppContext ID
-func UpdateAppContext(intentName, appContextId, updateFromAppContext string) error {
+
+func UpdateAppContext(ctx context.Context, intentName, appContextId, updateFromAppContext string) error {
 	// Discern whether or not this is a pre-install loop or pre-update loop
 	var hookString string
 	if _, err := strconv.Atoi(updateFromAppContext); err != nil {
@@ -41,7 +42,7 @@ func UpdateAppContext(intentName, appContextId, updateFromAppContext string) err
 	// load the app context
 	var ac appcontext.AppContext
 
-	_, err := ac.LoadAppContext(context.Background(), appContextId)
+	_, err := ac.LoadAppContext(ctx, appContextId)
 	if err != nil {
 		logutils.Error("Failed to get the appContext.",
 			logutils.Fields{
@@ -49,12 +50,12 @@ func UpdateAppContext(intentName, appContextId, updateFromAppContext string) err
 		return errors.Wrapf(err, "Failed to get the appContext with ID: %s.", appContextId)
 	}
 
-	_, err = ac.GetCompositeAppHandle(context.Background())
+	_, err = ac.GetCompositeAppHandle(ctx)
 	if err != nil {
 		return err
 	}
 
-	appContext, err := con.ReadAppContext(context.Background(), appContextId)
+	appContext, err := con.ReadAppContext(ctx, appContextId)
 	if err != nil {
 		logutils.Error("Failed to get the compositeApp for the appContext.",
 			logutils.Fields{
@@ -69,7 +70,7 @@ func UpdateAppContext(intentName, appContextId, updateFromAppContext string) err
 	group := appContext.CompMetadata.DeploymentIntentGroup
 
 	// look up workflow pre install hooks
-	pre, err := module.NewClient().WorkflowIntentClient.GetSpecificHooks(project, app, version, group, hookString)
+	pre, err := module.NewClient().WorkflowIntentClient.GetSpecificHooks(ctx, project, app, version, group, hookString)
 	if err != nil {
 		logutils.Error("Failed to get the intents for the deploymentIntentGroup.",
 			logutils.Fields{
@@ -135,7 +136,7 @@ func UpdateAppContext(intentName, appContextId, updateFromAppContext string) err
 }
 
 // TerminateAppContext is the to run the pre/post terminate workflows for this deployment intent group
-func TerminateAppContext(appContextId string) error {
+func TerminateAppContext(ctx context.Context, appContextId string) error {
 	var ac appcontext.AppContext
 
 	logutils.Info("Terminate TAC ... pre-terminate hooks starting.", logutils.Fields{})
@@ -143,7 +144,7 @@ func TerminateAppContext(appContextId string) error {
 	// load orch client for deploy workers
 	moduleClient = orchMod.NewClient()
 
-	_, err := ac.LoadAppContext(context.Background(), appContextId)
+	_, err := ac.LoadAppContext(ctx, appContextId)
 	if err != nil {
 		logutils.Error("Failed to get the appContext.",
 			logutils.Fields{
@@ -151,12 +152,12 @@ func TerminateAppContext(appContextId string) error {
 		return errors.Wrapf(err, "Failed to get the appContext with ID: %s.", appContextId)
 	}
 
-	_, err = ac.GetCompositeAppHandle(context.Background())
+	_, err = ac.GetCompositeAppHandle(ctx)
 	if err != nil {
 		return err
 	}
 
-	appContext, err := con.ReadAppContext(context.Background(), appContextId)
+	appContext, err := con.ReadAppContext(ctx, appContextId)
 	if err != nil {
 		logutils.Error("Failed to get the compositeApp for the appContext.",
 			logutils.Fields{
@@ -170,7 +171,7 @@ func TerminateAppContext(appContextId string) error {
 	group := appContext.CompMetadata.DeploymentIntentGroup
 
 	// look up workflow pre terminate hooks
-	pre, err := module.NewClient().WorkflowIntentClient.GetSpecificHooks(project, app, version, group, "pre-termination")
+	pre, err := module.NewClient().WorkflowIntentClient.GetSpecificHooks(ctx, project, app, version, group, "pre-termination")
 	if err != nil {
 		logutils.Error("Failed to get the intents for the deploymentIntentGroup.",
 			logutils.Fields{
@@ -240,7 +241,7 @@ func TerminateAppContext(appContextId string) error {
 	return nil
 }
 
-func PostEvent(appContextId string, et contextupdate.EventType) error {
+func PostEvent(ctx context.Context, appContextId string, et contextupdate.EventType) error {
 	eventString := []string{"post-install", "post-termination", "post-update"}
 	workerIntent := []string{"pre-install", "pre-termination", "pre-update"}
 	var ac appcontext.AppContext
@@ -250,7 +251,7 @@ func PostEvent(appContextId string, et contextupdate.EventType) error {
 
 	logutils.Info("PostEvent TAC ... "+eventString[et]+" hooks starting.", logutils.Fields{})
 
-	_, err := ac.LoadAppContext(context.Background(), appContextId)
+	_, err := ac.LoadAppContext(ctx, appContextId)
 	if err != nil {
 		logutils.Error("PostEvent Failed to get the appContext.",
 			logutils.Fields{
@@ -258,12 +259,12 @@ func PostEvent(appContextId string, et contextupdate.EventType) error {
 		return errors.Wrapf(err, "PostEvent Failed to get the appContext with ID: %s.", appContextId)
 	}
 
-	_, err = ac.GetCompositeAppHandle(context.Background())
+	_, err = ac.GetCompositeAppHandle(ctx)
 	if err != nil {
 		return err
 	}
 
-	appContext, err := con.ReadAppContext(context.Background(), appContextId)
+	appContext, err := con.ReadAppContext(ctx, appContextId)
 	if err != nil {
 		logutils.Error("PostEvent Failed to get the compositeApp for the appContext.",
 			logutils.Fields{
@@ -277,7 +278,7 @@ func PostEvent(appContextId string, et contextupdate.EventType) error {
 	group := appContext.CompMetadata.DeploymentIntentGroup
 
 	// look up workflow pre install hooks
-	post, err := module.NewClient().WorkflowIntentClient.GetSpecificHooks(project, app, version, group, eventString[et])
+	post, err := module.NewClient().WorkflowIntentClient.GetSpecificHooks(ctx, project, app, version, group, eventString[et])
 	if err != nil {
 		logutils.Error("PostEvent Failed to get the intents for the deploymentIntentGroup.",
 			logutils.Fields{
@@ -286,7 +287,7 @@ func PostEvent(appContextId string, et contextupdate.EventType) error {
 	}
 
 	// look up workflow pre install hooks
-	pre, err := module.NewClient().WorkflowIntentClient.GetSpecificHooks(project, app, version, group, workerIntent[et])
+	pre, err := module.NewClient().WorkflowIntentClient.GetSpecificHooks(ctx, project, app, version, group, workerIntent[et])
 	if err != nil {
 		logutils.Error("PostEvent Failed to get the intents for the deploymentIntentGroup.",
 			logutils.Fields{

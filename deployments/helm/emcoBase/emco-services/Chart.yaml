@@ -65,7 +65,7 @@ dependencies:
     version: "1.0.0"
     repository: 'file://../swc'
   - name: tac
-    version: "1.0.0"
+    version: "1.0.1"
     repository: 'file://../tac'
   - name: gitea
     version: "1.0.0"

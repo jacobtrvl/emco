@@ -56,6 +56,7 @@ func (h intentHandler) handleTacIntentCreate(w http.ResponseWriter, r *http.Requ
 
 // createOrUpdate consolidates the functionality of create workflow intent and update workflow intent into one cleaner function
 func (h intentHandler) createOrUpdate(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	// get all variables from url
 	vars := _wfhVars(mux.Vars(r))
 
@@ -92,9 +93,9 @@ func (h intentHandler) createOrUpdate(w http.ResponseWriter, r *http.Request) {
 	// if len of vars.tacIntent == 0 that means we are on the create route, if not then we are in update
 	var ret model.WorkflowHookIntent
 	if len(vars.tacIntent) == 0 {
-		ret, err = h.client.CreateWorkflowHookIntent(wfh, vars.project, vars.cApp, vars.cAppVer, vars.dig, false)
+		ret, err = h.client.CreateWorkflowHookIntent(ctx, wfh, vars.project, vars.cApp, vars.cAppVer, vars.dig, false)
 	} else {
-		ret, err = h.client.CreateWorkflowHookIntent(wfh, vars.project, vars.cApp, vars.cAppVer, vars.dig, true)
+		ret, err = h.client.CreateWorkflowHookIntent(ctx, wfh, vars.project, vars.cApp, vars.cAppVer, vars.dig, true)
 	}
 
 	// error putting item into db, print error
@@ -122,6 +123,7 @@ func (h intentHandler) createOrUpdate(w http.ResponseWriter, r *http.Request) {
 
 // handleTacIntentGet gets one or many tac intent from the DB
 func (h intentHandler) handleTacIntentGet(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	// response variables
 	var resp interface{}
 	var err error
@@ -135,9 +137,9 @@ func (h intentHandler) handleTacIntentGet(w http.ResponseWriter, r *http.Request
 
 	// make the request
 	if len(vars.tacIntent) == 0 {
-		resp, err = h.client.GetWorkflowHookIntents(vars.project, vars.cApp, vars.cAppVer, vars.dig)
+		resp, err = h.client.GetWorkflowHookIntents(ctx, vars.project, vars.cApp, vars.cAppVer, vars.dig)
 	} else {
-		resp, err = h.client.GetWorkflowHookIntent(vars.tacIntent, vars.project, vars.cApp, vars.cAppVer, vars.dig)
+		resp, err = h.client.GetWorkflowHookIntent(ctx, vars.tacIntent, vars.project, vars.cApp, vars.cAppVer, vars.dig)
 	}
 
 	// handle error if it exists
@@ -170,6 +172,7 @@ func (h intentHandler) handleTacIntentPut(w http.ResponseWriter, r *http.Request
 
 // handleTacIntentDelete - delete a TAC Intent
 func (h intentHandler) handleTacIntentDelete(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	// get the variables from the URL
 	vars := _wfhVars(mux.Vars(r))
 
@@ -178,7 +181,7 @@ func (h intentHandler) handleTacIntentDelete(w http.ResponseWriter, r *http.Requ
 	})
 
 	// delete the requested item from the backend
-	err := h.client.DeleteWorkflowHookIntent(vars.tacIntent, vars.project, vars.cApp, vars.cAppVer, vars.dig)
+	err := h.client.DeleteWorkflowHookIntent(ctx, vars.tacIntent, vars.project, vars.cApp, vars.cAppVer, vars.dig)
 	if err != nil {
 		apiErr := apierror.HandleErrors(mux.Vars(r), err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -195,6 +198,7 @@ func (h intentHandler) handleTacIntentDelete(w http.ResponseWriter, r *http.Requ
 
 // get the status of the current TAC Intent
 func (h intentHandler) handleTemporalWorkflowHookStatus(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	// grab variables from URL
 	vars := _wfhVars(mux.Vars(r))
 
@@ -233,7 +237,7 @@ func (h intentHandler) handleTemporalWorkflowHookStatus(w http.ResponseWriter, r
 	})
 
 	// make a request to the backend with the required data.
-	ret, err := h.client.GetStatusWorkflowIntent(vars.tacIntent, vars.project, vars.cApp, vars.cAppVer, vars.dig, &query)
+	ret, err := h.client.GetStatusWorkflowIntent(ctx, vars.tacIntent, vars.project, vars.cApp, vars.cAppVer, vars.dig, &query)
 	if err != nil {
 		errmsg := "failed to get workflow status"
 		logutils.Error(":: Error: "+errmsg, logutils.Fields{"name": vars.tacIntent,
@@ -264,6 +268,7 @@ func (h intentHandler) handleTemporalWorkflowHookStatus(w http.ResponseWriter, r
 
 // Cancel the selected workflow hook
 func (h intentHandler) handleTemporalWorkflowHookCancel(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	var cancelReq model.WfhTemporalCancelRequest
 
 	vars := _wfhVars(mux.Vars(r))
@@ -313,7 +318,7 @@ func (h intentHandler) handleTemporalWorkflowHookCancel(w http.ResponseWriter, r
 		"cancelReq": cancelReq,
 	})
 
-	err = h.client.CancelWorkflowIntent(vars.tacIntent, vars.project, vars.cApp, vars.cAppVer, vars.dig, &cancelReq)
+	err = h.client.CancelWorkflowIntent(ctx, vars.tacIntent, vars.project, vars.cApp, vars.cAppVer, vars.dig, &cancelReq)
 	if err != nil {
 		errmsg := ":: Error cancelling workflow::"
 		if cancelReq.Spec.Terminate {

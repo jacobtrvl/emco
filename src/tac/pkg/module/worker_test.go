@@ -98,7 +98,7 @@ var _ = Describe("WorkerIntent",
 						Expect(err).To(BeNil())
 
 						// create a workflow hook
-						resp, err := (*hiClient).CreateWorkflowHookIntent(wfhIntent, "testProj", "app", "v1", "diGroup", false)
+						resp, err := (*hiClient).CreateWorkflowHookIntent(context.Background(), wfhIntent, "testProj", "app", "v1", "diGroup", false)
 						Expect(err).To(BeNil())
 						Expect(resp.Metadata.Name).To(Equal(wfhIntent.Metadata.Name))
 
@@ -124,7 +124,7 @@ var _ = Describe("WorkerIntent",
 						Expect(err).To(BeNil())
 
 						// create a workflow hook
-						resp, err := (*hiClient).CreateWorkflowHookIntent(wfhIntent, "testProj", "app", "v1", "diGroup", true)
+						resp, err := (*hiClient).CreateWorkflowHookIntent(context.Background(), wfhIntent, "testProj", "app", "v1", "diGroup", true)
 						Expect(err).To(BeNil())
 						Expect(resp.Metadata.Name).To(Equal(wfhIntent.Metadata.Name))
 
@@ -154,7 +154,7 @@ var _ = Describe("WorkerIntent",
 						Expect(err).To(BeNil())
 
 						// create a workflow hook
-						_, err = (*hiClient).CreateWorkflowHookIntent(wfhIntent, "testProj", "app", "v1", "diGroup", true)
+						_, err = (*hiClient).CreateWorkflowHookIntent(context.Background(), wfhIntent, "testProj", "app", "v1", "diGroup", true)
 						Expect(err).To(BeNil())
 
 						// create a worker intent

@@ -80,16 +80,17 @@ var _ = Describe("WorkflowIntentHook",
 			func() {
 				It("Successful Create a workflow hook intent",
 					func() {
+						ctx := context.Background()
 						// set up prerequisites
-						_, err := (*pClient).CreateProject(context.Background(), project, false)
+						_, err := (*pClient).CreateProject(ctx, project, false)
 						Expect(err).To(BeNil())
-						_, err = (*aClient).CreateCompositeApp(context.Background(), app, "testProj", false)
+						_, err = (*aClient).CreateCompositeApp(ctx, app, "testProj", false)
 						Expect(err).To(BeNil())
-						_, _, err = (*digClient).CreateDeploymentIntentGroup(context.Background(), diGroup, "testProj", "app", "v1", true)
+						_, _, err = (*digClient).CreateDeploymentIntentGroup(ctx, diGroup, "testProj", "app", "v1", true)
 						Expect(err).To(BeNil())
 
 						// create a workflow hook
-						resp, err := (*iClient).CreateWorkflowHookIntent(wfhIntent, "testProj", "app", "v1", "diGroup", false)
+						resp, err := (*iClient).CreateWorkflowHookIntent(ctx, wfhIntent, "testProj", "app", "v1", "diGroup", false)
 						Expect(err).To(BeNil())
 						Expect(resp.Metadata.Name).To(Equal(wfhIntent.Metadata.Name))
 					})
@@ -99,21 +100,22 @@ var _ = Describe("WorkflowIntentHook",
 			func() {
 				It("Successful get a workflow hook intent",
 					func() {
+						ctx := context.Background()
 						// set up prerequisites
-						_, err := (*pClient).CreateProject(context.Background(), project, false)
+						_, err := (*pClient).CreateProject(ctx, project, false)
 						Expect(err).To(BeNil())
-						_, err = (*aClient).CreateCompositeApp(context.Background(), app, "testProj", false)
+						_, err = (*aClient).CreateCompositeApp(ctx, app, "testProj", false)
 						Expect(err).To(BeNil())
-						_, _, err = (*digClient).CreateDeploymentIntentGroup(context.Background(), diGroup, "testProj", "app", "v1", true)
+						_, _, err = (*digClient).CreateDeploymentIntentGroup(ctx, diGroup, "testProj", "app", "v1", true)
 						Expect(err).To(BeNil())
 
 						// create a workflow hook
-						resp, err := (*iClient).CreateWorkflowHookIntent(wfhIntent, "testProj", "app", "v1", "diGroup", true)
+						resp, err := (*iClient).CreateWorkflowHookIntent(ctx, wfhIntent, "testProj", "app", "v1", "diGroup", true)
 						Expect(err).To(BeNil())
 						Expect(resp.Metadata.Name).To(Equal(wfhIntent.Metadata.Name))
 
 						// get a workflow
-						resp, err = (*iClient).GetWorkflowHookIntent(wfhIntent.Metadata.Name, "testProj", "app", "v1", "diGroup")
+						resp, err = (*iClient).GetWorkflowHookIntent(ctx, wfhIntent.Metadata.Name, "testProj", "app", "v1", "diGroup")
 						Expect(err).To(BeNil())
 						Expect(resp.Metadata.Name).To(Equal(wfhIntent.Metadata.Name))
 
@@ -124,12 +126,13 @@ var _ = Describe("WorkflowIntentHook",
 			func() {
 				It("Successful get workflow hook intents",
 					func() {
+						ctx := context.Background()
 						// set up prerequisites
-						_, err := (*pClient).CreateProject(context.Background(), project, false)
+						_, err := (*pClient).CreateProject(ctx, project, false)
 						Expect(err).To(BeNil())
-						_, err = (*aClient).CreateCompositeApp(context.Background(), app, "testProj", false)
+						_, err = (*aClient).CreateCompositeApp(ctx, app, "testProj", false)
 						Expect(err).To(BeNil())
-						_, _, err = (*digClient).CreateDeploymentIntentGroup(context.Background(), diGroup, "testProj", "app", "v1", true)
+						_, _, err = (*digClient).CreateDeploymentIntentGroup(ctx, diGroup, "testProj", "app", "v1", true)
 						Expect(err).To(BeNil())
 						wfhIntentTwo := model.WorkflowHookIntent{
 							Metadata: mtypes.Metadata{
@@ -138,15 +141,15 @@ var _ = Describe("WorkflowIntentHook",
 						}
 
 						// create a workflow hook
-						_, err = (*iClient).CreateWorkflowHookIntent(wfhIntent, "testProj", "app", "v1", "diGroup", true)
+						_, err = (*iClient).CreateWorkflowHookIntent(ctx, wfhIntent, "testProj", "app", "v1", "diGroup", true)
 						Expect(err).To(BeNil())
 
 						// create a workflow hook
-						_, err = (*iClient).CreateWorkflowHookIntent(wfhIntentTwo, "testProj", "app", "v1", "diGroup", true)
+						_, err = (*iClient).CreateWorkflowHookIntent(ctx, wfhIntentTwo, "testProj", "app", "v1", "diGroup", true)
 						Expect(err).To(BeNil())
 
 						// get a workflow
-						resp, err := (*iClient).GetWorkflowHookIntents("testProj", "app", "v1", "diGroup")
+						resp, err := (*iClient).GetWorkflowHookIntents(ctx, "testProj", "app", "v1", "diGroup")
 						Expect(err).To(BeNil())
 
 						// make sure workflow hooks are inside.
@@ -163,20 +166,21 @@ var _ = Describe("WorkflowIntentHook",
 			func() {
 				It("Successful delete workflow hook intents",
 					func() {
+						ctx := context.Background()
 						// set up prerequisites
-						_, err := (*pClient).CreateProject(context.Background(), project, false)
+						_, err := (*pClient).CreateProject(ctx, project, false)
 						Expect(err).To(BeNil())
-						_, err = (*aClient).CreateCompositeApp(context.Background(), app, "testProj", false)
+						_, err = (*aClient).CreateCompositeApp(ctx, app, "testProj", false)
 						Expect(err).To(BeNil())
-						_, _, err = (*digClient).CreateDeploymentIntentGroup(context.Background(), diGroup, "testProj", "app", "v1", true)
+						_, _, err = (*digClient).CreateDeploymentIntentGroup(ctx, diGroup, "testProj", "app", "v1", true)
 						Expect(err).To(BeNil())
 
 						// create a workflow hook
-						_, err = (*iClient).CreateWorkflowHookIntent(wfhIntent, "testProj", "app", "v1", "diGroup", true)
+						_, err = (*iClient).CreateWorkflowHookIntent(ctx, wfhIntent, "testProj", "app", "v1", "diGroup", true)
 						Expect(err).To(BeNil())
 
 						// delete the workflow.
-						err = (*iClient).DeleteWorkflowHookIntent(wfhIntent.Metadata.Name, "testProj", "app", "v1", "diGroup")
+						err = (*iClient).DeleteWorkflowHookIntent(ctx, wfhIntent.Metadata.Name, "testProj", "app", "v1", "diGroup")
 						Expect(err).To(BeNil())
 
 					})
@@ -184,16 +188,17 @@ var _ = Describe("WorkflowIntentHook",
 
 		It("Error Deleting DNE",
 			func() {
+				ctx := context.Background()
 				// set up prerequisites
-				_, err := (*pClient).CreateProject(context.Background(), project, false)
+				_, err := (*pClient).CreateProject(ctx, project, false)
 				Expect(err).To(BeNil())
-				_, err = (*aClient).CreateCompositeApp(context.Background(), app, "testProj", false)
+				_, err = (*aClient).CreateCompositeApp(ctx, app, "testProj", false)
 				Expect(err).To(BeNil())
-				_, _, err = (*digClient).CreateDeploymentIntentGroup(context.Background(), diGroup, "testProj", "app", "v1", true)
+				_, _, err = (*digClient).CreateDeploymentIntentGroup(ctx, diGroup, "testProj", "app", "v1", true)
 				Expect(err).To(BeNil())
 
 				// delete the workflow.
-				err = (*iClient).DeleteWorkflowHookIntent(wfhIntent.Metadata.Name, "testProj", "app", "v1", "diGroup")
+				err = (*iClient).DeleteWorkflowHookIntent(ctx, wfhIntent.Metadata.Name, "testProj", "app", "v1", "diGroup")
 				Expect(err).To(BeNil())
 
 			})
@@ -202,22 +207,23 @@ var _ = Describe("WorkflowIntentHook",
 			func() {
 				It("Successful update workflow hook intent",
 					func() {
+						ctx := context.Background()
 						// set up prerequisites
-						_, err := (*pClient).CreateProject(context.Background(), project, false)
+						_, err := (*pClient).CreateProject(ctx, project, false)
 						Expect(err).To(BeNil())
-						_, err = (*aClient).CreateCompositeApp(context.Background(), app, "testProj", false)
+						_, err = (*aClient).CreateCompositeApp(ctx, app, "testProj", false)
 						Expect(err).To(BeNil())
-						_, _, err = (*digClient).CreateDeploymentIntentGroup(context.Background(), diGroup, "testProj", "app", "v1", true)
+						_, _, err = (*digClient).CreateDeploymentIntentGroup(ctx, diGroup, "testProj", "app", "v1", true)
 						Expect(err).To(BeNil())
 
 						// create a workflow hook
-						_, err = (*iClient).CreateWorkflowHookIntent(wfhIntent, "testProj", "app", "v1", "diGroup", false)
+						_, err = (*iClient).CreateWorkflowHookIntent(ctx, wfhIntent, "testProj", "app", "v1", "diGroup", false)
 						Expect(err).To(BeNil())
 
 						wfhIntent.Metadata.Description = "new description."
 
 						// update the workflow
-						resp, err := (*iClient).CreateWorkflowHookIntent(wfhIntent, "testProj", "app", "v1", "diGroup", true)
+						resp, err := (*iClient).CreateWorkflowHookIntent(ctx, wfhIntent, "testProj", "app", "v1", "diGroup", true)
 						Expect(err).To(BeNil())
 						Expect(resp.Metadata.Description).To(Equal(wfhIntent.Metadata.Description))
 

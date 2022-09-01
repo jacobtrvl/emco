@@ -38,19 +38,19 @@ func NewWorkflowIntentClient() *WorkflowIntentClient {
 // Manager to expose the workflow intent functions
 type WorkflowIntentManager interface {
 	// LCM hook Routes
-	CreateWorkflowHookIntent(wfh model.WorkflowHookIntent, project, cApp, cAppVer, dig string, exists bool) (model.WorkflowHookIntent, error)
-	GetWorkflowHookIntent(name, project, cApp, cAppVer, dig string) (model.WorkflowHookIntent, error)
-	GetWorkflowHookIntents(project, cApp, cAppVer, dig string) ([]model.WorkflowHookIntent, error)
-	DeleteWorkflowHookIntent(name, project, cApp, cAppVer, dig string) error
+	CreateWorkflowHookIntent(ctx context.Context, wfh model.WorkflowHookIntent, project, cApp, cAppVer, dig string, exists bool) (model.WorkflowHookIntent, error)
+	GetWorkflowHookIntent(ctx context.Context, name, project, cApp, cAppVer, dig string) (model.WorkflowHookIntent, error)
+	GetWorkflowHookIntents(ctx context.Context, project, cApp, cAppVer, dig string) ([]model.WorkflowHookIntent, error)
+	DeleteWorkflowHookIntent(ctx context.Context, name, project, cApp, cAppVer, dig string) error
 	// monitor the status of workflows, and cancel workflows
-	GetStatusWorkflowIntent(name, project, cApp, cAppVer, dig string, query *wfMod.WfTemporalStatusQuery) (*wfMod.WfTemporalStatusResponse, error)
-	CancelWorkflowIntent(name, project, cApp, cAppVer, dig string, req *model.WfhTemporalCancelRequest) error
+	GetStatusWorkflowIntent(ctx context.Context, name, project, cApp, cAppVer, dig string, query *wfMod.WfTemporalStatusQuery) (*wfMod.WfTemporalStatusResponse, error)
+	CancelWorkflowIntent(ctx context.Context, name, project, cApp, cAppVer, dig string, req *model.WfhTemporalCancelRequest) error
 	// action controller helper functions
-	GetSpecificHooks(project, cApp, cAppVer, dig, hook string) ([]model.WorkflowHookIntent, error)
+	GetSpecificHooks(ctx context.Context, project, cApp, cAppVer, dig, hook string) ([]model.WorkflowHookIntent, error)
 }
 
 // CreateWorkflowHookIntent - create a new hook for a workflow intent
-func (v *WorkflowIntentClient) CreateWorkflowHookIntent(wfh model.WorkflowHookIntent, project, cApp, cAppVer, dig string, exists bool) (model.WorkflowHookIntent, error) {
+func (v *WorkflowIntentClient) CreateWorkflowHookIntent(ctx context.Context, wfh model.WorkflowHookIntent, project, cApp, cAppVer, dig string, exists bool) (model.WorkflowHookIntent, error) {
 	log.Warn("CreateWFH", log.Fields{"WfHook": wfh, "project": project,
 		"cApp": cApp})
 
@@ -64,13 +64,13 @@ func (v *WorkflowIntentClient) CreateWorkflowHookIntent(wfh model.WorkflowHookIn
 	}
 
 	//Check if this WorkflowHook already exists
-	_, err := v.GetWorkflowHookIntent(wfh.Metadata.Name, project, cApp, cAppVer, dig)
+	_, err := v.GetWorkflowHookIntent(ctx, wfh.Metadata.Name, project, cApp, cAppVer, dig)
 	if err == nil && !exists {
 		return model.WorkflowHookIntent{}, errors.New("workflow Hook Intent Already exists")
 	}
 
 	// if it doesn't exist already insert it into the db
-	err = db.DBconn.Insert(context.Background(), v.db.StoreName, key, nil, v.db.TagMeta, wfh)
+	err = db.DBconn.Insert(ctx, v.db.StoreName, key, nil, v.db.TagMeta, wfh)
 	if err != nil {
 		return model.WorkflowHookIntent{}, err
 	}
@@ -80,7 +80,7 @@ func (v *WorkflowIntentClient) CreateWorkflowHookIntent(wfh model.WorkflowHookIn
 }
 
 // GetWorkflowHookIntent - get specific hook
-func (v *WorkflowIntentClient) GetWorkflowHookIntent(name, project, cApp, cAppVer, dig string) (model.WorkflowHookIntent, error) {
+func (v *WorkflowIntentClient) GetWorkflowHookIntent(ctx context.Context, name, project, cApp, cAppVer, dig string) (model.WorkflowHookIntent, error) {
 	// create key and tag for the hook
 	key := model.WorkflowHookKey{
 		WorkflowHook:        name,
@@ -91,7 +91,7 @@ func (v *WorkflowIntentClient) GetWorkflowHookIntent(name, project, cApp, cAppVe
 	}
 
 	// look for the workflow hook in the db
-	value, err := db.DBconn.Find(context.Background(), v.db.StoreName, key, v.db.TagMeta)
+	value, err := db.DBconn.Find(ctx, v.db.StoreName, key, v.db.TagMeta)
 	if err != nil {
 		// if there was an error return it to caller
 		return model.WorkflowHookIntent{}, err
@@ -117,7 +117,7 @@ func (v *WorkflowIntentClient) GetWorkflowHookIntent(name, project, cApp, cAppVe
 }
 
 // GetWorkflowHookIntents - get all current registered hooks
-func (v *WorkflowIntentClient) GetWorkflowHookIntents(project, cApp, cAppVer, dig string) ([]model.WorkflowHookIntent, error) {
+func (v *WorkflowIntentClient) GetWorkflowHookIntents(ctx context.Context, project, cApp, cAppVer, dig string) ([]model.WorkflowHookIntent, error) {
 	// create key and tag for the hook
 	key := model.WorkflowHookKey{
 		WorkflowHook:        "",
@@ -128,7 +128,7 @@ func (v *WorkflowIntentClient) GetWorkflowHookIntents(project, cApp, cAppVer, di
 	}
 
 	var resp []model.WorkflowHookIntent
-	values, err := db.DBconn.Find(context.Background(), v.db.StoreName, key, v.db.TagMeta)
+	values, err := db.DBconn.Find(ctx, v.db.StoreName, key, v.db.TagMeta)
 	if err != nil {
 		return []model.WorkflowHookIntent{}, err
 	}
@@ -146,7 +146,7 @@ func (v *WorkflowIntentClient) GetWorkflowHookIntents(project, cApp, cAppVer, di
 }
 
 // DeleteWorkflowHookIntent - delete specific hook
-func (v *WorkflowIntentClient) DeleteWorkflowHookIntent(name, project, cApp, cAppVer, dig string) error {
+func (v *WorkflowIntentClient) DeleteWorkflowHookIntent(ctx context.Context, name, project, cApp, cAppVer, dig string) error {
 
 	// create key and tag for the hook
 	key := model.WorkflowHookKey{
@@ -157,13 +157,13 @@ func (v *WorkflowIntentClient) DeleteWorkflowHookIntent(name, project, cApp, cAp
 		DigName:             dig,
 	}
 
-	err := db.DBconn.Remove(context.Background(), v.db.StoreName, key)
+	err := db.DBconn.Remove(ctx, v.db.StoreName, key)
 	return err
 }
 
 // GetStatusWorkflowIntent performs different types of Temporal workflow
 // status queries depending on the flags specified in the status API call.
-func (v *WorkflowIntentClient) GetStatusWorkflowIntent(name, project, cApp, cAppVer, dig string, query *wfMod.WfTemporalStatusQuery) (*wfMod.WfTemporalStatusResponse, error) {
+func (v *WorkflowIntentClient) GetStatusWorkflowIntent(ctx context.Context, name, project, cApp, cAppVer, dig string, query *wfMod.WfTemporalStatusQuery) (*wfMod.WfTemporalStatusResponse, error) {
 
 	log.Info("Entered GetStatusWorkflowIntent", log.Fields{"project": project,
 		"composite app": cApp, "composite app version": cAppVer, "DIG": dig,
@@ -185,13 +185,13 @@ func (v *WorkflowIntentClient) GetStatusWorkflowIntent(name, project, cApp, cApp
 		return &resp, wrapErr
 	}
 
-	ctx := context.Background() // TODO include query options later
+	wfCtx := context.Background() // TODO include query options later
 
 	if query.RunDescribeWfExec {
 		log.Info("Running DescribeWorkflowExecution", log.Fields{"project": project,
 			"composite app": cApp, "composite app version": cAppVer, "DIG": dig,
 			"intent name": name, "query": query})
-		result, err := c.DescribeWorkflowExecution(ctx, query.WfID, query.RunID)
+		result, err := c.DescribeWorkflowExecution(wfCtx, query.WfID, query.RunID)
 		if err != nil {
 			log.Error("DescribeWorkflowExecution error", log.Fields{"project": project,
 				"composite app": cApp, "composite app version": cAppVer, "DIG": dig,
@@ -216,7 +216,7 @@ func (v *WorkflowIntentClient) GetStatusWorkflowIntent(name, project, cApp, cApp
 		})
 
 		resp.WfHistory = []history.HistoryEvent{}
-		iter := c.GetWorkflowHistory(ctx, query.WfID, query.RunID,
+		iter := c.GetWorkflowHistory(wfCtx, query.WfID, query.RunID,
 			query.WaitForResult, enums.HISTORY_EVENT_FILTER_TYPE_ALL_EVENT)
 		for iter.HasNext() {
 			event, err := iter.Next()
@@ -249,7 +249,7 @@ func (v *WorkflowIntentClient) GetStatusWorkflowIntent(name, project, cApp, cApp
 			Args:                 query.QueryParams,
 			QueryRejectCondition: enums.QUERY_REJECT_CONDITION_NONE,
 		}
-		response, err := c.QueryWorkflowWithOptions(ctx, queryWithOptions)
+		response, err := c.QueryWorkflowWithOptions(wfCtx, queryWithOptions)
 		if err != nil {
 			wrapErr := fmt.Errorf("query failed (%s). Error: %s",
 				query.QueryType, err.Error())
@@ -290,10 +290,10 @@ func (v *WorkflowIntentClient) GetStatusWorkflowIntent(name, project, cApp, cApp
 				"workflow ID": query.WfID, "workflow Run ID": query.RunID,
 				"Temporal Server": query.TemporalServer,
 			})
-		workflowRun := c.GetWorkflow(context.Background(), query.WfID, query.RunID)
+		workflowRun := c.GetWorkflow(wfCtx, query.WfID, query.RunID)
 
 		var result interface{}
-		_ = workflowRun.Get(ctx, &result)
+		_ = workflowRun.Get(wfCtx, &result)
 		log.Info("Workflow got result", log.Fields{"project": project,
 			"composite app": cApp, "composite app version": cAppVer, "DIG": dig,
 			"intent name": name, "query": query, "result": result})
@@ -303,7 +303,7 @@ func (v *WorkflowIntentClient) GetStatusWorkflowIntent(name, project, cApp, cApp
 }
 
 // Cancel/terminate the  Workflow
-func (v *WorkflowIntentClient) CancelWorkflowIntent(name, project, cApp, cAppVer, dig string, req *model.WfhTemporalCancelRequest) error {
+func (v *WorkflowIntentClient) CancelWorkflowIntent(ctx context.Context, name, project, cApp, cAppVer, dig string, req *model.WfhTemporalCancelRequest) error {
 	var err error
 
 	//Construct key and tag to select the entry
@@ -315,7 +315,7 @@ func (v *WorkflowIntentClient) CancelWorkflowIntent(name, project, cApp, cAppVer
 		DigName:             dig,
 	}
 
-	value, err := db.DBconn.Find(context.Background(), v.db.StoreName, key, v.db.TagMeta)
+	value, err := db.DBconn.Find(ctx, v.db.StoreName, key, v.db.TagMeta)
 	if err != nil {
 		log.Error("CancelWorkflowHookIntent: Error getting intent",
 			log.Fields{"project": project, "composite app": cApp,
@@ -371,17 +371,17 @@ func (v *WorkflowIntentClient) CancelWorkflowIntent(name, project, cApp, cAppVer
 		return wrapErr
 	}
 
-	ctx := context.Background() // TODO include options later
+	wfCtx := context.Background() // TODO include options later
 
 	if spec.Terminate {
 		log.Info("CancelWorkflowIntent: Calling TerminateWorkflow", log.Fields{
 			"wfID": wfID, "spec.runID": spec.RunID, "spec.reason": spec.Reason,
 			"spec.Details": spec.Details})
-		err = c.TerminateWorkflow(ctx, wfID, spec.RunID, spec.Reason, spec.Details)
+		err = c.TerminateWorkflow(wfCtx, wfID, spec.RunID, spec.Reason, spec.Details)
 	} else {
 		log.Info("CancelWorkflowIntent: Calling CancelWorkflow", log.Fields{
 			"wfID": wfID, "spec.runID": spec.RunID})
-		err = c.CancelWorkflow(ctx, wfID, spec.RunID)
+		err = c.CancelWorkflow(wfCtx, wfID, spec.RunID)
 	}
 
 	// Caller logs the error
@@ -389,10 +389,10 @@ func (v *WorkflowIntentClient) CancelWorkflowIntent(name, project, cApp, cAppVer
 }
 
 // get all of the hooks of a specific kind (ie pre-install, post-install, pre-delete, etc.)
-func (v *WorkflowIntentClient) GetSpecificHooks(project, cApp, cAppVer, dig, hook string) ([]model.WorkflowHookIntent, error) {
+func (v *WorkflowIntentClient) GetSpecificHooks(ctx context.Context, project, cApp, cAppVer, dig, hook string) ([]model.WorkflowHookIntent, error) {
 
 	// Get all workflow hook intents, and grab only the pre-install hooks
-	hooks, err := v.GetWorkflowHookIntents(project, cApp, cAppVer, dig)
+	hooks, err := v.GetWorkflowHookIntents(ctx, project, cApp, cAppVer, dig)
 	if err != nil {
 		return []model.WorkflowHookIntent{}, err
 	}

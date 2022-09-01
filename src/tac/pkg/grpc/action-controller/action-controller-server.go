@@ -16,7 +16,7 @@ type actionControllerServer struct {
 
 // Post Event action controller
 func (ac *actionControllerServer) PostEvent(ctx context.Context, req *contextupdate.PostEventRequest) (*contextupdate.PostEventResponse, error) {
-	err := action.PostEvent(req.AppContext, req.EventType)
+	err := action.PostEvent(ctx, req.AppContext, req.EventType)
 	if err != nil {
 		return &contextupdate.PostEventResponse{Success: false, PostEventMessage: err.Error()}, err
 	}
@@ -26,7 +26,7 @@ func (ac *actionControllerServer) PostEvent(ctx context.Context, req *contextupd
 
 // Terminate action controller
 func (ac *actionControllerServer) TerminateAppContext(ctx context.Context, req *contextupdate.TerminateRequest) (*contextupdate.TerminateResponse, error) {
-	err := action.TerminateAppContext(req.AppContext)
+	err := action.TerminateAppContext(ctx, req.AppContext)
 	if err != nil {
 		return &contextupdate.TerminateResponse{AppContextTerminated: false, AppContextTerminatedMessage: err.Error()}, err
 	}
@@ -37,7 +37,7 @@ func (ac *actionControllerServer) TerminateAppContext(ctx context.Context, req *
 // Update or Create action controller
 func (ac *actionControllerServer) UpdateAppContext(ctx context.Context, req *contextupdate.ContextUpdateRequest) (*contextupdate.ContextUpdateResponse, error) {
 
-	err := action.UpdateAppContext(req.IntentName, req.AppContext, req.UpdateFromAppContext)
+	err := action.UpdateAppContext(ctx, req.IntentName, req.AppContext, req.UpdateFromAppContext)
 	if err != nil {
 		return &contextupdate.ContextUpdateResponse{AppContextUpdated: false, AppContextUpdateMessage: err.Error()}, err
 	}

@@ -13,6 +13,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
+	"github.com/stretchr/testify/mock"
 	mtypes "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/module/types"
 	. "gitlab.com/project-emco/core/emco-base/src/tac/api"
 	"gitlab.com/project-emco/core/emco-base/src/tac/api/mocks"
@@ -56,7 +57,7 @@ var _ = Describe("HookIntentHandlers", func() {
 	DescribeTable("Workflow Intent Create",
 		func(t testCase) {
 			// set up client mock responses
-			t.client.On("CreateWorkflowHookIntent", t.inStructHook, "test-project", "test-compositeapp", "v1", "test-dig", false).Return(t.mockVal, t.mockError)
+			t.client.On("CreateWorkflowHookIntent", mock.Anything, t.inStructHook, "test-project", "test-compositeapp", "v1", "test-dig", false).Return(t.mockVal, t.mockError)
 
 			// make HTTP request
 			request := httptest.NewRequest("POST", "/v2/projects/test-project/composite-apps/test-compositeapp/v1/deployment-intent-groups/test-dig/temporal-action-controller", t.inputReader)
@@ -205,7 +206,7 @@ var _ = Describe("HookIntentHandlers", func() {
 	DescribeTable("Get All WorkflowIntentHooks",
 		func(t testCase) {
 			// set up client mock responses
-			t.client.On("GetWorkflowHookIntents", "test-project", "test-compositeapp", "v1", "test-dig").Return(t.mockVals, t.mockError)
+			t.client.On("GetWorkflowHookIntents", mock.Anything, "test-project", "test-compositeapp", "v1", "test-dig").Return(t.mockVals, t.mockError)
 
 			// make HTTP request
 			request := httptest.NewRequest("GET", "/v2/projects/test-project/composite-apps/test-compositeapp/v1/deployment-intent-groups/test-dig/temporal-action-controller", t.inputReader)
@@ -236,7 +237,7 @@ var _ = Describe("HookIntentHandlers", func() {
 	DescribeTable("Get One WorkflowIntentHooks",
 		func(t testCase) {
 			// set up client mock responses
-			t.client.On("GetWorkflowHookIntents", "test-project", "test-compositeapp", "v1", "test-dig").Return(t.mockVals, t.mockError)
+			t.client.On("GetWorkflowHookIntents", mock.Anything, "test-project", "test-compositeapp", "v1", "test-dig").Return(t.mockVals, t.mockError)
 
 			// make HTTP request
 			request := httptest.NewRequest("GET", "/v2/projects/test-project/composite-apps/test-compositeapp/v1/deployment-intent-groups/test-dig/temporal-action-controller", t.inputReader)
@@ -259,7 +260,7 @@ var _ = Describe("HookIntentHandlers", func() {
 	DescribeTable("Delete action intent hook",
 		func(t testCase) {
 			// set up client mock responses
-			t.client.On("DeleteWorkflowHookIntent", "test-hook", "test-project", "test-compositeapp", "v1", "test-dig").Return(t.mockError)
+			t.client.On("DeleteWorkflowHookIntent", mock.Anything, "test-hook", "test-project", "test-compositeapp", "v1", "test-dig").Return(t.mockError)
 
 			// make HTTP request
 			request := httptest.NewRequest("DELETE", "/v2/projects/test-project/composite-apps/test-compositeapp/v1/deployment-intent-groups/test-dig/temporal-action-controller/test-hook", t.inputReader)
@@ -282,7 +283,7 @@ var _ = Describe("HookIntentHandlers", func() {
 	DescribeTable("Workflow Intent Update",
 		func(t testCase) {
 			// set up client mock responses
-			t.client.On("CreateWorkflowHookIntent", t.inStructHook, "test-project", "test-compositeapp", "v1", "test-dig", true).Return(t.mockVal, t.mockError)
+			t.client.On("CreateWorkflowHookIntent", mock.Anything, t.inStructHook, "test-project", "test-compositeapp", "v1", "test-dig", true).Return(t.mockVal, t.mockError)
 
 			// make HTTP request
 			request := httptest.NewRequest("PUT", "/v2/projects/test-project/composite-apps/test-compositeapp/v1/deployment-intent-groups/test-dig/temporal-action-controller/test-hook", t.inputReader)
@@ -430,7 +431,7 @@ var _ = Describe("HookIntentHandlers", func() {
 
 	DescribeTable("Cancel a workflow", func(t testCase) {
 		// set up client mock responses
-		t.client.On("CancelWorkflowIntent", "test-hook", "test-project", "test-compositeapp", "v1", "test-dig", &t.inStructCancel).Return(t.mockError)
+		t.client.On("CancelWorkflowIntent", mock.Anything, "test-hook", "test-project", "test-compositeapp", "v1", "test-dig", &t.inStructCancel).Return(t.mockError)
 
 		// make HTTP request
 		request := httptest.NewRequest("POST", "/v2/projects/test-project/composite-apps/test-compositeapp/v1/deployment-intent-groups/test-dig/temporal-action-controller/test-hook/cancel", t.inputReader)
@@ -481,7 +482,7 @@ var _ = Describe("HookIntentHandlers", func() {
 	//GetStatusWorkflowIntent(name string, project string, cApp string, cAppVer string, dig string, query *pkgmodule.WfTemporalStatusQuery) (*pkgmodule.WfTemporalStatusResponse, error)
 	DescribeTable("Status of a workflow", func(t testCase) {
 		// set up client mock responses
-		t.client.On("GetStatusWorkflowIntent", "test-hook", "test-project", "test-compositeapp", "v1", "test-dig", &t.inStructStatus).Return(&t.mockStatus, t.mockError)
+		t.client.On("GetStatusWorkflowIntent", mock.Anything, "test-hook", "test-project", "test-compositeapp", "v1", "test-dig", &t.inStructStatus).Return(&t.mockStatus, t.mockError)
 
 		// make HTTP request
 		request := httptest.NewRequest("GET", "/v2/projects/test-project/composite-apps/test-compositeapp/v1/deployment-intent-groups/test-dig/temporal-action-controller/test-hook/status", t.inputReader)

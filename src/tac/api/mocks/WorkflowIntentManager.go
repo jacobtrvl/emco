@@ -3,6 +3,7 @@
 package mocks
 
 import (
+	"context"
 	mock "github.com/stretchr/testify/mock"
 	model "gitlab.com/project-emco/core/emco-base/src/tac/pkg/model"
 
@@ -17,8 +18,8 @@ type WorkflowIntentManager struct {
 }
 
 // CancelWorkflowIntent provides a mock function with given fields: name, project, cApp, cAppVer, dig, req
-func (_m *WorkflowIntentManager) CancelWorkflowIntent(name string, project string, cApp string, cAppVer string, dig string, req *model.WfhTemporalCancelRequest) error {
-	ret := _m.Called(name, project, cApp, cAppVer, dig, req)
+func (_m *WorkflowIntentManager) CancelWorkflowIntent(ctx context.Context, name string, project string, cApp string, cAppVer string, dig string, req *model.WfhTemporalCancelRequest) error {
+	ret := _m.Called(ctx, name, project, cApp, cAppVer, dig, req)
 
 	var r0 error
 	if rf, ok := ret.Get(0).(func(string, string, string, string, string, *model.WfhTemporalCancelRequest) error); ok {
@@ -31,8 +32,8 @@ func (_m *WorkflowIntentManager) CancelWorkflowIntent(name string, project strin
 }
 
 // CreateWorkflowHookIntent provides a mock function with given fields: wfh, project, cApp, cAppVer, dig, exists
-func (_m *WorkflowIntentManager) CreateWorkflowHookIntent(wfh model.WorkflowHookIntent, project string, cApp string, cAppVer string, dig string, exists bool) (model.WorkflowHookIntent, error) {
-	ret := _m.Called(wfh, project, cApp, cAppVer, dig, exists)
+func (_m *WorkflowIntentManager) CreateWorkflowHookIntent(ctx context.Context, wfh model.WorkflowHookIntent, project string, cApp string, cAppVer string, dig string, exists bool) (model.WorkflowHookIntent, error) {
+	ret := _m.Called(ctx, wfh, project, cApp, cAppVer, dig, exists)
 
 	var r0 model.WorkflowHookIntent
 	if rf, ok := ret.Get(0).(func(model.WorkflowHookIntent, string, string, string, string, bool) model.WorkflowHookIntent); ok {
@@ -52,8 +53,8 @@ func (_m *WorkflowIntentManager) CreateWorkflowHookIntent(wfh model.WorkflowHook
 }
 
 // DeleteWorkflowHookIntent provides a mock function with given fields: name, project, cApp, cAppVer, dig
-func (_m *WorkflowIntentManager) DeleteWorkflowHookIntent(name string, project string, cApp string, cAppVer string, dig string) error {
-	ret := _m.Called(name, project, cApp, cAppVer, dig)
+func (_m *WorkflowIntentManager) DeleteWorkflowHookIntent(ctx context.Context, name string, project string, cApp string, cAppVer string, dig string) error {
+	ret := _m.Called(ctx, name, project, cApp, cAppVer, dig)
 
 	var r0 error
 	if rf, ok := ret.Get(0).(func(string, string, string, string, string) error); ok {
@@ -66,8 +67,8 @@ func (_m *WorkflowIntentManager) DeleteWorkflowHookIntent(name string, project s
 }
 
 // GetSpecificHooks provides a mock function with given fields: project, cApp, cAppVer, dig, hook
-func (_m *WorkflowIntentManager) GetSpecificHooks(project string, cApp string, cAppVer string, dig string, hook string) ([]model.WorkflowHookIntent, error) {
-	ret := _m.Called(project, cApp, cAppVer, dig, hook)
+func (_m *WorkflowIntentManager) GetSpecificHooks(ctx context.Context, project string, cApp string, cAppVer string, dig string, hook string) ([]model.WorkflowHookIntent, error) {
+	ret := _m.Called(ctx, project, cApp, cAppVer, dig, hook)
 
 	var r0 []model.WorkflowHookIntent
 	if rf, ok := ret.Get(0).(func(string, string, string, string, string) []model.WorkflowHookIntent); ok {
@@ -89,8 +90,8 @@ func (_m *WorkflowIntentManager) GetSpecificHooks(project string, cApp string, c
 }
 
 // GetStatusWorkflowIntent provides a mock function with given fields: name, project, cApp, cAppVer, dig, query
-func (_m *WorkflowIntentManager) GetStatusWorkflowIntent(name string, project string, cApp string, cAppVer string, dig string, query *pkgmodule.WfTemporalStatusQuery) (*pkgmodule.WfTemporalStatusResponse, error) {
-	ret := _m.Called(name, project, cApp, cAppVer, dig, query)
+func (_m *WorkflowIntentManager) GetStatusWorkflowIntent(ctx context.Context, name string, project string, cApp string, cAppVer string, dig string, query *pkgmodule.WfTemporalStatusQuery) (*pkgmodule.WfTemporalStatusResponse, error) {
+	ret := _m.Called(ctx, name, project, cApp, cAppVer, dig, query)
 
 	var r0 *pkgmodule.WfTemporalStatusResponse
 	if rf, ok := ret.Get(0).(func(string, string, string, string, string, *pkgmodule.WfTemporalStatusQuery) *pkgmodule.WfTemporalStatusResponse); ok {
@@ -112,8 +113,8 @@ func (_m *WorkflowIntentManager) GetStatusWorkflowIntent(name string, project st
 }
 
 // GetWorkflowHookIntent provides a mock function with given fields: name, project, cApp, cAppVer, dig
-func (_m *WorkflowIntentManager) GetWorkflowHookIntent(name string, project string, cApp string, cAppVer string, dig string) (model.WorkflowHookIntent, error) {
-	ret := _m.Called(name, project, cApp, cAppVer, dig)
+func (_m *WorkflowIntentManager) GetWorkflowHookIntent(ctx context.Context, name string, project string, cApp string, cAppVer string, dig string) (model.WorkflowHookIntent, error) {
+	ret := _m.Called(ctx, name, project, cApp, cAppVer, dig)
 
 	var r0 model.WorkflowHookIntent
 	if rf, ok := ret.Get(0).(func(string, string, string, string, string) model.WorkflowHookIntent); ok {
@@ -133,8 +134,8 @@ func (_m *WorkflowIntentManager) GetWorkflowHookIntent(name string, project stri
 }
 
 // GetWorkflowHookIntents provides a mock function with given fields: project, cApp, cAppVer, dig
-func (_m *WorkflowIntentManager) GetWorkflowHookIntents(project string, cApp string, cAppVer string, dig string) ([]model.WorkflowHookIntent, error) {
-	ret := _m.Called(project, cApp, cAppVer, dig)
+func (_m *WorkflowIntentManager) GetWorkflowHookIntents(ctx context.Context, project string, cApp string, cAppVer string, dig string) ([]model.WorkflowHookIntent, error) {
+	ret := _m.Called(ctx, project, cApp, cAppVer, dig)
 
 	var r0 []model.WorkflowHookIntent
 	if rf, ok := ret.Get(0).(func(string, string, string, string) []model.WorkflowHookIntent); ok {
