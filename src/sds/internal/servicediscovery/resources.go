@@ -4,6 +4,7 @@
 package servicediscovery
 
 import (
+	"context"
 	"fmt"
 
 	pkgerrors "github.com/pkg/errors"
@@ -11,8 +12,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
-
-	"context"
 
 	rb "gitlab.com/project-emco/core/emco-base/src/monitor/pkg/apis/k8splugin/v1alpha1"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/appcontext"
@@ -59,7 +58,7 @@ type EndpointResource struct {
 }
 
 // getClusterServiceSpecs takes in a ResourceBundleStateStatus CR and returns the service relates specs
-func getClusterServiceSpecs(ac appcontext.AppContext, appContextID string, rbData *rb.ResourceBundleStateStatus, serviceName string,
+func getClusterServiceSpecs(ctx context.Context, ac appcontext.AppContext, appContextID string, rbData *rb.ResourceBundleStateStatus, serviceName string,
 	serverApp string, cluster string) (serviceEntry, error) {
 
 	virtualService := serviceEntry{}
@@ -78,13 +77,13 @@ func getClusterServiceSpecs(ac appcontext.AppContext, appContextID string, rbDat
 				return virtualService, pkgerrors.New("unable to Initialize connection")
 			}
 
-			kubeClient, err := con.GetClient(context.Background(), cluster, "0", "default")
+			kubeClient, err := con.GetClient(ctx, cluster, "0", "default")
 			if err != nil {
 				log.Error("unable to connect to the cluster",
 					log.Fields{"Cluster": cluster, "Error": err})
 				return virtualService, pkgerrors.New("unable to connect to the cluster")
 			}
-			nodeIP, err := kubeClient.GetMasterNodeIP(context.Background())
+			nodeIP, err := kubeClient.GetMasterNodeIP(ctx)
 			if err != nil {
 				log.Error("unable to get the master node IP",
 					log.Fields{"Cluster": cluster, "Error": err})
@@ -99,14 +98,14 @@ func getClusterServiceSpecs(ac appcontext.AppContext, appContextID string, rbDat
 		case corev1.ServiceTypeLoadBalancer:
 
 			// Get the appcontext status value
-			acStatus, err := state.GetAppContextStatus(context.Background(), appContextID)
+			acStatus, err := state.GetAppContextStatus(ctx, appContextID)
 			if err != nil {
 				log.Error("Unable to get the status of the app context",
 					log.Fields{"appContextID": appContextID, "Error": err})
 				return virtualService, pkgerrors.Wrap(err, "Unable to get the status of the app context")
 			}
 			if acStatus.Status == appcontext.AppContextStatusEnum.Instantiated {
-				rbValue, err := utils.GetClusterResources(appContextID, serverApp, cluster)
+				rbValue, err := utils.GetClusterResources(ctx, appContextID, serverApp, cluster)
 				if err != nil {
 					log.Error("Unable to get the cluster resources",
 						log.Fields{"Cluster": cluster, "AppName": serverApp, "Error": err})
@@ -151,7 +150,7 @@ func getClusterServiceSpecs(ac appcontext.AppContext, appContextID string, rbDat
 	}
 
 	// Get the parent composite app meta
-	m, err := ac.GetCompositeAppMeta(context.Background())
+	m, err := ac.GetCompositeAppMeta(ctx)
 	if err != nil {
 		log.Error("Error getting CompositeAppMeta",
 			log.Fields{"Cluster": cluster, "AppName": serverApp, "Error": err})

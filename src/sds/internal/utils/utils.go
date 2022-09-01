@@ -4,13 +4,13 @@
 package utils
 
 import (
+	"context"
 	"encoding/json"
 
 	pkgerrors "github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 
-	"context"
 	rb "gitlab.com/project-emco/core/emco-base/src/monitor/pkg/apis/k8splugin/v1alpha1"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/appcontext"
 	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
@@ -19,12 +19,12 @@ import (
 const rsyncName = "rsync"
 
 // CheckDeploymentStatus will check the deployment resource status of the app
-func CheckDeploymentStatus(appContextID string, serverApp string) (bool, error) {
+func CheckDeploymentStatus(ctx context.Context, appContextID string, serverApp string) (bool, error) {
 
 	deploymentState := false
 
 	var ac appcontext.AppContext
-	_, err := ac.LoadAppContext(context.Background(), appContextID)
+	_, err := ac.LoadAppContext(ctx, appContextID)
 	if err != nil {
 		log.Error("Error loading AppContext", log.Fields{
 			"error": err,
@@ -33,7 +33,7 @@ func CheckDeploymentStatus(appContextID string, serverApp string) (bool, error) 
 	}
 
 	// Get the clusters in the appcontext for this app
-	clusters, err := ac.GetClusterNames(context.Background(), serverApp)
+	clusters, err := ac.GetClusterNames(ctx, serverApp)
 	if err != nil {
 		log.Error("Unable to get the cluster names",
 			log.Fields{"AppName": serverApp, "Error": err})
@@ -42,7 +42,7 @@ func CheckDeploymentStatus(appContextID string, serverApp string) (bool, error) 
 
 	for _, cluster := range clusters {
 
-		rbValue, err := GetClusterResources(appContextID, serverApp, cluster)
+		rbValue, err := GetClusterResources(ctx, appContextID, serverApp, cluster)
 		if err != nil {
 			log.Error("Unable to get the cluster resources",
 				log.Fields{"Cluster": cluster, "AppName": serverApp, "Error": err})
@@ -51,7 +51,7 @@ func CheckDeploymentStatus(appContextID string, serverApp string) (bool, error) 
 		}
 
 		// Get the parent composite app meta
-		m, err := ac.GetCompositeAppMeta(context.Background())
+		m, err := ac.GetCompositeAppMeta(ctx)
 		if err != nil {
 			log.Error("Error getting CompositeAppMeta",
 				log.Fields{"Cluster": cluster, "AppName": serverApp, "Error": err})
@@ -75,10 +75,10 @@ func CheckDeploymentStatus(appContextID string, serverApp string) (bool, error) 
 }
 
 // GetClusterResources will retrieve the cluster resources
-func GetClusterResources(appContextID string, app string, cluster string) (*rb.ResourceBundleStateStatus, error) {
+func GetClusterResources(ctx context.Context, appContextID string, app string, cluster string) (*rb.ResourceBundleStateStatus, error) {
 
 	var ac appcontext.AppContext
-	_, err := ac.LoadAppContext(context.Background(), appContextID)
+	_, err := ac.LoadAppContext(ctx, appContextID)
 	if err != nil {
 		log.Error("Error loading AppContext", log.Fields{
 			"error": err,
@@ -86,13 +86,13 @@ func GetClusterResources(appContextID string, app string, cluster string) (*rb.R
 		return nil, err
 	}
 
-	csh, err := ac.GetClusterStatusHandle(context.Background(), app, cluster)
+	csh, err := ac.GetClusterStatusHandle(ctx, app, cluster)
 	if err != nil {
 		log.Error("No cluster status handle for cluster, app",
 			log.Fields{"Cluster": cluster, "AppName": app, "Error": err})
 		return nil, err
 	}
-	clusterRbValue, err := ac.GetValue(context.Background(), csh)
+	clusterRbValue, err := ac.GetValue(ctx, csh)
 	if err != nil {
 		log.Error("No cluster status value for cluster, app",
 			log.Fields{"Cluster": cluster, "AppName": app, "Error": err})
@@ -146,13 +146,13 @@ func CompareResource(r string, qResource string) bool {
 }
 
 // CleanupCompositeApp will delete the app context
-func CleanupCompositeApp(appCtx appcontext.AppContext, err error, reason string, details []string) error {
+func CleanupCompositeApp(ctx context.Context, appCtx appcontext.AppContext, err error, reason string, details []string) error {
 	if err == nil {
 		// create an error object to avoid wrap failures
 		err = pkgerrors.New("Composite App cleanup.")
 	}
 
-	cleanuperr := appCtx.DeleteCompositeApp(context.Background())
+	cleanuperr := appCtx.DeleteCompositeApp(ctx)
 	newerr := pkgerrors.Wrap(err, reason)
 	if cleanuperr != nil {
 		log.Warn("Error cleaning AppContext, ", log.Fields{

@@ -39,6 +39,7 @@ Here is the list of all EMCO services, controllers and subcontrollers where port
     RSYNC_SERVICE_PORT=9023
     RSYNC_CONTROL_PORT=9031
     SDS_CONTROL_PORT=9039
+    SDS_SERVICE_PORT=9035
     SFC_CONTROL_PORT=9056
     SFC_SERVICE_PORT=9055
     SFCC_CONTROL_PORT=9058
@@ -70,6 +71,7 @@ And here is the equivalent list, but for the default node ports used by each, wh
     RSYNC_SERVICE_PORT=30423
     RSYNC_CONTROL_PORT=30431
     SDS_CONTROL_PORT=30439
+    SDS_SERVICE_PORT=30435
     SFC_CONTROL_PORT=30456
     SFC_SERVICE_PORT=30455
     SFCC_CONTROL_PORT=30458

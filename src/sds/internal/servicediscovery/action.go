@@ -17,6 +17,8 @@ import (
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/state"
 	readynotifypb "gitlab.com/project-emco/core/emco-base/src/rsync/pkg/grpc/readynotify"
 	"gitlab.com/project-emco/core/emco-base/src/sds/internal/utils"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/trace"
 )
 
 const (
@@ -29,9 +31,9 @@ const (
 )
 
 // CreateAppContext Action applies the supplied intent against the given AppContext ID
-func CreateAppContext(intentName, appContextID string) error {
+func CreateAppContext(ctx context.Context, intentName, appContextID string) error {
 	var ac appcontext.AppContext
-	_, err := ac.LoadAppContext(context.Background(), appContextID)
+	_, err := ac.LoadAppContext(ctx, appContextID)
 	if err != nil {
 		log.Error("Error loading AppContext", log.Fields{
 			"error": err,
@@ -39,7 +41,7 @@ func CreateAppContext(intentName, appContextID string) error {
 		return pkgerrors.Wrapf(err, "Error getting AppContext with Id: %v", appContextID)
 	}
 
-	caMeta, err := ac.GetCompositeAppMeta(context.Background())
+	caMeta, err := ac.GetCompositeAppMeta(ctx)
 	if err != nil {
 		log.Error("Error getting metadata from AppContext", log.Fields{
 			"error": err,
@@ -53,7 +55,7 @@ func CreateAppContext(intentName, appContextID string) error {
 	deployIntentGroup := caMeta.DeploymentIntentGroup
 
 	// Get all server inbound intents
-	iss, err := module.NewServerInboundIntentClient().GetServerInboundIntents(project, compositeapp, compositeappversion, deployIntentGroup, intentName)
+	iss, err := module.NewServerInboundIntentClient().GetServerInboundIntents(ctx, project, compositeapp, compositeappversion, deployIntentGroup, intentName)
 	if err != nil {
 		log.Error("Error getting server inbound intents", log.Fields{
 			"error": err,
@@ -63,7 +65,7 @@ func CreateAppContext(intentName, appContextID string) error {
 
 	for _, is := range iss {
 
-		ics, err := module.NewClientsInboundIntentClient().GetClientsInboundIntents(project,
+		ics, err := module.NewClientsInboundIntentClient().GetClientsInboundIntents(ctx, project,
 			compositeapp,
 			compositeappversion,
 			deployIntentGroup,
@@ -93,16 +95,28 @@ func CreateAppContext(intentName, appContextID string) error {
 			}
 		}
 
+		// The rsyncclient ctx used below belongs to the
+		// stream, so we must create a new (not derived)
+		// context to prevent the context from being cancelled
+		// when the caller completes: a cancelled context will
+		// cause the below work to exit early.  A link is used
+		// so that the traces can be associated.
+		tracer := otel.Tracer("sds")
+		streamCtx, span := tracer.Start(context.Background(), "processServiceDiscovery",
+			trace.WithLinks(trace.LinkFromContext(ctx)),
+		)
+
 		// Register for an appcontext alert and receive the stream handle
-		stream, client, err := rsyncclient.InvokeReadyNotify(context.Background(), appContextID, "sds")
+		stream, client, err := rsyncclient.InvokeReadyNotify(streamCtx, appContextID, "sds")
 		if err != nil {
 			log.Error("Error in callRsyncReadyNotify", log.Fields{
 				"error": err, "appContextID": appContextID,
 			})
+			span.End()
 			return pkgerrors.Wrap(err, "Error in callRsyncReadyNotify")
 		}
 
-		go processServiceDiscovery(appContextID, clientSets, server, stream, client)
+		go processServiceDiscovery(streamCtx, appContextID, clientSets, server, stream, client)
 	}
 
 	return nil
@@ -110,10 +124,12 @@ func CreateAppContext(intentName, appContextID string) error {
 
 // processServiceDiscovery will fetch all the service related specs from the deployed apps and
 // deploy the service entry on the clusters
-func processServiceDiscovery(appContextID string, clientSets map[string]string, server string, stream readynotifypb.ReadyNotify_AlertClient, cl readynotifypb.ReadyNotifyClient) error {
+func processServiceDiscovery(ctx context.Context, appContextID string, clientSets map[string]string, server string, stream readynotifypb.ReadyNotify_AlertClient, cl readynotifypb.ReadyNotifyClient) error {
+	span := trace.SpanFromContext(ctx)
+	defer span.End()
 
 	var ac appcontext.AppContext
-	_, err := ac.LoadAppContext(context.Background(), appContextID)
+	_, err := ac.LoadAppContext(ctx, appContextID)
 	if err != nil {
 		log.Error("Error getting AppContext with Id", log.Fields{
 			"error": err, "appContextID": appContextID,
@@ -122,13 +138,13 @@ func processServiceDiscovery(appContextID string, clientSets map[string]string, 
 	}
 
 	// Obtain the service related specs associated with the server app
-	err = processAlertForServiceDiscovery(stream, appContextID, server)
+	err = processAlertForServiceDiscovery(ctx, stream, appContextID, server)
 	if err != nil {
 		log.Error("Unable to process the alert for service discovery", log.Fields{"err": err.Error()})
 	}
 
 	// call unsubscribe
-	_, err = cl.Unsubscribe(context.Background(), &readynotifypb.Topic{ClientName: "sds", AppContext: appContextID})
+	_, err = cl.Unsubscribe(ctx, &readynotifypb.Topic{ClientName: "sds", AppContext: appContextID})
 	if err != nil {
 		log.Error("[ReadyNotify gRPC] Failed to unsubscribe to alerts", log.Fields{"err": err, "appContextId": appContextID})
 		return err
@@ -141,14 +157,14 @@ func processServiceDiscovery(appContextID string, clientSets map[string]string, 
 	// deploy these new child app contexts which contains the virtual service entries
 
 	// Get the appcontext status value
-	acStatus, err := state.GetAppContextStatus(context.Background(), appContextID)
+	acStatus, err := state.GetAppContextStatus(ctx, appContextID)
 	if err != nil {
 		log.Error("Unable to get the parent's app context status", log.Fields{"err": err.Error()})
 		return pkgerrors.Wrap(err, "Unable to get the status of the app context")
 	}
 	if acStatus.Status == appcontext.AppContextStatusEnum.Instantiated {
 		for client, service := range clientSets {
-			err := DeployServiceEntry(ac, appContextID, server, client, service)
+			err := DeployServiceEntry(ctx, ac, appContextID, server, client, service)
 			if err != nil {
 				log.Error("Unable to deploy the virtual service entry", log.Fields{"err": err.Error(), "clientApp": client})
 				return pkgerrors.Wrap(err, "Unable to deploy the virtual service entry for the client: "+client)
@@ -160,14 +176,14 @@ func processServiceDiscovery(appContextID string, clientSets map[string]string, 
 	return nil
 }
 
-func processAlertForServiceDiscovery(stream readynotifypb.ReadyNotify_AlertClient, appContextID string, serverAppName string) error {
+func processAlertForServiceDiscovery(ctx context.Context, stream readynotifypb.ReadyNotify_AlertClient, appContextID string, serverAppName string) error {
 
 	for {
 
 		loadBalancerIPSet := false
 		// Now check whether the parent app context has been "Instantiated".
 
-		acStatus, err := state.GetAppContextStatus(context.Background(), appContextID)
+		acStatus, err := state.GetAppContextStatus(ctx, appContextID)
 		if err != nil {
 			log.Warn("[ReadyNotify gRPC] Unable to get the status of the app context", log.Fields{"err": err, "appContextID": appContextID})
 			continue
@@ -176,7 +192,7 @@ func processAlertForServiceDiscovery(stream readynotifypb.ReadyNotify_AlertClien
 		if acStatus.Status == appcontext.AppContextStatusEnum.Instantiated {
 			log.Info("Parent's app context is in 'Instantiated' state. Checking for the app to be deployed successfully", log.Fields{"appContextID": appContextID})
 			// Now check the status of the app deployed
-			condition, err := utils.CheckDeploymentStatus(appContextID, serverAppName)
+			condition, err := utils.CheckDeploymentStatus(ctx, appContextID, serverAppName)
 			if err != nil {
 				log.Error("Unable to check the deployment status of the server app", log.Fields{"err": err.Error(), "serverApp": serverAppName})
 				return pkgerrors.Wrap(err, "Unable to check the deployment status of the server app")
@@ -187,7 +203,7 @@ func processAlertForServiceDiscovery(stream readynotifypb.ReadyNotify_AlertClien
 
 				// Check for the loadbalancer external IP
 				var ac appcontext.AppContext
-				_, err := ac.LoadAppContext(context.Background(), appContextID)
+				_, err := ac.LoadAppContext(ctx, appContextID)
 				if err != nil {
 					log.Error("Error loading AppContext", log.Fields{
 						"error": err,
@@ -196,14 +212,14 @@ func processAlertForServiceDiscovery(stream readynotifypb.ReadyNotify_AlertClien
 				}
 
 				// Get the clusters in the appcontext for this app
-				clusters, err := ac.GetClusterNames(context.Background(), serverAppName)
+				clusters, err := ac.GetClusterNames(ctx, serverAppName)
 				if err != nil {
 					log.Error("Unable to get the cluster names",
 						log.Fields{"AppName": serverAppName, "Error": err})
 					return pkgerrors.Wrap(err, "Unable to get the cluster names")
 				}
 				for _, cluster := range clusters {
-					rbValue, err := utils.GetClusterResources(appContextID, serverAppName, cluster)
+					rbValue, err := utils.GetClusterResources(ctx, appContextID, serverAppName, cluster)
 					if err != nil {
 						log.Error("Unable to get the cluster resources",
 							log.Fields{"Cluster": cluster, "AppName": serverAppName, "Error": err})

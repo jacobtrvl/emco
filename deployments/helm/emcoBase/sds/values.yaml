@@ -53,6 +53,14 @@ service:
   externalPort: 9039
   nodePort: 39
 
+serviceInternal:
+  type: NodePort
+  name: sds
+  portName: sds-service
+  internalPort: 9035
+  externalPort: 9035
+  nodePort: 35
+
 ingress:
   enabled: false
 

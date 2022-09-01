@@ -35,7 +35,7 @@ dependencies:
     version: "1.0.1"
     repository: 'file://../nps'
   - name: sds
-    version: "1.0.0"
+    version: "1.0.1"
     repository: 'file://../sds'
   - name: its
     version: "1.0.1"
