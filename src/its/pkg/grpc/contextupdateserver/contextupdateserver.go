@@ -22,7 +22,7 @@ func (cs *contextupdateServer) UpdateAppContext(ctx context.Context, req *contex
 		"IntentName":   req.IntentName,
 	})
 
-	err := istiosubc.UpdateAppContext(req.IntentName, req.AppContext)
+	err := istiosubc.UpdateAppContext(ctx, req.IntentName, req.AppContext)
 	if err != nil {
 		return &contextpb.ContextUpdateResponse{AppContextUpdated: false, AppContextUpdateMessage: err.Error()}, nil
 	}

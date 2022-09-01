@@ -27,6 +27,7 @@ Here is the list of all EMCO services, controllers and subcontrollers where port
     HPAPLC_CONTROL_PORT=9099
     HPAPLC_SERVICE_PORT=9091
     ITS_CONTROL_PORT=9040
+    ITS_SERVICE_PORT=9037
     NCM_SERVICE_PORT=9081
     NCM_STATUS_PORT=9082
     NPS_CONTROL_PORT=9038
@@ -56,6 +57,7 @@ And here is the equivalent list, but for the default node ports used by each, wh
     HPAPLC_CONTROL_PORT=30499
     HPAPLC_SERVICE_PORT=30491
     ITS_CONTROL_PORT=30440
+    ITS_SERVICE_PORT=30437
     NCM_SERVICE_PORT=30481
     NCM_STATUS_PORT=30482
     NPS_CONTROL_PORT=30438

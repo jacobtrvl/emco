@@ -38,7 +38,7 @@ dependencies:
     version: "1.0.0"
     repository: 'file://../sds'
   - name: its
-    version: "1.0.0"
+    version: "1.0.1"
     repository: 'file://../its'
   - name: gac
     version: "1.0.1"

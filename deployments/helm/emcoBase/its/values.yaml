@@ -53,6 +53,14 @@ service:
   externalPort: 9040
   nodePort: 40
 
+serviceInternal:
+  type: NodePort
+  name: its
+  portName: its-service
+  internalPort: 9037
+  externalPort: 9037
+  nodePort: 37
+
 ingress:
   enabled: false
 
