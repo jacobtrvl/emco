@@ -13,7 +13,7 @@ import (
 )
 
 // CreateSfcIntent - create a new SfcIntent
-func (v *SfcIntentClient) CreateSfcIntent(intent model.SfcIntent, pr, ca, caver, dig string, exists bool) (model.SfcIntent, error) {
+func (v *SfcIntentClient) CreateSfcIntent(ctx context.Context, intent model.SfcIntent, pr, ca, caver, dig string, exists bool) (model.SfcIntent, error) {
 	//Construct key and tag to select the entry
 	key := model.SfcIntentKey{
 		Project:             pr,
@@ -24,12 +24,12 @@ func (v *SfcIntentClient) CreateSfcIntent(intent model.SfcIntent, pr, ca, caver,
 	}
 
 	//Check if this SFC Intent already exists
-	_, err := v.GetSfcIntent(intent.Metadata.Name, pr, ca, caver, dig)
+	_, err := v.GetSfcIntent(ctx, intent.Metadata.Name, pr, ca, caver, dig)
 	if err == nil && !exists {
 		return model.SfcIntent{}, pkgerrors.New("SFC Intent already exists")
 	}
 
-	err = db.DBconn.Insert(context.Background(), v.db.storeName, key, nil, v.db.tagMeta, intent)
+	err = db.DBconn.Insert(ctx, v.db.storeName, key, nil, v.db.tagMeta, intent)
 	if err != nil {
 		return model.SfcIntent{}, pkgerrors.Wrap(err, "Creating DB Entry")
 	}
@@ -38,7 +38,7 @@ func (v *SfcIntentClient) CreateSfcIntent(intent model.SfcIntent, pr, ca, caver,
 }
 
 // GetSfcIntent returns the SfcIntent for corresponding name
-func (v *SfcIntentClient) GetSfcIntent(name, pr, ca, caver, dig string) (model.SfcIntent, error) {
+func (v *SfcIntentClient) GetSfcIntent(ctx context.Context, name, pr, ca, caver, dig string) (model.SfcIntent, error) {
 	//Construct key and tag to select the entry
 	key := model.SfcIntentKey{
 		Project:             pr,
@@ -48,7 +48,7 @@ func (v *SfcIntentClient) GetSfcIntent(name, pr, ca, caver, dig string) (model.S
 		SfcIntent:           name,
 	}
 
-	value, err := db.DBconn.Find(context.Background(), v.db.storeName, key, v.db.tagMeta)
+	value, err := db.DBconn.Find(ctx, v.db.storeName, key, v.db.tagMeta)
 	if err != nil {
 		return model.SfcIntent{}, err
 	} else if len(value) == 0 {
@@ -69,7 +69,7 @@ func (v *SfcIntentClient) GetSfcIntent(name, pr, ca, caver, dig string) (model.S
 }
 
 // GetAllSfcIntent returns all of the SFC Intents for for the given network control intent
-func (v *SfcIntentClient) GetAllSfcIntents(pr, ca, caver, dig string) ([]model.SfcIntent, error) {
+func (v *SfcIntentClient) GetAllSfcIntents(ctx context.Context, pr, ca, caver, dig string) ([]model.SfcIntent, error) {
 	//Construct key and tag to select the entry
 	key := model.SfcIntentKey{
 		Project:             pr,
@@ -82,12 +82,12 @@ func (v *SfcIntentClient) GetAllSfcIntents(pr, ca, caver, dig string) ([]model.S
 	resp := make([]model.SfcIntent, 0)
 
 	// Verify the Deployment Intent Group exists
-	_, err := orchmod.NewDeploymentIntentGroupClient().GetDeploymentIntentGroup(context.Background(), dig, pr, ca, caver)
+	_, err := orchmod.NewDeploymentIntentGroupClient().GetDeploymentIntentGroup(ctx, dig, pr, ca, caver)
 	if err != nil {
 		return resp, err
 	}
 
-	values, err := db.DBconn.Find(context.Background(), v.db.storeName, key, v.db.tagMeta)
+	values, err := db.DBconn.Find(ctx, v.db.storeName, key, v.db.tagMeta)
 	if err != nil {
 		return []model.SfcIntent{}, err
 	}
@@ -105,7 +105,7 @@ func (v *SfcIntentClient) GetAllSfcIntents(pr, ca, caver, dig string) ([]model.S
 }
 
 // DeleteSfcIntent deletes the SfcIntent from the database
-func (v *SfcIntentClient) DeleteSfcIntent(name, pr, ca, caver, dig string) error {
+func (v *SfcIntentClient) DeleteSfcIntent(ctx context.Context, name, pr, ca, caver, dig string) error {
 
 	//Construct key and tag to select the entry
 	key := model.SfcIntentKey{
@@ -116,6 +116,6 @@ func (v *SfcIntentClient) DeleteSfcIntent(name, pr, ca, caver, dig string) error
 		SfcIntent:           name,
 	}
 
-	err := db.DBconn.Remove(context.Background(), v.db.storeName, key)
+	err := db.DBconn.Remove(ctx, v.db.storeName, key)
 	return err
 }

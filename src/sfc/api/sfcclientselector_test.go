@@ -14,6 +14,7 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	pkgerrors "github.com/pkg/errors"
+	"github.com/stretchr/testify/mock"
 	"gitlab.com/project-emco/core/emco-base/src/sfc/api/mocks"
 	"gitlab.com/project-emco/core/emco-base/src/sfc/pkg/model"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -39,7 +40,7 @@ var _ = Describe("SfcClientSelectorintenthandler", func() {
 	DescribeTable("Create SfcClientSelectorIntent tests",
 		func(t testCase) {
 			// set up client mock responses
-			t.client.On("CreateSfcClientSelectorIntent", t.inStruct, "test-project", "test-compositeapp", "v1", "test-dig", "sfc-intent", false).Return(t.mockVal, t.mockError)
+			t.client.On("CreateSfcClientSelectorIntent", mock.Anything, t.inStruct, "test-project", "test-compositeapp", "v1", "test-dig", "sfc-intent", false).Return(t.mockVal, t.mockError)
 
 			// make HTTP request
 			request := httptest.NewRequest("POST", "/v2/projects/test-project/composite-apps/test-compositeapp/v1/deployment-intent-groups/test-dig/network-chains/sfc-intent/client-selectors", t.inputReader)
@@ -436,7 +437,7 @@ var _ = Describe("SfcClientSelectorintenthandler", func() {
 	DescribeTable("Put SfcClientSelectorIntent tests",
 		func(t testCase) {
 			// set up client mock responses
-			t.client.On("CreateSfcClientSelectorIntent", t.inStruct, "test-project", "test-compositeapp", "v1", "test-dig", "sfc-intent", true).Return(t.mockVal, t.mockError)
+			t.client.On("CreateSfcClientSelectorIntent", mock.Anything, t.inStruct, "test-project", "test-compositeapp", "v1", "test-dig", "sfc-intent", true).Return(t.mockVal, t.mockError)
 
 			// make HTTP request
 			request := httptest.NewRequest("PUT", "/v2/projects/test-project/composite-apps/test-compositeapp/v1/deployment-intent-groups/test-dig/network-chains/sfc-intent/client-selectors/"+t.inputName, t.inputReader)
@@ -790,7 +791,7 @@ var _ = Describe("SfcClientSelectorintenthandler", func() {
 	DescribeTable("Get List SfcClientSelectorIntent tests",
 		func(t testCase) {
 			// set up client mock responses
-			t.client.On("GetAllSfcClientSelectorIntents", "test-project", "test-compositeapp", "v1", "test-dig", "sfc-intent").Return(t.mockVals, t.mockError)
+			t.client.On("GetAllSfcClientSelectorIntents", mock.Anything, "test-project", "test-compositeapp", "v1", "test-dig", "sfc-intent").Return(t.mockVals, t.mockError)
 
 			// make HTTP request
 			request := httptest.NewRequest("GET", "/v2/projects/test-project/composite-apps/test-compositeapp/v1/deployment-intent-groups/test-dig/network-chains/sfc-intent/client-selectors", nil)
@@ -876,7 +877,7 @@ var _ = Describe("SfcClientSelectorintenthandler", func() {
 	DescribeTable("Get SfcClientSelectorIntent tests",
 		func(t testCase) {
 			// set up client mock responses
-			t.client.On("GetSfcClientSelectorIntent", t.inputName, "test-project", "test-compositeapp", "v1", "test-dig", "sfc-intent").Return(t.mockVal, t.mockError)
+			t.client.On("GetSfcClientSelectorIntent", mock.Anything, t.inputName, "test-project", "test-compositeapp", "v1", "test-dig", "sfc-intent").Return(t.mockVal, t.mockError)
 
 			// make HTTP request
 			request := httptest.NewRequest("GET", "/v2/projects/test-project/composite-apps/test-compositeapp/v1/deployment-intent-groups/test-dig/network-chains/sfc-intent/client-selectors/"+t.inputName, nil)
@@ -945,7 +946,7 @@ var _ = Describe("SfcClientSelectorintenthandler", func() {
 	DescribeTable("Delete SfcClientSelectorIntent tests",
 		func(t testCase) {
 			// set up client mock responses
-			t.client.On("DeleteSfcClientSelectorIntent", t.inputName, "test-project", "test-compositeapp", "v1", "test-dig", "sfc-intent").Return(t.mockError)
+			t.client.On("DeleteSfcClientSelectorIntent", mock.Anything, t.inputName, "test-project", "test-compositeapp", "v1", "test-dig", "sfc-intent").Return(t.mockError)
 
 			// make HTTP request
 			request := httptest.NewRequest("DELETE", "/v2/projects/test-project/composite-apps/test-compositeapp/v1/deployment-intent-groups/test-dig/network-chains/sfc-intent/client-selectors/"+t.inputName, nil)

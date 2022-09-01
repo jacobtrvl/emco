@@ -143,10 +143,11 @@ var _ = Describe("SFCAction", func() {
 	)
 
 	BeforeEach(func() {
+		ctx := context.Background()
 		cdb = new(contextdb.MockConDb)
 		cdb.Err = nil
 		contextdb.Db = cdb
-		cid, _ := cacontext.CreateCompApp(context.Background(), TestCA1)
+		cid, _ := cacontext.CreateCompApp(ctx, TestCA1)
 		contextIdCA1 = cid
 
 		// setup the mock DB resources
@@ -299,124 +300,133 @@ var _ = Describe("SFCAction", func() {
 		db.DBconn = mdb
 
 		// set up prerequisites
-		_, err := (*projClient).CreateProject(context.Background(), proj, false)
+		_, err := (*projClient).CreateProject(ctx, proj, false)
 		Expect(err).To(BeNil())
-		_, err = (*caClient).CreateCompositeApp(context.Background(), ca, "testp", false)
+		_, err = (*caClient).CreateCompositeApp(ctx, ca, "testp", false)
 		Expect(err).To(BeNil())
-		_, _, err = (*digClient).CreateDeploymentIntentGroup(context.Background(), dig, "testp", "chainCA", "v1", true)
+		_, _, err = (*digClient).CreateDeploymentIntentGroup(ctx, dig, "testp", "chainCA", "v1", true)
 		Expect(err).To(BeNil())
-		_, err = (*sfcClient).CreateSfcIntent(sfcIntent, "testp", "chainCA", "v1", "dig1", false)
+		_, err = (*sfcClient).CreateSfcIntent(ctx, sfcIntent, "testp", "chainCA", "v1", "dig1", false)
 		Expect(err).To(BeNil())
-		_, err = (*sfcLinkIntentClient).CreateSfcLinkIntent(sfcLinkIntent1, "testp", "chainCA", "v1", "dig1", "sfcIntentName", false)
+		_, err = (*sfcLinkIntentClient).CreateSfcLinkIntent(ctx, sfcLinkIntent1, "testp", "chainCA", "v1", "dig1", "sfcIntentName", false)
 		Expect(err).To(BeNil())
-		_, err = (*sfcLinkIntentClient).CreateSfcLinkIntent(sfcLinkIntent2, "testp", "chainCA", "v1", "dig1", "sfcIntentName", false)
+		_, err = (*sfcLinkIntentClient).CreateSfcLinkIntent(ctx, sfcLinkIntent2, "testp", "chainCA", "v1", "dig1", "sfcIntentName", false)
 		Expect(err).To(BeNil())
-		_, err = (*sfcClientSelectorClient).CreateSfcClientSelectorIntent(sfcLeftClientSelectorIntent, "testp", "chainCA", "v1", "dig1", "sfcIntentName", false)
+		_, err = (*sfcClientSelectorClient).CreateSfcClientSelectorIntent(ctx, sfcLeftClientSelectorIntent, "testp", "chainCA", "v1", "dig1", "sfcIntentName", false)
 		Expect(err).To(BeNil())
-		_, err = (*sfcClientSelectorClient).CreateSfcClientSelectorIntent(sfcRightClientSelectorIntent, "testp", "chainCA", "v1", "dig1", "sfcIntentName", false)
+		_, err = (*sfcClientSelectorClient).CreateSfcClientSelectorIntent(ctx, sfcRightClientSelectorIntent, "testp", "chainCA", "v1", "dig1", "sfcIntentName", false)
 		Expect(err).To(BeNil())
-		_, err = (*sfcProviderNetworkClient).CreateSfcProviderNetworkIntent(sfcLeftProviderNetworkIntent, "testp", "chainCA", "v1", "dig1", "sfcIntentName", false)
+		_, err = (*sfcProviderNetworkClient).CreateSfcProviderNetworkIntent(ctx, sfcLeftProviderNetworkIntent, "testp", "chainCA", "v1", "dig1", "sfcIntentName", false)
 		Expect(err).To(BeNil())
-		_, err = (*sfcProviderNetworkClient).CreateSfcProviderNetworkIntent(sfcRightProviderNetworkIntent, "testp", "chainCA", "v1", "dig1", "sfcIntentName", false)
+		_, err = (*sfcProviderNetworkClient).CreateSfcProviderNetworkIntent(ctx, sfcRightProviderNetworkIntent, "testp", "chainCA", "v1", "dig1", "sfcIntentName", false)
 		Expect(err).To(BeNil())
 	})
 
 	It("No Client Selector intents", func() {
-		err := (*sfcClientSelectorClient).DeleteSfcClientSelectorIntent("sfcLeftClientSelectorIntentName", "testp", "chainCA", "v1", "dig1", "sfcIntentName")
+		ctx := context.Background()
+		err := (*sfcClientSelectorClient).DeleteSfcClientSelectorIntent(ctx, "sfcLeftClientSelectorIntentName", "testp", "chainCA", "v1", "dig1", "sfcIntentName")
 		Expect(err).To(BeNil())
-		err = (*sfcClientSelectorClient).DeleteSfcClientSelectorIntent("sfcRightClientSelectorIntentName", "testp", "chainCA", "v1", "dig1", "sfcIntentName")
+		err = (*sfcClientSelectorClient).DeleteSfcClientSelectorIntent(ctx, "sfcRightClientSelectorIntentName", "testp", "chainCA", "v1", "dig1", "sfcIntentName")
 		Expect(err).To(BeNil())
 
-		err = action.UpdateAppContext("dig1", contextIdCA1)
+		err = action.UpdateAppContext(ctx, "dig1", contextIdCA1)
 		Expect(err).To(BeNil())
 	})
 
 	It("No Left Client Selector intent", func() {
-		err := (*sfcClientSelectorClient).DeleteSfcClientSelectorIntent("sfcLeftClientSelectorIntentName", "testp", "chainCA", "v1", "dig1", "sfcIntentName")
+		ctx := context.Background()
+		err := (*sfcClientSelectorClient).DeleteSfcClientSelectorIntent(ctx, "sfcLeftClientSelectorIntentName", "testp", "chainCA", "v1", "dig1", "sfcIntentName")
 		Expect(err).To(BeNil())
 
-		err = action.UpdateAppContext("dig1", contextIdCA1)
+		err = action.UpdateAppContext(ctx, "dig1", contextIdCA1)
 		Expect(err).To(BeNil())
 	})
 
 	It("No Right Client Selector intent", func() {
-		err := (*sfcClientSelectorClient).DeleteSfcClientSelectorIntent("sfcRightClientSelectorIntentName", "testp", "chainCA", "v1", "dig1", "sfcIntentName")
+		ctx := context.Background()
+		err := (*sfcClientSelectorClient).DeleteSfcClientSelectorIntent(ctx, "sfcRightClientSelectorIntentName", "testp", "chainCA", "v1", "dig1", "sfcIntentName")
 		Expect(err).To(BeNil())
 
-		err = action.UpdateAppContext("dig1", contextIdCA1)
+		err = action.UpdateAppContext(ctx, "dig1", contextIdCA1)
 		Expect(err).To(BeNil())
 	})
 
 	It("No Both Provider Network intents", func() {
-		err := (*sfcProviderNetworkClient).DeleteSfcProviderNetworkIntent("sfcLeftProviderNetworkIntentName", "testp", "chainCA", "v1", "dig1", "sfcIntentName")
+		ctx := context.Background()
+		err := (*sfcProviderNetworkClient).DeleteSfcProviderNetworkIntent(ctx, "sfcLeftProviderNetworkIntentName", "testp", "chainCA", "v1", "dig1", "sfcIntentName")
 		Expect(err).To(BeNil())
-		err = (*sfcProviderNetworkClient).DeleteSfcProviderNetworkIntent("sfcRightProviderNetworkIntentName", "testp", "chainCA", "v1", "dig1", "sfcIntentName")
+		err = (*sfcProviderNetworkClient).DeleteSfcProviderNetworkIntent(ctx, "sfcRightProviderNetworkIntentName", "testp", "chainCA", "v1", "dig1", "sfcIntentName")
 		Expect(err).To(BeNil())
 
-		err = action.UpdateAppContext("dig1", contextIdCA1)
+		err = action.UpdateAppContext(ctx, "dig1", contextIdCA1)
 		Expect(err).To(BeNil())
 	})
 
 	It("No Left Provider Network intent", func() {
-		err := (*sfcProviderNetworkClient).DeleteSfcProviderNetworkIntent("sfcLeftProviderNetworkIntentName", "testp", "chainCA", "v1", "dig1", "sfcIntentName")
+		ctx := context.Background()
+		err := (*sfcProviderNetworkClient).DeleteSfcProviderNetworkIntent(ctx, "sfcLeftProviderNetworkIntentName", "testp", "chainCA", "v1", "dig1", "sfcIntentName")
 		Expect(err).To(BeNil())
 
-		err = action.UpdateAppContext("dig1", contextIdCA1)
+		err = action.UpdateAppContext(ctx, "dig1", contextIdCA1)
 		Expect(err).To(BeNil())
 	})
 
 	It("No Right Provider Network intent", func() {
-		err := (*sfcProviderNetworkClient).DeleteSfcProviderNetworkIntent("sfcRightProviderNetworkIntentName", "testp", "chainCA", "v1", "dig1", "sfcIntentName")
+		ctx := context.Background()
+		err := (*sfcProviderNetworkClient).DeleteSfcProviderNetworkIntent(ctx, "sfcRightProviderNetworkIntentName", "testp", "chainCA", "v1", "dig1", "sfcIntentName")
 		Expect(err).To(BeNil())
 
-		err = action.UpdateAppContext("dig1", contextIdCA1)
+		err = action.UpdateAppContext(ctx, "dig1", contextIdCA1)
 		Expect(err).To(BeNil())
 	})
 
 	It("Successful Apply SFC to an App Context", func() {
-		err := action.UpdateAppContext("dig1", contextIdCA1)
+		ctx := context.Background()
+		err := action.UpdateAppContext(ctx, "dig1", contextIdCA1)
 		Expect(err).To(BeNil())
 	})
 
 	It("No SFC intents", func() {
+		ctx := context.Background()
 		// delete all the SFC intents
-		err := (*sfcProviderNetworkClient).DeleteSfcProviderNetworkIntent("sfcLeftProviderNetworkIntentName", "testp", "chainCA", "v1", "dig1", "sfcIntentName")
+		err := (*sfcProviderNetworkClient).DeleteSfcProviderNetworkIntent(ctx, "sfcLeftProviderNetworkIntentName", "testp", "chainCA", "v1", "dig1", "sfcIntentName")
 		Expect(err).To(BeNil())
-		err = (*sfcProviderNetworkClient).DeleteSfcProviderNetworkIntent("sfcRightProviderNetworkIntentName", "testp", "chainCA", "v1", "dig1", "sfcIntentName")
+		err = (*sfcProviderNetworkClient).DeleteSfcProviderNetworkIntent(ctx, "sfcRightProviderNetworkIntentName", "testp", "chainCA", "v1", "dig1", "sfcIntentName")
 		Expect(err).To(BeNil())
-		err = (*sfcClientSelectorClient).DeleteSfcClientSelectorIntent("sfcLeftClientSelectorIntentName", "testp", "chainCA", "v1", "dig1", "sfcIntentName")
+		err = (*sfcClientSelectorClient).DeleteSfcClientSelectorIntent(ctx, "sfcLeftClientSelectorIntentName", "testp", "chainCA", "v1", "dig1", "sfcIntentName")
 		Expect(err).To(BeNil())
-		err = (*sfcClientSelectorClient).DeleteSfcClientSelectorIntent("sfcRightClientSelectorIntentName", "testp", "chainCA", "v1", "dig1", "sfcIntentName")
+		err = (*sfcClientSelectorClient).DeleteSfcClientSelectorIntent(ctx, "sfcRightClientSelectorIntentName", "testp", "chainCA", "v1", "dig1", "sfcIntentName")
 		Expect(err).To(BeNil())
-		err = (*sfcClient).DeleteSfcIntent("sfcIntentName", "testp", "chainCA", "v1", "dig1")
+		err = (*sfcClient).DeleteSfcIntent(ctx, "sfcIntentName", "testp", "chainCA", "v1", "dig1")
 		Expect(err).To(BeNil())
 
-		resultingCA, err = cacontext.ReadAppContext(context.Background(), contextIdCA1)
+		resultingCA, err = cacontext.ReadAppContext(ctx, contextIdCA1)
 		cacontext.PrintCompositeApp(resultingCA)
 
-		err = action.UpdateAppContext("dig1", contextIdCA1)
+		err = action.UpdateAppContext(ctx, "dig1", contextIdCA1)
 		Expect(strings.Contains(err.Error(), "No SFC Intents are defined for the Deployment Intent Group")).To(Equal(true))
 	})
 
 	It("Successful Apply two SFCs to an App Context", func() {
+		ctx := context.Background()
 		// set up second SFC
-		_, err := (*sfcClient).CreateSfcIntent(sfcIntent2, "testp", "chainCA", "v1", "dig1", false)
+		_, err := (*sfcClient).CreateSfcIntent(ctx, sfcIntent2, "testp", "chainCA", "v1", "dig1", false)
 		Expect(err).To(BeNil())
-		_, err = (*sfcLinkIntentClient).CreateSfcLinkIntent(sfcLinkIntent3, "testp", "chainCA", "v1", "dig1", "sfcIntentName2", false)
+		_, err = (*sfcLinkIntentClient).CreateSfcLinkIntent(ctx, sfcLinkIntent3, "testp", "chainCA", "v1", "dig1", "sfcIntentName2", false)
 		Expect(err).To(BeNil())
-		_, err = (*sfcClientSelectorClient).CreateSfcClientSelectorIntent(sfcLeftClientSelectorIntent, "testp", "chainCA", "v1", "dig1", "sfcIntentName2", false)
+		_, err = (*sfcClientSelectorClient).CreateSfcClientSelectorIntent(ctx, sfcLeftClientSelectorIntent, "testp", "chainCA", "v1", "dig1", "sfcIntentName2", false)
 		Expect(err).To(BeNil())
-		_, err = (*sfcClientSelectorClient).CreateSfcClientSelectorIntent(sfcRightClientSelectorIntent, "testp", "chainCA", "v1", "dig1", "sfcIntentName2", false)
+		_, err = (*sfcClientSelectorClient).CreateSfcClientSelectorIntent(ctx, sfcRightClientSelectorIntent, "testp", "chainCA", "v1", "dig1", "sfcIntentName2", false)
 		Expect(err).To(BeNil())
-		_, err = (*sfcProviderNetworkClient).CreateSfcProviderNetworkIntent(sfcLeftProviderNetworkIntent, "testp", "chainCA", "v1", "dig1", "sfcIntentName2", false)
+		_, err = (*sfcProviderNetworkClient).CreateSfcProviderNetworkIntent(ctx, sfcLeftProviderNetworkIntent, "testp", "chainCA", "v1", "dig1", "sfcIntentName2", false)
 		Expect(err).To(BeNil())
-		_, err = (*sfcProviderNetworkClient).CreateSfcProviderNetworkIntent(sfcRightProviderNetworkIntent, "testp", "chainCA", "v1", "dig1", "sfcIntentName2", false)
+		_, err = (*sfcProviderNetworkClient).CreateSfcProviderNetworkIntent(ctx, sfcRightProviderNetworkIntent, "testp", "chainCA", "v1", "dig1", "sfcIntentName2", false)
 		Expect(err).To(BeNil())
 
-		resultingCA, err = cacontext.ReadAppContext(context.Background(), contextIdCA1)
+		resultingCA, err = cacontext.ReadAppContext(ctx, contextIdCA1)
 		cacontext.PrintCompositeApp(resultingCA)
 
-		err = action.UpdateAppContext("dig1", contextIdCA1)
+		err = action.UpdateAppContext(ctx, "dig1", contextIdCA1)
 		Expect(err).To(BeNil())
 	})
 })

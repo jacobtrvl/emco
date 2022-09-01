@@ -20,6 +20,7 @@ var sfcLinkJSONFile string = "json-schemas/sfc-link.json"
 
 // Create handles creation of the SFC Link entry in the database
 func (h sfcLinkIntentHandler) createLinkHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	var sfcLink model.SfcLinkIntent
 	vars := mux.Vars(r)
 	project := vars["project"]
@@ -49,7 +50,7 @@ func (h sfcLinkIntentHandler) createLinkHandler(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	ret, err := h.client.CreateSfcLinkIntent(sfcLink, project, compositeApp, compositeAppVersion, deployIntentGroup, sfcIntent, false)
+	ret, err := h.client.CreateSfcLinkIntent(ctx, sfcLink, project, compositeApp, compositeAppVersion, deployIntentGroup, sfcIntent, false)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, sfcLink, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -68,6 +69,7 @@ func (h sfcLinkIntentHandler) createLinkHandler(w http.ResponseWriter, r *http.R
 
 // Put handles update of the SFC Link entry in the database
 func (h sfcLinkIntentHandler) putLinkHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	var sfcLinkIntent model.SfcLinkIntent
 	vars := mux.Vars(r)
 	name := vars["sfcLink"]
@@ -105,7 +107,7 @@ func (h sfcLinkIntentHandler) putLinkHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	ret, err := h.client.CreateSfcLinkIntent(sfcLinkIntent, project, compositeApp, compositeAppVersion, deployIntentGroup, sfcIntent, true)
+	ret, err := h.client.CreateSfcLinkIntent(ctx, sfcLinkIntent, project, compositeApp, compositeAppVersion, deployIntentGroup, sfcIntent, true)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, sfcLinkIntent, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -125,6 +127,7 @@ func (h sfcLinkIntentHandler) putLinkHandler(w http.ResponseWriter, r *http.Requ
 // Get handles GET operations on a particular SFC Link Name
 // Returns a SFC Link
 func (h sfcLinkIntentHandler) getLinkHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	name := vars["sfcLink"]
 	project := vars["project"]
@@ -136,14 +139,14 @@ func (h sfcLinkIntentHandler) getLinkHandler(w http.ResponseWriter, r *http.Requ
 	var err error
 
 	if len(name) == 0 {
-		ret, err = h.client.GetAllSfcLinkIntents(project, compositeApp, compositeAppVersion, deployIntentGroup, sfcIntent)
+		ret, err = h.client.GetAllSfcLinkIntents(ctx, project, compositeApp, compositeAppVersion, deployIntentGroup, sfcIntent)
 		if err != nil {
 			apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 			http.Error(w, apiErr.Message, apiErr.Status)
 			return
 		}
 	} else {
-		ret, err = h.client.GetSfcLinkIntent(name, project, compositeApp, compositeAppVersion, deployIntentGroup, sfcIntent)
+		ret, err = h.client.GetSfcLinkIntent(ctx, name, project, compositeApp, compositeAppVersion, deployIntentGroup, sfcIntent)
 		if err != nil {
 			apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 			http.Error(w, apiErr.Message, apiErr.Status)
@@ -163,6 +166,7 @@ func (h sfcLinkIntentHandler) getLinkHandler(w http.ResponseWriter, r *http.Requ
 
 // Delete handles DELETE operations on a particular SfcLink
 func (h sfcLinkIntentHandler) deleteLinkHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	name := vars["sfcLink"]
 	project := vars["project"]
@@ -171,7 +175,7 @@ func (h sfcLinkIntentHandler) deleteLinkHandler(w http.ResponseWriter, r *http.R
 	deployIntentGroup := vars["deploymentIntentGroup"]
 	sfcIntent := vars["sfcIntent"]
 
-	err := h.client.DeleteSfcLinkIntent(name, project, compositeApp, compositeAppVersion, deployIntentGroup, sfcIntent)
+	err := h.client.DeleteSfcLinkIntent(ctx, name, project, compositeApp, compositeAppVersion, deployIntentGroup, sfcIntent)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)

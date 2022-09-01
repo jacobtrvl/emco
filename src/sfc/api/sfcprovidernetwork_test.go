@@ -14,6 +14,7 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	pkgerrors "github.com/pkg/errors"
+	"github.com/stretchr/testify/mock"
 	"gitlab.com/project-emco/core/emco-base/src/sfc/api/mocks"
 	"gitlab.com/project-emco/core/emco-base/src/sfc/pkg/model"
 )
@@ -38,7 +39,7 @@ var _ = Describe("SfcProviderNetworkintenthandler", func() {
 	DescribeTable("Create SfcProviderNetworkIntent tests",
 		func(t testCase) {
 			// set up client mock responses
-			t.client.On("CreateSfcProviderNetworkIntent", t.inStruct, "test-project", "test-compositeapp", "v1", "test-dig", "sfc-intent", false).Return(t.mockVal, t.mockError)
+			t.client.On("CreateSfcProviderNetworkIntent", mock.Anything, t.inStruct, "test-project", "test-compositeapp", "v1", "test-dig", "sfc-intent", false).Return(t.mockVal, t.mockError)
 
 			// make HTTP request
 			request := httptest.NewRequest("POST", "/v2/projects/test-project/composite-apps/test-compositeapp/v1/deployment-intent-groups/test-dig/network-chains/sfc-intent/provider-networks", t.inputReader)
@@ -384,7 +385,7 @@ var _ = Describe("SfcProviderNetworkintenthandler", func() {
 	DescribeTable("Put SfcProviderNetworkIntent tests",
 		func(t testCase) {
 			// set up client mock responses
-			t.client.On("CreateSfcProviderNetworkIntent", t.inStruct, "test-project", "test-compositeapp", "v1", "test-dig", "sfc-intent", true).Return(t.mockVal, t.mockError)
+			t.client.On("CreateSfcProviderNetworkIntent", mock.Anything, t.inStruct, "test-project", "test-compositeapp", "v1", "test-dig", "sfc-intent", true).Return(t.mockVal, t.mockError)
 
 			// make HTTP request
 			request := httptest.NewRequest("PUT", "/v2/projects/test-project/composite-apps/test-compositeapp/v1/deployment-intent-groups/test-dig/network-chains/sfc-intent/provider-networks/"+t.inputName, t.inputReader)
@@ -634,7 +635,7 @@ var _ = Describe("SfcProviderNetworkintenthandler", func() {
 	DescribeTable("Get List SfcProviderNetworkIntent tests",
 		func(t testCase) {
 			// set up client mock responses
-			t.client.On("GetAllSfcProviderNetworkIntents", "test-project", "test-compositeapp", "v1", "test-dig", "sfc-intent").Return(t.mockVals, t.mockError)
+			t.client.On("GetAllSfcProviderNetworkIntents", mock.Anything, "test-project", "test-compositeapp", "v1", "test-dig", "sfc-intent").Return(t.mockVals, t.mockError)
 
 			// make HTTP request
 			request := httptest.NewRequest("GET", "/v2/projects/test-project/composite-apps/test-compositeapp/v1/deployment-intent-groups/test-dig/network-chains/sfc-intent/provider-networks", nil)
@@ -710,7 +711,7 @@ var _ = Describe("SfcProviderNetworkintenthandler", func() {
 	DescribeTable("Get SfcProviderNetworkIntent tests",
 		func(t testCase) {
 			// set up client mock responses
-			t.client.On("GetSfcProviderNetworkIntent", t.inputName, "test-project", "test-compositeapp", "v1", "test-dig", "sfc-intent").Return(t.mockVal, t.mockError)
+			t.client.On("GetSfcProviderNetworkIntent", mock.Anything, t.inputName, "test-project", "test-compositeapp", "v1", "test-dig", "sfc-intent").Return(t.mockVal, t.mockError)
 
 			// make HTTP request
 			request := httptest.NewRequest("GET", "/v2/projects/test-project/composite-apps/test-compositeapp/v1/deployment-intent-groups/test-dig/network-chains/sfc-intent/provider-networks/"+t.inputName, nil)
@@ -774,7 +775,7 @@ var _ = Describe("SfcProviderNetworkintenthandler", func() {
 	DescribeTable("Delete SfcProviderNetworkIntent tests",
 		func(t testCase) {
 			// set up client mock responses
-			t.client.On("DeleteSfcProviderNetworkIntent", t.inputName, "test-project", "test-compositeapp", "v1", "test-dig", "sfc-intent").Return(t.mockError)
+			t.client.On("DeleteSfcProviderNetworkIntent", mock.Anything, t.inputName, "test-project", "test-compositeapp", "v1", "test-dig", "sfc-intent").Return(t.mockError)
 
 			// make HTTP request
 			request := httptest.NewRequest("DELETE", "/v2/projects/test-project/composite-apps/test-compositeapp/v1/deployment-intent-groups/test-dig/network-chains/sfc-intent/provider-networks/"+t.inputName, nil)

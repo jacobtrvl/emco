@@ -20,6 +20,7 @@ var sfcClientSelectorJSONFile string = "json-schemas/sfc-client-selector.json"
 
 // Create handles creation of the SFC Client Selector entry in the database
 func (h sfcClientSelectorIntentHandler) createClientSelectorHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	var sfcClientSelector model.SfcClientSelectorIntent
 	vars := mux.Vars(r)
 	project := vars["project"]
@@ -49,7 +50,7 @@ func (h sfcClientSelectorIntentHandler) createClientSelectorHandler(w http.Respo
 		return
 	}
 
-	ret, err := h.client.CreateSfcClientSelectorIntent(sfcClientSelector, project, compositeApp, compositeAppVersion, deployIntentGroup, sfcIntent, false)
+	ret, err := h.client.CreateSfcClientSelectorIntent(ctx, sfcClientSelector, project, compositeApp, compositeAppVersion, deployIntentGroup, sfcIntent, false)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, sfcClientSelector, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -68,6 +69,7 @@ func (h sfcClientSelectorIntentHandler) createClientSelectorHandler(w http.Respo
 
 // Put handles update of the SFC Client Selector entry in the database
 func (h sfcClientSelectorIntentHandler) putClientSelectorHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	var sfcClientSelectorIntent model.SfcClientSelectorIntent
 	vars := mux.Vars(r)
 	name := vars["sfcClientSelector"]
@@ -105,7 +107,7 @@ func (h sfcClientSelectorIntentHandler) putClientSelectorHandler(w http.Response
 		return
 	}
 
-	ret, err := h.client.CreateSfcClientSelectorIntent(sfcClientSelectorIntent, project, compositeApp, compositeAppVersion, deployIntentGroup, sfcIntent, true)
+	ret, err := h.client.CreateSfcClientSelectorIntent(ctx, sfcClientSelectorIntent, project, compositeApp, compositeAppVersion, deployIntentGroup, sfcIntent, true)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, sfcClientSelectorIntent, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -125,6 +127,7 @@ func (h sfcClientSelectorIntentHandler) putClientSelectorHandler(w http.Response
 // Get handles GET operations on a particular SFC Client Selector Name
 // Returns a SFC Client Selector
 func (h sfcClientSelectorIntentHandler) getClientSelectorHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	name := vars["sfcClientSelector"]
 	project := vars["project"]
@@ -136,14 +139,14 @@ func (h sfcClientSelectorIntentHandler) getClientSelectorHandler(w http.Response
 	var err error
 
 	if len(name) == 0 {
-		ret, err = h.client.GetAllSfcClientSelectorIntents(project, compositeApp, compositeAppVersion, deployIntentGroup, sfcIntent)
+		ret, err = h.client.GetAllSfcClientSelectorIntents(ctx, project, compositeApp, compositeAppVersion, deployIntentGroup, sfcIntent)
 		if err != nil {
 			apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 			http.Error(w, apiErr.Message, apiErr.Status)
 			return
 		}
 	} else {
-		ret, err = h.client.GetSfcClientSelectorIntent(name, project, compositeApp, compositeAppVersion, deployIntentGroup, sfcIntent)
+		ret, err = h.client.GetSfcClientSelectorIntent(ctx, name, project, compositeApp, compositeAppVersion, deployIntentGroup, sfcIntent)
 		if err != nil {
 			apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 			http.Error(w, apiErr.Message, apiErr.Status)
@@ -163,6 +166,7 @@ func (h sfcClientSelectorIntentHandler) getClientSelectorHandler(w http.Response
 
 // Delete handles DELETE operations on a particular SfcClientSelector
 func (h sfcClientSelectorIntentHandler) deleteClientSelectorHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	name := vars["sfcClientSelector"]
 	project := vars["project"]
@@ -171,7 +175,7 @@ func (h sfcClientSelectorIntentHandler) deleteClientSelectorHandler(w http.Respo
 	deployIntentGroup := vars["deploymentIntentGroup"]
 	sfcIntent := vars["sfcIntent"]
 
-	err := h.client.DeleteSfcClientSelectorIntent(name, project, compositeApp, compositeAppVersion, deployIntentGroup, sfcIntent)
+	err := h.client.DeleteSfcClientSelectorIntent(ctx, name, project, compositeApp, compositeAppVersion, deployIntentGroup, sfcIntent)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)

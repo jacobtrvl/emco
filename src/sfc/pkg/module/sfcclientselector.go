@@ -12,7 +12,7 @@ import (
 )
 
 // CreateSfcClientSelectorIntent - create a new SfcClientSelectorIntent
-func (v *SfcClientSelectorIntentClient) CreateSfcClientSelectorIntent(intent model.SfcClientSelectorIntent, pr, ca, caver, dig, sfcIntent string, exists bool) (model.SfcClientSelectorIntent, error) {
+func (v *SfcClientSelectorIntentClient) CreateSfcClientSelectorIntent(ctx context.Context, intent model.SfcClientSelectorIntent, pr, ca, caver, dig, sfcIntent string, exists bool) (model.SfcClientSelectorIntent, error) {
 	//Construct key and tag to select the entry
 	key := model.SfcClientSelectorIntentKey{
 		Project:                 pr,
@@ -28,12 +28,12 @@ func (v *SfcClientSelectorIntentClient) CreateSfcClientSelectorIntent(intent mod
 	}
 
 	//Check if this SFC Client Selector Intent already exists
-	_, err := v.GetSfcClientSelectorIntent(intent.Metadata.Name, pr, ca, caver, dig, sfcIntent)
+	_, err := v.GetSfcClientSelectorIntent(ctx, intent.Metadata.Name, pr, ca, caver, dig, sfcIntent)
 	if err == nil && !exists {
 		return model.SfcClientSelectorIntent{}, pkgerrors.New("SFC Client Selector Intent already exists")
 	}
 
-	err = db.DBconn.Insert(context.Background(), v.db.storeName, key, endKey, v.db.tagMeta, intent)
+	err = db.DBconn.Insert(ctx, v.db.storeName, key, endKey, v.db.tagMeta, intent)
 	if err != nil {
 		return model.SfcClientSelectorIntent{}, pkgerrors.Wrap(err, "Creating DB Entry")
 	}
@@ -42,7 +42,7 @@ func (v *SfcClientSelectorIntentClient) CreateSfcClientSelectorIntent(intent mod
 }
 
 // GetSfcClientSelectorIntent returns the SfcClientSelectorIntent for corresponding name
-func (v *SfcClientSelectorIntentClient) GetSfcClientSelectorIntent(name, pr, ca, caver, dig, sfcIntent string) (model.SfcClientSelectorIntent, error) {
+func (v *SfcClientSelectorIntentClient) GetSfcClientSelectorIntent(ctx context.Context, name, pr, ca, caver, dig, sfcIntent string) (model.SfcClientSelectorIntent, error) {
 	//Construct key and tag to select the entry
 	key := model.SfcClientSelectorIntentKey{
 		Project:                 pr,
@@ -53,7 +53,7 @@ func (v *SfcClientSelectorIntentClient) GetSfcClientSelectorIntent(name, pr, ca,
 		SfcClientSelectorIntent: name,
 	}
 
-	value, err := db.DBconn.Find(context.Background(), v.db.storeName, key, v.db.tagMeta)
+	value, err := db.DBconn.Find(ctx, v.db.storeName, key, v.db.tagMeta)
 	if err != nil {
 		return model.SfcClientSelectorIntent{}, err
 	} else if len(value) == 0 {
@@ -74,7 +74,7 @@ func (v *SfcClientSelectorIntentClient) GetSfcClientSelectorIntent(name, pr, ca,
 }
 
 // GetAllSfcClientSelectorIntent returns all of the SFC Intents for for the given Deployment Intent Group
-func (v *SfcClientSelectorIntentClient) GetAllSfcClientSelectorIntents(pr, ca, caver, dig, sfcIntent string) ([]model.SfcClientSelectorIntent, error) {
+func (v *SfcClientSelectorIntentClient) GetAllSfcClientSelectorIntents(ctx context.Context, pr, ca, caver, dig, sfcIntent string) ([]model.SfcClientSelectorIntent, error) {
 	//Construct key and tag to select the entry
 	key := model.SfcClientSelectorIntentKey{
 		Project:                 pr,
@@ -88,12 +88,12 @@ func (v *SfcClientSelectorIntentClient) GetAllSfcClientSelectorIntents(pr, ca, c
 	resp := make([]model.SfcClientSelectorIntent, 0)
 
 	// Verify the SFC intent exists
-	_, err := NewSfcIntentClient().GetSfcIntent(sfcIntent, pr, ca, caver, dig)
+	_, err := NewSfcIntentClient().GetSfcIntent(ctx, sfcIntent, pr, ca, caver, dig)
 	if err != nil {
 		return resp, err
 	}
 
-	values, err := db.DBconn.Find(context.Background(), v.db.storeName, key, v.db.tagMeta)
+	values, err := db.DBconn.Find(ctx, v.db.storeName, key, v.db.tagMeta)
 	if err != nil {
 		return resp, err
 	}
@@ -112,7 +112,7 @@ func (v *SfcClientSelectorIntentClient) GetAllSfcClientSelectorIntents(pr, ca, c
 
 // GetSfcClientSelectorIntentsByEnd returns all of the SFC Client Selector Intents for for the given Deployment Intent Group
 // and specified end of the chain
-func (v *SfcClientSelectorIntentClient) GetSfcClientSelectorIntentsByEnd(pr, ca, caver, dig, sfcIntent, chainEnd string) ([]model.SfcClientSelectorIntent, error) {
+func (v *SfcClientSelectorIntentClient) GetSfcClientSelectorIntentsByEnd(ctx context.Context, pr, ca, caver, dig, sfcIntent, chainEnd string) ([]model.SfcClientSelectorIntent, error) {
 	//Construct key and tag to select the entry
 	key := model.SfcClientSelectorIntentByEndKey{
 		Project:             pr,
@@ -126,12 +126,12 @@ func (v *SfcClientSelectorIntentClient) GetSfcClientSelectorIntentsByEnd(pr, ca,
 	resp := make([]model.SfcClientSelectorIntent, 0)
 
 	// Verify the SFC intent exists
-	_, err := NewSfcIntentClient().GetSfcIntent(sfcIntent, pr, ca, caver, dig)
+	_, err := NewSfcIntentClient().GetSfcIntent(ctx, sfcIntent, pr, ca, caver, dig)
 	if err != nil {
 		return resp, err
 	}
 
-	values, err := db.DBconn.Find(context.Background(), v.db.storeName, key, v.db.tagMeta)
+	values, err := db.DBconn.Find(ctx, v.db.storeName, key, v.db.tagMeta)
 	if err != nil {
 		return resp, err
 	}
@@ -149,7 +149,7 @@ func (v *SfcClientSelectorIntentClient) GetSfcClientSelectorIntentsByEnd(pr, ca,
 }
 
 // DeleteSfcClientSelectorIntent deletes the SfcClientSelectorIntent from the database
-func (v *SfcClientSelectorIntentClient) DeleteSfcClientSelectorIntent(name, pr, ca, caver, dig, sfcIntent string) error {
+func (v *SfcClientSelectorIntentClient) DeleteSfcClientSelectorIntent(ctx context.Context, name, pr, ca, caver, dig, sfcIntent string) error {
 
 	//Construct key and tag to select the entry
 	key := model.SfcClientSelectorIntentKey{
@@ -161,6 +161,6 @@ func (v *SfcClientSelectorIntentClient) DeleteSfcClientSelectorIntent(name, pr, 
 		SfcClientSelectorIntent: name,
 	}
 
-	err := db.DBconn.Remove(context.Background(), v.db.storeName, key)
+	err := db.DBconn.Remove(ctx, v.db.storeName, key)
 	return err
 }

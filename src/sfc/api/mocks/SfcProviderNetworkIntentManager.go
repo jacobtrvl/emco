@@ -3,6 +3,7 @@
 package mocks
 
 import (
+	"context"
 	model "gitlab.com/project-emco/core/emco-base/src/sfc/pkg/model"
 	mock "github.com/stretchr/testify/mock"
 )
@@ -13,8 +14,8 @@ type SfcProviderNetworkIntentManager struct {
 }
 
 // CreateSfcProviderNetworkIntent provides a mock function with given fields: sfc, pr, ca, caver, dig, sfcIntent, exists
-func (_m *SfcProviderNetworkIntentManager) CreateSfcProviderNetworkIntent(sfc model.SfcProviderNetworkIntent, pr string, ca string, caver string, dig string, sfcIntent string, exists bool) (model.SfcProviderNetworkIntent, error) {
-	ret := _m.Called(sfc, pr, ca, caver, dig, sfcIntent, exists)
+func (_m *SfcProviderNetworkIntentManager) CreateSfcProviderNetworkIntent(ctx context.Context, sfc model.SfcProviderNetworkIntent, pr string, ca string, caver string, dig string, sfcIntent string, exists bool) (model.SfcProviderNetworkIntent, error) {
+	ret := _m.Called(ctx, sfc, pr, ca, caver, dig, sfcIntent, exists)
 
 	var r0 model.SfcProviderNetworkIntent
 	if rf, ok := ret.Get(0).(func(model.SfcProviderNetworkIntent, string, string, string, string, string, bool) model.SfcProviderNetworkIntent); ok {
@@ -34,8 +35,8 @@ func (_m *SfcProviderNetworkIntentManager) CreateSfcProviderNetworkIntent(sfc mo
 }
 
 // DeleteSfcProviderNetworkIntent provides a mock function with given fields: name, pr, ca, caver, dig,  sfcIntent
-func (_m *SfcProviderNetworkIntentManager) DeleteSfcProviderNetworkIntent(name string, pr string, ca string, caver string, dig string, sfcIntent string) error {
-	ret := _m.Called(name, pr, ca, caver, dig, sfcIntent)
+func (_m *SfcProviderNetworkIntentManager) DeleteSfcProviderNetworkIntent(ctx context.Context, name string, pr string, ca string, caver string, dig string, sfcIntent string) error {
+	ret := _m.Called(ctx, name, pr, ca, caver, dig, sfcIntent)
 
 	var r0 error
 	if rf, ok := ret.Get(0).(func(string, string, string, string, string, string) error); ok {
@@ -48,8 +49,8 @@ func (_m *SfcProviderNetworkIntentManager) DeleteSfcProviderNetworkIntent(name s
 }
 
 // GetAllSfcProviderNetworkIntents provides a mock function with given fields: pr, ca, caver, dig,  sfcIntent
-func (_m *SfcProviderNetworkIntentManager) GetAllSfcProviderNetworkIntents(pr string, ca string, caver string, dig string, sfcIntent string) ([]model.SfcProviderNetworkIntent, error) {
-	ret := _m.Called(pr, ca, caver, dig, sfcIntent)
+func (_m *SfcProviderNetworkIntentManager) GetAllSfcProviderNetworkIntents(ctx context.Context, pr string, ca string, caver string, dig string, sfcIntent string) ([]model.SfcProviderNetworkIntent, error) {
+	ret := _m.Called(ctx, pr, ca, caver, dig, sfcIntent)
 
 	var r0 []model.SfcProviderNetworkIntent
 	if rf, ok := ret.Get(0).(func(string, string, string, string, string) []model.SfcProviderNetworkIntent); ok {
@@ -71,8 +72,8 @@ func (_m *SfcProviderNetworkIntentManager) GetAllSfcProviderNetworkIntents(pr st
 }
 
 // GetSfcProviderNetworkIntent provides a mock function with given fields: name, pr, ca, caver, dig,  sfcIntent
-func (_m *SfcProviderNetworkIntentManager) GetSfcProviderNetworkIntent(name string, pr string, ca string, caver string, dig string, sfcIntent string) (model.SfcProviderNetworkIntent, error) {
-	ret := _m.Called(name, pr, ca, caver, dig, sfcIntent)
+func (_m *SfcProviderNetworkIntentManager) GetSfcProviderNetworkIntent(ctx context.Context, name string, pr string, ca string, caver string, dig string, sfcIntent string) (model.SfcProviderNetworkIntent, error) {
+	ret := _m.Called(ctx, name, pr, ca, caver, dig, sfcIntent)
 
 	var r0 model.SfcProviderNetworkIntent
 	if rf, ok := ret.Get(0).(func(string, string, string, string, string, string) model.SfcProviderNetworkIntent); ok {
@@ -92,8 +93,8 @@ func (_m *SfcProviderNetworkIntentManager) GetSfcProviderNetworkIntent(name stri
 }
 
 // GetSfcProviderNetworkIntentsByEnd provides a mock function with given fields: pr, ca, caver, dig,  sfcIntent, chainEnd
-func (_m *SfcProviderNetworkIntentManager) GetSfcProviderNetworkIntentsByEnd(pr string, ca string, caver string, dig string, sfcIntent string, chainEnd string) ([]model.SfcProviderNetworkIntent, error) {
-	ret := _m.Called(pr, ca, caver, dig, sfcIntent, chainEnd)
+func (_m *SfcProviderNetworkIntentManager) GetSfcProviderNetworkIntentsByEnd(ctx context.Context, pr string, ca string, caver string, dig string, sfcIntent string, chainEnd string) ([]model.SfcProviderNetworkIntent, error) {
+	ret := _m.Called(ctx, pr, ca, caver, dig, sfcIntent, chainEnd)
 
 	var r0 []model.SfcProviderNetworkIntent
 	if rf, ok := ret.Get(0).(func(string, string, string, string, string, string) []model.SfcProviderNetworkIntent); ok {

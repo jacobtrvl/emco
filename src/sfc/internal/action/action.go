@@ -70,11 +70,11 @@ func chainClusters(apps map[string]struct{}, ac catypes.CompositeApp) map[string
 //   returns the list of link intents
 //   returns the network chain string defined by the set of links
 //   returns the list of apps that are used in the chain (as a map - since the same app may be present in >1 link)
-func handleSfcLinkIntents(pr, ca, caver, dig, sfcIntentName string) ([]model.SfcLinkIntent, string, map[string]struct{}, error) {
+func handleSfcLinkIntents(ctx context.Context, pr, ca, caver, dig, sfcIntentName string) ([]model.SfcLinkIntent, string, map[string]struct{}, error) {
 	apps := make(map[string]struct{}, 0) // returned as the list of apps in the chain
 
 	// Lookup all SFC Link Intents
-	sfcLinkIntents, err := sfc.NewSfcLinkIntentClient().GetAllSfcLinkIntents(pr, ca, caver, dig, sfcIntentName)
+	sfcLinkIntents, err := sfc.NewSfcLinkIntentClient().GetAllSfcLinkIntents(ctx, pr, ca, caver, dig, sfcIntentName)
 	if err != nil {
 		return []model.SfcLinkIntent{}, "", apps, pkgerrors.Wrapf(err, "Error getting SFC Link intents for SFC Intent: %v", sfcIntentName)
 	}
@@ -153,19 +153,19 @@ func handleSfcLinkIntents(pr, ca, caver, dig, sfcIntentName string) ([]model.Sfc
 }
 
 // Action applies the supplied intent against the given AppContext ID
-func UpdateAppContext(intentName, appContextId string) error {
+func UpdateAppContext(ctx context.Context, intentName, appContextId string) error {
 
 	var ac appcontext.AppContext
-	_, err := ac.LoadAppContext(context.Background(), appContextId)
+	_, err := ac.LoadAppContext(ctx, appContextId)
 	if err != nil {
 		return pkgerrors.Wrapf(err, "Error loading AppContext with Id: %v", appContextId)
 	}
-	cahandle, err := ac.GetCompositeAppHandle(context.Background())
+	cahandle, err := ac.GetCompositeAppHandle(ctx)
 	if err != nil {
 		return err
 	}
 
-	appContext, err := cacontext.ReadAppContext(context.Background(), appContextId)
+	appContext, err := cacontext.ReadAppContext(ctx, appContextId)
 	if err != nil {
 		return pkgerrors.Wrapf(err, "Error reading AppContext with Id: %v", appContextId)
 	}
@@ -176,7 +176,7 @@ func UpdateAppContext(intentName, appContextId string) error {
 	dig := appContext.CompMetadata.DeploymentIntentGroup
 
 	// Look up all SFC Intents
-	sfcIntents, err := sfc.NewSfcIntentClient().GetAllSfcIntents(pr, ca, caver, dig)
+	sfcIntents, err := sfc.NewSfcIntentClient().GetAllSfcIntents(ctx, pr, ca, caver, dig)
 	if err != nil {
 		return pkgerrors.Wrapf(err, "Error getting SFC Intents for Deployment Intent Group: %v", dig)
 	}
@@ -188,13 +188,13 @@ func UpdateAppContext(intentName, appContextId string) error {
 	// For each SFC Intent prepare a NetworkChaining resource and add to the AppContext
 	for i, sfcInt := range sfcIntents {
 		// Lookup all SFC Client Selector Intents
-		sfcClientSelectorIntents, err := sfc.NewSfcClientSelectorIntentClient().GetAllSfcClientSelectorIntents(pr, ca, caver, dig, sfcInt.Metadata.Name)
+		sfcClientSelectorIntents, err := sfc.NewSfcClientSelectorIntentClient().GetAllSfcClientSelectorIntents(ctx, pr, ca, caver, dig, sfcInt.Metadata.Name)
 		if err != nil {
 			return pkgerrors.Wrapf(err, "Error getting SFC Client Selector intents for SFC Intent: %v", sfcInt.Metadata.Name)
 		}
 
 		// Lookup all SFC Provider Network Intents
-		sfcProviderNetworkIntents, err := sfc.NewSfcProviderNetworkIntentClient().GetAllSfcProviderNetworkIntents(pr, ca, caver, dig, sfcInt.Metadata.Name)
+		sfcProviderNetworkIntents, err := sfc.NewSfcProviderNetworkIntentClient().GetAllSfcProviderNetworkIntents(ctx, pr, ca, caver, dig, sfcInt.Metadata.Name)
 		if err != nil {
 			return pkgerrors.Wrapf(err, "Error getting SFC Provider Network intents for SFC Intent: %v", sfcInt.Metadata.Name)
 		}
@@ -256,7 +256,7 @@ func UpdateAppContext(intentName, appContextId string) error {
 			return pkgerrors.Errorf("provider network or client selector intents were not provided for right end of SFC: %v", sfcInt.Metadata.Name)
 		}
 
-		sfcLinkIntents, networkChain, chainApps, err := handleSfcLinkIntents(pr, ca, caver, dig, sfcInt.Metadata.Name)
+		sfcLinkIntents, networkChain, chainApps, err := handleSfcLinkIntents(ctx, pr, ca, caver, dig, sfcInt.Metadata.Name)
 		if err != nil {
 			return err
 		}
@@ -296,13 +296,13 @@ func UpdateAppContext(intentName, appContextId string) error {
 		// Add the network intents chaining app to the AppContext
 		var apphandle interface{}
 		if i == 0 {
-			apphandle, err = ac.AddApp(context.Background(), cahandle, model.ChainingApp)
+			apphandle, err = ac.AddApp(ctx, cahandle, model.ChainingApp)
 			if err != nil {
 				return pkgerrors.Wrapf(err, "Error adding ChainingApp to AppContext: %v", sfcInt.Metadata.Name)
 			}
 
 			// need to update the app order instruction
-			apporder, err := ac.GetAppInstruction(context.Background(), appcontext.OrderInstruction)
+			apporder, err := ac.GetAppInstruction(ctx, appcontext.OrderInstruction)
 			if err != nil {
 				return pkgerrors.Wrapf(err, "Error getting order instruction while adding ChainingApp to AppContext: %v", sfcInt.Metadata.Name)
 			}
@@ -311,12 +311,12 @@ func UpdateAppContext(intentName, appContextId string) error {
 			aov["apporder"] = append(aov["apporder"], model.ChainingApp)
 			jappord, _ := json.Marshal(aov)
 
-			_, err = ac.AddInstruction(context.Background(), cahandle, appcontext.AppLevel, appcontext.OrderInstruction, string(jappord))
+			_, err = ac.AddInstruction(ctx, cahandle, appcontext.AppLevel, appcontext.OrderInstruction, string(jappord))
 			if err != nil {
 				return pkgerrors.Wrapf(err, "Error adding ChainingApp to order instruction: %v", sfcInt.Metadata.Name)
 			}
 		} else {
-			apphandle, err = ac.GetAppHandle(context.Background(), model.ChainingApp)
+			apphandle, err = ac.GetAppHandle(ctx, model.ChainingApp)
 			if err != nil {
 				return pkgerrors.Wrapf(err, "Error getting ChainingApp handle from AppContext: %v", sfcInt.Metadata.Name)
 			}
@@ -324,20 +324,20 @@ func UpdateAppContext(intentName, appContextId string) error {
 
 		// Add each cluster to the chaining app and the chaining CR resource to each cluster
 		for cluster, _ := range clusters {
-			clusterhandle, err := ac.AddCluster(context.Background(), apphandle, cluster)
+			clusterhandle, err := ac.AddCluster(ctx, apphandle, cluster)
 			if err != nil {
 				return pkgerrors.Wrapf(err, "Error adding cluster to ChainingApp: %v", cluster)
 			}
 
 			resName := sfcInt.Metadata.Name + appcontext.Separator + model.ChainingKind
-			_, err = ac.AddResource(context.Background(), clusterhandle, resName, string(chainYaml))
+			_, err = ac.AddResource(ctx, clusterhandle, resName, string(chainYaml))
 			if err != nil {
 				return pkgerrors.Wrapf(err, "Error adding Network Chain resource: %v", sfcInt.Metadata.Name)
 			}
 
 			// add (first time) or update the resource order instruction
 			aov := make(map[string][]string)
-			resorder, err := ac.GetResourceInstruction(context.Background(), model.ChainingApp, cluster, appcontext.OrderInstruction)
+			resorder, err := ac.GetResourceInstruction(ctx, model.ChainingApp, cluster, appcontext.OrderInstruction)
 			if err != nil {
 				// instruction not found - create it
 				aov["resorder"] = []string{resName}
@@ -347,7 +347,7 @@ func UpdateAppContext(intentName, appContextId string) error {
 			}
 			jresord, _ := json.Marshal(aov)
 
-			_, err = ac.AddInstruction(context.Background(), clusterhandle, appcontext.ResourceLevel, appcontext.OrderInstruction, string(jresord))
+			_, err = ac.AddInstruction(ctx, clusterhandle, appcontext.ResourceLevel, appcontext.OrderInstruction, string(jresord))
 			if err != nil {
 				return pkgerrors.Wrapf(err, "Error adding Network Chain to resource order instruction: %v", sfcInt.Metadata.Name)
 			}
@@ -356,7 +356,7 @@ func UpdateAppContext(intentName, appContextId string) error {
 		for c, _ := range clusters {
 			for _, link := range sfcLinkIntents {
 
-				rh, err := ac.GetResourceHandle(context.Background(), link.Spec.AppName, c,
+				rh, err := ac.GetResourceHandle(ctx, link.Spec.AppName, c,
 					strings.Join([]string{link.Spec.WorkloadResource,
 						link.Spec.ResourceType}, "+"))
 				if err != nil {
@@ -376,7 +376,7 @@ func UpdateAppContext(intentName, appContextId string) error {
 							link.Spec.ResourceType}, "+"),
 						link.Metadata.Name, c)
 				}
-				r, err := ac.GetValue(context.Background(), rh)
+				r, err := ac.GetValue(ctx, rh)
 				if err != nil {
 					log.Error("Error retrieving resource from App Context", log.Fields{
 						"error":           err,
@@ -423,7 +423,7 @@ func UpdateAppContext(intentName, appContextId string) error {
 				}
 
 				// Update resource in AppContext
-				err = ac.UpdateResourceValue(context.Background(), rh, string(y))
+				err = ac.UpdateResourceValue(ctx, rh, string(y))
 				if err != nil {
 					log.Error("Network updating app context resource handle", log.Fields{
 						"error":           err,

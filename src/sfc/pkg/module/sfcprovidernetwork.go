@@ -12,7 +12,7 @@ import (
 )
 
 // CreateSfcProviderNetworkIntent - create a new SfcProviderNetworkIntent
-func (v *SfcProviderNetworkIntentClient) CreateSfcProviderNetworkIntent(intent model.SfcProviderNetworkIntent, pr, ca, caver, dig, sfcIntent string, exists bool) (model.SfcProviderNetworkIntent, error) {
+func (v *SfcProviderNetworkIntentClient) CreateSfcProviderNetworkIntent(ctx context.Context, intent model.SfcProviderNetworkIntent, pr, ca, caver, dig, sfcIntent string, exists bool) (model.SfcProviderNetworkIntent, error) {
 	//Construct key and tag to select the entry
 	key := model.SfcProviderNetworkIntentKey{
 		Project:                  pr,
@@ -24,12 +24,12 @@ func (v *SfcProviderNetworkIntentClient) CreateSfcProviderNetworkIntent(intent m
 	}
 
 	//Check if this SFC Provider Network Intent already exists
-	_, err := v.GetSfcProviderNetworkIntent(intent.Metadata.Name, pr, ca, caver, dig, sfcIntent)
+	_, err := v.GetSfcProviderNetworkIntent(ctx, intent.Metadata.Name, pr, ca, caver, dig, sfcIntent)
 	if err == nil && !exists {
 		return model.SfcProviderNetworkIntent{}, pkgerrors.New("SFC Provider Network Intent already exists")
 	}
 
-	err = db.DBconn.Insert(context.Background(), v.db.storeName, key, nil, v.db.tagMeta, intent)
+	err = db.DBconn.Insert(ctx, v.db.storeName, key, nil, v.db.tagMeta, intent)
 	if err != nil {
 		return model.SfcProviderNetworkIntent{}, pkgerrors.Wrap(err, "Creating DB Entry")
 	}
@@ -38,7 +38,7 @@ func (v *SfcProviderNetworkIntentClient) CreateSfcProviderNetworkIntent(intent m
 }
 
 // GetSfcProviderNetworkIntent returns the SfcProviderNetworkIntent for corresponding name
-func (v *SfcProviderNetworkIntentClient) GetSfcProviderNetworkIntent(name, pr, ca, caver, dig, sfcIntent string) (model.SfcProviderNetworkIntent, error) {
+func (v *SfcProviderNetworkIntentClient) GetSfcProviderNetworkIntent(ctx context.Context, name, pr, ca, caver, dig, sfcIntent string) (model.SfcProviderNetworkIntent, error) {
 	//Construct key and tag to select the entry
 	key := model.SfcProviderNetworkIntentKey{
 		Project:                  pr,
@@ -49,7 +49,7 @@ func (v *SfcProviderNetworkIntentClient) GetSfcProviderNetworkIntent(name, pr, c
 		SfcProviderNetworkIntent: name,
 	}
 
-	value, err := db.DBconn.Find(context.Background(), v.db.storeName, key, v.db.tagMeta)
+	value, err := db.DBconn.Find(ctx, v.db.storeName, key, v.db.tagMeta)
 	if err != nil {
 		return model.SfcProviderNetworkIntent{}, err
 	} else if len(value) == 0 {
@@ -70,7 +70,7 @@ func (v *SfcProviderNetworkIntentClient) GetSfcProviderNetworkIntent(name, pr, c
 }
 
 // GetAllSfcProviderNetworkIntent returns all of the SFC Intents for for the given Deployment Intent Group
-func (v *SfcProviderNetworkIntentClient) GetAllSfcProviderNetworkIntents(pr, ca, caver, dig, sfcIntent string) ([]model.SfcProviderNetworkIntent, error) {
+func (v *SfcProviderNetworkIntentClient) GetAllSfcProviderNetworkIntents(ctx context.Context, pr, ca, caver, dig, sfcIntent string) ([]model.SfcProviderNetworkIntent, error) {
 	//Construct key and tag to select the entry
 	key := model.SfcProviderNetworkIntentKey{
 		Project:                  pr,
@@ -84,12 +84,12 @@ func (v *SfcProviderNetworkIntentClient) GetAllSfcProviderNetworkIntents(pr, ca,
 	resp := make([]model.SfcProviderNetworkIntent, 0)
 
 	// verify SFC Intent exists
-	_, err := NewSfcIntentClient().GetSfcIntent(sfcIntent, pr, ca, caver, dig)
+	_, err := NewSfcIntentClient().GetSfcIntent(ctx, sfcIntent, pr, ca, caver, dig)
 	if err != nil {
 		return resp, err
 	}
 
-	values, err := db.DBconn.Find(context.Background(), v.db.storeName, key, v.db.tagMeta)
+	values, err := db.DBconn.Find(ctx, v.db.storeName, key, v.db.tagMeta)
 	if err != nil {
 		return resp, err
 	}
@@ -107,7 +107,7 @@ func (v *SfcProviderNetworkIntentClient) GetAllSfcProviderNetworkIntents(pr, ca,
 }
 
 // GetSfcProviderNetworkIntentByEnd returns all of the SFC Provider Network Intents for for the given Deployment Intent Group
-func (v *SfcProviderNetworkIntentClient) GetSfcProviderNetworkIntentsByEnd(pr, ca, caver, dig, sfcIntent, chainEnd string) ([]model.SfcProviderNetworkIntent, error) {
+func (v *SfcProviderNetworkIntentClient) GetSfcProviderNetworkIntentsByEnd(ctx context.Context, pr, ca, caver, dig, sfcIntent, chainEnd string) ([]model.SfcProviderNetworkIntent, error) {
 	//Construct key and tag to select the entry
 	key := model.SfcProviderNetworkIntentByEndKey{
 		Project:             pr,
@@ -121,12 +121,12 @@ func (v *SfcProviderNetworkIntentClient) GetSfcProviderNetworkIntentsByEnd(pr, c
 	resp := make([]model.SfcProviderNetworkIntent, 0)
 
 	// verify SFC Intent exists
-	_, err := NewSfcIntentClient().GetSfcIntent(sfcIntent, pr, ca, caver, dig)
+	_, err := NewSfcIntentClient().GetSfcIntent(ctx, sfcIntent, pr, ca, caver, dig)
 	if err != nil {
 		return resp, err
 	}
 
-	values, err := db.DBconn.Find(context.Background(), v.db.storeName, key, v.db.tagMeta)
+	values, err := db.DBconn.Find(ctx, v.db.storeName, key, v.db.tagMeta)
 	if err != nil {
 		return resp, err
 	}
@@ -144,7 +144,7 @@ func (v *SfcProviderNetworkIntentClient) GetSfcProviderNetworkIntentsByEnd(pr, c
 }
 
 // DeleteSfcProviderNetworkIntent deletes the SfcProviderNetworkIntent from the database
-func (v *SfcProviderNetworkIntentClient) DeleteSfcProviderNetworkIntent(name, pr, ca, caver, dig, sfcIntent string) error {
+func (v *SfcProviderNetworkIntentClient) DeleteSfcProviderNetworkIntent(ctx context.Context, name, pr, ca, caver, dig, sfcIntent string) error {
 
 	//Construct key and tag to select the entry
 	key := model.SfcProviderNetworkIntentKey{
@@ -156,6 +156,6 @@ func (v *SfcProviderNetworkIntentClient) DeleteSfcProviderNetworkIntent(name, pr
 		SfcProviderNetworkIntent: name,
 	}
 
-	err := db.DBconn.Remove(context.Background(), v.db.storeName, key)
+	err := db.DBconn.Remove(ctx, v.db.storeName, key)
 	return err
 }

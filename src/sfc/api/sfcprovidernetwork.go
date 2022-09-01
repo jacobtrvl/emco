@@ -19,6 +19,7 @@ var sfcProviderNetworkJSONFile string = "json-schemas/sfc-provider-network.json"
 
 // Create handles creation of the SFC Provider Network entry in the database
 func (h sfcProviderNetworkIntentHandler) createProviderNetworkHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	var sfcProviderNetwork model.SfcProviderNetworkIntent
 	vars := mux.Vars(r)
 	project := vars["project"]
@@ -48,7 +49,7 @@ func (h sfcProviderNetworkIntentHandler) createProviderNetworkHandler(w http.Res
 		return
 	}
 
-	ret, err := h.client.CreateSfcProviderNetworkIntent(sfcProviderNetwork, project, compositeApp, compositeAppVersion, deployIntentGroup, sfcIntent, false)
+	ret, err := h.client.CreateSfcProviderNetworkIntent(ctx, sfcProviderNetwork, project, compositeApp, compositeAppVersion, deployIntentGroup, sfcIntent, false)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, sfcProviderNetwork, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -67,6 +68,7 @@ func (h sfcProviderNetworkIntentHandler) createProviderNetworkHandler(w http.Res
 
 // Put handles update of the SFC Provider Network entry in the database
 func (h sfcProviderNetworkIntentHandler) putProviderNetworkHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	var sfcProviderNetwork model.SfcProviderNetworkIntent
 	vars := mux.Vars(r)
 	name := vars["sfcProviderNetwork"]
@@ -104,7 +106,7 @@ func (h sfcProviderNetworkIntentHandler) putProviderNetworkHandler(w http.Respon
 		return
 	}
 
-	ret, err := h.client.CreateSfcProviderNetworkIntent(sfcProviderNetwork, project, compositeApp, compositeAppVersion, deployIntentGroup, sfcIntent, true)
+	ret, err := h.client.CreateSfcProviderNetworkIntent(ctx, sfcProviderNetwork, project, compositeApp, compositeAppVersion, deployIntentGroup, sfcIntent, true)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, sfcProviderNetwork, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -124,6 +126,7 @@ func (h sfcProviderNetworkIntentHandler) putProviderNetworkHandler(w http.Respon
 // Get handles GET operations on a particular SFC Provider Network Name
 // Returns a SFC Provider Network
 func (h sfcProviderNetworkIntentHandler) getProviderNetworkHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	name := vars["sfcProviderNetwork"]
 	project := vars["project"]
@@ -135,9 +138,9 @@ func (h sfcProviderNetworkIntentHandler) getProviderNetworkHandler(w http.Respon
 	var err error
 
 	if len(name) == 0 {
-		ret, err = h.client.GetAllSfcProviderNetworkIntents(project, compositeApp, compositeAppVersion, deployIntentGroup, sfcIntent)
+		ret, err = h.client.GetAllSfcProviderNetworkIntents(ctx, project, compositeApp, compositeAppVersion, deployIntentGroup, sfcIntent)
 	} else {
-		ret, err = h.client.GetSfcProviderNetworkIntent(name, project, compositeApp, compositeAppVersion, deployIntentGroup, sfcIntent)
+		ret, err = h.client.GetSfcProviderNetworkIntent(ctx, name, project, compositeApp, compositeAppVersion, deployIntentGroup, sfcIntent)
 	}
 
 	if err != nil {
@@ -158,6 +161,7 @@ func (h sfcProviderNetworkIntentHandler) getProviderNetworkHandler(w http.Respon
 
 // Delete handles DELETE operations on a particular SfcProviderNetwork
 func (h sfcProviderNetworkIntentHandler) deleteProviderNetworkHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	name := vars["sfcProviderNetwork"]
 	project := vars["project"]
@@ -166,7 +170,7 @@ func (h sfcProviderNetworkIntentHandler) deleteProviderNetworkHandler(w http.Res
 	deployIntentGroup := vars["deploymentIntentGroup"]
 	sfcIntent := vars["sfcIntent"]
 
-	err := h.client.DeleteSfcProviderNetworkIntent(name, project, compositeApp, compositeAppVersion, deployIntentGroup, sfcIntent)
+	err := h.client.DeleteSfcProviderNetworkIntent(ctx, name, project, compositeApp, compositeAppVersion, deployIntentGroup, sfcIntent)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)

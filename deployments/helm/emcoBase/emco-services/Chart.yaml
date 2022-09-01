@@ -44,7 +44,7 @@ dependencies:
     version: "1.0.1"
     repository: 'file://../gac'
   - name: sfc
-    version: "1.0.0"
+    version: "1.0.1"
     repository: 'file://../sfc'
   - name: sfcclient
     version: "1.0.0"

@@ -3,6 +3,7 @@
 package mocks
 
 import (
+	"context"
 	model "gitlab.com/project-emco/core/emco-base/src/sfc/pkg/model"
 	mock "github.com/stretchr/testify/mock"
 )
@@ -13,8 +14,8 @@ type SfcIntentManager struct {
 }
 
 // CreateSfcIntent provides a mock function with given fields: sfc, pr, ca, caver, dig, exists
-func (_m *SfcIntentManager) CreateSfcIntent(sfc model.SfcIntent, pr string, ca string, caver string, dig string, exists bool) (model.SfcIntent, error) {
-	ret := _m.Called(sfc, pr, ca, caver, dig, exists)
+func (_m *SfcIntentManager) CreateSfcIntent(ctx context.Context, sfc model.SfcIntent, pr string, ca string, caver string, dig string, exists bool) (model.SfcIntent, error) {
+	ret := _m.Called(ctx, sfc, pr, ca, caver, dig, exists)
 
 	var r0 model.SfcIntent
 	if rf, ok := ret.Get(0).(func(model.SfcIntent, string, string, string, string, bool) model.SfcIntent); ok {
@@ -34,8 +35,8 @@ func (_m *SfcIntentManager) CreateSfcIntent(sfc model.SfcIntent, pr string, ca s
 }
 
 // DeleteSfcIntent provides a mock function with given fields: name, pr, ca, caver, dig
-func (_m *SfcIntentManager) DeleteSfcIntent(name string, pr string, ca string, caver string, dig string) error {
-	ret := _m.Called(name, pr, ca, caver, dig)
+func (_m *SfcIntentManager) DeleteSfcIntent(ctx context.Context, name string, pr string, ca string, caver string, dig string) error {
+	ret := _m.Called(ctx, name, pr, ca, caver, dig)
 
 	var r0 error
 	if rf, ok := ret.Get(0).(func(string, string, string, string, string) error); ok {
@@ -48,8 +49,8 @@ func (_m *SfcIntentManager) DeleteSfcIntent(name string, pr string, ca string, c
 }
 
 // GetAllSfcIntents provides a mock function with given fields: pr, ca, caver, dig
-func (_m *SfcIntentManager) GetAllSfcIntents(pr string, ca string, caver string, dig string) ([]model.SfcIntent, error) {
-	ret := _m.Called(pr, ca, caver, dig)
+func (_m *SfcIntentManager) GetAllSfcIntents(ctx context.Context, pr string, ca string, caver string, dig string) ([]model.SfcIntent, error) {
+	ret := _m.Called(ctx, pr, ca, caver, dig)
 
 	var r0 []model.SfcIntent
 	if rf, ok := ret.Get(0).(func(string, string, string, string) []model.SfcIntent); ok {
@@ -71,8 +72,8 @@ func (_m *SfcIntentManager) GetAllSfcIntents(pr string, ca string, caver string,
 }
 
 // GetSfcIntent provides a mock function with given fields: name, pr, ca, caver, dig
-func (_m *SfcIntentManager) GetSfcIntent(name string, pr string, ca string, caver string, dig string) (model.SfcIntent, error) {
-	ret := _m.Called(name, pr, ca, caver, dig)
+func (_m *SfcIntentManager) GetSfcIntent(ctx context.Context, name string, pr string, ca string, caver string, dig string) (model.SfcIntent, error) {
+	ret := _m.Called(ctx, name, pr, ca, caver, dig)
 
 	var r0 model.SfcIntent
 	if rf, ok := ret.Get(0).(func(string, string, string, string, string) model.SfcIntent); ok {

@@ -12,7 +12,7 @@ import (
 )
 
 // CreateSfcLinkIntent - create a new SfcLinkIntent
-func (v *SfcLinkIntentClient) CreateSfcLinkIntent(intent model.SfcLinkIntent, pr, ca, caver, dig, sfcIntent string, exists bool) (model.SfcLinkIntent, error) {
+func (v *SfcLinkIntentClient) CreateSfcLinkIntent(ctx context.Context, intent model.SfcLinkIntent, pr, ca, caver, dig, sfcIntent string, exists bool) (model.SfcLinkIntent, error) {
 	//Construct key and tag to select the entry
 	key := model.SfcLinkIntentKey{
 		Project:             pr,
@@ -24,12 +24,12 @@ func (v *SfcLinkIntentClient) CreateSfcLinkIntent(intent model.SfcLinkIntent, pr
 	}
 
 	//Check if this SFC Link Intent already exists
-	_, err := v.GetSfcLinkIntent(intent.Metadata.Name, pr, ca, caver, dig, sfcIntent)
+	_, err := v.GetSfcLinkIntent(ctx, intent.Metadata.Name, pr, ca, caver, dig, sfcIntent)
 	if err == nil && !exists {
 		return model.SfcLinkIntent{}, pkgerrors.New("SFC Link Intent already exists")
 	}
 
-	err = db.DBconn.Insert(context.Background(), v.db.storeName, key, nil, v.db.tagMeta, intent)
+	err = db.DBconn.Insert(ctx, v.db.storeName, key, nil, v.db.tagMeta, intent)
 	if err != nil {
 		return model.SfcLinkIntent{}, pkgerrors.Wrap(err, "Creating DB Entry")
 	}
@@ -38,7 +38,7 @@ func (v *SfcLinkIntentClient) CreateSfcLinkIntent(intent model.SfcLinkIntent, pr
 }
 
 // GetSfcLinkIntent returns the SfcLinkIntent for corresponding name
-func (v *SfcLinkIntentClient) GetSfcLinkIntent(name, pr, ca, caver, dig, sfcIntent string) (model.SfcLinkIntent, error) {
+func (v *SfcLinkIntentClient) GetSfcLinkIntent(ctx context.Context, name, pr, ca, caver, dig, sfcIntent string) (model.SfcLinkIntent, error) {
 	//Construct key and tag to select the entry
 	key := model.SfcLinkIntentKey{
 		Project:             pr,
@@ -49,7 +49,7 @@ func (v *SfcLinkIntentClient) GetSfcLinkIntent(name, pr, ca, caver, dig, sfcInte
 		SfcLinkIntent:       name,
 	}
 
-	value, err := db.DBconn.Find(context.Background(), v.db.storeName, key, v.db.tagMeta)
+	value, err := db.DBconn.Find(ctx, v.db.storeName, key, v.db.tagMeta)
 	if err != nil {
 		return model.SfcLinkIntent{}, err
 	} else if len(value) == 0 {
@@ -70,7 +70,7 @@ func (v *SfcLinkIntentClient) GetSfcLinkIntent(name, pr, ca, caver, dig, sfcInte
 }
 
 // GetAllSfcLinkIntent returns all of the SFC Intents for for the given Deployment Intent Group
-func (v *SfcLinkIntentClient) GetAllSfcLinkIntents(pr, ca, caver, dig, sfcIntent string) ([]model.SfcLinkIntent, error) {
+func (v *SfcLinkIntentClient) GetAllSfcLinkIntents(ctx context.Context, pr, ca, caver, dig, sfcIntent string) ([]model.SfcLinkIntent, error) {
 	//Construct key and tag to select the entry
 	key := model.SfcLinkIntentKey{
 		Project:             pr,
@@ -84,12 +84,12 @@ func (v *SfcLinkIntentClient) GetAllSfcLinkIntents(pr, ca, caver, dig, sfcIntent
 	resp := make([]model.SfcLinkIntent, 0)
 
 	// Verify the SFC intent exists
-	_, err := NewSfcIntentClient().GetSfcIntent(sfcIntent, pr, ca, caver, dig)
+	_, err := NewSfcIntentClient().GetSfcIntent(ctx, sfcIntent, pr, ca, caver, dig)
 	if err != nil {
 		return resp, err
 	}
 
-	values, err := db.DBconn.Find(context.Background(), v.db.storeName, key, v.db.tagMeta)
+	values, err := db.DBconn.Find(ctx, v.db.storeName, key, v.db.tagMeta)
 	if err != nil {
 		return resp, err
 	}
@@ -107,7 +107,7 @@ func (v *SfcLinkIntentClient) GetAllSfcLinkIntents(pr, ca, caver, dig, sfcIntent
 }
 
 // DeleteSfcLinkIntent deletes the SfcLinkIntent from the database
-func (v *SfcLinkIntentClient) DeleteSfcLinkIntent(name, pr, ca, caver, dig, sfcIntent string) error {
+func (v *SfcLinkIntentClient) DeleteSfcLinkIntent(ctx context.Context, name, pr, ca, caver, dig, sfcIntent string) error {
 
 	//Construct key and tag to select the entry
 	key := model.SfcLinkIntentKey{
@@ -119,6 +119,6 @@ func (v *SfcLinkIntentClient) DeleteSfcLinkIntent(name, pr, ca, caver, dig, sfcI
 		SfcLinkIntent:       name,
 	}
 
-	err := db.DBconn.Remove(context.Background(), v.db.storeName, key)
+	err := db.DBconn.Remove(ctx, v.db.storeName, key)
 	return err
 }

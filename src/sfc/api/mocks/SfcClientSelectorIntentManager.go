@@ -3,6 +3,7 @@
 package mocks
 
 import (
+	"context"
 	model "gitlab.com/project-emco/core/emco-base/src/sfc/pkg/model"
 	mock "github.com/stretchr/testify/mock"
 )
@@ -13,8 +14,8 @@ type SfcClientSelectorIntentManager struct {
 }
 
 // CreateSfcClientSelectorIntent provides a mock function with given fields: sfc, pr, ca, caver, dig, sfcIntent, exists
-func (_m *SfcClientSelectorIntentManager) CreateSfcClientSelectorIntent(sfc model.SfcClientSelectorIntent, pr string, ca string, caver string, dig string, sfcIntent string, exists bool) (model.SfcClientSelectorIntent, error) {
-	ret := _m.Called(sfc, pr, ca, caver, dig, sfcIntent, exists)
+func (_m *SfcClientSelectorIntentManager) CreateSfcClientSelectorIntent(ctx context.Context, sfc model.SfcClientSelectorIntent, pr string, ca string, caver string, dig string, sfcIntent string, exists bool) (model.SfcClientSelectorIntent, error) {
+	ret := _m.Called(ctx, sfc, pr, ca, caver, dig, sfcIntent, exists)
 
 	var r0 model.SfcClientSelectorIntent
 	if rf, ok := ret.Get(0).(func(model.SfcClientSelectorIntent, string, string, string, string, string, bool) model.SfcClientSelectorIntent); ok {
@@ -34,8 +35,8 @@ func (_m *SfcClientSelectorIntentManager) CreateSfcClientSelectorIntent(sfc mode
 }
 
 // DeleteSfcClientSelectorIntent provides a mock function with given fields: name, pr, ca, caver, dig, sfcIntent
-func (_m *SfcClientSelectorIntentManager) DeleteSfcClientSelectorIntent(name string, pr string, ca string, caver string, dig string, sfcIntent string) error {
-	ret := _m.Called(name, pr, ca, caver, dig, sfcIntent)
+func (_m *SfcClientSelectorIntentManager) DeleteSfcClientSelectorIntent(ctx context.Context, name string, pr string, ca string, caver string, dig string, sfcIntent string) error {
+	ret := _m.Called(ctx, name, pr, ca, caver, dig, sfcIntent)
 
 	var r0 error
 	if rf, ok := ret.Get(0).(func(string, string, string, string, string, string) error); ok {
@@ -48,8 +49,8 @@ func (_m *SfcClientSelectorIntentManager) DeleteSfcClientSelectorIntent(name str
 }
 
 // GetAllSfcClientSelectorIntents provides a mock function with given fields: pr, ca, caver, dig, sfcIntent
-func (_m *SfcClientSelectorIntentManager) GetAllSfcClientSelectorIntents(pr string, ca string, caver string, dig string, sfcIntent string) ([]model.SfcClientSelectorIntent, error) {
-	ret := _m.Called(pr, ca, caver, dig, sfcIntent)
+func (_m *SfcClientSelectorIntentManager) GetAllSfcClientSelectorIntents(ctx context.Context, pr string, ca string, caver string, dig string, sfcIntent string) ([]model.SfcClientSelectorIntent, error) {
+	ret := _m.Called(ctx, pr, ca, caver, dig, sfcIntent)
 
 	var r0 []model.SfcClientSelectorIntent
 	if rf, ok := ret.Get(0).(func(string, string, string, string, string) []model.SfcClientSelectorIntent); ok {
@@ -71,8 +72,8 @@ func (_m *SfcClientSelectorIntentManager) GetAllSfcClientSelectorIntents(pr stri
 }
 
 // GetSfcClientSelectorIntent provides a mock function with given fields: name, pr, ca, caver, dig, sfcIntent
-func (_m *SfcClientSelectorIntentManager) GetSfcClientSelectorIntent(name string, pr string, ca string, caver string, dig string, sfcIntent string) (model.SfcClientSelectorIntent, error) {
-	ret := _m.Called(name, pr, ca, caver, dig, sfcIntent)
+func (_m *SfcClientSelectorIntentManager) GetSfcClientSelectorIntent(ctx context.Context, name string, pr string, ca string, caver string, dig string, sfcIntent string) (model.SfcClientSelectorIntent, error) {
+	ret := _m.Called(ctx, name, pr, ca, caver, dig, sfcIntent)
 
 	var r0 model.SfcClientSelectorIntent
 	if rf, ok := ret.Get(0).(func(string, string, string, string, string, string) model.SfcClientSelectorIntent); ok {
@@ -92,8 +93,8 @@ func (_m *SfcClientSelectorIntentManager) GetSfcClientSelectorIntent(name string
 }
 
 // GetSfcClientSelectorIntentsByEnd provides a mock function with given fields: pr, ca, caver, dig, sfcIntent, chainEnd
-func (_m *SfcClientSelectorIntentManager) GetSfcClientSelectorIntentsByEnd(pr string, ca string, caver string, dig string, sfcIntent string, chainEnd string) ([]model.SfcClientSelectorIntent, error) {
-	ret := _m.Called(pr, ca, caver, dig, sfcIntent, chainEnd)
+func (_m *SfcClientSelectorIntentManager) GetSfcClientSelectorIntentsByEnd(ctx context.Context, pr string, ca string, caver string, dig string, sfcIntent string, chainEnd string) ([]model.SfcClientSelectorIntent, error) {
+	ret := _m.Called(ctx, pr, ca, caver, dig, sfcIntent, chainEnd)
 
 	var r0 []model.SfcClientSelectorIntent
 	if rf, ok := ret.Get(0).(func(string, string, string, string, string, string) []model.SfcClientSelectorIntent); ok {
