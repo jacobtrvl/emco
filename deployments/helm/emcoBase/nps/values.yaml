@@ -53,6 +53,14 @@ service:
   externalPort: 9038
   nodePort: 38
 
+serviceInternal:
+  type: NodePort
+  name: nps
+  portName: nps-service
+  internalPort: 9036
+  externalPort: 9036
+  nodePort: 36
+
 ingress:
   enabled: false
 

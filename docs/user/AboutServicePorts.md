@@ -31,6 +31,7 @@ Here is the list of all EMCO services, controllers and subcontrollers where port
     NCM_SERVICE_PORT=9081
     NCM_STATUS_PORT=9082
     NPS_CONTROL_PORT=9038
+    NPS_SERVICE_PORT=9036
     ORCH_SERVICE_PORT=9015
     ORCH_STATUS_PORT=9016
     OVN_CONTROL_PORT=9032
@@ -61,6 +62,7 @@ And here is the equivalent list, but for the default node ports used by each, wh
     NCM_SERVICE_PORT=30481
     NCM_STATUS_PORT=30482
     NPS_CONTROL_PORT=30438
+    NPS_SERVICE_PORT=30436
     ORCH_SERVICE_PORT=30415
     ORCH_STATUS_PORT=30416
     OVN_CONTROL_PORT=30432

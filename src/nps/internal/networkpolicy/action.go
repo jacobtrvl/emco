@@ -17,9 +17,9 @@ import (
 )
 
 // Action applies the supplied intent against the given AppContext ID
-func UpdateAppContext(intentName, appContextId string) error {
+func UpdateAppContext(ctx context.Context, intentName, appContextId string) error {
 	var ac appcontext.AppContext
-	_, err := ac.LoadAppContext(context.Background(), appContextId)
+	_, err := ac.LoadAppContext(ctx, appContextId)
 	if err != nil {
 		log.Error("Error loading AppContext", log.Fields{
 			"error": err,
@@ -27,7 +27,7 @@ func UpdateAppContext(intentName, appContextId string) error {
 		return pkgerrors.Wrapf(err, "Error loading AppContext with Id: %v", appContextId)
 	}
 
-	caMeta, err := ac.GetCompositeAppMeta(context.Background())
+	caMeta, err := ac.GetCompositeAppMeta(ctx)
 	if err != nil {
 		log.Error("Error getting metadata from AppContext", log.Fields{
 			"error": err,
@@ -41,7 +41,7 @@ func UpdateAppContext(intentName, appContextId string) error {
 	deployIntentGroup := caMeta.DeploymentIntentGroup
 
 	// Get all server inbound intents
-	iss, err := module.NewServerInboundIntentClient().GetServerInboundIntents(project, compositeapp, compositeappversion, deployIntentGroup, intentName)
+	iss, err := module.NewServerInboundIntentClient().GetServerInboundIntents(ctx, project, compositeapp, compositeappversion, deployIntentGroup, intentName)
 	if err != nil {
 		log.Error("Error getting server inbound intents", log.Fields{
 			"error": err,
@@ -85,7 +85,7 @@ func UpdateAppContext(intentName, appContextId string) error {
 		port["port"] = is.Spec.Port
 		inports = append(inports, port)
 
-		ics, err := module.NewClientsInboundIntentClient().GetClientsInboundIntents(project,
+		ics, err := module.NewClientsInboundIntentClient().GetClientsInboundIntents(ctx, project,
 			compositeapp,
 			compositeappversion,
 			deployIntentGroup,
@@ -151,7 +151,7 @@ func UpdateAppContext(intentName, appContextId string) error {
 
 		// create resource using is and ics
 		// Get all clusters for the current App from the AppContext
-		clusters, err := ac.GetClusterNames(context.Background(), is.Spec.AppName)
+		clusters, err := ac.GetClusterNames(ctx, is.Spec.AppName)
 		if err != nil {
 			log.Error("Error retrieving clusters from App Context", log.Fields{
 				"error":    err,
@@ -172,13 +172,13 @@ func UpdateAppContext(intentName, appContextId string) error {
 				})
 				return pkgerrors.New("Not a valid cluster name")
 			}
-			cl, err := client.GetClusterLabel(context.Background(), parts[0], parts[1], "networkpolicy-supported")
+			cl, err := client.GetClusterLabel(ctx, parts[0], parts[1], "networkpolicy-supported")
 			if err != nil || cl.LabelName != "networkpolicy-supported" {
 				continue
 			}
 
 			//put the resource in all the clusters
-			ch, err := ac.GetClusterHandle(context.Background(), is.Spec.AppName, c)
+			ch, err := ac.GetClusterHandle(ctx, is.Spec.AppName, c)
 			if err != nil {
 				log.Error("Error getting clusters handle App Context", log.Fields{
 					"error":        err,
@@ -190,7 +190,7 @@ func UpdateAppContext(intentName, appContextId string) error {
 			}
 			// Add resource to the cluster
 			resname := intentName + "-" + is.Metadata.Name
-			_, err = ac.AddResource(context.Background(), ch, resname, string(r))
+			_, err = ac.AddResource(ctx, ch, resname, string(r))
 			if err != nil {
 				log.Error("Error adding Resource to AppContext", log.Fields{
 					"error":        err,
@@ -199,7 +199,7 @@ func UpdateAppContext(intentName, appContextId string) error {
 				})
 				return pkgerrors.Wrap(err, "Error adding Resource to AppContext")
 			}
-			resorder, err := ac.GetResourceInstruction(context.Background(), is.Spec.AppName, c, "order")
+			resorder, err := ac.GetResourceInstruction(ctx, is.Spec.AppName, c, "order")
 			if err != nil {
 				log.Error("Error getting Resource order", log.Fields{
 					"error":        err,
@@ -213,7 +213,7 @@ func UpdateAppContext(intentName, appContextId string) error {
 			aov["resorder"] = append(aov["resorder"], resname)
 			jresord, _ := json.Marshal(aov)
 
-			_, err = ac.AddInstruction(context.Background(), ch, "resource", "order", string(jresord))
+			_, err = ac.AddInstruction(ctx, ch, "resource", "order", string(jresord))
 			if err != nil {
 				log.Error("Error updating Resource order", log.Fields{
 					"error":        err,
