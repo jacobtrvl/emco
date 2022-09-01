@@ -44,6 +44,8 @@ Here is the list of all EMCO services, controllers and subcontrollers where port
     SFC_SERVICE_PORT=9055
     SFCC_CONTROL_PORT=9058
     SFCC_SERVICE_PORT=9057
+    SWC_CONTROL_PORT=9088
+    SWC_SERVICE_PORT=9087
 
 And here is the equivalent list, but for the default node ports used by each, when EMCO is deployed using official installation guides:
 
@@ -76,7 +78,8 @@ And here is the equivalent list, but for the default node ports used by each, wh
     SFC_SERVICE_PORT=30455
     SFCC_CONTROL_PORT=30458
     SFCC_SERVICE_PORT=30457
-
+    SWC_CONTROL_PORT=30488
+    SWC_SERVICE_PORT=30487
 
 The lists above have no intention of claiming that each of those default ports numbers can be overriden by configuration. They are simply communicating every single port that will be used by EMCO, if nothing is modified/configured in that regard.
 

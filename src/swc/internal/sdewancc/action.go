@@ -39,9 +39,9 @@ type serverData struct {
 }
 
 // Action applies the supplied intent against the given AppContext ID
-func UpdateAppContext(intentName, appContextId string) error {
+func UpdateAppContext(ctx context.Context, intentName, appContextId string) error {
 	var ac appcontext.AppContext
-	_, err := ac.LoadAppContext(context.Background(), appContextId)
+	_, err := ac.LoadAppContext(ctx, appContextId)
 	if err != nil {
 		log.Error("Error loading AppContext", log.Fields{
 			"error": err,
@@ -49,7 +49,7 @@ func UpdateAppContext(intentName, appContextId string) error {
 		return pkgerrors.Wrapf(err, "Error loading AppContext with Id: %v", appContextId)
 	}
 
-	caMeta, err := ac.GetCompositeAppMeta(context.Background())
+	caMeta, err := ac.GetCompositeAppMeta(ctx)
 	if err != nil {
 		log.Error("Error getting metadata from AppContext", log.Fields{
 			"error": err,
@@ -64,7 +64,7 @@ func UpdateAppContext(intentName, appContextId string) error {
 	namespace := caMeta.Namespace
 
 	// Get all server inbound intents
-	iss, err := module.NewServerInboundIntentClient().GetServerInboundIntents(project, compositeapp, compositeappversion, deployIntentGroup, intentName)
+	iss, err := module.NewServerInboundIntentClient().GetServerInboundIntents(ctx, project, compositeapp, compositeappversion, deployIntentGroup, intentName)
 	if err != nil {
 		log.Error("Error getting server inbound intents", log.Fields{
 			"error": err,
@@ -84,7 +84,7 @@ func UpdateAppContext(intentName, appContextId string) error {
 			})
 			return pkgerrors.Wrapf(err, "Error SDEWAN not enabled for this server")
 		}
-		clusters, err := ac.GetClusterNames(context.Background(), is.Spec.AppName)
+		clusters, err := ac.GetClusterNames(ctx, is.Spec.AppName)
 		if err != nil {
 			log.Error("Error retrieving clusters from App Context", log.Fields{
 				"error":    err,
@@ -99,7 +99,7 @@ func UpdateAppContext(intentName, appContextId string) error {
 		lc := len(clusters)
 		servers[index].ClusterData = make([]clusterData, lc)
 		for ci, c := range clusters {
-			obj, err := getClusterKvPair(c, "SdewanCnfPort")
+			obj, err := getClusterKvPair(ctx, c, "SdewanCnfPort")
 			if err != nil {
 				log.Error("Error getting sdewan cnf port", log.Fields{
 					"error": err,
@@ -108,7 +108,7 @@ func UpdateAppContext(intentName, appContextId string) error {
 					"Error getting sdewan cnf port")
 			}
 			servers[index].ClusterData[ci].CNFPort = obj
-			obj, err = getClusterKvPair(c, "SdewanServicePort")
+			obj, err = getClusterKvPair(ctx, c, "SdewanServicePort")
 			if err != nil {
 				log.Error("Error getting sdewan service port", log.Fields{
 					"error": err,
@@ -117,7 +117,7 @@ func UpdateAppContext(intentName, appContextId string) error {
 					"Error getting sdewan service port")
 			}
 			servers[index].ClusterData[ci].ServicePort = obj
-			obj, err = getClusterKvPair(c, "SdewanServiceAllowedCidr")
+			obj, err = getClusterKvPair(ctx, c, "SdewanServiceAllowedCidr")
 			if err != nil {
 				log.Error("Error getting sdewan service allowed CIDR", log.Fields{
 					"error": err,
@@ -129,7 +129,7 @@ func UpdateAppContext(intentName, appContextId string) error {
 			servers[index].ClusterData[ci].ClusterName = c
 			servers[index].ClusterData[ci].Reslist = make([]map[string][]byte, 0)
 		}
-		ics, err := module.NewClientsInboundIntentClient().GetClientsInboundIntents(project,
+		ics, err := module.NewClientsInboundIntentClient().GetClientsInboundIntents(ctx, project,
 			compositeapp,
 			compositeappversion,
 			deployIntentGroup,
@@ -149,7 +149,7 @@ func UpdateAppContext(intentName, appContextId string) error {
 		for i, ic := range ics {
 			servers[index].Clients[i].ClientName = ic.Spec.AppName
 			servers[index].Clients[i].ClientServiceName = ic.Spec.ServiceName
-			clusters, err = ac.GetClusterNames(context.Background(), ic.Spec.AppName)
+			clusters, err = ac.GetClusterNames(ctx, ic.Spec.AppName)
 			if err != nil {
 				log.Error("Error retrieving clusters from App Context", log.Fields{
 					"error":    err,
@@ -196,7 +196,7 @@ func UpdateAppContext(intentName, appContextId string) error {
 				continue
 			}
 			for _, r := range cd.Reslist {
-				err = addClusterResource(ac, s.AppName, cd.ClusterName, r)
+				err = addClusterResource(ctx, ac, s.AppName, cd.ClusterName, r)
 				if err != nil {
 					log.Error("Error adding cluster Resource", log.Fields{
 						"error":    err,
@@ -213,7 +213,7 @@ func UpdateAppContext(intentName, appContextId string) error {
 					continue
 				}
 				for _, r := range clu.Reslist {
-					err = addClusterResource(ac, cc.ClientName, clu.ClusterName, r)
+					err = addClusterResource(ctx, ac, cc.ClientName, clu.ClusterName, r)
 					if err != nil {
 						log.Error("Error adding cluster Resource", log.Fields{
 							"error":    err,
@@ -229,8 +229,8 @@ func UpdateAppContext(intentName, appContextId string) error {
 	return nil
 }
 
-func addClusterResource(ac appcontext.AppContext, appname string, c string, res map[string][]byte) error {
-	ch, err := ac.GetClusterHandle(context.Background(), appname, c)
+func addClusterResource(ctx context.Context, ac appcontext.AppContext, appname string, c string, res map[string][]byte) error {
+	ch, err := ac.GetClusterHandle(ctx, appname, c)
 	if err != nil {
 		log.Error("Error getting clusters handle App Context", log.Fields{
 			"error":        err,
@@ -257,7 +257,7 @@ func addClusterResource(ac appcontext.AppContext, appname string, c string, res 
 		r = ro
 	}
 
-	_, err = ac.AddResource(context.Background(), ch, resname, string(r))
+	_, err = ac.AddResource(ctx, ch, resname, string(r))
 	if err != nil {
 		log.Error("Error adding Resource to AppContext", log.Fields{
 			"error":        err,
@@ -266,7 +266,7 @@ func addClusterResource(ac appcontext.AppContext, appname string, c string, res 
 		})
 		return pkgerrors.Wrap(err, "Error adding Resource to AppContext")
 	}
-	resorder, err := ac.GetResourceInstruction(context.Background(), appname, c, "order")
+	resorder, err := ac.GetResourceInstruction(ctx, appname, c, "order")
 	if err != nil {
 		log.Error("Error getting Resource order", log.Fields{
 			"error":        err,
@@ -280,7 +280,7 @@ func addClusterResource(ac appcontext.AppContext, appname string, c string, res 
 	aov["resorder"] = append(aov["resorder"], resname)
 	jresord, _ := json.Marshal(aov)
 
-	_, err = ac.AddInstruction(context.Background(), ch, "resource", "order", string(jresord))
+	_, err = ac.AddInstruction(ctx, ch, "resource", "order", string(jresord))
 	if err != nil {
 		log.Error("Error updating Resource order", log.Fields{
 			"error":        err,
@@ -367,7 +367,7 @@ func createClientResources(is module.InboundServerIntent, c string, servers []se
 	return nil
 }
 
-func getClusterKvPair(c, kvkey string) (string, error) {
+func getClusterKvPair(ctx context.Context, c, kvkey string) (string, error) {
 
 	parts := strings.Split(c, "+")
 	if len(parts) != 2 {
@@ -376,7 +376,7 @@ func getClusterKvPair(c, kvkey string) (string, error) {
 		})
 		return "", pkgerrors.New("Not a valid cluster name")
 	}
-	ckv, err := clusterPkg.NewClusterClient().GetAllClusterKvPairs(context.Background(), parts[0], parts[1])
+	ckv, err := clusterPkg.NewClusterClient().GetAllClusterKvPairs(ctx, parts[0], parts[1])
 	var val string
 	if err == nil {
 		for _, kvp := range ckv {

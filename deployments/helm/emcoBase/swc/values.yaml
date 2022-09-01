@@ -53,6 +53,14 @@ service:
   externalPort: 9088
   nodePort: 88
 
+serviceInternal:
+  type: NodePort
+  name: swc
+  portName: swc-service
+  internalPort: 9087
+  externalPort: 9087
+  nodePort: 87
+
 ingress:
   enabled: false
 
