@@ -26,10 +26,10 @@ type NetControlIntentKey struct {
 
 // Manager is an interface exposing the NetControlIntent functionality
 type NetControlIntentManager interface {
-	CreateNetControlIntent(nci NetControlIntent, project, compositeapp, compositeappversion, dig string, exists bool) (NetControlIntent, error)
-	GetNetControlIntent(name, project, compositeapp, compositeappversion, dig string) (NetControlIntent, error)
-	GetNetControlIntents(project, compositeapp, compositeappversion, dig string) ([]NetControlIntent, error)
-	DeleteNetControlIntent(name, project, compositeapp, compositeappversion, dig string) error
+	CreateNetControlIntent(ctx context.Context, nci NetControlIntent, project, compositeapp, compositeappversion, dig string, exists bool) (NetControlIntent, error)
+	GetNetControlIntent(ctx context.Context, name, project, compositeapp, compositeappversion, dig string) (NetControlIntent, error)
+	GetNetControlIntents(ctx context.Context, project, compositeapp, compositeappversion, dig string) ([]NetControlIntent, error)
+	DeleteNetControlIntent(ctx context.Context, name, project, compositeapp, compositeappversion, dig string) error
 }
 
 // NetControlIntentClient implements the Manager
@@ -50,7 +50,7 @@ func NewNetControlIntentClient() *NetControlIntentClient {
 }
 
 // CreateNetControlIntent - create a new NetControlIntent
-func (v *NetControlIntentClient) CreateNetControlIntent(nci NetControlIntent, project, compositeapp, compositeappversion, dig string, exists bool) (NetControlIntent, error) {
+func (v *NetControlIntentClient) CreateNetControlIntent(ctx context.Context, nci NetControlIntent, project, compositeapp, compositeappversion, dig string, exists bool) (NetControlIntent, error) {
 
 	//Construct key and tag to select the entry
 	key := NetControlIntentKey{
@@ -62,12 +62,12 @@ func (v *NetControlIntentClient) CreateNetControlIntent(nci NetControlIntent, pr
 	}
 
 	//Check if this NetControlIntent already exists
-	_, err := v.GetNetControlIntent(nci.Metadata.Name, project, compositeapp, compositeappversion, dig)
+	_, err := v.GetNetControlIntent(ctx, nci.Metadata.Name, project, compositeapp, compositeappversion, dig)
 	if err == nil && !exists {
 		return NetControlIntent{}, pkgerrors.New("NetControlIntent already exists")
 	}
 
-	err = db.DBconn.Insert(context.Background(), v.db.storeName, key, nil, v.db.tagMeta, nci)
+	err = db.DBconn.Insert(ctx, v.db.storeName, key, nil, v.db.tagMeta, nci)
 	if err != nil {
 		return NetControlIntent{}, pkgerrors.Wrap(err, "Creating DB Entry")
 	}
@@ -76,7 +76,7 @@ func (v *NetControlIntentClient) CreateNetControlIntent(nci NetControlIntent, pr
 }
 
 // GetNetControlIntent returns the NetControlIntent for corresponding name
-func (v *NetControlIntentClient) GetNetControlIntent(name, project, compositeapp, compositeappversion, dig string) (NetControlIntent, error) {
+func (v *NetControlIntentClient) GetNetControlIntent(ctx context.Context, name, project, compositeapp, compositeappversion, dig string) (NetControlIntent, error) {
 
 	//Construct key and tag to select the entry
 	key := NetControlIntentKey{
@@ -87,7 +87,7 @@ func (v *NetControlIntentClient) GetNetControlIntent(name, project, compositeapp
 		DigName:             dig,
 	}
 
-	value, err := db.DBconn.Find(context.Background(), v.db.storeName, key, v.db.tagMeta)
+	value, err := db.DBconn.Find(ctx, v.db.storeName, key, v.db.tagMeta)
 	if err != nil {
 		return NetControlIntent{}, err
 	} else if len(value) == 0 {
@@ -108,7 +108,7 @@ func (v *NetControlIntentClient) GetNetControlIntent(name, project, compositeapp
 }
 
 // GetNetControlIntentList returns all of the NetControlIntent for corresponding name
-func (v *NetControlIntentClient) GetNetControlIntents(project, compositeapp, compositeappversion, dig string) ([]NetControlIntent, error) {
+func (v *NetControlIntentClient) GetNetControlIntents(ctx context.Context, project, compositeapp, compositeappversion, dig string) ([]NetControlIntent, error) {
 
 	//Construct key and tag to select the entry
 	key := NetControlIntentKey{
@@ -120,7 +120,7 @@ func (v *NetControlIntentClient) GetNetControlIntents(project, compositeapp, com
 	}
 
 	var resp []NetControlIntent
-	values, err := db.DBconn.Find(context.Background(), v.db.storeName, key, v.db.tagMeta)
+	values, err := db.DBconn.Find(ctx, v.db.storeName, key, v.db.tagMeta)
 	if err != nil {
 		return []NetControlIntent{}, err
 	}
@@ -138,7 +138,7 @@ func (v *NetControlIntentClient) GetNetControlIntents(project, compositeapp, com
 }
 
 // Delete the  NetControlIntent from database
-func (v *NetControlIntentClient) DeleteNetControlIntent(name, project, compositeapp, compositeappversion, dig string) error {
+func (v *NetControlIntentClient) DeleteNetControlIntent(ctx context.Context, name, project, compositeapp, compositeappversion, dig string) error {
 
 	//Construct key and tag to select the entry
 	key := NetControlIntentKey{
@@ -149,6 +149,6 @@ func (v *NetControlIntentClient) DeleteNetControlIntent(name, project, composite
 		DigName:             dig,
 	}
 
-	err := db.DBconn.Remove(context.Background(), v.db.storeName, key)
+	err := db.DBconn.Remove(ctx, v.db.storeName, key)
 	return err
 }

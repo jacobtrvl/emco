@@ -4,6 +4,7 @@
 package action
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"strconv"
@@ -18,8 +19,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
 
-	"context"
-
 	pkgerrors "github.com/pkg/errors"
 )
 
@@ -28,13 +27,13 @@ var CNI_Networking_Multi_CNI_Wrapper string = "CNI-Networking-Multi-CNI-Wrapper"
 var MultusCNINetworking string = "multus"
 
 // Action applies the supplied intent against the given AppContext ID
-func UpdateAppContext(intentName, appContextId string) error {
+func UpdateAppContext(ctx context.Context, intentName, appContextId string) error {
 	var ac appcontext.AppContext
-	_, err := ac.LoadAppContext(context.Background(), appContextId)
+	_, err := ac.LoadAppContext(ctx, appContextId)
 	if err != nil {
 		return pkgerrors.Wrapf(err, "Error getting AppContext with Id: %v", appContextId)
 	}
-	caMeta, err := ac.GetCompositeAppMeta(context.Background())
+	caMeta, err := ac.GetCompositeAppMeta(ctx)
 	if err != nil {
 		return pkgerrors.Wrapf(err, "Error getting metadata for AppContext with Id: %v", appContextId)
 	}
@@ -45,7 +44,7 @@ func UpdateAppContext(intentName, appContextId string) error {
 	deployIntentGroup := caMeta.DeploymentIntentGroup
 
 	// Handle all Workload Intents for the Network Control Intent
-	wis, err := module.NewWorkloadIntentClient().GetWorkloadIntents(project, compositeapp, compositeappversion, deployIntentGroup, intentName)
+	wis, err := module.NewWorkloadIntentClient().GetWorkloadIntents(ctx, project, compositeapp, compositeappversion, deployIntentGroup, intentName)
 	if err != nil {
 		return pkgerrors.Wrapf(err, "Error getting Workload Intents for Network Control Intent %v for %v/%v%v/%v not found", intentName, project, compositeapp, deployIntentGroup, compositeappversion)
 	}
@@ -59,7 +58,7 @@ func UpdateAppContext(intentName, appContextId string) error {
 		//     workload/interfaces intents.
 
 		// Prepare the list of interfaces from the workload intent
-		wifs, err := module.NewWorkloadIfIntentClient().GetWorkloadIfIntents(project,
+		wifs, err := module.NewWorkloadIfIntentClient().GetWorkloadIfIntents(ctx, project,
 			compositeapp,
 			compositeappversion,
 			deployIntentGroup,
@@ -83,12 +82,12 @@ func UpdateAppContext(intentName, appContextId string) error {
 		}
 
 		// Get all clusters for the current App from the AppContext
-		clusters, err := ac.GetClusterNames(context.Background(), wi.Spec.AppName)
+		clusters, err := ac.GetClusterNames(ctx, wi.Spec.AppName)
 		if err != nil {
 			return pkgerrors.Wrapf(err, "Error getting clusters for app: %v", wi.Spec.AppName)
 		}
 		for _, c := range clusters {
-			rh, err := ac.GetResourceHandle(context.Background(), wi.Spec.AppName, c,
+			rh, err := ac.GetResourceHandle(ctx, wi.Spec.AppName, c,
 				strings.Join([]string{wi.Spec.WorkloadResource, wi.Spec.Type}, "+"))
 			if err != nil {
 				log.Error("App Context resource handle not found", log.Fields{
@@ -104,7 +103,7 @@ func UpdateAppContext(intentName, appContextId string) error {
 				})
 				continue
 			}
-			r, err := ac.GetValue(context.Background(), rh)
+			r, err := ac.GetValue(ctx, rh)
 			if err != nil {
 				log.Error("Error retrieving resource from App Context", log.Fields{
 					"error":           err,
@@ -114,7 +113,7 @@ func UpdateAppContext(intentName, appContextId string) error {
 			}
 			pc := strings.Split(c, "+")
 			// Read the cluster kv pairs for cluster capabilities
-			ckv, err := clusterPkg.NewClusterClient().GetAllClusterKvPairs(context.Background(), pc[0], pc[1])
+			ckv, err := clusterPkg.NewClusterClient().GetAllClusterKvPairs(ctx, pc[0], pc[1])
 			var allIntf, cniWrapper string
 			// Deafults
 			allIntf = "false"
@@ -190,7 +189,7 @@ func UpdateAppContext(intentName, appContextId string) error {
 			}
 
 			// Update resource in AppContext
-			err = ac.UpdateResourceValue(context.Background(), rh, string(y))
+			err = ac.UpdateResourceValue(ctx, rh, string(y))
 			if err != nil {
 				log.Error("Network updating app context resource handle", log.Fields{
 					"error":           err,

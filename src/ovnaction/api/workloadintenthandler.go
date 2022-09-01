@@ -28,6 +28,7 @@ type workloadintentHandler struct {
 
 // Create handles creation of the Network entry in the database
 func (h workloadintentHandler) createHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	var wi moduleLib.WorkloadIntent
 	vars := mux.Vars(r)
 	project := vars["project"]
@@ -56,7 +57,7 @@ func (h workloadintentHandler) createHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	ret, err := h.client.CreateWorkloadIntent(wi, project, compositeApp, compositeAppVersion, deployIntentGroup, netControlIntent, false)
+	ret, err := h.client.CreateWorkloadIntent(ctx, wi, project, compositeApp, compositeAppVersion, deployIntentGroup, netControlIntent, false)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, wi, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -75,6 +76,7 @@ func (h workloadintentHandler) createHandler(w http.ResponseWriter, r *http.Requ
 
 // Put handles creation/update of the Network entry in the database
 func (h workloadintentHandler) putHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	var wi moduleLib.WorkloadIntent
 	vars := mux.Vars(r)
 	name := vars["workloadIntent"]
@@ -111,7 +113,7 @@ func (h workloadintentHandler) putHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	ret, err := h.client.CreateWorkloadIntent(wi, project, compositeApp, compositeAppVersion, deployIntentGroup, netControlIntent, true)
+	ret, err := h.client.CreateWorkloadIntent(ctx, wi, project, compositeApp, compositeAppVersion, deployIntentGroup, netControlIntent, true)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, wi, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -131,6 +133,7 @@ func (h workloadintentHandler) putHandler(w http.ResponseWriter, r *http.Request
 // Get handles GET operations on a particular Network Name
 // Returns a Network
 func (h workloadintentHandler) getHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	name := vars["workloadIntent"]
 	project := vars["project"]
@@ -142,9 +145,9 @@ func (h workloadintentHandler) getHandler(w http.ResponseWriter, r *http.Request
 	var err error
 
 	if len(name) == 0 {
-		ret, err = h.client.GetWorkloadIntents(project, compositeApp, compositeAppVersion, deployIntentGroup, netControlIntent)
+		ret, err = h.client.GetWorkloadIntents(ctx, project, compositeApp, compositeAppVersion, deployIntentGroup, netControlIntent)
 	} else {
-		ret, err = h.client.GetWorkloadIntent(name, project, compositeApp, compositeAppVersion, deployIntentGroup, netControlIntent)
+		ret, err = h.client.GetWorkloadIntent(ctx, name, project, compositeApp, compositeAppVersion, deployIntentGroup, netControlIntent)
 	}
 
 	if err != nil {
@@ -165,6 +168,7 @@ func (h workloadintentHandler) getHandler(w http.ResponseWriter, r *http.Request
 
 // Delete handles DELETE operations on a particular Network  Name
 func (h workloadintentHandler) deleteHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	name := vars["workloadIntent"]
 	project := vars["project"]
@@ -173,7 +177,7 @@ func (h workloadintentHandler) deleteHandler(w http.ResponseWriter, r *http.Requ
 	deployIntentGroup := vars["deploymentIntentGroup"]
 	netControlIntent := vars["netControllerIntent"]
 
-	err := h.client.DeleteWorkloadIntent(name, project, compositeApp, compositeAppVersion, deployIntentGroup, netControlIntent)
+	err := h.client.DeleteWorkloadIntent(ctx, name, project, compositeApp, compositeAppVersion, deployIntentGroup, netControlIntent)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)

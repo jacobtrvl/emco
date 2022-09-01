@@ -28,6 +28,7 @@ type netcontrolintentHandler struct {
 
 // Create handles creation of the NetControlIntent entry in the database
 func (h netcontrolintentHandler) createHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	var nci moduleLib.NetControlIntent
 	vars := mux.Vars(r)
 	project := vars["project"]
@@ -55,7 +56,7 @@ func (h netcontrolintentHandler) createHandler(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	ret, err := h.client.CreateNetControlIntent(nci, project, compositeApp, compositeAppVersion, deployIntentGroup, false)
+	ret, err := h.client.CreateNetControlIntent(ctx, nci, project, compositeApp, compositeAppVersion, deployIntentGroup, false)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nci, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -74,6 +75,7 @@ func (h netcontrolintentHandler) createHandler(w http.ResponseWriter, r *http.Re
 
 // Put handles creation/update of the NetControlIntent entry in the database
 func (h netcontrolintentHandler) putHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	var nci moduleLib.NetControlIntent
 	vars := mux.Vars(r)
 	name := vars["netControllerIntent"]
@@ -109,7 +111,7 @@ func (h netcontrolintentHandler) putHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	ret, err := h.client.CreateNetControlIntent(nci, project, compositeApp, compositeAppVersion, deployIntentGroup, true)
+	ret, err := h.client.CreateNetControlIntent(ctx, nci, project, compositeApp, compositeAppVersion, deployIntentGroup, true)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nci, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -129,6 +131,7 @@ func (h netcontrolintentHandler) putHandler(w http.ResponseWriter, r *http.Reque
 // Get handles GET operations on a particular NetControlIntent Name
 // Returns a NetControlIntent
 func (h netcontrolintentHandler) getHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	name := vars["netControllerIntent"]
 	project := vars["project"]
@@ -139,9 +142,9 @@ func (h netcontrolintentHandler) getHandler(w http.ResponseWriter, r *http.Reque
 	var err error
 
 	if len(name) == 0 {
-		ret, err = h.client.GetNetControlIntents(project, compositeApp, compositeAppVersion, deployIntentGroup)
+		ret, err = h.client.GetNetControlIntents(ctx, project, compositeApp, compositeAppVersion, deployIntentGroup)
 	} else {
-		ret, err = h.client.GetNetControlIntent(name, project, compositeApp, compositeAppVersion, deployIntentGroup)
+		ret, err = h.client.GetNetControlIntent(ctx, name, project, compositeApp, compositeAppVersion, deployIntentGroup)
 	}
 
 	if err != nil {
@@ -162,6 +165,7 @@ func (h netcontrolintentHandler) getHandler(w http.ResponseWriter, r *http.Reque
 
 // Delete handles DELETE operations on a particular NetControlIntent  Name
 func (h netcontrolintentHandler) deleteHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	name := vars["netControllerIntent"]
 	project := vars["project"]
@@ -169,7 +173,7 @@ func (h netcontrolintentHandler) deleteHandler(w http.ResponseWriter, r *http.Re
 	compositeAppVersion := vars["compositeAppVersion"]
 	deployIntentGroup := vars["deploymentIntentGroup"]
 
-	err := h.client.DeleteNetControlIntent(name, project, compositeApp, compositeAppVersion, deployIntentGroup)
+	err := h.client.DeleteNetControlIntent(ctx, name, project, compositeApp, compositeAppVersion, deployIntentGroup)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)

@@ -11,6 +11,7 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	pkgerrors "github.com/pkg/errors"
+	"github.com/stretchr/testify/mock"
 	"gitlab.com/project-emco/core/emco-base/src/ovnaction/api/mocks"
 	"gitlab.com/project-emco/core/emco-base/src/ovnaction/pkg/module"
 )
@@ -35,7 +36,7 @@ var _ = Describe("Workloadifintenthandler", func() {
 	DescribeTable("Create WorkloadIfIntent tests",
 		func(t testCase) {
 			// set up client mock responses
-			t.client.On("CreateWorkloadIfIntent", t.inStruct, "test-project", "test-compositeapp", "v1", "test-dig", "net-ctl-intent", "testworkloadintent", false).Return(t.mockVal, t.mockError)
+			t.client.On("CreateWorkloadIfIntent", mock.Anything, t.inStruct, "test-project", "test-compositeapp", "v1", "test-dig", "net-ctl-intent", "testworkloadintent", false).Return(t.mockVal, t.mockError)
 
 			// make HTTP request
 			request := httptest.NewRequest("POST", "/v2/projects/test-project/composite-apps/test-compositeapp/v1/deployment-intent-groups/test-dig/network-controller-intent/net-ctl-intent/workload-intents/testworkloadintent/interfaces", t.inputReader)
@@ -366,7 +367,7 @@ var _ = Describe("Workloadifintenthandler", func() {
 	DescribeTable("Put WorkloadIfIntent tests",
 		func(t testCase) {
 			// set up client mock responses
-			t.client.On("CreateWorkloadIfIntent", t.inStruct, "test-project", "test-compositeapp", "v1", "test-dig", "net-ctl-intent", "testworkloadintent", true).Return(t.mockVal, t.mockError)
+			t.client.On("CreateWorkloadIfIntent", mock.Anything, t.inStruct, "test-project", "test-compositeapp", "v1", "test-dig", "net-ctl-intent", "testworkloadintent", true).Return(t.mockVal, t.mockError)
 
 			// make HTTP request
 			request := httptest.NewRequest("PUT", "/v2/projects/test-project/composite-apps/test-compositeapp/v1/deployment-intent-groups/test-dig/network-controller-intent/net-ctl-intent/workload-intents/testworkloadintent/interfaces/"+t.inputName, t.inputReader)
@@ -618,7 +619,7 @@ var _ = Describe("Workloadifintenthandler", func() {
 	DescribeTable("Get List WorkloadIfIntent tests",
 		func(t testCase) {
 			// set up client mock responses
-			t.client.On("GetWorkloadIfIntents", "test-project", "test-compositeapp", "v1", "test-dig", "net-ctl-intent", "testworkloadintent").Return(t.mockVals, t.mockError)
+			t.client.On("GetWorkloadIfIntents", mock.Anything, "test-project", "test-compositeapp", "v1", "test-dig", "net-ctl-intent", "testworkloadintent").Return(t.mockVals, t.mockError)
 
 			// make HTTP request
 			request := httptest.NewRequest("GET", "/v2/projects/test-project/composite-apps/test-compositeapp/v1/deployment-intent-groups/test-dig/network-controller-intent/net-ctl-intent/workload-intents/testworkloadintent/interfaces", nil)
@@ -687,7 +688,7 @@ var _ = Describe("Workloadifintenthandler", func() {
 	DescribeTable("Get WorkloadIfIntent tests",
 		func(t testCase) {
 			// set up client mock responses
-			t.client.On("GetWorkloadIfIntent", t.inputName, "test-project", "test-compositeapp", "v1", "test-dig", "net-ctl-intent", "testworkloadintent").Return(t.mockVal, t.mockError)
+			t.client.On("GetWorkloadIfIntent", mock.Anything, t.inputName, "test-project", "test-compositeapp", "v1", "test-dig", "net-ctl-intent", "testworkloadintent").Return(t.mockVal, t.mockError)
 
 			// make HTTP request
 			request := httptest.NewRequest("GET", "/v2/projects/test-project/composite-apps/test-compositeapp/v1/deployment-intent-groups/test-dig/network-controller-intent/net-ctl-intent/workload-intents/testworkloadintent/interfaces/"+t.inputName, nil)
@@ -743,7 +744,7 @@ var _ = Describe("Workloadifintenthandler", func() {
 	DescribeTable("Delete WorkloadIfIntent tests",
 		func(t testCase) {
 			// set up client mock responses
-			t.client.On("DeleteWorkloadIfIntent", t.inputName, "test-project", "test-compositeapp", "v1", "test-dig", "net-ctl-intent", "testworkloadintent").Return(t.mockError)
+			t.client.On("DeleteWorkloadIfIntent", mock.Anything, t.inputName, "test-project", "test-compositeapp", "v1", "test-dig", "net-ctl-intent", "testworkloadintent").Return(t.mockError)
 
 			// make HTTP request
 			request := httptest.NewRequest("DELETE", "/v2/projects/test-project/composite-apps/test-compositeapp/v1/deployment-intent-groups/test-dig/network-controller-intent/net-ctl-intent/workload-intents/testworkloadintent/interfaces/"+t.inputName, nil)

@@ -3,6 +3,7 @@
 package mocks
 
 import (
+	"context"
 	module "gitlab.com/project-emco/core/emco-base/src/ovnaction/pkg/module"
 	mock "github.com/stretchr/testify/mock"
 )
@@ -13,8 +14,8 @@ type NetControlIntentManager struct {
 }
 
 // CreateNetControlIntent provides a mock function with given fields: nci, project, compositeapp, compositeappversion, dig, exists
-func (_m *NetControlIntentManager) CreateNetControlIntent(nci module.NetControlIntent, project string, compositeapp string, compositeappversion string, dig string, exists bool) (module.NetControlIntent, error) {
-	ret := _m.Called(nci, project, compositeapp, compositeappversion, dig, exists)
+func (_m *NetControlIntentManager) CreateNetControlIntent(ctx context.Context, nci module.NetControlIntent, project string, compositeapp string, compositeappversion string, dig string, exists bool) (module.NetControlIntent, error) {
+	ret := _m.Called(ctx, nci, project, compositeapp, compositeappversion, dig, exists)
 
 	var r0 module.NetControlIntent
 	if rf, ok := ret.Get(0).(func(module.NetControlIntent, string, string, string, string, bool) module.NetControlIntent); ok {
@@ -34,8 +35,8 @@ func (_m *NetControlIntentManager) CreateNetControlIntent(nci module.NetControlI
 }
 
 // DeleteNetControlIntent provides a mock function with given fields: name, project, compositeapp, compositeappversion, dig
-func (_m *NetControlIntentManager) DeleteNetControlIntent(name string, project string, compositeapp string, compositeappversion string, dig string) error {
-	ret := _m.Called(name, project, compositeapp, compositeappversion, dig)
+func (_m *NetControlIntentManager) DeleteNetControlIntent(ctx context.Context, name string, project string, compositeapp string, compositeappversion string, dig string) error {
+	ret := _m.Called(ctx, name, project, compositeapp, compositeappversion, dig)
 
 	var r0 error
 	if rf, ok := ret.Get(0).(func(string, string, string, string, string) error); ok {
@@ -48,8 +49,8 @@ func (_m *NetControlIntentManager) DeleteNetControlIntent(name string, project s
 }
 
 // GetNetControlIntent provides a mock function with given fields: name, project, compositeapp, compositeappversion, dig
-func (_m *NetControlIntentManager) GetNetControlIntent(name string, project string, compositeapp string, compositeappversion string, dig string) (module.NetControlIntent, error) {
-	ret := _m.Called(name, project, compositeapp, compositeappversion, dig)
+func (_m *NetControlIntentManager) GetNetControlIntent(ctx context.Context, name string, project string, compositeapp string, compositeappversion string, dig string) (module.NetControlIntent, error) {
+	ret := _m.Called(ctx, name, project, compositeapp, compositeappversion, dig)
 
 	var r0 module.NetControlIntent
 	if rf, ok := ret.Get(0).(func(string, string, string, string, string) module.NetControlIntent); ok {
@@ -69,8 +70,8 @@ func (_m *NetControlIntentManager) GetNetControlIntent(name string, project stri
 }
 
 // GetNetControlIntents provides a mock function with given fields: project, compositeapp, compositeappversion, dig
-func (_m *NetControlIntentManager) GetNetControlIntents(project string, compositeapp string, compositeappversion string, dig string) ([]module.NetControlIntent, error) {
-	ret := _m.Called(project, compositeapp, compositeappversion, dig)
+func (_m *NetControlIntentManager) GetNetControlIntents(ctx context.Context, project string, compositeapp string, compositeappversion string, dig string) ([]module.NetControlIntent, error) {
+	ret := _m.Called(ctx, project, compositeapp, compositeappversion, dig)
 
 	var r0 []module.NetControlIntent
 	if rf, ok := ret.Get(0).(func(string, string, string, string) []module.NetControlIntent); ok {

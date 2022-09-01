@@ -11,6 +11,7 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	pkgerrors "github.com/pkg/errors"
+	"github.com/stretchr/testify/mock"
 	"gitlab.com/project-emco/core/emco-base/src/ovnaction/api/mocks"
 	"gitlab.com/project-emco/core/emco-base/src/ovnaction/pkg/module"
 )
@@ -35,7 +36,7 @@ var _ = Describe("Workloadintenthandler", func() {
 	DescribeTable("Create WorkloadIntent tests",
 		func(t testCase) {
 			// set up client mock responses
-			t.client.On("CreateWorkloadIntent", t.inStruct, "test-project", "test-compositeapp", "v1", "test-dig", "net-ctl-intent", false).Return(t.mockVal, t.mockError)
+			t.client.On("CreateWorkloadIntent", mock.Anything, t.inStruct, "test-project", "test-compositeapp", "v1", "test-dig", "net-ctl-intent", false).Return(t.mockVal, t.mockError)
 
 			// make HTTP request
 			request := httptest.NewRequest("POST", "/v2/projects/test-project/composite-apps/test-compositeapp/v1/deployment-intent-groups/test-dig/network-controller-intent/net-ctl-intent/workload-intents", t.inputReader)
@@ -324,7 +325,7 @@ var _ = Describe("Workloadintenthandler", func() {
 	DescribeTable("Put WorkloadIntent tests",
 		func(t testCase) {
 			// set up client mock responses
-			t.client.On("CreateWorkloadIntent", t.inStruct, "test-project", "test-compositeapp", "v1", "test-dig", "net-ctl-intent", true).Return(t.mockVal, t.mockError)
+			t.client.On("CreateWorkloadIntent", mock.Anything, t.inStruct, "test-project", "test-compositeapp", "v1", "test-dig", "net-ctl-intent", true).Return(t.mockVal, t.mockError)
 
 			// make HTTP request
 			request := httptest.NewRequest("PUT", "/v2/projects/test-project/composite-apps/test-compositeapp/v1/deployment-intent-groups/test-dig/network-controller-intent/net-ctl-intent/workload-intents/"+t.inputName, t.inputReader)
@@ -624,7 +625,7 @@ var _ = Describe("Workloadintenthandler", func() {
 	DescribeTable("Get List WorkloadIntent tests",
 		func(t testCase) {
 			// set up client mock responses
-			t.client.On("GetWorkloadIntents", "test-project", "test-compositeapp", "v1", "test-dig", "net-ctl-intent").Return(t.mockVals, t.mockError)
+			t.client.On("GetWorkloadIntents", mock.Anything, "test-project", "test-compositeapp", "v1", "test-dig", "net-ctl-intent").Return(t.mockVals, t.mockError)
 
 			// make HTTP request
 			request := httptest.NewRequest("GET", "/v2/projects/test-project/composite-apps/test-compositeapp/v1/deployment-intent-groups/test-dig/network-controller-intent/net-ctl-intent/workload-intents", nil)
@@ -691,7 +692,7 @@ var _ = Describe("Workloadintenthandler", func() {
 	DescribeTable("Get WorkloadIntent tests",
 		func(t testCase) {
 			// set up client mock responses
-			t.client.On("GetWorkloadIntent", t.inputName, "test-project", "test-compositeapp", "v1", "test-dig", "net-ctl-intent").Return(t.mockVal, t.mockError)
+			t.client.On("GetWorkloadIntent", mock.Anything, t.inputName, "test-project", "test-compositeapp", "v1", "test-dig", "net-ctl-intent").Return(t.mockVal, t.mockError)
 
 			// make HTTP request
 			request := httptest.NewRequest("GET", "/v2/projects/test-project/composite-apps/test-compositeapp/v1/deployment-intent-groups/test-dig/network-controller-intent/net-ctl-intent/workload-intents/"+t.inputName, nil)
@@ -746,7 +747,7 @@ var _ = Describe("Workloadintenthandler", func() {
 	DescribeTable("Delete WorkloadIntent tests",
 		func(t testCase) {
 			// set up client mock responses
-			t.client.On("DeleteWorkloadIntent", t.inputName, "test-project", "test-compositeapp", "v1", "test-dig", "net-ctl-intent").Return(t.mockError)
+			t.client.On("DeleteWorkloadIntent", mock.Anything, t.inputName, "test-project", "test-compositeapp", "v1", "test-dig", "net-ctl-intent").Return(t.mockError)
 
 			// make HTTP request
 			request := httptest.NewRequest("DELETE", "/v2/projects/test-project/composite-apps/test-compositeapp/v1/deployment-intent-groups/test-dig/network-controller-intent/net-ctl-intent/workload-intents/"+t.inputName, nil)

@@ -1,6 +1,7 @@
 package module_test
 
 import (
+	"context"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -61,66 +62,72 @@ var _ = Describe("Workloadifintent", func() {
 
 	Describe("Create client intent", func() {
 		It("with pre created net control intent should return nil", func() {
-			_, err := (*NCIDBC).CreateNetControlIntent(NCI, "test", "capp1", "v1", "dig", false)
+			ctx := context.Background()
+			_, err := (*NCIDBC).CreateNetControlIntent(ctx, NCI, "test", "capp1", "v1", "dig", false)
 			Expect(err).To(BeNil())
-			_, err = (*WLIDBC).CreateWorkloadIntent(WLI, "test", "capp1", "v1", "dig", "theName", false)
+			_, err = (*WLIDBC).CreateWorkloadIntent(ctx, WLI, "test", "capp1", "v1", "dig", "theName", false)
 			Expect(err).To(BeNil())
-			_, err = (*WLFIDBC).CreateWorkloadIfIntent(WLFI, "test", "capp1", "v1", "dig", "theName", "theSecondName", false)
+			_, err = (*WLFIDBC).CreateWorkloadIfIntent(ctx, WLFI, "test", "capp1", "v1", "dig", "theName", "theSecondName", false)
 			Expect(err).To(BeNil())
 		})
 		It("followed by create again should return error", func() {
-			_, err := (*NCIDBC).CreateNetControlIntent(NCI, "test", "capp1", "v1", "dig", false)
+			ctx := context.Background()
+			_, err := (*NCIDBC).CreateNetControlIntent(ctx, NCI, "test", "capp1", "v1", "dig", false)
 			Expect(err).To(BeNil())
-			_, err = (*WLIDBC).CreateWorkloadIntent(WLI, "test", "capp1", "v1", "dig", "theName", false)
+			_, err = (*WLIDBC).CreateWorkloadIntent(ctx, WLI, "test", "capp1", "v1", "dig", "theName", false)
 			Expect(err).To(BeNil())
-			_, err = (*WLFIDBC).CreateWorkloadIfIntent(WLFI, "test", "capp1", "v1", "dig", "theName", "theSecondName", false)
+			_, err = (*WLFIDBC).CreateWorkloadIfIntent(ctx, WLFI, "test", "capp1", "v1", "dig", "theName", "theSecondName", false)
 			Expect(err).To(BeNil())
-			_, err = (*WLFIDBC).CreateWorkloadIfIntent(WLFI, "test", "capp1", "v1", "dig", "theName", "theSecondName", false)
+			_, err = (*WLFIDBC).CreateWorkloadIfIntent(ctx, WLFI, "test", "capp1", "v1", "dig", "theName", "theSecondName", false)
 			Expect(err).To(HaveOccurred())
 		})
 		It("followed by get should return nil", func() {
-			_, err := (*NCIDBC).CreateNetControlIntent(NCI, "test", "capp1", "v1", "dig", false)
+			ctx := context.Background()
+			_, err := (*NCIDBC).CreateNetControlIntent(ctx, NCI, "test", "capp1", "v1", "dig", false)
 			Expect(err).To(BeNil())
-			_, err = (*WLIDBC).CreateWorkloadIntent(WLI, "test", "capp1", "v1", "dig", "theName", false)
+			_, err = (*WLIDBC).CreateWorkloadIntent(ctx, WLI, "test", "capp1", "v1", "dig", "theName", false)
 			Expect(err).To(BeNil())
-			_, err = (*WLFIDBC).CreateWorkloadIfIntent(WLFI, "test", "capp1", "v1", "dig", "theName", "theSecondName", false)
+			_, err = (*WLFIDBC).CreateWorkloadIfIntent(ctx, WLFI, "test", "capp1", "v1", "dig", "theName", "theSecondName", false)
 			Expect(err).To(BeNil())
-			wlfi, err := (*WLFIDBC).GetWorkloadIfIntent("theThirdName", "test", "capp1", "v1", "dig", "theName", "theSecondName")
+			wlfi, err := (*WLFIDBC).GetWorkloadIfIntent(ctx, "theThirdName", "test", "capp1", "v1", "dig", "theName", "theSecondName")
 			Expect(wlfi).Should(Equal(WLFI))
 		})
 		It("followed by delete should return nil", func() {
-			_, err := (*NCIDBC).CreateNetControlIntent(NCI, "test", "capp1", "v1", "dig", false)
+			ctx := context.Background()
+			_, err := (*NCIDBC).CreateNetControlIntent(ctx, NCI, "test", "capp1", "v1", "dig", false)
 			Expect(err).To(BeNil())
-			_, err = (*WLIDBC).CreateWorkloadIntent(WLI, "test", "capp1", "v1", "dig", "theName", false)
+			_, err = (*WLIDBC).CreateWorkloadIntent(ctx, WLI, "test", "capp1", "v1", "dig", "theName", false)
 			Expect(err).To(BeNil())
-			_, err = (*WLFIDBC).CreateWorkloadIfIntent(WLFI, "test", "capp1", "v1", "dig", "theName", "theSecondName", false)
+			_, err = (*WLFIDBC).CreateWorkloadIfIntent(ctx, WLFI, "test", "capp1", "v1", "dig", "theName", "theSecondName", false)
 			Expect(err).To(BeNil())
-			err = (*WLFIDBC).DeleteWorkloadIfIntent("theThirdName", "test", "capp1", "v1", "dig", "theName", "theSecondName")
+			err = (*WLFIDBC).DeleteWorkloadIfIntent(ctx, "theThirdName", "test", "capp1", "v1", "dig", "theName", "theSecondName")
 			Expect(err).To(BeNil())
 		})
 	})
 
 	Describe("Create workload if intent", func() {
 		It("followed by create,get,delete,get workload if intent should return an error", func() {
-			_, err := (*NCIDBC).CreateNetControlIntent(NCI, "test", "capp1", "v1", "dig", false)
+			ctx := context.Background()
+			_, err := (*NCIDBC).CreateNetControlIntent(ctx, NCI, "test", "capp1", "v1", "dig", false)
 			Expect(err).To(BeNil())
-			_, err = (*WLIDBC).CreateWorkloadIntent(WLI, "test", "capp1", "v1", "dig", "theName", false)
+			_, err = (*WLIDBC).CreateWorkloadIntent(ctx, WLI, "test", "capp1", "v1", "dig", "theName", false)
 			Expect(err).To(BeNil())
-			_, err = (*WLFIDBC).CreateWorkloadIfIntent(WLFI, "test", "capp1", "v1", "dig", "theName", "theSecondName", false)
+			_, err = (*WLFIDBC).CreateWorkloadIfIntent(ctx, WLFI, "test", "capp1", "v1", "dig", "theName", "theSecondName", false)
 			Expect(err).To(BeNil())
-			wlfi, err := (*WLFIDBC).GetWorkloadIfIntent("theThirdName", "test", "capp1", "v1", "dig", "theName", "theSecondName")
+			wlfi, err := (*WLFIDBC).GetWorkloadIfIntent(ctx, "theThirdName", "test", "capp1", "v1", "dig", "theName", "theSecondName")
 			Expect(wlfi).Should(Equal(WLFI))
-			err = (*WLFIDBC).DeleteWorkloadIfIntent("theThirdName", "test", "capp1", "v1", "dig", "theName", "theSecondName")
+			err = (*WLFIDBC).DeleteWorkloadIfIntent(ctx, "theThirdName", "test", "capp1", "v1", "dig", "theName", "theSecondName")
 			Expect(err).To(BeNil())
-			wlfi, err = (*WLFIDBC).GetWorkloadIfIntent("theThirdName", "test", "capp1", "v1", "dig", "theName", "theSecondName")
+			wlfi, err = (*WLFIDBC).GetWorkloadIfIntent(ctx, "theThirdName", "test", "capp1", "v1", "dig", "theName", "theSecondName")
 			Expect(err).To(HaveOccurred())
 		})
 	})
 
 	Describe("Get workload if intents", func() {
 		It("should return error for non-existing record", func() {
+			ctx := context.Background()
 			mdb.Err = pkgerrors.New("WorkloadIfIntent not found")
-			_, err := (*WLFIDBC).GetWorkloadIfIntents("test", "capp1", "v1", "dig", "theName", "theSecondName")
+			_, err := (*WLFIDBC).GetWorkloadIfIntents(ctx, "test", "capp1", "v1", "dig", "theName", "theSecondName")
 			Expect(err).To(HaveOccurred())
 		})
 	})

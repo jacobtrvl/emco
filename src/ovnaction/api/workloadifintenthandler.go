@@ -8,11 +8,11 @@ import (
 	"io"
 	"net/http"
 
+	pkgerrors "github.com/pkg/errors"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/apierror"
 	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/validation"
 	moduleLib "gitlab.com/project-emco/core/emco-base/src/ovnaction/pkg/module"
-	pkgerrors "github.com/pkg/errors"
 
 	"github.com/gorilla/mux"
 )
@@ -68,6 +68,7 @@ func validateWorkloadIfIntentInputs(wif moduleLib.WorkloadIfIntent) error {
 
 // Create handles creation of the Network entry in the database
 func (h workloadifintentHandler) createHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	var wif moduleLib.WorkloadIfIntent
 	vars := mux.Vars(r)
 	project := vars["project"]
@@ -109,7 +110,7 @@ func (h workloadifintentHandler) createHandler(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	ret, err := h.client.CreateWorkloadIfIntent(wif, project, compositeApp, compositeAppVersion, deployIntentGroup, netControlIntent, workloadIntent, false)
+	ret, err := h.client.CreateWorkloadIfIntent(ctx, wif, project, compositeApp, compositeAppVersion, deployIntentGroup, netControlIntent, workloadIntent, false)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, wif, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -128,6 +129,7 @@ func (h workloadifintentHandler) createHandler(w http.ResponseWriter, r *http.Re
 
 // Put handles creation/update of the Network entry in the database
 func (h workloadifintentHandler) putHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	var wif moduleLib.WorkloadIfIntent
 	vars := mux.Vars(r)
 	name := vars["interfaceIntent"]
@@ -177,7 +179,7 @@ func (h workloadifintentHandler) putHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	ret, err := h.client.CreateWorkloadIfIntent(wif, project, compositeApp, compositeAppVersion, deployIntentGroup, netControlIntent, workloadIntent, true)
+	ret, err := h.client.CreateWorkloadIfIntent(ctx, wif, project, compositeApp, compositeAppVersion, deployIntentGroup, netControlIntent, workloadIntent, true)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, wif, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -197,6 +199,7 @@ func (h workloadifintentHandler) putHandler(w http.ResponseWriter, r *http.Reque
 // Get handles GET operations on a particular Network Name
 // Returns a Network
 func (h workloadifintentHandler) getHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	name := vars["interfaceIntent"]
 	project := vars["project"]
@@ -209,9 +212,9 @@ func (h workloadifintentHandler) getHandler(w http.ResponseWriter, r *http.Reque
 	var err error
 
 	if len(name) == 0 {
-		ret, err = h.client.GetWorkloadIfIntents(project, compositeApp, compositeAppVersion, deployIntentGroup, netControlIntent, workloadIntent)
+		ret, err = h.client.GetWorkloadIfIntents(ctx, project, compositeApp, compositeAppVersion, deployIntentGroup, netControlIntent, workloadIntent)
 	} else {
-		ret, err = h.client.GetWorkloadIfIntent(name, project, compositeApp, compositeAppVersion, deployIntentGroup, netControlIntent, workloadIntent)
+		ret, err = h.client.GetWorkloadIfIntent(ctx, name, project, compositeApp, compositeAppVersion, deployIntentGroup, netControlIntent, workloadIntent)
 	}
 
 	if err != nil {
@@ -232,6 +235,7 @@ func (h workloadifintentHandler) getHandler(w http.ResponseWriter, r *http.Reque
 
 // Delete handles DELETE operations on a particular Network  Name
 func (h workloadifintentHandler) deleteHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	name := vars["interfaceIntent"]
 	project := vars["project"]
@@ -241,7 +245,7 @@ func (h workloadifintentHandler) deleteHandler(w http.ResponseWriter, r *http.Re
 	netControlIntent := vars["netControllerIntent"]
 	workloadIntent := vars["workloadIntent"]
 
-	err := h.client.DeleteWorkloadIfIntent(name, project, compositeApp, compositeAppVersion, deployIntentGroup, netControlIntent, workloadIntent)
+	err := h.client.DeleteWorkloadIfIntent(ctx, name, project, compositeApp, compositeAppVersion, deployIntentGroup, netControlIntent, workloadIntent)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)

@@ -13,9 +13,10 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
+	pkgerrors "github.com/pkg/errors"
+	"github.com/stretchr/testify/mock"
 	"gitlab.com/project-emco/core/emco-base/src/ovnaction/api/mocks"
 	"gitlab.com/project-emco/core/emco-base/src/ovnaction/pkg/module"
-	pkgerrors "github.com/pkg/errors"
 )
 
 func init() {
@@ -38,7 +39,7 @@ var _ = Describe("Netcontrolintenthandler", func() {
 	DescribeTable("Create NetControlIntent tests",
 		func(t testCase) {
 			// set up client mock responses
-			t.client.On("CreateNetControlIntent", t.inStruct, "test-project", "test-compositeapp", "v1", "test-dig", false).Return(t.mockVal, t.mockError)
+			t.client.On("CreateNetControlIntent", mock.Anything, t.inStruct, "test-project", "test-compositeapp", "v1", "test-dig", false).Return(t.mockVal, t.mockError)
 
 			// make HTTP request
 			request := httptest.NewRequest("POST", "/v2/projects/test-project/composite-apps/test-compositeapp/v1/deployment-intent-groups/test-dig/network-controller-intent", t.inputReader)
@@ -187,7 +188,7 @@ var _ = Describe("Netcontrolintenthandler", func() {
 	DescribeTable("Put NetControlIntent tests",
 		func(t testCase) {
 			// set up client mock responses
-			t.client.On("CreateNetControlIntent", t.inStruct, "test-project", "test-compositeapp", "v1", "test-dig", true).Return(t.mockVal, t.mockError)
+			t.client.On("CreateNetControlIntent", mock.Anything, t.inStruct, "test-project", "test-compositeapp", "v1", "test-dig", true).Return(t.mockVal, t.mockError)
 
 			// make HTTP request
 			request := httptest.NewRequest("PUT", "/v2/projects/test-project/composite-apps/test-compositeapp/v1/deployment-intent-groups/test-dig/network-controller-intent/"+t.inputName, t.inputReader)
@@ -343,7 +344,7 @@ var _ = Describe("Netcontrolintenthandler", func() {
 	DescribeTable("Get List NetControlIntent tests",
 		func(t testCase) {
 			// set up client mock responses
-			t.client.On("GetNetControlIntents", "test-project", "test-compositeapp", "v1", "test-dig").Return(t.mockVals, t.mockError)
+			t.client.On("GetNetControlIntents", mock.Anything, "test-project", "test-compositeapp", "v1", "test-dig").Return(t.mockVals, t.mockError)
 
 			// make HTTP request
 			request := httptest.NewRequest("GET", "/v2/projects/test-project/composite-apps/test-compositeapp/v1/deployment-intent-groups/test-dig/network-controller-intent", nil)
@@ -400,7 +401,7 @@ var _ = Describe("Netcontrolintenthandler", func() {
 	DescribeTable("Get NetControlIntent tests",
 		func(t testCase) {
 			// set up client mock responses
-			t.client.On("GetNetControlIntent", t.inputName, "test-project", "test-compositeapp", "v1", "test-dig").Return(t.mockVal, t.mockError)
+			t.client.On("GetNetControlIntent", mock.Anything, t.inputName, "test-project", "test-compositeapp", "v1", "test-dig").Return(t.mockVal, t.mockError)
 
 			// make HTTP request
 			request := httptest.NewRequest("GET", "/v2/projects/test-project/composite-apps/test-compositeapp/v1/deployment-intent-groups/test-dig/network-controller-intent/"+t.inputName, nil)
@@ -450,7 +451,7 @@ var _ = Describe("Netcontrolintenthandler", func() {
 	DescribeTable("Delete NetControlIntent tests",
 		func(t testCase) {
 			// set up client mock responses
-			t.client.On("DeleteNetControlIntent", t.inputName, "test-project", "test-compositeapp", "v1", "test-dig").Return(t.mockError)
+			t.client.On("DeleteNetControlIntent", mock.Anything, t.inputName, "test-project", "test-compositeapp", "v1", "test-dig").Return(t.mockError)
 
 			// make HTTP request
 			request := httptest.NewRequest("DELETE", "/v2/projects/test-project/composite-apps/test-compositeapp/v1/deployment-intent-groups/test-dig/network-controller-intent/"+t.inputName, nil)

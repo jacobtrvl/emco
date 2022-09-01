@@ -3,6 +3,7 @@
 package mocks
 
 import (
+	"context"
 	module "gitlab.com/project-emco/core/emco-base/src/ovnaction/pkg/module"
 	mock "github.com/stretchr/testify/mock"
 )
@@ -13,8 +14,8 @@ type WorkloadIntentManager struct {
 }
 
 // CreateWorkloadIntent provides a mock function with given fields: wi, project, compositeapp, compositeappversion, dig, netcontrolintent, exists
-func (_m *WorkloadIntentManager) CreateWorkloadIntent(wi module.WorkloadIntent, project string, compositeapp string, compositeappversion string, dig string, netcontrolintent string, exists bool) (module.WorkloadIntent, error) {
-	ret := _m.Called(wi, project, compositeapp, compositeappversion, dig, netcontrolintent, exists)
+func (_m *WorkloadIntentManager) CreateWorkloadIntent(ctx context.Context, wi module.WorkloadIntent, project string, compositeapp string, compositeappversion string, dig string, netcontrolintent string, exists bool) (module.WorkloadIntent, error) {
+	ret := _m.Called(ctx, wi, project, compositeapp, compositeappversion, dig, netcontrolintent, exists)
 
 	var r0 module.WorkloadIntent
 	if rf, ok := ret.Get(0).(func(module.WorkloadIntent, string, string, string, string, string, bool) module.WorkloadIntent); ok {
@@ -34,8 +35,8 @@ func (_m *WorkloadIntentManager) CreateWorkloadIntent(wi module.WorkloadIntent, 
 }
 
 // DeleteWorkloadIntent provides a mock function with given fields: name, project, compositeapp, compositeappversion, dig, netcontrolintent
-func (_m *WorkloadIntentManager) DeleteWorkloadIntent(name string, project string, compositeapp string, compositeappversion string, dig string, netcontrolintent string) error {
-	ret := _m.Called(name, project, compositeapp, compositeappversion, dig, netcontrolintent)
+func (_m *WorkloadIntentManager) DeleteWorkloadIntent(ctx context.Context, name string, project string, compositeapp string, compositeappversion string, dig string, netcontrolintent string) error {
+	ret := _m.Called(ctx, name, project, compositeapp, compositeappversion, dig, netcontrolintent)
 
 	var r0 error
 	if rf, ok := ret.Get(0).(func(string, string, string, string, string, string) error); ok {
@@ -48,8 +49,8 @@ func (_m *WorkloadIntentManager) DeleteWorkloadIntent(name string, project strin
 }
 
 // GetWorkloadIntent provides a mock function with given fields: name, project, compositeapp, compositeappversion, dig, netcontrolintent
-func (_m *WorkloadIntentManager) GetWorkloadIntent(name string, project string, compositeapp string, compositeappversion string, dig string, netcontrolintent string) (module.WorkloadIntent, error) {
-	ret := _m.Called(name, project, compositeapp, compositeappversion, dig, netcontrolintent)
+func (_m *WorkloadIntentManager) GetWorkloadIntent(ctx context.Context, name string, project string, compositeapp string, compositeappversion string, dig string, netcontrolintent string) (module.WorkloadIntent, error) {
+	ret := _m.Called(ctx, name, project, compositeapp, compositeappversion, dig, netcontrolintent)
 
 	var r0 module.WorkloadIntent
 	if rf, ok := ret.Get(0).(func(string, string, string, string, string, string) module.WorkloadIntent); ok {
@@ -69,8 +70,8 @@ func (_m *WorkloadIntentManager) GetWorkloadIntent(name string, project string, 
 }
 
 // GetWorkloadIntents provides a mock function with given fields: project, compositeapp, compositeappversion, dig, netcontrolintent
-func (_m *WorkloadIntentManager) GetWorkloadIntents(project string, compositeapp string, compositeappversion string, dig string, netcontrolintent string) ([]module.WorkloadIntent, error) {
-	ret := _m.Called(project, compositeapp, compositeappversion, dig, netcontrolintent)
+func (_m *WorkloadIntentManager) GetWorkloadIntents(ctx context.Context, project string, compositeapp string, compositeappversion string, dig string, netcontrolintent string) ([]module.WorkloadIntent, error) {
+	ret := _m.Called(ctx, project, compositeapp, compositeappversion, dig, netcontrolintent)
 
 	var r0 []module.WorkloadIntent
 	if rf, ok := ret.Get(0).(func(string, string, string, string, string) []module.WorkloadIntent); ok {
