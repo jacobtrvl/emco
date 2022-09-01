@@ -3,6 +3,7 @@
 package mocks
 
 import (
+	"context"
 	testing "testing"
 
 	mock "github.com/stretchr/testify/mock"
@@ -15,8 +16,8 @@ type WorkflowIntentManager struct {
 }
 
 // CancelWorkflowIntent provides a mock function with given fields: name, project, cApp, cAppVer, dig, req
-func (_m *WorkflowIntentManager) CancelWorkflowIntent(name string, project string, cApp string, cAppVer string, dig string, req *module.WfTemporalCancelRequest) error {
-	ret := _m.Called(name, project, cApp, cAppVer, dig, req)
+func (_m *WorkflowIntentManager) CancelWorkflowIntent(ctx context.Context, name string, project string, cApp string, cAppVer string, dig string, req *module.WfTemporalCancelRequest) error {
+	ret := _m.Called(ctx, name, project, cApp, cAppVer, dig, req)
 
 	var r0 error
 	if rf, ok := ret.Get(0).(func(string, string, string, string, string, *module.WfTemporalCancelRequest) error); ok {
@@ -29,8 +30,8 @@ func (_m *WorkflowIntentManager) CancelWorkflowIntent(name string, project strin
 }
 
 // CreateWorkflowIntent provides a mock function with given fields: wfi, project, cApp, cAppVer, dig, exists
-func (_m *WorkflowIntentManager) CreateWorkflowIntent(wfi module.WorkflowIntent, project string, cApp string, cAppVer string, dig string, exists bool) (module.WorkflowIntent, error) {
-	ret := _m.Called(wfi, project, cApp, cAppVer, dig, exists)
+func (_m *WorkflowIntentManager) CreateWorkflowIntent(ctx context.Context, wfi module.WorkflowIntent, project string, cApp string, cAppVer string, dig string, exists bool) (module.WorkflowIntent, error) {
+	ret := _m.Called(ctx, wfi, project, cApp, cAppVer, dig, exists)
 
 	var r0 module.WorkflowIntent
 	if rf, ok := ret.Get(0).(func(module.WorkflowIntent, string, string, string, string, bool) module.WorkflowIntent); ok {
@@ -50,8 +51,8 @@ func (_m *WorkflowIntentManager) CreateWorkflowIntent(wfi module.WorkflowIntent,
 }
 
 // DeleteWorkflowIntent provides a mock function with given fields: name, project, cApp, cAppVer, dig
-func (_m *WorkflowIntentManager) DeleteWorkflowIntent(name string, project string, cApp string, cAppVer string, dig string) error {
-	ret := _m.Called(name, project, cApp, cAppVer, dig)
+func (_m *WorkflowIntentManager) DeleteWorkflowIntent(ctx context.Context, name string, project string, cApp string, cAppVer string, dig string) error {
+	ret := _m.Called(ctx, name, project, cApp, cAppVer, dig)
 
 	var r0 error
 	if rf, ok := ret.Get(0).(func(string, string, string, string, string) error); ok {
@@ -64,8 +65,8 @@ func (_m *WorkflowIntentManager) DeleteWorkflowIntent(name string, project strin
 }
 
 // GetStatusWorkflowIntent provides a mock function with given fields: name, project, cApp, cAppVer, dig, query
-func (_m *WorkflowIntentManager) GetStatusWorkflowIntent(name string, project string, cApp string, cAppVer string, dig string, query *module.WfTemporalStatusQuery) (*module.WfTemporalStatusResponse, error) {
-	ret := _m.Called(name, project, cApp, cAppVer, dig, query)
+func (_m *WorkflowIntentManager) GetStatusWorkflowIntent(ctx context.Context, name string, project string, cApp string, cAppVer string, dig string, query *module.WfTemporalStatusQuery) (*module.WfTemporalStatusResponse, error) {
+	ret := _m.Called(ctx, name, project, cApp, cAppVer, dig, query)
 
 	var r0 *module.WfTemporalStatusResponse
 	if rf, ok := ret.Get(0).(func(string, string, string, string, string, *module.WfTemporalStatusQuery) *module.WfTemporalStatusResponse); ok {
@@ -87,8 +88,8 @@ func (_m *WorkflowIntentManager) GetStatusWorkflowIntent(name string, project st
 }
 
 // GetWorkflowIntent provides a mock function with given fields: name, project, cApp, cAppVer, dig
-func (_m *WorkflowIntentManager) GetWorkflowIntent(name string, project string, cApp string, cAppVer string, dig string) (module.WorkflowIntent, error) {
-	ret := _m.Called(name, project, cApp, cAppVer, dig)
+func (_m *WorkflowIntentManager) GetWorkflowIntent(ctx context.Context, name string, project string, cApp string, cAppVer string, dig string) (module.WorkflowIntent, error) {
+	ret := _m.Called(ctx, name, project, cApp, cAppVer, dig)
 
 	var r0 module.WorkflowIntent
 	if rf, ok := ret.Get(0).(func(string, string, string, string, string) module.WorkflowIntent); ok {
@@ -108,8 +109,8 @@ func (_m *WorkflowIntentManager) GetWorkflowIntent(name string, project string, 
 }
 
 // GetWorkflowIntents provides a mock function with given fields: project, cApp, cAppVer, dig
-func (_m *WorkflowIntentManager) GetWorkflowIntents(project string, cApp string, cAppVer string, dig string) ([]module.WorkflowIntent, error) {
-	ret := _m.Called(project, cApp, cAppVer, dig)
+func (_m *WorkflowIntentManager) GetWorkflowIntents(ctx context.Context, project string, cApp string, cAppVer string, dig string) ([]module.WorkflowIntent, error) {
+	ret := _m.Called(ctx, project, cApp, cAppVer, dig)
 
 	var r0 []module.WorkflowIntent
 	if rf, ok := ret.Get(0).(func(string, string, string, string) []module.WorkflowIntent); ok {
@@ -131,8 +132,8 @@ func (_m *WorkflowIntentManager) GetWorkflowIntents(project string, cApp string,
 }
 
 // StartWorkflowIntent provides a mock function with given fields: name, project, cApp, cAppVer, dig
-func (_m *WorkflowIntentManager) StartWorkflowIntent(name string, project string, cApp string, cAppVer string, dig string) error {
-	ret := _m.Called(name, project, cApp, cAppVer, dig)
+func (_m *WorkflowIntentManager) StartWorkflowIntent(ctx context.Context, name string, project string, cApp string, cAppVer string, dig string) error {
+	ret := _m.Called(ctx, name, project, cApp, cAppVer, dig)
 
 	var r0 error
 	if rf, ok := ret.Get(0).(func(string, string, string, string, string) error); ok {

@@ -37,7 +37,8 @@ func NewRouter(testClient interface{}) *mux.Router {
 
 	moduleClient = moduleLib.NewClient()
 
-	router := mux.NewRouter().PathPrefix("/v2").Subrouter()
+	router := mux.NewRouter()
+	v2Router := router.PathPrefix("/v2").Subrouter()
 
 	wfIntentHandler := workflowIntentHandler{
 		client: setClient(moduleClient.WorkflowIntentClient, testClient).(moduleLib.WorkflowIntentManager),
@@ -51,13 +52,13 @@ func NewRouter(testClient interface{}) *mux.Router {
 	statusUrl := nameUrl + "/status"
 	cancelUrl := nameUrl + "/cancel"
 
-	router.HandleFunc(baseUrl, wfIntentHandler.createHandler).Methods("POST")
-	router.HandleFunc(baseUrl, wfIntentHandler.getHandler).Methods("GET")
-	router.HandleFunc(nameUrl, wfIntentHandler.getHandler).Methods("GET")
-	router.HandleFunc(nameUrl, wfIntentHandler.deleteHandler).Methods("DELETE")
-	router.HandleFunc(startUrl, wfIntentHandler.startHandler).Methods("POST")
-	router.HandleFunc(statusUrl, wfIntentHandler.statusHandler).Methods("GET")
-	router.HandleFunc(cancelUrl, wfIntentHandler.cancelHandler).Methods("POST")
+	v2Router.HandleFunc(baseUrl, wfIntentHandler.createHandler).Methods("POST")
+	v2Router.HandleFunc(baseUrl, wfIntentHandler.getHandler).Methods("GET")
+	v2Router.HandleFunc(nameUrl, wfIntentHandler.getHandler).Methods("GET")
+	v2Router.HandleFunc(nameUrl, wfIntentHandler.deleteHandler).Methods("DELETE")
+	v2Router.HandleFunc(startUrl, wfIntentHandler.startHandler).Methods("POST")
+	v2Router.HandleFunc(statusUrl, wfIntentHandler.statusHandler).Methods("GET")
+	v2Router.HandleFunc(cancelUrl, wfIntentHandler.cancelHandler).Methods("POST")
 
 	return router
 }

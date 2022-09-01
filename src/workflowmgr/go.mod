@@ -3,7 +3,6 @@ module gitlab.com/project-emco/core/emco-base/src/workflowmgr
 require (
 	github.com/felixge/httpsnoop v1.0.2 // indirect
 	github.com/go-stack/stack v1.8.1 // indirect
-	github.com/gorilla/handlers v1.5.1
 	github.com/gorilla/mux v1.8.0
 	github.com/klauspost/compress v1.15.0 // indirect
 	github.com/onsi/ginkgo v1.16.5

@@ -7,22 +7,20 @@ import (
 	"context"
 	"log"
 	"math/rand"
-	"net/http"
 	"os"
 	"os/signal"
 	"time"
 
-	"github.com/gorilla/handlers"
-
-	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/config"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
+	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/module/controller"
 	"gitlab.com/project-emco/core/emco-base/src/workflowmgr/api"
 )
 
 func main() {
+	ctx := context.Background()
 	rand.Seed(time.Now().UnixNano())
 
-	err := db.InitializeDatabaseConnection(context.Background(), "emco")
+	err := db.InitializeDatabaseConnection(ctx, "emco")
 	if err != nil {
 		log.Println("Unable to initialize mongo database connection...")
 		log.Println(err)
@@ -30,25 +28,24 @@ func main() {
 	}
 	// workflowmgr does not update appcontext
 
-	httpRouter := api.NewRouter(nil)
-	loggedRouter := handlers.LoggingHandler(os.Stdout, httpRouter)
-	log.Println("Starting Workflow Manager")
-
-	httpServer := &http.Server{
-		Handler: loggedRouter,
-		Addr:    ":" + config.GetConfiguration().ServicePort,
+	server, err := controller.NewControllerServer("orchestrator",
+		api.NewRouter(nil),
+		nil)
+	if err != nil {
+		log.Println("Unable to create server...")
+		log.Println(err)
+		log.Fatalln("Exiting...")
 	}
-	log.Printf("workflowmgr HTTP server will listen at endpoint: %s", httpServer.Addr)
 
 	connectionsClose := make(chan struct{})
 	go func() {
 		c := make(chan os.Signal, 1)
 		signal.Notify(c, os.Interrupt)
 		<-c
-		httpServer.Shutdown(context.Background())
+		server.Shutdown(ctx)
 		close(connectionsClose)
 	}()
 
-	err = httpServer.ListenAndServe()
+	err = server.ListenAndServe()
 	log.Printf("HTTP server returned error: %s", err)
 }

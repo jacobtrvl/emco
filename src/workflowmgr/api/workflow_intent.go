@@ -25,6 +25,7 @@ var wfiJSONFile string = "json-schemas/workflow_intent.json"
 var crJSONFile string = "json-schemas/cancel_request.json"
 
 func (h workflowIntentHandler) createHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	var wfi moduleLib.WorkflowIntent
 	vars := mux.Vars(r)
 	project := vars["project"]
@@ -59,7 +60,7 @@ func (h workflowIntentHandler) createHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	ret, err := h.client.CreateWorkflowIntent(wfi, project, cApp, cAppVer, dig, false)
+	ret, err := h.client.CreateWorkflowIntent(ctx, wfi, project, cApp, cAppVer, dig, false)
 	if err != nil {
 		//apiErr := apierror.HandleErrors(vars, err, wfi, apiErrors)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -81,6 +82,7 @@ func (h workflowIntentHandler) createHandler(w http.ResponseWriter, r *http.Requ
 }
 
 func (h workflowIntentHandler) getHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	var ret interface{}
 	var err error
 
@@ -96,9 +98,9 @@ func (h workflowIntentHandler) getHandler(w http.ResponseWriter, r *http.Request
 	})
 
 	if len(name) == 0 {
-		ret, err = h.client.GetWorkflowIntents(project, cApp, cAppVer, dig)
+		ret, err = h.client.GetWorkflowIntents(ctx, project, cApp, cAppVer, dig)
 	} else {
-		ret, err = h.client.GetWorkflowIntent(name, project, cApp, cAppVer, dig)
+		ret, err = h.client.GetWorkflowIntent(ctx, name, project, cApp, cAppVer, dig)
 	}
 
 	if err != nil {
@@ -124,6 +126,7 @@ func (h workflowIntentHandler) getHandler(w http.ResponseWriter, r *http.Request
 }
 
 func (h workflowIntentHandler) deleteHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	name := vars["workflow-intent-name"]
 	project := vars["project"]
@@ -135,7 +138,7 @@ func (h workflowIntentHandler) deleteHandler(w http.ResponseWriter, r *http.Requ
 		"project": project, "cApp": cApp, "cAppVer": cAppVer, "dig": dig,
 	})
 
-	err := h.client.DeleteWorkflowIntent(name, project, cApp, cAppVer, dig)
+	err := h.client.DeleteWorkflowIntent(ctx, name, project, cApp, cAppVer, dig)
 	if err != nil {
 		log.Error(":: Error deleting workflow intent::",
 			log.Fields{"Error": err, "name": name, "project": project, "cApp": cApp, "cAppVer": cAppVer, "dig": dig})
@@ -151,6 +154,7 @@ func (h workflowIntentHandler) deleteHandler(w http.ResponseWriter, r *http.Requ
 }
 
 func (h workflowIntentHandler) startHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	name := vars["workflow-intent-name"]
 	project := vars["project"]
@@ -160,7 +164,7 @@ func (h workflowIntentHandler) startHandler(w http.ResponseWriter, r *http.Reque
 
 	log.Info("startHandler API start", log.Fields{"name": name,
 		"project": project, "cApp": cApp, "cAppVer": cAppVer, "dig": dig})
-	err := h.client.StartWorkflowIntent(name, project, cApp, cAppVer, dig)
+	err := h.client.StartWorkflowIntent(ctx, name, project, cApp, cAppVer, dig)
 	if err != nil {
 		log.Error(":: Error starting workflow intent ::",
 			log.Fields{"Error": err, "name": name, "project": project, "cApp": cApp, "cAppVer": cAppVer, "dig": dig})
@@ -174,6 +178,7 @@ func (h workflowIntentHandler) startHandler(w http.ResponseWriter, r *http.Reque
 }
 
 func (h workflowIntentHandler) statusHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	name := vars["workflow-intent-name"]
 	project := vars["project"]
@@ -200,7 +205,7 @@ func (h workflowIntentHandler) statusHandler(w http.ResponseWriter, r *http.Requ
 		"queryType":         query.QueryType, "queryParams": query.QueryParams,
 	})
 
-	ret, err := h.client.GetStatusWorkflowIntent(name,
+	ret, err := h.client.GetStatusWorkflowIntent(ctx, name,
 		project, cApp, cAppVer, dig, query)
 	if err != nil {
 		errmsg := "failed to get workflow status"
@@ -296,6 +301,7 @@ func buildStatusQuery(r *http.Request) (*moduleLib.WfTemporalStatusQuery, error)
 }
 
 func (h workflowIntentHandler) cancelHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	var cancelReq moduleLib.WfTemporalCancelRequest
 
 	vars := mux.Vars(r)
@@ -350,7 +356,7 @@ func (h workflowIntentHandler) cancelHandler(w http.ResponseWriter, r *http.Requ
 		"cancelReq": cancelReq,
 	})
 
-	err = h.client.CancelWorkflowIntent(name, project, cApp, cAppVer, dig, &cancelReq)
+	err = h.client.CancelWorkflowIntent(ctx, name, project, cApp, cAppVer, dig, &cancelReq)
 	if err != nil {
 		errmsg := ":: Error cancelling workflow::"
 		if cancelReq.Spec.Terminate {
