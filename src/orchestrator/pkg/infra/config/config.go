@@ -101,8 +101,8 @@ func defaultConfiguration() *Configuration {
 		GrpcCAFile:             "",
 		GrpcEnableTLS:          "disable",
 		GrpcServerNameOverride: "",
-		ServicePort:            "9015",
-		KubernetesLabelName:    "orchestrator.io/rb-instance-id",
+		ServicePort:            "",
+		KubernetesLabelName:    "",
 		LogLevel:               "warn", // default log-level of all modules
 		MaxRetries:             "",     // rsync
 		BackOff:                5,      // default backoff time interval for ref schema
