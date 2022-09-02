@@ -11,7 +11,6 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"strconv"
 	"sync"
 
 	"github.com/gorilla/handlers"
@@ -19,7 +18,6 @@ import (
 	pkgerrors "github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/soheilhy/cmux"
 	register "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/grpc"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/config"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
@@ -221,87 +219,69 @@ func NewControllerServer(name string, httpRouter *mux.Router, grpcServer *regist
 	prometheus.MustRegister(metrics.NewBuildInfoCollector(name))
 
 	httpServerPort := config.GetConfiguration().ServicePort
+	if httpServerPort == "" {
+		return nil, errors.New("NewControllerServer: must configure a \"service-port\"")
+	}
 	if httpRouter == nil {
-		httpServerPort = strconv.Itoa(grpcServer.Port)
 		httpRouter = mux.NewRouter()
 	}
 	httpServer, err := newHttpServer(httpServerPort, httpRouter)
 	if err != nil {
-		log.Error("Unable to create API server", log.Fields{"Error": err})
+		log.Error("Unable to create HTTP server", log.Fields{"Error": err})
 		return nil, err
 	}
 
 	return &ControllerServer{
 		ListenAndServe: func() error {
-			if grpcServer != nil && strconv.Itoa(grpcServer.Port) == httpServerPort {
-				log.Info("Starting server", log.Fields{"Port": httpServerPort})
-				lis, err := net.Listen("tcp", ":"+httpServerPort)
+			log.Info("Starting HTTP server", log.Fields{"Port": httpServerPort})
+			httpLis, err := net.Listen("tcp", ":"+httpServerPort)
+			if err != nil {
+				log.Error("Could not listen on HTTP port", log.Fields{"Error": err, "Port": httpServerPort})
+				return err
+			}
+
+			var grpcLis net.Listener
+			if grpcServer != nil {
+				log.Info("Starting gRPC server", log.Fields{"Port": grpcServer.Port})
+				grpcLis, err = net.Listen("tcp", fmt.Sprintf(":%d", grpcServer.Port))
 				if err != nil {
-					log.Error("Could not listen on port", log.Fields{"Error": err, "Port": httpServerPort})
+					log.Error("Could not listen on gRPC port", log.Fields{"Error": err, "Port": grpcServer.Port})
 					return err
 				}
+			}
 
-				m := cmux.New(lis)
-				grpcLis := m.Match(cmux.HTTP2HeaderField("content-type", "application/grpc"))
-				httpLis := m.Match(cmux.HTTP1Fast())
-
-				go grpcServer.Serve(grpcLis)
-				go httpServer.Serve(httpLis)
-
-				err = m.Serve()
+			var wg sync.WaitGroup
+			wg.Add(1)
+			go func() {
+				err = httpServer.Serve(httpLis)
 				if err != nil {
-					log.Error("Server stopped", log.Fields{"Error": err})
-					return err
+					log.Error("HTTP server stopped", log.Fields{"Error": err})
 				}
-			} else {
-				log.Info("Starting API server", log.Fields{"Port": httpServerPort})
-				httpLis, err := net.Listen("tcp", ":"+httpServerPort)
-				if err != nil {
-					log.Error("Could not listen on API port", log.Fields{"Error": err, "Port": httpServerPort})
-					return err
-				}
-
-				var grpcLis net.Listener
-				if grpcServer != nil {
-					log.Info("Starting gRPC server", log.Fields{"Port": grpcServer.Port})
-					grpcLis, err = net.Listen("tcp", fmt.Sprintf(":%d", grpcServer.Port))
-					if err != nil {
-						log.Error("Could not listen on gRPC port", log.Fields{"Error": err, "Port": grpcServer.Port})
-						return err
-					}
-				}
-
-				var wg sync.WaitGroup
+				wg.Done()
+			}()
+			if grpcServer != nil {
 				wg.Add(1)
 				go func() {
-					err = httpServer.Serve(httpLis)
+					err = grpcServer.Serve(grpcLis)
 					if err != nil {
-						log.Error("API server stopped", log.Fields{"Error": err})
+						log.Error("gRPC server stopped", log.Fields{"Error": err})
 					}
 					wg.Done()
 				}()
-				if grpcServer != nil {
-					wg.Add(1)
-					go func() {
-						err = grpcServer.Serve(grpcLis)
-						if err != nil {
-							log.Error("gRPC server stopped", log.Fields{"Error": err})
-						}
-						wg.Done()
-					}()
-				}
-				wg.Wait()
 			}
+			wg.Wait()
 			return nil
 		},
 		Shutdown: func(ctx context.Context) error {
-			err = grpcServer.Shutdown(ctx)
-			if err != nil {
-				log.Error("gRPC server shutdown failed", log.Fields{"Error": err})
+			if grpcServer != nil {
+				err = grpcServer.Shutdown(ctx)
+				if err != nil {
+					log.Error("gRPC server shutdown failed", log.Fields{"Error": err})
+				}
 			}
 			err = httpServer.Shutdown(ctx)
 			if err != nil {
-				log.Error("API server shutdown failed", log.Fields{"Error": err})
+				log.Error("HTTP server shutdown failed", log.Fields{"Error": err})
 			}
 			return err
 		},
