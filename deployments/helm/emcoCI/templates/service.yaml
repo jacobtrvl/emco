@@ -91,6 +91,11 @@ spec:
     nodePort: 30431
     protocol: TCP
     targetPort: 9031
+  - name: http
+    port: 9023
+    nodePort: 30423
+    protocol: TCP
+    targetPort: 9023
 
 ---
 

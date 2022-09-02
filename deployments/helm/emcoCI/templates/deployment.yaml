@@ -327,6 +327,7 @@ spec:
           workingDir: /opt/emco/rsync
           ports:
           - containerPort: 9031
+          - containerPort: 9023
           volumeMounts:
           - name: config
             mountPath: /opt/emco/rsync/config.json

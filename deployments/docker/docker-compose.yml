@@ -223,9 +223,8 @@ services:
     image: ${REGISTRY_PREFIX}emco-rsync${TAG}
     networks:
       - emconet
-    expose:
-      - "9031"
     ports:
+      - 9023:9023
       - 9031:9031
     environment:
       - no_proxy=etcd,mongo,${NO_PROXY}

@@ -55,6 +55,14 @@ service:
   externalPort: 9031
   nodePort: 31
 
+serviceInternal:
+  type: NodePort
+  name: rsync
+  portName: rsync-service
+  internalPort: 9023
+  externalPort: 9023
+  nodePort: 23
+
 ingress:
   enabled: false
 
@@ -80,5 +88,5 @@ resources:
 podAnnotations:
   # The metrics use the same port as the service
   prometheus.io/path: /metrics
-  prometheus.io/port: "9031"
+  prometheus.io/port: "9023"
   prometheus.io/scrape: "true"
