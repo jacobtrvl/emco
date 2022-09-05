@@ -1,0 +1,6 @@
+#!/bin/sh
+# Workaround for running both dbhelpe and sacontroller in same container
+./dbhelper &
+./sacontroller &
+wait -n
+exit $?

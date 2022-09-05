@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-metricscollector
+  namespace: {{ .Release.Namespace }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: metricscollector
+  template:
+    metadata:
+      labels:
+        app: metricscollector
+    spec:
+      serviceAccountName: metricscollector
+      containers:
+        - name: metricscollector
+          # Replace this with the built image name
+          #image: emcov2/monitor:latest
+          image: {{ .Values.registryPrefix }}emco-metricscollector:{{ .Values.tag }}
+          command:
+          - "./metricscollector"
+          args: 
+          - "-agentid"
+          - "EMCOTEST1"
+                  #- "-agentid"
+                  #- "EMCOTEST1"
+          imagePullPolicy: Always
+          env:
+            - name: NO_PROXY
+              value: {{ .Values.noProxyHosts }}
+            - name: no_proxy
+              value: {{ .Values.noProxyHosts }}
+            - name: http_proxy
+              value: {{ .Values.httpProxy }}
+            - name: https_proxy
+              value: {{ .Values.httpsProxy }}
+            - name: HTTP_PROXY
+              value: {{ .Values.httpProxy }}
+            - name: HTTPS_PROXY
+              value: {{ .Values.httpsProxy }}
+            - name: WATCH_NAMESPACE
+              value: ""
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: OPERATOR_NAME
+              value: "metricscollector"
