@@ -1,0 +1,17 @@
+ARG MAINDOCKERREPO
+ARG SERVICE_BASE_IMAGE_NAME
+ARG SERVICE_BASE_IMAGE_VERSION
+
+FROM ${MAINDOCKERREPO}${SERVICE_BASE_IMAGE_NAME}:${SERVICE_BASE_IMAGE_VERSION}
+
+WORKDIR /opt/emco/metricscollector
+
+RUN addgroup -S emco && adduser -S -G emco emco
+RUN chown emco:emco . -R
+
+COPY --chown=emco metricscollector ./
+RUN chown emco:emco . -R
+
+USER emco
+
+ENTRYPOINT ["./metricscollector", "-agentid", "EMCOTEST"]

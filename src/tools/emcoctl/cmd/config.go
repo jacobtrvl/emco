@@ -27,6 +27,7 @@ type EmcoConfigurations struct {
 	WorkflowMgr  ControllerConfigurations
 	Tac          ControllerConfigurations
 	CaCert       ControllerConfigurations
+	Policy       ControllerConfigurations
 }
 
 // ControllerConfigurations exported
@@ -72,6 +73,8 @@ func SetDefaultConfiguration() {
 	Configurations.Tac.Port = 9064
 	Configurations.CaCert.Host = "localhost"
 	Configurations.CaCert.Port = 9036
+	Configurations.Policy.Host = "localhost"
+	Configurations.Policy.Port = 9065
 }
 
 // GetIngressURL Url for Ingress
@@ -293,4 +296,19 @@ func GetCaCertUrl() string {
 		os.Exit(1)
 	}
 	return urlPrefix + Configurations.CaCert.Host + ":" + strconv.Itoa(Configurations.CaCert.Port) + "/" + urlVersion
+}
+
+
+// GetPolicyUrl construct the baseUrl for policy controller
+func GetPolicyURL() string {
+	// If Ingress is available use that url
+	if s := GetIngressURL(); s != "" {
+		return s
+	}
+	if Configurations.Policy.Host == "" || Configurations.Policy.Port == 0 {
+		fmt.Println("Fatal: No TAC Information in Config File!")
+		// Exit executing
+		os.Exit(1)
+	}
+	return urlPrefix + net.JoinHostPort(Configurations.Policy.Host, strconv.Itoa(Configurations.Policy.Port)) + "/" + urlVersion
 }

@@ -1,0 +1,10 @@
+registryPrefix:
+tag:
+
+workingDir: /opt/emco/metricscollector
+git:
+  enabled: false
+
+noProxyHosts: ""
+httpProxy: ""
+httpsProxy: ""

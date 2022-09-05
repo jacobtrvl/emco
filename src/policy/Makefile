@@ -1,22 +1,25 @@
-all: clean
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
-	go build -tags netgo -o sacontroller ./cmd/sacontroller/main.go
+all: 
+	$(MAKE) -C dbhelper all
+	$(MAKE) -C sacontroller all
+	cp run_policy ../../bin/policy/run_policy 
 
 build: clean test cover
 deploy: build
 
 .PHONY: test
-test: clean
-	@go test -race ./...
+test: 
+	$(MAKE) -C dbhelper test
+	$(MAKE) -C sacontroller test
 
 format:
-	@go fmt ./...
+	$(MAKE) -C dbhelper format
+	$(MAKE) -C sacontroller format
 
 clean:
-	@find . -name "*so" -delete
-	 @rm -f sacontroller coverage.html coverage.out
+	$(MAKE) -C dbhelper clean
+	$(MAKE) -C sacontroller clean
 
 .PHONY: cover
 cover:
-	@go test -race ./... -coverprofile=coverage.out
-	@go tool cover -html=coverage.out -o coverage.html
+	$(MAKE) -C dbhelper cover
+	$(MAKE) -C sacontroller cover

@@ -1,0 +1,81 @@
+#################################################################
+# Global configuration defaults.
+#################################################################
+global:
+  nodePortPrefixExt: 304
+  persistence: {}
+#################################################################
+# Application configuration defaults.
+#################################################################
+# application image
+repository:
+image: emco-policy
+imageTag:
+pullPolicy: Always
+args: ""
+command: "./run_policy"
+workingDir: /opt/emco/policy
+
+# flag to enable debugging - application support required
+debugEnabled: false
+
+# application configuration is via config files
+
+# default number of instances
+replicaCount: 1
+
+nodeSelector: {}
+
+affinity: {}
+
+
+# probe configuration parameters
+liveness:
+  initialDelaySeconds: 10
+  periodSeconds: 30
+  # necessary to disable liveness probe when setting breakpoints
+  # in debugger so K8s doesn't restart unresponsive container
+  enabled: false
+
+readiness:
+  initialDelaySeconds: 10
+  periodSeconds: 30
+  enabled: false
+
+service:
+  type: NodePort
+  name: policy
+  portName: policy-service
+  internalPort: 9060
+  externalPort: 9060
+  nodePort: 60
+
+serviceInternal:
+  type: NodePort
+  name: policy
+  portName: policy-status
+  internalPort: 9062
+  externalPort: 9062
+  nodePort: 62
+
+ingress:
+  enabled: false
+
+# Configure resource requests and limits
+flavor: large
+resources:
+  small:
+    limits:
+      cpu: 200m
+      memory: 500Mi
+    requests:
+      cpu: 10m
+      memory: 10Mi
+  large:
+    limits:
+      cpu: 400m
+      memory: 1Gi
+    requests:
+      cpu: 10m
+      memory: 100Mi
+  unlimited: {}
