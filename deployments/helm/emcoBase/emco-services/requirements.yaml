@@ -53,3 +53,6 @@ dependencies:
   - name: workflowmgr
     version: ~0.x-0
     repository: 'file://../workflowmgr'
+  - name: policy
+    version: ~0.x-0
+    repository: 'file://../policy'
