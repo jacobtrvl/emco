@@ -1,0 +1,9 @@
+apiVersion: edgemetricscollector.k8splugin.io/v1alpha1
+kind: MetricsCollector
+metadata:
+  name: metricscollector-example
+spec:
+  agentName: example-foo-agent
+  metricList:
+    - "cpu_load_average_10s"
+    - "memory_usage_bytes"

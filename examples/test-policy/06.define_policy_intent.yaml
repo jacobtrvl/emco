@@ -1,0 +1,18 @@
+#create the workflow intent
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.CompositeApp}}/v1/deployment-intent-groups/{{.DeploymentIntent}}/policy-intents/migrate-on-memory-policy
+metadata:
+  name: policy
+  description: 'Migrate policy intent'
+spec:
+  policy:
+    engineUrl: '172.31.82.234:8181/v1'
+    namespace: emco
+    policyName: data
+  actor: temporal
+  actorArg:
+    workFlowName: {{.DeploymentIntent}}-workflow-intent
+  event:
+    agent: ''
+    id: memory_usage_bytes

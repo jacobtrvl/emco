@@ -1,0 +1,5 @@
+#create the workflow intent
+version: emco/v2
+resourceContext:
+  anchor: policy/agents/sampleagent
+addr: '10.111.253.19:9091'
