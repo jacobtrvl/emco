@@ -67,3 +67,6 @@ dependencies:
   - name: tac
     version: "1.0.0"
     repository: 'file://../tac'
+  - name: policy
+    version: "1.0.0"
+    repository: 'file://../policy'

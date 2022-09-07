@@ -74,7 +74,7 @@ func SetDefaultConfiguration() {
 	Configurations.CaCert.Host = "localhost"
 	Configurations.CaCert.Port = 9036
 	Configurations.Policy.Host = "localhost"
-	Configurations.Policy.Port = 9065
+	Configurations.Policy.Port = 9060
 }
 
 // GetIngressURL Url for Ingress

@@ -13,7 +13,6 @@ COPY --chown=emco sacontroller ./
 COPY --chown=emco dbhelper ./
 COPY --chown=emco run_policy ./
 COPY --chown=emco config.json ./
-COPY --chown=emco ./ref-schemas ./ref-schemas
 
 USER emco
 
