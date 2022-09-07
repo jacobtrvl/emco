@@ -1,4 +1,10 @@
-apiVersion: v1
+apiVersion: v2
 description: Policy Controller
 name: policy
-version: 0.1.0
+version: 1.0.0
+
+dependencies:
+  - name: common
+    version: ~1.x-0
+    repository: 'file://../common'
+

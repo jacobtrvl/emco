@@ -30,7 +30,7 @@ import (
 
 // dbhelper will run as a separate service on same container.
 // Hard-coding the port as a workaround.
-const portToListen = "9090"
+const portToListen = ":9090"
 
 // This is a workaround for backward compatibility issue of etcd library.
 // It is having conflict with generated grpc files

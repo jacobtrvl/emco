@@ -150,5 +150,5 @@ resources:
   - name: policyIntent
     parent: deploymentIntentGroup
   - name: policyModule
-  - name: agentId
+  - name: agent
     parent: policyModule

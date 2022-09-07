@@ -70,3 +70,6 @@ dependencies:
   - name: gitea
     version: "1.0.0"
     repository: 'file://../gitea'
+  - name: policy
+    version: "1.0.0"
+    repository: 'file://../policy'
