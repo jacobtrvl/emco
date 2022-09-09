@@ -16,13 +16,10 @@ import (
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	pkgerrors "github.com/pkg/errors"
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	register "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/grpc"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/config"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
 	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
-	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/metrics"
 	rpc "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/rpc"
 	mtypes "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/module/types"
 )
@@ -41,10 +38,12 @@ type ControllerSpec struct {
 	Priority int    `json:"priority"`
 }
 
-const MinControllerPriority = 1
-const MaxControllerPriority = 1000000
-const CONTROLLER_TYPE_ACTION string = "action"
-const CONTROLLER_TYPE_PLACEMENT string = "placement"
+const (
+	MinControllerPriority            = 1
+	MaxControllerPriority            = 1000000
+	CONTROLLER_TYPE_ACTION    string = "action"
+	CONTROLLER_TYPE_PLACEMENT string = "placement"
+)
 
 var CONTROLLER_TYPES = [...]string{CONTROLLER_TYPE_ACTION, CONTROLLER_TYPE_PLACEMENT}
 
@@ -100,16 +99,15 @@ func NewControllerClient(name, tag, group string) *ControllerClient {
 
 // CreateController a new collection based on the Controller
 func (mc *ControllerClient) CreateController(m Controller, mayExist bool) (Controller, error) {
-
 	log.Info("CreateController .. start", log.Fields{"Controller": m, "exists": mayExist})
 
-	//Construct the composite key to select the entry
+	// Construct the composite key to select the entry
 	key := ControllerKey{
 		ControllerName:  m.Metadata.Name,
 		ControllerGroup: mc.tagGroup,
 	}
 
-	//Check if this Controller already exists
+	// Check if this Controller already exists
 	_, err := mc.GetController(m.Metadata.Name)
 	if err == nil && !mayExist {
 		return Controller{}, pkgerrors.New("Controller already exists")
@@ -129,8 +127,7 @@ func (mc *ControllerClient) CreateController(m Controller, mayExist bool) (Contr
 
 // GetController returns the Controller for corresponding name
 func (mc *ControllerClient) GetController(name string) (Controller, error) {
-
-	//Construct the composite key to select the entry
+	// Construct the composite key to select the entry
 	key := ControllerKey{
 		ControllerName: name,
 	}
@@ -155,8 +152,7 @@ func (mc *ControllerClient) GetController(name string) (Controller, error) {
 
 // GetControllers returns all the  Controllers that are registered
 func (mc *ControllerClient) GetControllers() ([]Controller, error) {
-
-	//Construct the composite key to select the entry
+	// Construct the composite key to select the entry
 	key := ControllerKey{
 		ControllerName:  "",
 		ControllerGroup: mc.tagGroup,
@@ -183,8 +179,7 @@ func (mc *ControllerClient) GetControllers() ([]Controller, error) {
 
 // DeleteController the  Controller from database
 func (mc *ControllerClient) DeleteController(name string) error {
-
-	//Construct the composite key to select the entry
+	// Construct the composite key to select the entry
 	key := ControllerKey{
 		ControllerName:  name,
 		ControllerGroup: mc.tagGroup,
@@ -215,8 +210,6 @@ func NewControllerServer(name string, httpRouter *mux.Router, grpcServer *regist
 	if httpRouter == nil && grpcServer == nil {
 		return nil, errors.New("NewControllerServer: must provide non-nil httpRouter or grpcServer")
 	}
-
-	prometheus.MustRegister(metrics.NewBuildInfoCollector(name))
 
 	httpServerPort := config.GetConfiguration().ServicePort
 	if httpServerPort == "" {
@@ -289,7 +282,6 @@ func NewControllerServer(name string, httpRouter *mux.Router, grpcServer *regist
 }
 
 func newHttpServer(port string, httpRouter *mux.Router) (*http.Server, error) {
-	httpRouter.Handle("/metrics", promhttp.Handler())
 	loggedRouter := handlers.LoggingHandler(os.Stdout, httpRouter)
 
 	return &http.Server{

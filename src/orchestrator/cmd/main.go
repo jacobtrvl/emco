@@ -15,6 +15,8 @@ import (
 	contextDb "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/contextdb"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
 	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
+	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/metrics"
+	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/metricscontroller"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/rpc"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/module/controller"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/statusnotify"
@@ -41,9 +43,13 @@ func main() {
 		os.Exit(1)
 	}
 
-	server, err := controller.NewControllerServer("orchestrator",
-		api.NewRouter(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil),
-		grpcServer)
+	Metrics := metrics.Initialize()
+	metricscontroller.Start(Metrics)
+
+	httpRouter := api.NewRouter(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
+	httpRouter.Handle("/metrics", Metrics.Handler)
+
+	server, err := controller.NewControllerServer("orchestrator", httpRouter, grpcServer)
 	if err != nil {
 		log.Error("Unable to create server", log.Fields{"Error": err})
 		os.Exit(1)
