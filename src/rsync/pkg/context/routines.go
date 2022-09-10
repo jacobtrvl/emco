@@ -620,8 +620,12 @@ func (c *Context) runCluster(ctx context.Context, op RsyncOperation, e RsyncEven
 			}
 			log.Info("Done Deleting pre-delete Hooks", log.Fields{"App": app, "cluster": cluster, "hooks": c.ca.Apps[app].Clusters[cluster].Dependency["pre-delete"]})
 		}
-		// Delete main resources without wait
-		_, err = r.handleResources(ctx, op, c.ca.Apps[app].Clusters[cluster].ResOrder)
+		// Delete main resources without wait - but delete in reverse ResOrder
+		revList := c.ca.Apps[app].Clusters[cluster].ResOrder
+		for i, j := 0, len(revList)-1; i < j; i, j = i+1, j-1 {
+			revList[i], revList[j] = revList[j], revList[i]
+		}
+		_, err = r.handleResources(ctx, op, revList)
 		if err != nil {
 			return err
 		}
