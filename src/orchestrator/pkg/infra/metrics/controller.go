@@ -12,7 +12,6 @@ func start() {
 	go func() {
 		client := module.NewClient()
 		for {
-			fmt.Println("Metrics reconcilation started!")
 			if err := handleControllers(ControllerGauge, client); err != nil {
 				fmt.Println(err)
 			}
@@ -86,7 +85,6 @@ func start() {
 					}
 				}
 			}
-			fmt.Println("Metrics reconcilation finished!")
 			time.Sleep(time.Duration(15 * time.Second))
 		}
 	}()
