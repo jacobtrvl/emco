@@ -31,6 +31,7 @@ func Initialize(startNow bool) *Metrics {
 	metrics.Gauges["GenericAppPlacementIntentGauge"] = GenericAppPlacementIntentGauge
 	metrics.Gauges["GroupIntentGauge"] = GroupIntentGauge
 	metrics.Gauges["AppGauge"] = AppGauge
+	metrics.Gauges["DependencyGauge"] = DependencyGauge
 
 	prometheus.MustRegister(ComAppGauge)
 	prometheus.MustRegister(ProjectGauge)
@@ -42,6 +43,7 @@ func Initialize(startNow bool) *Metrics {
 	prometheus.MustRegister(GenericAppPlacementIntentGauge)
 	prometheus.MustRegister(GroupIntentGauge)
 	prometheus.MustRegister(AppGauge)
+	prometheus.MustRegister(DependencyGauge)
 
 	prometheus.MustRegister(NewBuildInfoCollector("orchestrator"))
 
