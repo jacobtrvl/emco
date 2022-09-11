@@ -1,28 +1,18 @@
-package metricscontroller
+package metrics
 
 import (
 	"fmt"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
-	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/metrics"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/module"
 )
 
-func Start(m *metrics.Metrics) {
-	ComAppGauge := m.Gauges["ComAppGauge"]
-	ProjectGauge := m.Gauges["ProjectGauge"]
-	ControllerGauge := m.Gauges["ControllerGauge"]
-	DIGGauge := m.Gauges["DIGGauge"]
-	GenericPlacementIntentGauge := m.Gauges["GenericPlacementIntentGauge"]
-	CompositeProfileGauge := m.Gauges["CompositeProfileGauge"]
-	AppProfileGauge := m.Gauges["AppProfileGauge"]
-	GenericAppPlacementIntentGauge := m.Gauges["GenericAppPlacementIntentGauge"]
-	GroupIntentGauge := m.Gauges["GroupIntentGauge"]
-
+func start() {
 	go func() {
 		client := module.NewClient()
 		for {
+			fmt.Println("Metrics reconcilation started!")
 			if err := handleControllers(ControllerGauge, client); err != nil {
 				fmt.Println(err)
 			}
@@ -96,6 +86,7 @@ func Start(m *metrics.Metrics) {
 					}
 				}
 			}
+			fmt.Println("Metrics reconcilation finished!")
 			time.Sleep(time.Duration(15 * time.Second))
 		}
 	}()

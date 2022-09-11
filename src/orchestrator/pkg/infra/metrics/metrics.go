@@ -17,7 +17,7 @@ type Metrics struct {
 	Handler http.Handler
 }
 
-func Initialize() *Metrics {
+func Initialize(startNow bool) *Metrics {
 	metrics := &Metrics{
 		Gauges: make(map[string]*prometheus.GaugeVec),
 	}
@@ -43,6 +43,9 @@ func Initialize() *Metrics {
 
 	prometheus.MustRegister(NewBuildInfoCollector("orchestrator"))
 
+	if startNow {
+		start()
+	}
 	metrics.Handler = promhttp.Handler()
 	return metrics
 }
