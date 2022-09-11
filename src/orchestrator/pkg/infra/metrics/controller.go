@@ -31,6 +31,16 @@ func start() {
 				}
 				for _, app := range apps {
 					ComAppGauge.WithLabelValues(app.Spec.Version, app.Metadata.Name, proj.MetaData.Name).Set(1)
+
+					applications, err := client.App.GetApps(proj.MetaData.Name, app.Metadata.Name, app.Spec.Version)
+					if err != nil {
+						fmt.Println(err)
+						continue
+					}
+					for _, application := range applications {
+						AppGauge.WithLabelValues(application.Metadata.Name, proj.MetaData.Name, app.Metadata.Name, app.Spec.Version).Set(1)
+					}
+
 					digs, err := client.DeploymentIntentGroup.GetAllDeploymentIntentGroups(proj.MetaData.Name, app.Metadata.Name, app.Spec.Version)
 					if err != nil {
 						fmt.Println(err)

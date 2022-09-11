@@ -27,6 +27,11 @@ var ComAppGauge = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 	Help: "Count of Composite Apps",
 }, comAppGaugeLabels)
 
+var AppGauge = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+	Name: "emco_app_resource",
+	Help: "Count of Composite Apps",
+}, nameWithComAppLabels)
+
 var DIGGauge = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 	Name: "emco_deployment_intent_group_resource",
 	Help: "Count of Deployment Intent Groups",
