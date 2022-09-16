@@ -307,15 +307,7 @@ func UpdateAppContext(intentName, appContextId string) error {
 
 				servers[index].Clients[i].ClusterData[cci].ClusterName = c
 				servers[index].Clients[i].ClusterData[cci].Reslist = make([]map[string][]byte, 0)
-				ip, err := ips.getIpAddress()
-				if err != nil {
-					log.Error("Error getting cluster ip", log.Fields{
-						"error":    err,
-						"svc name": ic.Spec.ServiceName,
-					})
-					return err
-				}
-				err = createClientResources(is, c, servers, namespace, index, i, cci, ip)
+				err = createClientResources(is, c, servers , namespace, index, i, cci, ips)
 				if err != nil {
 					log.Error("Error creating client resources", log.Fields{
 						"error":    err,
@@ -788,7 +780,7 @@ func createClientServiceEntry(is module.InboundServerIntent, hosts []string, gwa
 
 	return res, nil
 }
-func createClientResources(is module.InboundServerIntent, c string, servers []serverData, namespace string, index, ci, cci int, ip net.IP) error {
+func createClientResources(is module.InboundServerIntent, c string, servers []serverData, namespace string,index, ci, cci int, ips newIP)(error) {
 	le := len(servers[index].ClusterData)
 	hosts := make([]string, le)
 	for i, sc := range servers[index].ClusterData {
@@ -802,6 +794,13 @@ func createClientResources(is module.InboundServerIntent, c string, servers []se
 		host := is.Spec.ServiceName + "." + namespace + "." + pro + "." + clu
 		hosts[i] = host
 	}
+	ip, err := ips.getIpAddress()
+	if err != nil {
+		log.Error("Error getting cluster vip", log.Fields{
+			"error":    err,
+		})
+		return err
+	}
 	gwaddr := servers[index].ClusterData[ci].GwAddress
 	gwextport := servers[index].ClusterData[ci].GwExternalPort
 	res, err := createClientServiceEntry(is, hosts, gwaddr, gwextport, namespace, ip, "0")
@@ -814,6 +813,13 @@ func createClientResources(is module.InboundServerIntent, c string, servers []se
 	}
 	servers[index].Clients[ci].ClusterData[cci].Reslist = append(servers[index].Clients[ci].ClusterData[cci].Reslist, res)
 
+	ip, err = ips.getIpAddress()
+	if err != nil {
+		log.Error("Error getting cluster vip", log.Fields{
+			"error":    err,
+		})
+		return err
+	}
 	hs := make([]string, 1)
 	hs[0] = is.Spec.ServiceName
 	res, err = createClientServiceEntry(is, hs, gwaddr, gwextport, namespace, ip, "1")
