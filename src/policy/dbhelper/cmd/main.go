@@ -18,9 +18,9 @@ package main
 import (
 	"context"
 	"dbhelper/api"
-	etcdhelper "dbhelper/etcd"
 	"github.com/gorilla/handlers"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/config"
+	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/contextdb"
 	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 	"net/http"
 	"os"
@@ -36,13 +36,13 @@ const portToListen = ":9090"
 // It is having conflict with generated grpc files
 // This issue is resolved in etcd 3.5.
 func main() {
-	etcdCfg := etcdhelper.EtcdConfig{
+	etcdCfg := contextdb.EtcdConfig{
 		Endpoint: config.GetConfiguration().EtcdIP,
 		CertFile: config.GetConfiguration().EtcdCert,
 		KeyFile:  config.GetConfiguration().EtcdKey,
 		CAFile:   config.GetConfiguration().EtcdCAFile,
 	}
-	etcdClient, err := etcdhelper.NewEtcdClient(nil, etcdCfg)
+	etcdClient, err := contextdb.NewEtcdClient(nil, etcdCfg)
 
 	if err != nil {
 		log.Error("Context DB Error", log.Fields{"error": err})
@@ -57,7 +57,7 @@ func main() {
 
 }
 
-func StartHTTPServer(ctrl etcdhelper.ContextDb, wg *sync.WaitGroup) {
+func StartHTTPServer(ctrl contextdb.ContextDb, wg *sync.WaitGroup) {
 	defer wg.Done()
 	httpServer := &http.Server{
 		Handler: handlers.LoggingHandler(os.Stdout, api.NewRouter(ctrl)),
