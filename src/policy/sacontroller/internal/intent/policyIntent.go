@@ -30,7 +30,7 @@ func NewClient(config Config) *Client {
 	}
 }
 
-func (c Client) CreateIntent(_ context.Context, request *Request) (*Intent, error) {
+func (c Client) CreateIntent(ctx context.Context, request *Request) (*Intent, error) {
 	key := Key{
 		PolicyIntent:        request.PolicyIntentId,
 		Project:             request.Project,
@@ -39,7 +39,7 @@ func (c Client) CreateIntent(_ context.Context, request *Request) (*Intent, erro
 		DigName:             request.DeploymentIntentGroup,
 	}
 	intent := *request.IntentData
-	value, err := c.db.Find(c.storeName, key, c.tag)
+	value, err := c.db.Find(ctx, c.storeName, key, c.tag)
 	if err == nil && len(value) > 0 {
 		// Remove from in-memory if events are different
 		data := new(Intent)
@@ -53,7 +53,7 @@ func (c Client) CreateIntent(_ context.Context, request *Request) (*Intent, erro
 			}
 		}
 	}
-	if err := c.db.Insert(c.storeName, key, nil, c.tag, intent); err != nil {
+	if err := c.db.Insert(ctx, c.storeName, key, nil, c.tag, intent); err != nil {
 		return nil, err
 	}
 	// Mark for appending to the in-memory list
@@ -81,7 +81,7 @@ func (c Client) DeleteIntent(ctx context.Context, request *Request) error {
 	}
 	// Deleting from in memory list can be a time-consuming operation.
 	// Hence, we will just mark for deletion and proceed
-	if err := c.db.Remove(c.storeName, key); err != nil {
+	if err := c.db.Remove(ctx, c.storeName, key); err != nil {
 		return err
 	}
 	c.updateStream <- StreamData{
@@ -92,7 +92,7 @@ func (c Client) DeleteIntent(ctx context.Context, request *Request) error {
 
 }
 
-func (c Client) GetIntent(_ context.Context, request *Request) (*Intent, error) {
+func (c Client) GetIntent(ctx context.Context, request *Request) (*Intent, error) {
 	key := Key{
 		PolicyIntent:        request.PolicyIntentId,
 		Project:             request.Project,
@@ -100,7 +100,7 @@ func (c Client) GetIntent(_ context.Context, request *Request) (*Intent, error) 
 		CompositeAppVersion: request.CompositeAppVersion,
 		DigName:             request.DeploymentIntentGroup,
 	}
-	value, err := c.db.Find(c.storeName, key, c.tag)
+	value, err := c.db.Find(ctx, c.storeName, key, c.tag)
 	if err != nil || len(value) == 0 {
 		return nil, err
 	}

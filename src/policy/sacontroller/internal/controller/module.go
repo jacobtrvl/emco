@@ -167,12 +167,12 @@ func (c *Controller) addIntent(_ context.Context, p intent.Intent) {
 
 // getAllPolicyIntents is helper function for getting all the policy intents from DB
 // If there is no policy intent, it will return  ([]intent.Intent{}, nil)
-func (c *Controller) getAllPolicyIntents(_ context.Context) ([]intent.Intent, error) {
+func (c *Controller) getAllPolicyIntents(ctx context.Context) ([]intent.Intent, error) {
 	var intents []intent.Intent
 	key := struct {
 		PolicyIntent bson.M `json:"policyIntent"`
 	}{bson.M{"$exists": true}}
-	value, err := c.db.Find(c.storeName, key, c.tag)
+	value, err := c.db.Find(ctx, c.storeName, key, c.tag)
 	if err != nil {
 		return intents, err
 	}

@@ -26,7 +26,7 @@ import (
 )
 
 func Init(_ ...string) (*Controller, error) {
-	err := db.InitializeDatabaseConnection("emco")
+	err := db.InitializeDatabaseConnection(context.TODO(), "emco")
 	if err != nil {
 		return nil, err
 	}
@@ -68,7 +68,7 @@ func Init(_ ...string) (*Controller, error) {
 	c.actors["temporal"] = new(plugins.TemporalActor)
 
 	key := Module{"Agent"}
-	err = c.db.Insert(c.storeName, key, nil, c.tag, key)
+	err = c.db.Insert(context.TODO(), c.storeName, key, nil, c.tag, key)
 	if err != nil {
 		return nil, errors.Errorf("Error while Initializing DB %s", err)
 	}

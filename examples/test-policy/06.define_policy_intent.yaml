@@ -12,6 +12,7 @@ spec:
     policyName: data
   actor: temporal
   actorArg:
+    workFlowMgr: <workflow_mgr_endpoint>
     workFlowName: {{.DeploymentIntent}}-workflow-intent
   event:
     agent: ''

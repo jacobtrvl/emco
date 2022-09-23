@@ -16,6 +16,7 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"github.com/gorilla/mux"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/contextdb"
@@ -35,7 +36,7 @@ func NewRouter(ctrl contextdb.ContextDb) *mux.Router {
 		v := mux.Vars(r)
 		key := "/context/" + v["contextId"] + "/meta/"
 		var value json.RawMessage
-		err := ctrl.Get(key, value)
+		err := ctrl.Get(context.TODO(), key, value)
 		if err != nil {
 			log.Error("Error while getting context db data", log.Fields{"err": err})
 			return
