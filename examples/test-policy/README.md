@@ -98,7 +98,7 @@ This use case explains how to set up a policy intent based on container memory u
     host: <host IP>
     port: 30460
    ```
-   Copy file [06.define_policy_intent.yaml](06.define_policy_intent.yaml) to samples/intents. 
+   Copy file [06.define_policy_intent.yaml](06.define_policy_intent.yaml) to samples/intents. Update IP addresses (OPA, Worflow Manager) int policy intent to reflect your setup.
    ```text
     $ emcoctl --config intents/emco-cfg-remote.yaml apply -v intents/values*.yaml -f 06.define_policy_intent.yaml
    ```

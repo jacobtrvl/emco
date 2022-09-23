@@ -35,12 +35,12 @@ type AgentKey struct {
 	AgentID      string `json:"agent"`
 }
 
-func (c Client) RegisterAgent(_ context.Context, id string, spec AgentSpec) (*AgentSpec, error) {
+func (c Client) RegisterAgent(ctx context.Context, id string, spec AgentSpec) (*AgentSpec, error) {
 	key := AgentKey{
 		"Agent",
 		id,
 	}
-	err := c.db.Insert(c.storeName, key, nil, c.tag, spec)
+	err := c.db.Insert(ctx, c.storeName, key, nil, c.tag, spec)
 	if err != nil {
 		return nil, errors.Wrap(err, "Agent Registration failed")
 	}
@@ -51,7 +51,7 @@ func (c Client) RegisterAgent(_ context.Context, id string, spec AgentSpec) (*Ag
 	return &spec, nil
 }
 
-func (c Client) GetAllAgents(_ context.Context) ([]AgentSpec, error) {
+func (c Client) GetAllAgents(ctx context.Context) ([]AgentSpec, error) {
 	var (
 		agents []AgentSpec
 	)
@@ -59,7 +59,7 @@ func (c Client) GetAllAgents(_ context.Context) ([]AgentSpec, error) {
 		PolicyModule string `json:"policyModule"`
 		AgentID      bson.M `json:"agent"`
 	}{"Agent", bson.M{"$exists": true}}
-	value, err := c.db.Find(c.storeName, key, c.tag)
+	value, err := c.db.Find(ctx, c.storeName, key, c.tag)
 	if err != nil {
 		return nil, errors.Wrap(err, "GetAgents failed")
 	}
@@ -76,13 +76,13 @@ func (c Client) GetAllAgents(_ context.Context) ([]AgentSpec, error) {
 	return agents, nil
 }
 
-func (c Client) GetAgent(_ context.Context, id string) (*AgentSpec, error) {
+func (c Client) GetAgent(ctx context.Context, id string) (*AgentSpec, error) {
 	agent := new(AgentSpec)
 	key := AgentKey{
 		"Agent",
 		id,
 	}
-	value, err := c.db.Find(c.storeName, key, c.tag)
+	value, err := c.db.Find(ctx, c.storeName, key, c.tag)
 
 	if err != nil {
 		return nil, errors.Wrap(err, "GetAgents failed")
@@ -96,12 +96,12 @@ func (c Client) GetAgent(_ context.Context, id string) (*AgentSpec, error) {
 	return agent, nil
 }
 
-func (c Client) DeleteAgent(_ context.Context, id string) error {
+func (c Client) DeleteAgent(ctx context.Context, id string) error {
 	key := AgentKey{
 		"Agent",
 		id,
 	}
-	err := c.db.Remove(c.storeName, key)
+	err := c.db.Remove(ctx, c.storeName, key)
 	if err != nil {
 		return errors.Wrap(err, "DeleteAgent failed")
 	}
