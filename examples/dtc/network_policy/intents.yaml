@@ -1,0 +1,136 @@
+---
+#create deployment intent group
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.CompositeApp}}/v1/deployment-intent-groups
+metadata :
+  name: {{.DeploymentIntentGroup}}
+  description: "description"
+  userData1: test1
+  userData2: test2
+spec:
+  compositeProfile: collection-composite-profile
+  version: r1
+  logicalCloud: {{.LogicalCloud}}
+  overrideValues:
+  - app: http-server
+    values:
+      "image.repository": "{{.HttpServerImageRepository}}"
+  - app: http-client
+    values:
+      "image.repository": "{{.HttpClientImageRepository}}"
+
+---
+#create intent in deployment intent group
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.CompositeApp}}/v1/deployment-intent-groups/{{.DeploymentIntentGroup}}/intents
+metadata :
+  name: collection-deployment-intent
+  description: "description"
+  userData1: test1
+  userData2: test2
+spec:
+  intent:
+    genericPlacementIntent: collection-placement-intent
+    dtc: testdtc
+
+---
+#create the generic placement intent
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.CompositeApp}}/v1/deployment-intent-groups/{{.DeploymentIntentGroup}}/generic-placement-intents
+metadata :
+  name: collection-placement-intent
+  description: "description for app"
+  userData1: test1
+  userData2: test2
+
+---
+#add the prometheus app placement intent to the generic placement intent
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.CompositeApp}}/v1/deployment-intent-groups/{{.DeploymentIntentGroup}}/generic-placement-intents/collection-placement-intent/app-intents
+metadata:
+  name: http-client-placement-intent
+  description: description of placement_intent
+  userData1: user data 1
+  userData2: user data 2
+spec:
+  app: http-client
+  intent:
+    allOf:
+    - clusterProvider: provider1
+      clusterLabel: edge-cluster1
+
+---
+#add the prometheus app placement intent to the generic placement intent
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.CompositeApp}}/v1/deployment-intent-groups/{{.DeploymentIntentGroup}}/generic-placement-intents/collection-placement-intent/app-intents
+metadata:
+  name: http-server-placement-intent
+  description: description of placement_intent
+  userData1: user data 1
+  userData2: user data 2
+spec:
+  app: http-server
+  intent:
+    allOf:
+    - clusterProvider: provider1
+{{- if .KubeConfig2 }}
+      clusterLabel: edge-cluster2
+{{- else }}
+      clusterLabel: edge-cluster1
+{{- end }}
+
+---
+#add the traffic group intent
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.CompositeApp}}/v1/deployment-intent-groups/{{.DeploymentIntentGroup}}/traffic-group-intents
+metadata:
+  name: testdtc
+  description: description of traffic intent
+  userData1: user data 1
+  userData2: user data 2
+
+---
+#add the server intent
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.CompositeApp}}/v1/deployment-intent-groups/{{.DeploymentIntentGroup}}/traffic-group-intents/testdtc/inbound-intents
+metadata:
+  name: serverin
+  description: description of traffic intent
+  userData1: user data 1
+  userData2: user data 2
+spec:
+  app: http-server
+  appLabel: app=http-server
+  serviceName: http-service
+  port: 3333
+  protocol: TCP
+  serviceMesh: none
+
+---
+#add the client intent
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.CompositeApp}}/v1/deployment-intent-groups/{{.DeploymentIntentGroup}}/traffic-group-intents/testdtc/inbound-intents/serverin/clients
+metadata:
+  name: client1
+  description: description of traffic intent
+  userData1: user data 1
+  userData2: user data 2
+spec:
+  app: http-client
+  appLabel: app=http-client
+  serviceName: http-client
+  namespaces: []
+  cidrs: []
+---
+#Approve
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.CompositeApp}}/v1/deployment-intent-groups/{{.DeploymentIntentGroup}}/approve

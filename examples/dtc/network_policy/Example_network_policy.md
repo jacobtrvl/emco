@@ -29,37 +29,19 @@ Build the http-server and http-client images. Refer to [this Readme](../../test-
 Install the Kubernetes edge cluster and make sure it supports network policy. Note down the kubeconfig for the edge cluster which is required later during configuration.
 
 ## Configure
-(1) Copy the config file
-```shell
-$ cp examples/dtc/emco-cfg-remote.yaml examples/dtc/network_policy/emco-cfg-dtc.yaml
-```
-(2) Modify examples/dtc/network_policy/emco-dtc-single-cluster.yaml and examples/dtc/network_policy/emco-cfg-dtc.yaml files to change host name, port number and kubeconfig path.
+(1) Set the KUBE_PATH1 (and optionally KUBE_PATH2 for a multiple-cluster deployment) environment variables to cluster kubeconfig file path(s).
 
-(3) Compress the profile and helm files
+(2) Set the HOST_IP enviromnet variables to the address where emco is running.
 
-Update the profile files with right proxy address and create tar.gz of profiles
-```shell
-$ cd examples/helm_charts/http-server/profile/network_policy_overrides/http-server-profile
-$ tar -czvf ../../../../../dtc/network_policy/http-server-profile.tar.gz .
-$ cd ../../../../http-client/profile/network_policy_overrides/http-client-profile
-$ tar -czvf ../../../../../dtc/network_policy/http-client-profile.tar.gz .
-```
-Create and copy .tgz of application helm charts
-```shell
-$ cd ../../../../http-server/helm
-$ tar -czvf http-server.tgz http-server/
-$ cp *.tgz ../../../dtc/network_policy/
-$ cd ../../http-client/helm
-$ tar -czvf http-client.tgz http-client/
-$ cp *.tgz ../../../dtc/network_policy/
-```
+(3) Set the HTTP_SERVER_IMAGE_REPOSITORY and HTTP_CLIENT_IMAGE_REPOSITORY environment variable to the location of the http-server and http-client images.
+
+(4) Modify examples/dtc/network_policy/setup.sh files to change controller port numbers if they are diffrent than your emco installation.
 
 ## Install the client/server app
 Install the app using the commands:
 ```shell
-$ cd ../../../dtc/network_policy/
-$ emcoctl --config emco-cfg-dtc.yaml apply -f emco-dtc-single-cluster.yaml
-$ emcoctl --config emco-cfg-dtc.yaml apply -f instantiate.yaml
+$ cd examples/dtc/network_policy/
+$ ./apply.sh
 ```
 
 ## Verify network policy resource instantiation
@@ -84,8 +66,7 @@ get:
 ```
 
 ## Uninstall the application
-Uninstall the app using the commands:
+Uninstall the app using the command:
 ```shell
-$ emcoctl --config emco-cfg-dtc.yaml apply -f emco-dtc-terminate.yaml
-$ emcoctl --config emco-cfg-dtc.yaml delete -f emco-dtc-single-cluster.yaml
+$ ./delete.sh
 ```

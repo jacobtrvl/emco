@@ -1,0 +1,66 @@
+---
+#creating cluster provider
+version: emco/v2
+resourceContext:
+  anchor: cluster-providers
+metadata :
+   name: provider1
+   description: test
+   userData1: test1
+   userData2: test2
+
+---
+#creating cluster
+version: emco/v2
+resourceContext:
+  anchor: cluster-providers/provider1/clusters
+metadata :
+   name: cluster1
+   description: test
+   userData1: test1
+   userData2: test2
+file:
+  {{.KubeConfig1}}
+
+---
+#Add label cluster
+version: emco/v2
+resourceContext:
+  anchor: cluster-providers/provider1/clusters/cluster1/labels
+clusterLabel: edge-cluster1
+
+---
+#Add label cluster
+version: emco/v2
+resourceContext:
+  anchor: cluster-providers/provider1/clusters/cluster1/labels
+clusterLabel: networkpolicy-supported
+
+{{- if .KubeConfig2 }}
+---
+#creating cluster
+version: emco/v2
+resourceContext:
+  anchor: cluster-providers/provider1/clusters
+metadata :
+   name: cluster2
+   description: test
+   userData1: test1
+   userData2: test2
+file:
+  {{.KubeConfig2}}
+
+---
+#Add label cluster
+version: emco/v2
+resourceContext:
+  anchor: cluster-providers/provider1/clusters/cluster2/labels
+clusterLabel: edge-cluster2
+
+---
+#Add label cluster
+version: emco/v2
+resourceContext:
+  anchor: cluster-providers/provider1/clusters/cluster2/labels
+clusterLabel: networkpolicy-supported
+{{- end }}
