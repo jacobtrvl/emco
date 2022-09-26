@@ -1,5 +1,6 @@
 ```text
-  Copyright (c) 2022 Aarna Networks
+  SPDX-License-Identifier: Apache-2.0
+  Copyright (c) 2022 Aarna Networks, Inc.
 ```
 ## Policy Controller Use case
 This is a step-by-step guide for building a use-case for the policy controller. 

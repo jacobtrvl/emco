@@ -1,3 +1,8 @@
+{{/*
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2022 2022 Aarna Networks, Inc.
+*/}}
+
 apiVersion: v1
 kind: Service
 metadata:

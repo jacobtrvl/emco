@@ -1,5 +1,6 @@
-```text 
-   Copyright (c) 2022 Aarna Networks 
+```text
+   SPDX-License-Identifier: Apache-2.0
+   Copyright (c) 2022 Aarna Networks, Inc.
 ```
 ## Policy Based Service Assurance  in EMCO
 Kubernetes provide Horizontal Pod Autoscaler (HPA) for scaling based on policy. 
