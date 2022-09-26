@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2022 Aarna Networks, Inc.
+
 apiVersion: edgemetricscollector.k8splugin.io/v1alpha1
 kind: MetricsCollector
 metadata:
