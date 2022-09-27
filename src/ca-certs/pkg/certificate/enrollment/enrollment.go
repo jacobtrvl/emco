@@ -9,6 +9,7 @@ import (
 	"github.com/pkg/errors"
 
 	"gitlab.com/project-emco/core/emco-base/src/ca-certs/pkg/module"
+	clm "gitlab.com/project-emco/core/emco-base/src/clm/pkg/cluster"
 
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/appcontext"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/grpc/notifyclient"
@@ -32,7 +33,26 @@ func (ctx *EnrollmentContext) Instantiate() error {
 			// create resources for the edge clsuters based on the issuer
 			switch ctx.CaCert.Spec.IssuerRef.Group {
 			case "cert-manager.io":
-				if err := ctx.createCertManagerResources(); err != nil {
+				// check whether the cluster is sgx enabled or not
+				// if it's an sgx capable cluster, create a cert-manager certificate resource
+				// otherwise, create a cert-manger certificaterequest resource
+				if val, err := clm.NewClusterClient().GetClusterKvPairsValue(ctx.ClusterGroup.Spec.Provider, ctx.Cluster, "sgx", "enabled"); err == nil {
+					v, e := module.GetValue(val)
+					if e != nil {
+						return e
+					}
+
+					if v == "true" { // sgx enabled
+						if err := ctx.createCertManagerCertificate(); err != nil {
+							return err
+						}
+
+						continue // with the next cluster
+					}
+				}
+
+				// cluster is not SGX enabled, create a certificaterequest
+				if err := ctx.createCertManagerCertificateRequest(); err != nil {
 					return err
 				}
 
@@ -247,10 +267,4 @@ func ValidateEnrollmentStatus(stateInfo state.StateInfo) (readyCount int, err er
 	}
 
 	return certEnrollmentStatus.ReadyCounts["Ready"], nil
-}
-
-// createCertManagerResources creates cert-manager specific resources
-// in this case, certificaterequest
-func (ctx *EnrollmentContext) createCertManagerResources() error {
-	return ctx.createCertManagerCertificateRequest()
 }

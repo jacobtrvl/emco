@@ -73,6 +73,7 @@ func (c *CaCertEnrollmentClient) Instantiate(cert, clusterProvider string) error
 		ClusterGroups: clusterGroups,
 		Resources: enrollment.EnrollmentResource{
 			CertificateRequest: map[string]*cmv1.CertificateRequest{},
+			Certificate:        map[string]*cmv1.Certificate{},
 		}}
 
 	// set the issuing cluster handle
@@ -163,6 +164,7 @@ func (c *CaCertEnrollmentClient) Terminate(cert, clusterProvider string) error {
 		ClusterGroups: clusterGroups,
 		Resources: enrollment.EnrollmentResource{
 			CertificateRequest: map[string]*cmv1.CertificateRequest{},
+			Certificate:        map[string]*cmv1.Certificate{},
 		}}
 
 	// terminate the caCert enrollment
@@ -228,6 +230,7 @@ func (c *CaCertEnrollmentClient) Update(cert, clusterProvider string) error {
 				ClusterGroups: clusterGroups,
 				Resources: enrollment.EnrollmentResource{
 					CertificateRequest: map[string]*cmv1.CertificateRequest{},
+					Certificate:        map[string]*cmv1.Certificate{},
 				}}
 
 			// set the issuing cluster handle

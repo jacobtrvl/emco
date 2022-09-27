@@ -8948,6 +8948,10 @@ components:
         issuingCluster: 
           description: the details of the issuing cluster
           $ref: '#/components/schemas/IssuingClusterInfo'
+        certificate:
+          description: represent the certificate info
+          $ref: '#/components/schemas/Certificate'
+          
     CaCertArray:
       type: array
       items:
@@ -9057,7 +9061,15 @@ components:
         algorithm:
           $ref: '#/components/schemas/Algorithm'
         subject:
-          $ref: '#/components/schemas/Subject'   
+          $ref: '#/components/schemas/Subject'
+    Certificate:
+      type: object
+      properties:
+        commonName:
+          description: commonname to be used on the certificate
+          type: string
+          maxLength: 128
+          example: "foo"
     CaCertLogicalCloud:
       type: object
       properties:

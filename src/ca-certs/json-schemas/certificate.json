@@ -270,6 +270,17 @@
               }
             }
           }
+        },
+        "certificate": {
+          "description": "represent the certificate template",
+          "type":"object",
+          "properties": {
+            "commonName": {
+              "description": "common name details",
+              "type": "string",
+              "maxLength": 128
+            }
+          }
         }
       }
     }

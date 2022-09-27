@@ -30,4 +30,5 @@ type EnrollmentContext struct {
 // EnrollmentResource holds the resources created for the caCert enrollment
 type EnrollmentResource struct {
 	CertificateRequest map[string]*cmv1.CertificateRequest
+	Certificate        map[string]*cmv1.Certificate
 }

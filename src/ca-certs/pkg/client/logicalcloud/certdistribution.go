@@ -5,6 +5,7 @@ package logicalcloud
 
 import (
 	cmv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
+	tcsv1 "github.com/intel/trusted-certificate-issuer/api/v1alpha1"
 	"gitlab.com/project-emco/core/emco-base/src/ca-certs/pkg/certificate/distribution"
 	"gitlab.com/project-emco/core/emco-base/src/ca-certs/pkg/certificate/enrollment"
 	"gitlab.com/project-emco/core/emco-base/src/ca-certs/pkg/module"
@@ -102,6 +103,7 @@ func (c *CaCertDistributionClient) Instantiate(cert, project string) error {
 			ProxyConfig:   map[string]*istioservice.ProxyConfig{},
 			Secret:        map[string]*v1.Secret{},
 			KnccConfig:    map[string]*knccservice.Config{},
+			TCSIssuer:     map[string]*tcsv1.TCSIssuer{},
 		},
 		Project: project,
 	}
@@ -218,6 +220,7 @@ func (c *CaCertDistributionClient) Update(cert, project string) error {
 				ProxyConfig:   map[string]*istioservice.ProxyConfig{},
 				Secret:        map[string]*v1.Secret{},
 				KnccConfig:    map[string]*knccservice.Config{},
+				TCSIssuer:     map[string]*tcsv1.TCSIssuer{},
 			},
 			Project: project,
 		}
