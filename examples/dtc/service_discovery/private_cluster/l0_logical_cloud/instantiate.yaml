@@ -1,7 +1,0 @@
-# SPDX-License-Identifier: Apache-2.0
-# Copyright (c) 2021 Intel Corporation
-
-#Instantiate
-version: emco/v2
-resourceContext:
-  anchor: projects/proj1/composite-apps/collection-composite-app/v1/deployment-intent-groups/collection-deployment-intent-group/instantiate

@@ -1,0 +1,101 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2021 Intel Corporation
+
+#create L1 logical cloud
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/logical-clouds
+metadata:
+  name: {{.LogicalCloud}}
+spec:
+  namespace: ns1
+  user:
+    userName: user-1
+    type: certificate
+
+---
+#create L1 logical cloud permission
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/logical-clouds/{{.LogicalCloud}}/user-permissions
+metadata:
+  name: {{.LogicalCloud}}-permission
+spec:
+  namespace: ns1
+  apiGroups:
+  - ""
+  - "apps"
+  - "k8splugin.io"
+  - "extensions"
+  - "networking.k8s.io"
+  resources:
+  - secrets
+  - pods
+  - configmaps
+  - services
+  - deployments
+  - resourcebundlestates
+  - networkpolicies
+  - serviceaccounts
+  - endpoints
+  verbs:
+  - get
+  - watch
+  - list
+  - create
+
+---
+#create cluster quotas
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/logical-clouds/{{.LogicalCloud}}/cluster-quotas
+metadata:
+    name: quota-1
+spec:
+    limits.cpu: "40"
+    limits.memory: 1Gi
+    requests.cpu: "30"
+    requests.memory: 5Gi
+    requests.storage: 500Gi
+    requests.ephemeral-storage: '500'
+    limits.ephemeral-storage: '500'
+    persistentvolumeclaims: '500'
+    pods: '500'
+    configmaps: '1000'
+    replicationcontrollers: '500'
+    resourcequotas: '500'
+    services: '500'
+    services.loadbalancers: '500'
+    services.nodeports: '500'
+    secrets: '500'
+    count/replicationcontrollers: '500'
+    count/deployments.apps: '500'
+    count/replicasets.apps: '500'
+    count/statefulsets.apps: '500'
+    count/jobs.batch: '500'
+    count/cronjobs.batch: '500'
+    count/deployments.extensions: '500'
+
+---
+#add cluster reference to logical cloud
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/logical-clouds/{{.LogicalCloud}}/cluster-references
+metadata:
+  name: lc-cl-1
+spec:
+  clusterProvider: provider1
+  cluster: cluster1
+  loadbalancerIp: "0.0.0.0"
+
+---
+#add cluster reference to logical cloud
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/logical-clouds/{{.LogicalCloud}}/cluster-references
+metadata:
+  name: lc-cl-2
+spec:
+  clusterProvider: provider1
+  cluster: cluster2
+  loadbalancerIp: "0.0.0.0"

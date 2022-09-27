@@ -32,281 +32,186 @@ Install the Kubernetes edge cluster and make sure it supports network policy. No
 ## Testing scenarios
 NOTE: Public cloud scenarios are experimental and are not tested with public clouds
 
-(a) communication between two private clusters (logical cloud level 0)
+(1) Set the KUBE_PATH1 environment variable to the first private cluster kubeconfig file path.
 
-    (1) Copy the config file
-    ```shell
-    $ cp examples/dtc/emco-cfg-remote.yaml examples/dtc/service_discovery/private_cluster/l0_logical_cloud/emco-cfg-dtc.yaml
-    ```
-    (2) Modify examples/dtc/service_discovery/private_cluster/l0_logical_cloud/emco-dtc-multiple-cluster-l0.yaml and examples/dtc/service_discovery/private_cluster/l0_logical_cloud/emco-cfg-dtc.yaml files to change host name, port number and kubeconfig path.
+(2) Set the HOST_IP environmet variables to the address where emco is running.
 
-    (3) Compress the profile and helm files
+(3) Set the HTTP_SERVER_IMAGE_REPOSITORY and HTTP_CLIENT_IMAGE_REPOSITORY environment variable to the location of the http-server and http-client images.
 
-    Update the profile files with right image repository path, proxy address and create tar.gz of profiles
-    ```shell
-    $ cd examples/helm_charts/http-server/profile/service_discovery_overrides/private_cluster/http-server-profile
-    $ tar -czvf ../../../../../../dtc/service_discovery/private_cluster/l0_logical_cloud/http-server-profile.tar.gz .
-    $ cd ../../../../../http-client/profile/service_discovery_overrides/private_cluster/http-client-profile
-    $ tar -czvf ../../../../../../dtc/service_discovery/private_cluster/l0_logical_cloud/http-client-profile.tar.gz .
-    ```
-    Create and copy .tgz of application helm charts
-    ```shell
-    $ cd ../../../../../http-server/helm
-    $ tar -czvf http-server.tgz http-server/
-    $ cp *.tgz ../../../dtc/service_discovery/private_cluster/l0_logical_cloud/
-    $ cd ../../http-client/helm
-    $ tar -czvf http-client.tgz http-client/
-    $ cp *.tgz ../../../dtc/service_discovery/private_cluster/l0_logical_cloud/
-    ```
+(4) Modify examples/dtc/service_discovery/setup.sh files to change controller port numbers if they are diffrent than your emco installation.
 
-    ## Install the client/server app
-    Install the app using the commands:
-    ```shell
-    $ cd ../../../dtc/service_discovery/private_cluster/l0_logical_cloud/
-    $ emcoctl --config emco-cfg-dtc.yaml apply -f emco-dtc-multiple-cluster-l0.yaml
-    $ emcoctl --config emco-cfg-dtc.yaml apply -f instantiate.yaml
-    ```
+### Communication between two private clusters (logical cloud level 0)
+(1) Set the KUBE_PATH2 environment variable to the second private cluster kubeconfig file path.
 
-    ## Verify network policy resource instantiation
-    ```shell
-    $ kubectl get networkpolicy
-    NAME               POD-SELECTOR      AGE
-    testdtc-serverin   app=http-server   28s
-    ```
-    ## Verify service entry created on the cluster where the client app is running
-    ```shell
-    $ kubectl get svc
-    NAME                    TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)   AGE
-    service/http-service    ClusterIP   10.233.0.1   <none>        443/TCP   1d
-    ```
+(2) Set the LC_LEVEL environment variable to 0.
 
-    ## Sample log from the client pod
+#### Install the client/server app
+Install the app using the commands:
+```shell
+$ ./apply.sh
+```
 
-    ```shell
-    $ kubectl logs pod/r1-http-client-54568d6c9-ftmr7
-    get:
-    2020-12-09 00:21:07 Hello from http-server with the pod IP - 10.233.120.123 and podname - r1-http-server-7cf7db8d8-7bmsd
-    get:
-    2020-12-09 00:21:12 Hello from http-server with the pod IP - 10.233.120.123 and podname - r1-http-server-7cf7db8d8-7bmsd
-    get:
-    2020-12-09 00:21:17 Hello from http-server with the pod IP - 10.233.120.123 and podname - r1-http-server-7cf7db8d8-7bmsd
-    get:
-    2020-12-09 00:21:22 Hello from http-server with the pod IP - 10.233.120.123 and podname - r1-http-server-7cf7db8d8-7bmsd 
-    ```
+#### Verify network policy resource instantiation
+```shell
+$ kubectl get networkpolicy
+NAME               POD-SELECTOR      AGE
+testdtc-serverin   app=http-server   28s
+```
 
-    ## Uninstall the application
-    Uninstall the app using the commands:
-    ```shell
-    $ emcoctl --config emco-cfg-dtc.yaml apply -f emco-dtc-terminate-l0.yaml
-    $ emcoctl --config emco-cfg-dtc.yaml delete -f emco-dtc-multiple-cluster-l0.yaml
-    ```
+#### Verify service entry created on the cluster where the client app is running
+```shell
+$ kubectl get svc
+NAME                    TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)   AGE
+service/http-service    ClusterIP   10.233.0.1   <none>        443/TCP   1d
+```
 
-(b) communication between two private clusters (logical cloud level 1)
+#### Sample log from the client pod
+```shell
+$ kubectl logs pod/r1-http-client-54568d6c9-ftmr7
+get:
+2020-12-09 00:21:07 Hello from http-server with the pod IP - 10.233.120.123 and podname - r1-http-server-7cf7db8d8-7bmsd
+get:
+2020-12-09 00:21:12 Hello from http-server with the pod IP - 10.233.120.123 and podname - r1-http-server-7cf7db8d8-7bmsd
+get:
+2020-12-09 00:21:17 Hello from http-server with the pod IP - 10.233.120.123 and podname - r1-http-server-7cf7db8d8-7bmsd
+get:
+2020-12-09 00:21:22 Hello from http-server with the pod IP - 10.233.120.123 and podname - r1-http-server-7cf7db8d8-7bmsd 
+```
 
-    (1) Copy the config file
-    ```shell
-    $ cp examples/dtc/emco-cfg-remote.yaml examples/dtc/service_discovery/private_cluster/l1_logical_cloud/emco-cfg-dtc.yaml
-    ```
-    (2) Modify examples/dtc/service_discovery/private_cluster/l1_logical_cloud/emco-dtc-multiple-cluster-l1-step1.yaml, examples/dtc/service_discovery/private_cluster/l1_logical_cloud/emco-dtc-multiple-cluster-l1-step2.yaml and examples/dtc/service_discovery/private_cluster/l1_logical_cloud/emco-cfg-dtc.yaml files to change host name, port number and kubeconfig path.
+#### Uninstall the application
+Uninstall the app using the commands:
+```shell
+$ ./delete.sh
+```
 
-    (3) Compress the profile and helm files
+### Communication between two private clusters (logical cloud level 1)
+(1) Set the KUBE_PATH2 environment variable to the second private cluster kubeconfig file path.
 
-    Update the profile files with right image repository path, proxy address and create tar.gz of profiles
-    ```shell
-    $ cd examples/helm_charts/http-server/profile/service_discovery_overrides/private_cluster/http-server-profile
-    $ tar -czvf ../../../../../../dtc/service_discovery/private_cluster/l1_logical_cloud/http-server-profile.tar.gz .
-    $ cd ../../../../../http-client/profile/service_discovery_overrides/private_cluster/http-client-profile
-    $ tar -czvf ../../../../../../dtc/service_discovery/private_cluster/l1_logical_cloud/http-client-profile.tar.gz .
-    ```
-    Create and copy .tgz of application helm charts
-    ```shell
-    $ cd ../../../../../http-server/helm
-    $ tar -czvf http-server.tgz http-server/
-    $ cp *.tgz ../../../dtc/service_discovery/private_cluster/l1_logical_cloud/
-    $ cd ../../http-client/helm
-    $ tar -czvf http-client.tgz http-client/
-    $ cp *.tgz ../../../dtc/service_discovery/private_cluster/l1_logical_cloud/
-    ```
+(2) Set the LC_LEVEL environment variable to 1.
 
-    ## Install the client/server app
-    Install the app using the commands:
-    ```shell
-    $ cd ../../../dtc/service_discovery/private_cluster/l1_logical_cloud/
-    $ emcoctl --config emco-cfg-dtc.yaml apply -f emco-dtc-multiple-cluster-l1-step1.yaml
-    $ emcoctl --config emco-cfg-dtc.yaml apply -f emco-dtc-multiple-cluster-l1-step2.yaml
-    ```
+#### Install the client/server app
+Install the app using the commands:
+```shell
+$ ./apply.sh
+```
 
-    ## Verify network policy resource instantiation
-    ```shell
-    $ kubectl -n ns1 get networkpolicy
-    NAME               POD-SELECTOR      AGE
-    testdtc-serverin   app=http-server   28s
-    ```
-    ## Verify service entry created on the cluster where the client app is running
-    ```shell
-    $ kubectl -n ns1 get svc
-    NAME                    TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)   AGE
-    service/http-service    ClusterIP   10.233.0.1   <none>        443/TCP   1d
-    ```
+#### Verify network policy resource instantiation
+```shell
+$ kubectl -n ns1 get networkpolicy
+NAME               POD-SELECTOR      AGE
+testdtc-serverin   app=http-server   28s
+```
 
-    ## Sample log from the client pod
+#### Verify service entry created on the cluster where the client app is running
+```shell
+$ kubectl -n ns1 get svc
+NAME                    TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)   AGE
+service/http-service    ClusterIP   10.233.0.1   <none>        443/TCP   1d
+```
 
-    ```shell
-    $ kubectl -n ns1 logs pod/r1-http-client-54568d6c9-ftmr7
-    get:
-    2020-12-09 00:21:07 Hello from http-server with the pod IP - 10.233.120.123 and podname - r1-http-server-7cf7db8d8-7bmsd
-    get:
-    2020-12-09 00:21:12 Hello from http-server with the pod IP - 10.233.120.123 and podname - r1-http-server-7cf7db8d8-7bmsd
-    get:
-    2020-12-09 00:21:17 Hello from http-server with the pod IP - 10.233.120.123 and podname - r1-http-server-7cf7db8d8-7bmsd
-    get:
-    2020-12-09 00:21:22 Hello from http-server with the pod IP - 10.233.120.123 and podname - r1-http-server-7cf7db8d8-7bmsd 
-    ```
+#### Sample log from the client pod
+```shell
+$ kubectl -n ns1 logs pod/r1-http-client-54568d6c9-ftmr7
+get:
+2020-12-09 00:21:07 Hello from http-server with the pod IP - 10.233.120.123 and podname - r1-http-server-7cf7db8d8-7bmsd
+get:
+2020-12-09 00:21:12 Hello from http-server with the pod IP - 10.233.120.123 and podname - r1-http-server-7cf7db8d8-7bmsd
+get:
+2020-12-09 00:21:17 Hello from http-server with the pod IP - 10.233.120.123 and podname - r1-http-server-7cf7db8d8-7bmsd
+get:
+2020-12-09 00:21:22 Hello from http-server with the pod IP - 10.233.120.123 and podname - r1-http-server-7cf7db8d8-7bmsd 
+```
 
-    ## Uninstall the application
-    Uninstall the app using the commands:
-    ```shell
-    $ emcoctl --config emco-cfg-dtc.yaml apply -f emco-dtc-terminate-l1.yaml
-    $ emcoctl --config emco-cfg-dtc.yaml delete -f emco-dtc-multiple-cluster-l1-step1.yaml
-    $ emcoctl --config emco-cfg-dtc.yaml delete -f emco-dtc-multiple-cluster-l1-step2.yaml
-    $ emcoctl --config emco-cfg-dtc.yaml delete -f emco-dtc-multiple-cluster-l1-step1.yaml
-    ```
+#### Uninstall the application
+Uninstall the app using the commands:
+```shell
+$ ./delete.sh
+```
 
-(c) communication between a private cluster (client app) and public cluster (server app) (logical cloud level 0)
+### Communication between a private cluster (client app) and public cluster (server app) (logical cloud level 0)
+(1) Set the KUBE_PATH2 environment variable to the public cluster kubeconfig file path and the PUBLIC_CLUSTER2 environment variable to true.
 
-    (1) Copy the config file
-    ```shell
-    $ cp examples/dtc/emco-cfg-remote.yaml examples/dtc/service_discovery/public_cluster/l0_logical_cloud/emco-cfg-dtc.yaml
-    ```
-    (2) Modify examples/dtc/service_discovery/public_cluster/l0_logical_cloud/emco-dtc-multiple-cluster-l0.yaml and examples/dtc/service_discovery/public_cluster/l0_logical_cloud/emco-cfg-dtc.yaml files to change host name, port number and kubeconfig path.
+(2) Set the LC_LEVEL environment variable to 0.
 
-    (3) Compress the profile and helm files
+#### Install the client/server app
+Install the app using the commands:
+```shell
+$ ./apply.sh
+```
 
-    Update the profile files with right proxy address and create tar.gz of profiles
-    ```shell
-    $ cd examples/helm_charts/http-server/profile/service_discovery_overrides/public_cluster/http-server-profile
-    $ tar -czvf ../../../../../../dtc/service_discovery/public_cluster/l0_logical_cloud/http-server-profile.tar.gz .
-    $ cd ../../../../../http-client/profile/service_discovery_overrides/public_cluster/http-client-profile
-    $ tar -czvf ../../../../../../dtc/service_discovery/public_cluster/l0_logical_cloud/http-client-profile.tar.gz .
-    ```
-    Create and copy .tgz of application helm charts
-    ```shell
-    $ cd ../../../../../http-server/helm
-    $ tar -czvf http-server.tgz http-server/
-    $ cp *.tgz ../../../dtc/service_discovery/public_cluster/l0_logical_cloud/
-    $ cd ../../http-client/helm
-    $ tar -czvf http-client.tgz http-client/
-    $ cp *.tgz ../../../dtc/service_discovery/public_cluster/l0_logical_cloud/
-    ```
+#### Verify network policy resource instantiation
+```shell
+$ kubectl get networkpolicy
+NAME               POD-SELECTOR      AGE
+testdtc-serverin   app=http-server   28s
+```
 
-    ## Install the client/server app
-    Install the app using the commands:
-    ```shell
-    $ cd ../../../dtc/service_discovery/public_cluster/l0_logical_cloud/
-    $ emcoctl --config emco-cfg-dtc.yaml apply -f emco-dtc-multiple-cluster-l0.yaml
-    ```
+#### Verify service entry created on the cluster where the client app is running
+```shell
+$ kubectl get svc
+NAME                    TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)   AGE
+service/http-service    ClusterIP   10.233.0.1   <none>        443/TCP   1d
+```
 
-    ## Verify network policy resource instantiation
-    ```shell
-    $ kubectl get networkpolicy
-    NAME               POD-SELECTOR      AGE
-    testdtc-serverin   app=http-server   28s
-    ```
-    ## Verify service entry created on the cluster where the client app is running
-    ```shell
-    $ kubectl get svc
-    NAME                    TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)   AGE
-    service/http-service    ClusterIP   10.233.0.1   <none>        443/TCP   1d
-    ```
+#### Sample log from the client pod
+```shell
+$ kubectl logs pod/r1-http-client-54568d6c9-ftmr7
+get:
+2020-12-09 00:21:07 Hello from http-server with the pod IP - 10.233.120.123 and podname - r1-http-server-7cf7db8d8-7bmsd
+get:
+2020-12-09 00:21:12 Hello from http-server with the pod IP - 10.233.120.123 and podname - r1-http-server-7cf7db8d8-7bmsd
+get:
+2020-12-09 00:21:17 Hello from http-server with the pod IP - 10.233.120.123 and podname - r1-http-server-7cf7db8d8-7bmsd
+get:
+2020-12-09 00:21:22 Hello from http-server with the pod IP - 10.233.120.123 and podname - r1-http-server-7cf7db8d8-7bmsd 
+```
 
-    ## Sample log from the client pod
+#### Uninstall the application
+Uninstall the app using the commands:
+```shell
+$ ./delete.sh
+```
 
-    ```shell
-    $ kubectl logs pod/r1-http-client-54568d6c9-ftmr7
-    get:
-    2020-12-09 00:21:07 Hello from http-server with the pod IP - 10.233.120.123 and podname - r1-http-server-7cf7db8d8-7bmsd
-    get:
-    2020-12-09 00:21:12 Hello from http-server with the pod IP - 10.233.120.123 and podname - r1-http-server-7cf7db8d8-7bmsd
-    get:
-    2020-12-09 00:21:17 Hello from http-server with the pod IP - 10.233.120.123 and podname - r1-http-server-7cf7db8d8-7bmsd
-    get:
-    2020-12-09 00:21:22 Hello from http-server with the pod IP - 10.233.120.123 and podname - r1-http-server-7cf7db8d8-7bmsd 
-    ```
+### Communication between a private cluster (client app) and public cluster (server app) (logical cloud level 1)
+(1) Set the KUBE_PATH2 environment variable to the public cluster kubeconfig file path and the PUBLIC_CLUSTER2 environment variable to true.
 
-    ## Uninstall the application
-    Uninstall the app using the commands:
-    ```shell
-    $ emcoctl --config emco-cfg-dtc.yaml apply -f emco-dtc-terminate.yaml
-    $ emcoctl --config emco-cfg-dtc.yaml delete -f emco-dtc-multiple-cluster-l0.yaml
-    ```
+(2) Set the LC_LEVEL environment variable to 1.
 
-(d) communication between a private cluster (client app) and public cluster (server app) (logical cloud level 1)
+#### Install the client/server app
+Install the app using the commands:
+```shell
+$ ./apply.sh
+```
 
-    (1) Copy the config file
-    ```shell
-    $ cp examples/dtc/emco-cfg-remote.yaml examples/dtc/service_discovery/public_cluster/l1_logical_cloud/emco-cfg-dtc.yaml
-    ```
-    (2) Modify examples/dtc/service_discovery/public_cluster/l1_logical_cloud/emco-dtc-multiple-cluster-l1-step1.yaml, examples/dtc/service_discovery/public_cluster/l1_logical_cloud/emco-dtc-multiple-cluster-l1-step2.yaml and examples/dtc/service_discovery/public_cluster/l1_logical_cloud/emco-cfg-dtc.yaml files to change host name, port number and kubeconfig path.
+#### Verify network policy resource instantiation
+```shell
+$ kubectl -n ns1 get networkpolicy
+NAME               POD-SELECTOR      AGE
+testdtc-serverin   app=http-server   28s
+```
 
-    (3) Compress the profile and helm files
+#### Verify service entry created on the cluster where the client app is running
+```shell
+$ kubectl -n ns1 get svc
+NAME                    TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)   AGE
+service/http-service    ClusterIP   10.233.0.1   <none>        443/TCP   1d
+```
 
-    Update the profile files with right proxy address and create tar.gz of profiles
-    ```shell
-    $ cd examples/helm_charts/http-server/profile/service_discovery_overrides/public_cluster/http-server-profile
-    $ tar -czvf ../../../../../../dtc/service_discovery/public_cluster/l1_logical_cloud/http-server-profile.tar.gz .
-    $ cd ../../../../../http-client/profile/service_discovery_overrides/public_cluster/http-client-profile
-    $ tar -czvf ../../../../../../dtc/service_discovery/public_cluster/l1_logical_cloud/http-client-profile.tar.gz .
-    ```
-    Create and copy .tgz of application helm charts
-    ```shell
-    $ cd ../../../../../http-server/helm
-    $ tar -czvf http-server.tgz http-server/
-    $ cp *.tgz ../../../dtc/service_discovery/public_cluster/l1_logical_cloud/
-    $ cd ../../http-client/helm
-    $ tar -czvf http-client.tgz http-client/
-    $ cp *.tgz ../../../dtc/service_discovery/public_cluster/l1_logical_cloud/
-    ```
+#### Sample log from the client pod
+```shell
+$ kubectl -n ns1 logs pod/r1-http-client-54568d6c9-ftmr7
+get:
+2020-12-09 00:21:07 Hello from http-server with the pod IP - 10.233.120.123 and podname - r1-http-server-7cf7db8d8-7bmsd
+get:
+2020-12-09 00:21:12 Hello from http-server with the pod IP - 10.233.120.123 and podname - r1-http-server-7cf7db8d8-7bmsd
+get:
+2020-12-09 00:21:17 Hello from http-server with the pod IP - 10.233.120.123 and podname - r1-http-server-7cf7db8d8-7bmsd
+get:
+2020-12-09 00:21:22 Hello from http-server with the pod IP - 10.233.120.123 and podname - r1-http-server-7cf7db8d8-7bmsd 
+```
 
-    ## Install the client/server app
-    Install the app using the commands:
-    ```shell
-    $ cd ../../../dtc/service_discovery/public_cluster/l1_logical_cloud/
-    $ emcoctl --config emco-cfg-dtc.yaml apply -f emco-dtc-multiple-cluster-l1-step1.yaml
-    $ emcoctl --config emco-cfg-dtc.yaml apply -f emco-dtc-multiple-cluster-l1-step2.yaml
-    ```
-
-    ## Verify network policy resource instantiation
-    ```shell
-    $ kubectl -n ns1 get networkpolicy
-    NAME               POD-SELECTOR      AGE
-    testdtc-serverin   app=http-server   28s
-    ```
-    ## Verify service entry created on the cluster where the client app is running
-    ```shell
-    $ kubectl -n ns1 get svc
-    NAME                    TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)   AGE
-    service/http-service    ClusterIP   10.233.0.1   <none>        443/TCP   1d
-    ```
-
-    ## Sample log from the client pod
-
-    ```shell
-    $ kubectl -n ns1 logs pod/r1-http-client-54568d6c9-ftmr7
-    get:
-    2020-12-09 00:21:07 Hello from http-server with the pod IP - 10.233.120.123 and podname - r1-http-server-7cf7db8d8-7bmsd
-    get:
-    2020-12-09 00:21:12 Hello from http-server with the pod IP - 10.233.120.123 and podname - r1-http-server-7cf7db8d8-7bmsd
-    get:
-    2020-12-09 00:21:17 Hello from http-server with the pod IP - 10.233.120.123 and podname - r1-http-server-7cf7db8d8-7bmsd
-    get:
-    2020-12-09 00:21:22 Hello from http-server with the pod IP - 10.233.120.123 and podname - r1-http-server-7cf7db8d8-7bmsd 
-    ```
-
-    ## Uninstall the application
-    Uninstall the app using the commands:
-    ```shell
-    $ emcoctl --config emco-cfg-dtc.yaml apply -f emco-dtc-terminate-l1.yaml
-    $ emcoctl --config emco-cfg-dtc.yaml delete -f emco-dtc-multiple-cluster-l1-step1.yaml
-    $ emcoctl --config emco-cfg-dtc.yaml delete -f emco-dtc-multiple-cluster-l1-step2.yaml
-    $ emcoctl --config emco-cfg-dtc.yaml delete -f emco-dtc-multiple-cluster-l1-step1.yaml
-    ```
+#### Uninstall the application
+Uninstall the app using the commands:
+```shell
+$ ./delete.sh
+```
