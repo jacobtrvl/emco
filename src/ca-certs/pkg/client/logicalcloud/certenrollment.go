@@ -77,6 +77,7 @@ func (c *CaCertEnrollmentClient) Instantiate(cert, project string) error {
 		ContextID:  ctx.ContextID,
 		Resources: enrollment.EnrollmentResource{
 			CertificateRequest: map[string]*cmv1.CertificateRequest{},
+			Certificate:        map[string]*cmv1.Certificate{},
 		},
 		Project: project,
 	}
@@ -197,6 +198,7 @@ func (c *CaCertEnrollmentClient) Terminate(cert, project string) error {
 		ContextID: ctx.ContextID,
 		Resources: enrollment.EnrollmentResource{
 			CertificateRequest: map[string]*cmv1.CertificateRequest{},
+			Certificate:        map[string]*cmv1.Certificate{},
 		},
 		Project: project,
 	}
@@ -289,6 +291,7 @@ func (c *CaCertEnrollmentClient) Update(cert, project string) error {
 				ClientName: clientName,
 				Resources: enrollment.EnrollmentResource{
 					CertificateRequest: map[string]*cmv1.CertificateRequest{},
+					Certificate:        map[string]*cmv1.Certificate{},
 				},
 				Project: project,
 			}

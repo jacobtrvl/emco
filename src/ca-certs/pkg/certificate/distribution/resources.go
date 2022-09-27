@@ -10,8 +10,10 @@ import (
 	"strings"
 
 	cmv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
+	tcsv1 "github.com/intel/trusted-certificate-issuer/api/v1alpha1"
 	"github.com/pkg/errors"
 	"gitlab.com/project-emco/core/emco-base/src/ca-certs/pkg/certissuer/certmanagerissuer"
+	"gitlab.com/project-emco/core/emco-base/src/ca-certs/pkg/certissuer/tcsissuer"
 	"gitlab.com/project-emco/core/emco-base/src/ca-certs/pkg/module"
 	"gitlab.com/project-emco/core/emco-base/src/ca-certs/pkg/service/istioservice"
 	"gitlab.com/project-emco/core/emco-base/src/ca-certs/pkg/service/knccservice"
@@ -69,7 +71,7 @@ func (ctx *DistributionContext) createClusterIssuer(secretName string) error {
 }
 
 // createProxyConfig creates a proxyConfig to control the traffic between workloads
-func (ctx *DistributionContext) createProxyConfig(issuer *cmv1.ClusterIssuer) error {
+func (ctx *DistributionContext) createProxyConfig(issuer string) error {
 	pcName := istioservice.ProxyConfigName(ctx.ContextID, ctx.CaCert.MetaData.Name, ctx.ClusterGroup.Spec.Provider, ctx.Cluster, ctx.Namespace)
 	if pc, exists := ctx.Resources.ProxyConfig[pcName]; exists {
 		// a proxyConfig already exists, update the context resource order
@@ -78,7 +80,7 @@ func (ctx *DistributionContext) createProxyConfig(issuer *cmv1.ClusterIssuer) er
 	}
 
 	environmentVariables := map[string]string{}
-	environmentVariables["ISTIO_META_CERT_SIGNER"] = issuer.ObjectMeta.Name
+	environmentVariables["ISTIO_META_CERT_SIGNER"] = issuer
 	pc := istioservice.CreateProxyConfig(pcName, ctx.Namespace, environmentVariables)
 
 	if err := module.AddResource(ctx.AppContext, pc, ctx.ClusterHandle, module.ResourceName(pc.MetaData.Name, pc.Kind)); err != nil {
@@ -195,4 +197,37 @@ func (ctx *DistributionContext) updateKnccConfig(patch []map[string]string, c *k
 	ctx.ResOrder = append(ctx.ResOrder, module.ResourceName(c.ObjectMeta.Name, c.TypeMeta.Kind))
 
 	return nil
+}
+
+// createTCSIssuer creates a TCSIssuer to issue the certificates
+func (ctx *DistributionContext) createTCSIssuer(secret string, selfSign bool) error {
+	iName := tcsissuer.TCSIssuerName(ctx.EnrollmentContextID, ctx.CaCert.MetaData.Name, ctx.ClusterGroup.Spec.Provider, ctx.Cluster)
+	if i, exists := ctx.Resources.TCSIssuer[iName]; exists {
+		// a tcsIssuer already exists, update the context resource order
+		ctx.ResOrder = append(ctx.ResOrder, module.ResourceName(i.ObjectMeta.Name, i.Kind))
+		return nil
+	}
+
+	i := tcsissuer.CreateTCSIssuer(iName, secret, selfSign)
+	if err := module.AddResource(ctx.AppContext, i, ctx.ClusterHandle, module.ResourceName(i.ObjectMeta.Name, i.Kind)); err != nil {
+		return err
+	}
+
+	ctx.ResOrder = append(ctx.ResOrder, module.ResourceName(i.ObjectMeta.Name, i.Kind))
+	ctx.Resources.TCSIssuer[iName] = i // this is needed to create the proxyconfig
+
+	return nil
+}
+
+// retrieveTCSIssuer returns the specific tcsissuer from the distribution resources list
+func (ctx *DistributionContext) retrieveTCSIssuer(cluster string) *tcsv1.TCSIssuer {
+	var iName string
+	for _, issuer := range ctx.Resources.TCSIssuer {
+		iName = tcsissuer.TCSIssuerName(ctx.EnrollmentContextID, ctx.CaCert.MetaData.Name, ctx.ClusterGroup.Spec.Provider, cluster)
+		if issuer.ObjectMeta.Name == iName {
+			return issuer
+		}
+	}
+
+	return &tcsv1.TCSIssuer{}
 }

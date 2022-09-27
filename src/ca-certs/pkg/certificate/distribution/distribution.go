@@ -4,11 +4,13 @@
 package distribution
 
 import (
+	"bytes"
 	"fmt"
 	"reflect"
 	"strings"
 
 	cmv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
+	tcsv1 "github.com/intel/trusted-certificate-issuer/api/v1alpha1"
 	"github.com/pkg/errors"
 	"gitlab.com/project-emco/core/emco-base/src/ca-certs/pkg/module"
 	clm "gitlab.com/project-emco/core/emco-base/src/clm/pkg/cluster"
@@ -118,13 +120,15 @@ func Terminate(dbKey interface{}) error {
 // createCertManagerIssuerResources creates cert-manager specific resources
 // in this case, secret, clusterIssuer
 func (ctx *DistributionContext) createCertManagerIssuerResources() error {
-	// retrieve enrolled CertificateRequests
-	crs, err := certmanagerissuer.RetrieveCertificateRequests(ctx.EnrollmentContextID)
+	// retrieve enrolled cert-manager resource
+	resources, err := certmanagerissuer.RetrieveCertManagerResources(ctx.EnrollmentContextID)
 	if err != nil {
 		return err
 	}
 
-	ctx.CertificateRequests = crs
+	ctx.CertificateRequests = resources.CertificateRequests
+	ctx.Certificates = resources.Certificates
+	ctx.Secrets = resources.Secrets
 
 	for _, ctx.ClusterGroup = range ctx.ClusterGroups {
 		// get all the clusters in this clusterGroup
@@ -152,34 +156,64 @@ func (ctx *DistributionContext) createCertManagerIssuerResources() error {
 
 				return err
 			}
+			var sgxEnabled bool
+			// check whether the cluster is SGX enabled or not
+			if val, err := clm.NewClusterClient().GetClusterKvPairsValue(context.Background(), ctx.ClusterGroup.Spec.Provider, ctx.Cluster, "sgx", "enabled"); err == nil {
+				v, e := module.GetValue(val)
+				if e != nil {
+					return e
+				}
 
-			available := false
-
-			crName := certmanagerissuer.CertificateRequestName(ctx.EnrollmentContextID, ctx.CaCert.MetaData.Name, ctx.ClusterGroup.Spec.Provider, ctx.Cluster)
-			for _, cr := range ctx.CertificateRequests {
-				if cr.ObjectMeta.Name == crName { // to make sure we are creating the resource(s) in the same cluster
-					if err := certmanagerissuer.ValidateCertificateRequest(cr); err != nil {
-						return err
-					}
-
-					// create a Secret to store the certificate
-					sName := certmanagerissuer.SecretName(ctx.ContextID, ctx.CaCert.MetaData.Name, ctx.ClusterGroup.Spec.Provider, ctx.Cluster)
-					if err := ctx.createSecret(cr, sName, "cert-manager"); err != nil {
-						return err
-					}
-
-					// create a ClusterIssuer to use the secret and the certificate
-					if err := ctx.createClusterIssuer(sName); err != nil {
-						return err
-					}
-
-					available = true
-					break
+				if v == "true" {
+					sgxEnabled = true
 				}
 			}
 
-			if !available {
-				err := errors.New("certificaterequest is not ready for cluster. Update the enrollment")
+			ready := false
+			if sgxEnabled {
+				certName := certmanagerissuer.CertificateName(ctx.EnrollmentContextID, ctx.CaCert.MetaData.Name, ctx.ClusterGroup.Spec.Provider, ctx.Cluster)
+				for _, cert := range ctx.Certificates {
+					if cert.ObjectMeta.Name == certName { // to make sure we are creating the resource(s) in the same cluster
+						if err := certmanagerissuer.ValidateCertificate(cert); err != nil {
+							return err
+						}
+
+						// create a TCSIssuer to use the secret and the certificate
+						if err := ctx.createTCSIssuer(cert.Spec.SecretName, false); err != nil {
+							return err
+						}
+
+						ready = true
+						break
+					}
+				}
+			} else {
+				crName := certmanagerissuer.CertificateRequestName(ctx.EnrollmentContextID, ctx.CaCert.MetaData.Name, ctx.ClusterGroup.Spec.Provider, ctx.Cluster)
+				for _, cr := range ctx.CertificateRequests {
+					if cr.ObjectMeta.Name == crName { // to make sure we are creating the resource(s) in the same cluster
+						if err := certmanagerissuer.ValidateCertificateRequest(cr); err != nil {
+							return err
+						}
+
+						// create a Secret to store the certificate
+						sName := certmanagerissuer.SecretName(ctx.ContextID, ctx.CaCert.MetaData.Name, ctx.ClusterGroup.Spec.Provider, ctx.Cluster)
+						if err := ctx.createSecret(cr, sName, "cert-manager"); err != nil {
+							return err
+						}
+
+						// create a ClusterIssuer to use the secret and the certificate
+						if err := ctx.createClusterIssuer(sName); err != nil {
+							return err
+						}
+
+						ready = true
+						break
+					}
+				}
+			}
+
+			if !ready {
+				err := errors.New("cert-manager resource is not ready. Update the enrollment")
 				logutils.Error("",
 					logutils.Fields{
 						"Cluster": ctx.Cluster,
@@ -212,7 +246,12 @@ func (ctx *DistributionContext) createServiceResources() error {
 	var serviceType string
 	val, err := clm.NewClusterClient().GetClusterKvPairsValue(context.Background(), ctx.ClusterGroup.Spec.Provider, ctx.Cluster, "serviceMeshInfo", "serviceType")
 	if err == nil {
-		serviceType = val.(string)
+		v, e := module.GetValue(val)
+		if e != nil {
+			return e
+		}
+
+		serviceType = v
 	}
 
 	if err != nil &&
@@ -223,51 +262,71 @@ func (ctx *DistributionContext) createServiceResources() error {
 
 	switch serviceType {
 	case "istio":
-		return ctx.createIstioServiceResourcess()
+		return ctx.createIstioServiceResources()
 
 	default:
-		return ctx.createIstioServiceResourcess()
+		return ctx.createIstioServiceResources()
 	}
 
 }
 
-// createIstioServiceResourcess creates the istio resources on the edge cluster
+// createIstioServiceResources creates the istio resources on the edge cluster
 // in this case, proxyConfig, kncc resource to update the istio configMap
-func (ctx *DistributionContext) createIstioServiceResourcess() error {
+func (ctx *DistributionContext) createIstioServiceResources() error {
 	switch ctx.CaCert.Spec.IssuerRef.Group {
 	case "cert-manager.io":
-		if issuer := ctx.retrieveClusterIssuer(ctx.Cluster); !reflect.DeepEqual(issuer, cmv1.ClusterIssuer{}) {
-			if len(ctx.Namespace) > 0 {
-				// create a proxyconfig for this namespace
-				if err := ctx.createProxyConfig(issuer); err != nil {
-					return err
-				}
+		var sgxEnabled bool
+		var issuerName string
+		var secret v1.Secret
+		// check whether the cluster is SGX enabled or not
+		if val, err := clm.NewClusterClient().GetClusterKvPairsValue(context.Background(), ctx.ClusterGroup.Spec.Provider, ctx.Cluster, "sgx", "enabled"); err == nil {
+			v, e := module.GetValue(val)
+			if e != nil {
+				return e
 			}
 
-			// create a kncc patch config using the secret created fot this issuer
-			if s := ctx.retrieveSecret(ctx.Cluster); !reflect.DeepEqual(s, v1.Secret{}) {
-				pem := strings.Replace(string(s.Data[v1.TLSCertKey]), "\n", "\n    ", -1)
-				key := "mesh:\n  caCertificates\n"
-				value := fmt.Sprintf("- certSigners:\n  - clusterissuers.cert-manager.io/%s\n  pem: |\n    %s",
-					issuer.ObjectMeta.Name, pem)
-				if err := ctx.createKnccConfig("istio-system", "istio", "istio-system",
-					[]map[string]string{{key: value}}); err != nil {
-					return err
-				}
-
-				if len(ctx.Namespace) == 0 {
-					// use this issuer as the dfault issuer for the cluster
-					key = "mesh:\n  defaultConfig:\n    proxyMetadata:\n      ISTIO_META_CERT_SIGNER\n"
-					value = issuer.ObjectMeta.Name
-					if err := ctx.createKnccConfig("istio-system", "istio", "istio-system",
-						[]map[string]string{{key: value}}); err != nil {
-						return err
-					}
-				}
-
-				return nil
+			if v == "true" {
+				sgxEnabled = true
 			}
+		}
 
+		if sgxEnabled {
+			// retrieve the tcsissuer
+			if issuer := ctx.retrieveTCSIssuer(ctx.Cluster); !reflect.DeepEqual(issuer, tcsv1.TCSIssuer{}) {
+				issuerName = issuer.ObjectMeta.Name
+			}
+			// retrieve the tcsissuer secret
+			sName := certmanagerissuer.SecretName(ctx.EnrollmentContextID, ctx.CaCert.MetaData.Name, ctx.ClusterGroup.Spec.Provider, ctx.Cluster)
+			for _, s := range ctx.Secrets {
+				if s.ObjectMeta.Name == sName {
+					secret = s
+					break
+				}
+			}
+		} else {
+			// retrieve the clusterissuer
+			if issuer := ctx.retrieveClusterIssuer(ctx.Cluster); !reflect.DeepEqual(issuer, cmv1.ClusterIssuer{}) {
+				issuerName = issuer.ObjectMeta.Name
+			}
+			// retrieve the clusterissuer secret
+			secret = *ctx.retrieveSecret(ctx.Cluster)
+
+		}
+
+		if len(issuerName) == 0 {
+			// a clusterIssuer is not available, return error
+			err := errors.New("A clusterIssuer is not available for the cluster")
+			if sgxEnabled {
+				err = errors.New("A tcsIssuer is not available for the cluster")
+			}
+			logutils.Error("",
+				logutils.Fields{
+					"Cluster": ctx.Cluster,
+					"Error":   err.Error()})
+			return err
+		}
+
+		if reflect.DeepEqual(secret, v1.Secret{}) {
 			// a secret is not available, return error
 			err := errors.New("A secret is not available for the cluster")
 			logutils.Error("",
@@ -277,14 +336,56 @@ func (ctx *DistributionContext) createIstioServiceResourcess() error {
 			return err
 		}
 
-		// a clusterIssuer is not available, return error
-		err := errors.New("A clusterIssuer is not available for cluster")
-		logutils.Error("",
-			logutils.Fields{
-				"Cluster": ctx.Cluster,
-				"Error":   err.Error()})
-		return err
+		var (
+			key,
+			value string
+		)
 
+		if len(ctx.Namespace) > 0 {
+			// create a proxyconfig for this namespace
+			if err := ctx.createProxyConfig(issuerName); err != nil {
+				return err
+			}
+		}
+
+		// create a kncc patch config using the secret created fot this issuer
+		key = "mesh:\n  caCertificates\n"
+		if sgxEnabled {
+			pem := strings.Replace(string(bytes.Join([][]byte{secret.Data[v1.TLSCertKey], secret.Data[v1.ServiceAccountRootCAKey]},
+				[]byte{})), "\n", "\n    ", -1) // create the caCert chain
+			value = fmt.Sprintf("- certSigners:\n  - tcsissuer.tcs.intel.com/default.%s\n  pem: |\n    %s",
+				issuerName, pem)
+			if len(ctx.Namespace) > 0 {
+				// set the issuer name with the namespace
+				value = fmt.Sprintf("- certSigners:\n  - tcsissuer.tcs.intel.com/%s.%s\n  pem: |\n    %s",
+					ctx.Namespace, issuerName, pem)
+			}
+
+		} else {
+			pem := strings.Replace(string(secret.Data[v1.TLSCertKey]), "\n", "\n    ", -1)
+			value = fmt.Sprintf("- certSigners:\n  - clusterissuers.cert-manager.io/%s\n  pem: |\n    %s",
+				issuerName, pem)
+		}
+
+		if err := ctx.createKnccConfig("istio-system", "istio", "istio-system",
+			[]map[string]string{{key: value}}); err != nil {
+			return err
+		}
+
+		if len(ctx.Namespace) == 0 {
+			// use this issuer as the dfault issuer for the cluster
+			key = "mesh:\n  defaultConfig:\n    proxyMetadata:\n      ISTIO_META_CERT_SIGNER\n"
+			value = issuerName
+			if sgxEnabled {
+				value = fmt.Sprintf("default.%s", issuerName)
+			}
+			if err := ctx.createKnccConfig("istio-system", "istio", "istio-system",
+				[]map[string]string{{key: value}}); err != nil {
+				return err
+			}
+		}
+
+		return nil
 	}
 
 	err := errors.New("Unsupported Issuer")
