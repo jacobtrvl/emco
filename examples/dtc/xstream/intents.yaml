@@ -12,7 +12,13 @@ spec:
   compositeProfile: {{ .CompositeProfile }} 
   version: r1
   logicalCloud: {{ .LogicalCloud }}
-  overrideValues: []
+  overrideValues:
+  - app: xstream-server
+    values:
+      "xstreamservice.server.image.repository": "{{.XstreamServiceImageRepository}}"
+  - app: xstream-client
+    values:
+      "xstreamclient.client.image.repository": "{{.XstreamClientImageRepository}}"
 
 ---
 #create intent in deployment intent group

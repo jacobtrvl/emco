@@ -10,6 +10,10 @@ set -o pipefail
 HOST_IP=${HOST_IP:-"oops"}
 KUBE_PATH1=${KUBE_PATH1:-"oops"}
 KUBE_PATH2=${KUBE_PATH2:-"oops"}
+XSTREAM_SERVER_IMAGE_REPOSITORY=${XSTREAM_SERVER_IMAGE_REPOSITORY:-<docker-registry-url>/xstream-server}
+XSTREAM_CLIENT_IMAGE_REPOSITORY=${XSTREAM_CLIENT_IMAGE_REPOSITORY:-<docker-registry-url>/xstream-client}
+CLUSTER1_ISTIO_INGRESS_GATEWAY_ADDRESS=${CLUSTER1_ISTIO_INGRESS_GATEWAY_ADDRESS:-172.16.16.100}
+CLUSTER2_ISTIO_INGRESS_GATEWAY_ADDRESS=${CLUSTER2_ISTIO_INGRESS_GATEWAY_ADDRESS:-172.16.16.200}
 # tar files
 function create {
     # make the GMS helm charts and profiles
@@ -24,8 +28,8 @@ function create {
     ClusterProvider: xstreamprovider1
     Cluster1: xstreamcluster1
     Cluster2: sleepcluster1
-    KubeConfig1: $KUBE_PATH2
-    KubeConfig2: $KUBE_PATH1
+    KubeConfig1: $KUBE_PATH1
+    KubeConfig2: $KUBE_PATH2
     ProjectName: xstreamproj1
     LogicalCloud1RefName: xstreamserverlc1
     LogicalCloud2RefName: xstreamclientlc1
@@ -33,6 +37,8 @@ function create {
     Cluster2Label: edge-cluster1
     Cluster1IstioIngressGatewayKvName: xstreamistioingresskvpairs1
     Cluster2IstioIngressGatewayKvName: xstreamistioingresskvpairs2
+    Cluster1IstioIngressGatewayAddress: $CLUSTER1_ISTIO_INGRESS_GATEWAY_ADDRESS
+    Cluster2IstioIngressGatewayAddress: $CLUSTER2_ISTIO_INGRESS_GATEWAY_ADDRESS
     AdminCloud: default
     LogicalCloud: xstream-std-lc1
     LogicalCloudNamespace: xstream
@@ -66,6 +72,8 @@ function create {
     DtcPort: 30448
     ItsPort: 30440
     HostIP: $HOST_IP
+    XstreamServiceImageRepository: $XSTREAM_SERVER_IMAGE_REPOSITORY
+    XstreamClientImageRepository: $XSTREAM_CLIENT_IMAGE_REPOSITORY
 NET
 cat << NET > emco-cfg.yaml
   orchestrator:
