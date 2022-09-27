@@ -122,10 +122,150 @@ Now we can assign this policy to both composite applications.
 ```
 As a prerequisite, workflow scaleout-workflow is required to be applied to bothNow policy controller monitors the metric   ‘cpu-usage-percentage’ from all containers that belong to these composite applications. And policy “cpu-load” is evaluated for any violation. If a violation is found, that is cpu load crossed threshold specified in the policy, the workflow ‘scaleout’ is initiated in the same DIG.
 
+### Database Interaction & Data Model
+Policy controller stores policy intent and agent details in mongo. It uses same mongo instance as orchestrator.
+Policy controller creates two types of documents, _policyIntent_ and _agent_. 
+
+Uses orchestrator libraries for reading and writing data to mongo. Library ensures parent resources are present while creating a new resource.
+
+#### PolicyIntent
+ - PolicyIntent is the document that stores relation between policy, events (events/metrics from agents) and CompositeApp/DIG  
+ - policy controller provides CRUD APIs, which in turn writes the document to mongo  
+ DB - emco  
+ Collection - resources  
+ document key :- project,compositeApp,compositeAppVersion,deploymentIntentGroup, policyIntent  
+ Schema :- 
+ ```text
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "type": "object",
+  "properties": {
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "userData1": {
+          "type": "string"
+        },
+        "userData2": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name"
+      ]
+    },
+    "spec": {
+      "type": "object",
+      "properties": {
+        "policy": {
+          "type": "object",
+          "properties": {
+            "engineUrl": {
+              "type": "string"
+            },
+            "namespace": {
+              "type": "string"
+            },
+            "policyName": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "engineUrl",
+            "policyName"
+          ]
+        },
+        "actor": {
+          "type": "string"
+        },
+        "actorArg": {
+          "type": "object",
+          "properties": {
+            "workFlowName": {
+              "type": "string"
+            },
+            "workFlowMgr": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "workFlowName",
+            "workFlowMgr"
+          ]
+        },
+        "event": {
+          "type": "object",
+          "properties": {
+            "agent": {
+              "type": "string"
+            },
+            "id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "agent",
+            "id"
+          ]
+        }
+      },
+      "required": [
+        "policy",
+        "actor",
+        "actorArg",
+        "event"
+      ]
+    }
+  },
+  "required": [
+    "metadata",
+    "spec"
+  ]
+}
+```
+
+#### Agent
+- Agent document holds details about metrics collectors/agent. Currently, only user defined id and endpoint is stored.  
+db: emco  
+collection: resources  
+key: policyModule, agent  
+* policyModule is a dummy parent, defined for base for all generic policy controller documents
+Schema:  
+
+```text
+{
+"$schema": "http://json-schema.org/draft-04/schema#",
+"type": "object",
+"properties": {
+"addr": {
+"type": "string"
+}
+},
+"required": [
+"addr"
+]
+}
+```
+##### Reference schema
+(Used by orchestrator for initializing)
+``` 
+#emco-policy
+- name: policyIntent
+  parent: deploymentIntentGroup
+- name: policyModule
+- name: agent
+  parent: policyModule
+```  
 
 ### Scalability
-In the current design, the scalability of the policy controller is not considered. Running more than one instance of a policy controller may not give a consistent result. For supporting s calability, the design requires the following points to be considered:
-1. The data structures like event reverse map are in-memory. These data structures are accessed very frequently, hence disk reads are not affordable. Hence user updates on mongo-db from different instances of the policy controller has to be synched to this in-memory DS periodically.
+In the current design, the scalability of the policy controller is not considered. Running more than one instance of a policy controller may not give a consistent result. For supporting scalability, the design requires the following points to be considered:
+1. The data structures like event reverse map are in-memory. These data structures are accessed very frequently, hence disk reads are not affordable. Hence, user updates on mongo-db from different instances of the policy controller has to be sync-hed to this in-memory DS periodically.
 2. Should avoid multiple controller instances acting on the same event. This can result in duplicate actions.
 
 ### Roadmap/Known Problems
