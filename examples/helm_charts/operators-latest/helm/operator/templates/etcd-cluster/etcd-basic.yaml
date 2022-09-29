@@ -13,6 +13,7 @@ spec:
   clusterIP: None
   selector:
     app: etcd
+  publishNotReadyAddresses: true
 ---
 apiVersion: v1
 kind: Service
