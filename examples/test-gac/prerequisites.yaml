@@ -79,7 +79,7 @@ metadata :
   name: {{.IstioIngressGatewayKvName}}
 spec:
   kv:
-    - istioingressgatewayaddress: "192.168.121.26"
+    - istioingressgatewayaddress: "{{ .ClusterIstioIngressGatewayAddress }}"
     - istioingressgatewayport: "32001"
     - istioingressgatewayinternalport: "15443"
 

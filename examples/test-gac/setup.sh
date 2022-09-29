@@ -9,6 +9,7 @@ set -o pipefail
 
 HOST_IP=${HOST_IP:-"oops"}
 KUBE_PATH=${KUBE_PATH:-"oops"}
+CLUSTER_ISTIO_INGRESS_GATEWAY_ADDRESS=${CLUSTER_ISTIO_INGRESS_GATEWAY_ADDRESS:-192.168.121.26}
 
 collectd_folder=../helm_charts/collectd
 operator_latest_folder=../helm_charts/operators-latest
@@ -31,6 +32,7 @@ AdminCloud: default
 App1: operator
 App2: collectd
 KubeConfig: $KUBE_PATH
+ClusterIstioIngressGatewayAddress: $CLUSTER_ISTIO_INGRESS_GATEWAY_ADDRESS
 HelmApp1: output/operator.tar.gz
 HelmApp2: output/collectd.tar.gz
 ProfileApp1: output/operator_profile.tar.gz

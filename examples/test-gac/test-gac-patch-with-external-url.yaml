@@ -19,7 +19,7 @@ file:
 
 ---
 # add customization for cm-istio
-# add more data configurations to cm-istio using the JSON patch 
+# add more data configurations to cm-istio using the JSON patch
 # retrieve JSON patch value from an external URL
 version: emco/v2
 resourceContext:
@@ -41,7 +41,7 @@ spec:
     {
 	    "op": "add",
 	    "path": "/data/istioingressgatewayaddress",
-	    "value": "$(http://192.168.121.29:30461/v2/cluster-providers/provider1/clusters/cluster1/kv-pairs/istioingressgatewaykvpairs?key=istioingressgatewayaddress)$" 
+	    "value": "$(http://{{.HostIP}}:30461/v2/cluster-providers/provider1/clusters/cluster1/kv-pairs/istioingressgatewaykvpairs?key=istioingressgatewayaddress)$"
 	  },
     # get the value from the external service call
     # in this example, clm kvpair query endpoint
@@ -49,7 +49,7 @@ spec:
     {
 	    "op": "add",
 	    "path": "/data/istioingressgatewayport",
-	    "value": "$(http://192.168.121.29:30461/v2/cluster-providers/{clusterProvider}/clusters/{cluster}/kv-pairs/istioingressgatewaykvpairs?key=istioingressgatewayport)$"  
+	    "value": "$(http://{{.HostIP}}:30461/v2/cluster-providers/{clusterProvider}/clusters/{cluster}/kv-pairs/istioingressgatewaykvpairs?key=istioingressgatewayport)$"
 	  },
     {
       "op": "add",
@@ -79,7 +79,7 @@ file:
 
 ---
 # add customization for secret-db
-# add more data configurations to secret-db using the JSON patch 
+# add more data configurations to secret-db using the JSON patch
 # retrieve JSON patch value from an external URL
 version: emco/v2
 resourceContext:
@@ -101,7 +101,7 @@ spec:
     {
 	    "op": "add",
 	    "path": "/data/user",
-	    "value": "$(http://192.168.121.29:30461/v2/cluster-providers/provider1/clusters/cluster1/kv-pairs/databaseauthorizationkvpairs?key=user)$" 
+	    "value": "$(http://{{.HostIP}}:30461/v2/cluster-providers/provider1/clusters/cluster1/kv-pairs/databaseauthorizationkvpairs?key=user)$"
 	  },
     # get the value from the external service call
     # in this example, clm kvpair query endpoint
@@ -109,7 +109,7 @@ spec:
     {
 	    "op": "add",
 	    "path": "/data/password",
-	    "value": "$(http://192.168.121.29:30461/v2/cluster-providers/{clusterProvider}/clusters/{cluster}/kv-pairs/databaseauthorizationkvpairs?key=password)$"  
+	    "value": "$(http://{{.HostIP}}:30461/v2/cluster-providers/{clusterProvider}/clusters/{cluster}/kv-pairs/databaseauthorizationkvpairs?key=password)$"
 	  }
 	]
   secretOptions:

@@ -9,7 +9,7 @@ Please see [generic-action-controller.md](../../docs/design/generic-action-contr
 
 ## Setup Test Environment
 
-1. Export environment variables 1) `KUBE_PATH` where the kubeconfig for edge cluster is located and 2) `HOST_IP`: IP address of the cluster where EMCO is installed
+1. Export environment variables 1) `KUBE_PATH` where the kubeconfig for edge cluster is located, 2) `CLUSTER_ISTIO_INGRESS_GATEWAY_ADDRESS` to the Istio ingress address of the edge cluster, and 3) `HOST_IP`: IP address of the cluster where EMCO is installed
 
 2. Setup script
 
