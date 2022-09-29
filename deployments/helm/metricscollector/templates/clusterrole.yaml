@@ -1,6 +1,6 @@
 {{/*
 # SPDX-License-Identifier: Apache-2.0
-# Copyright (c) 2022 2022 Aarna Networks, Inc.
+# Copyright (c) 2022 Aarna Networks, Inc.
 */}}
 
 apiVersion: rbac.authorization.k8s.io/v1
