@@ -13,6 +13,7 @@ import (
 
 	"github.com/gorilla/handlers"
 	"gitlab.com/project-emco/core/emco-base/src/ncm/api"
+	"gitlab.com/project-emco/core/emco-base/src/ncm/pkg/metrics"
 	"gitlab.com/project-emco/core/emco-base/src/ncm/pkg/statusnotify"
 	register "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/grpc"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/config"
@@ -36,6 +37,8 @@ func main() {
 	}
 
 	httpRouter := api.NewRouter(nil)
+	httpRouter.Handle("/metrics", metrics.Initialize(true).Handler)
+
 	loggedRouter := handlers.LoggingHandler(os.Stdout, httpRouter)
 	log.Info("Starting Network Configuration Manager", log.Fields{"Port": config.GetConfiguration().ServicePort})
 
