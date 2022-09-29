@@ -1,0 +1,51 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2022 Intel Corporation
+
+# register rsync controller
+version: emco/v2
+resourceContext:
+  anchor: controllers
+metadata :
+  name: rsync
+spec:
+  host:  {{.HostIP}}
+  port: {{.RsyncPort}}
+
+---
+# register dtc controller
+version: emco/v2
+resourceContext:
+  anchor: controllers
+metadata :
+  name: dtc
+spec:
+  host: {{.HostIP}}
+  port: {{.DtcPort}}
+  type: "action"
+  priority: 1
+
+---
+# register dtc sub controller nps
+version: emco/v2
+resourceContext:
+  anchor: dtc-controllers
+metadata :
+  name: nps
+spec:
+  host:  {{.HostIP}}
+  port: {{.NpsPort}}
+  type: "action"
+  priority: 1
+
+---
+# register gac controller
+version: emco/v2
+resourceContext:
+  anchor: controllers
+metadata :
+  name: gac
+spec:
+  host: {{.HostIP}}
+  port: {{.GacPort}}
+  type: "action"
+  priority: 1

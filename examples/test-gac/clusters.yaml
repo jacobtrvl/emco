@@ -1,0 +1,51 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2022 Intel Corporation
+
+# create cluster provider
+version: emco/v2
+resourceContext:
+  anchor: cluster-providers
+metadata :
+  name: {{.ClusterProvider}}
+
+---
+# create cluster
+version: emco/v2
+resourceContext:
+  anchor: cluster-providers/{{.ClusterProvider}}/clusters
+metadata :
+  name: {{.Cluster}}
+file:
+  {{.KubeConfig}}
+
+---
+# add cluster label
+version: emco/v2
+resourceContext:
+  anchor: cluster-providers/{{.ClusterProvider}}/clusters/{{.Cluster}}/labels
+clusterLabel: {{.ClusterLabel}}
+
+---
+#Add label kvpair
+version: emco/v2
+resourceContext:
+  anchor: cluster-providers/{{.ClusterProvider}}/clusters/{{.Cluster}}/kv-pairs
+metadata :
+  name: {{.IstioIngressGatewayKvName}}
+spec:
+  kv:
+    - istioingressgatewayaddress: "{{ .ClusterIstioIngressGatewayAddress }}"
+    - istioingressgatewayport: "32001"
+    - istioingressgatewayinternalport: "15443"
+
+---
+#Add label kvpair
+version: emco/v2
+resourceContext:
+  anchor: cluster-providers/{{.ClusterProvider}}/clusters/{{.Cluster}}/kv-pairs
+metadata :
+  name: {{.DatabaseAuthorizationKvName}}
+spec:
+  kv:
+    - user: aGVsbG8=
+    - password: MWYyZDFlMmU2N2Rm

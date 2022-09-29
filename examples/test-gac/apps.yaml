@@ -1,0 +1,45 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2022 Intel Corporation
+
+# create gac compositeApp
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps
+metadata :
+  name: {{.CompositeAppGac}}
+  description: test
+spec:
+  compositeAppVersion: v1
+
+---
+# add app to the compositeApp
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.CompositeAppGac}}/v1/apps
+metadata :
+  name: {{.App1}}
+  description: "description for app"
+file:
+  {{.HelmApp1}}
+
+---
+# create gac compositeProfile
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.CompositeAppGac}}/v1/composite-profiles
+metadata :
+  name: {{.CompositeProfile}}
+  description: test
+
+---
+# add profiles to the compositeProfile
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.CompositeAppGac}}/v1/composite-profiles/{{.CompositeProfile}}/profiles
+metadata :
+  name: profile1
+  description: test
+spec:
+  app: {{.App1}}
+file:
+  {{.ProfileApp1}}

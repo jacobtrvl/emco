@@ -1,12 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright (c) 2022 Intel Corporation
 
-# approve
-version: emco/v2
-resourceContext:
-  anchor: projects/{{.ProjectName}}/composite-apps/{{.CompositeAppGac}}/v1/deployment-intent-groups/{{.DeploymentIntent}}/approve
-
----
 # instantiate
 version: emco/v2
 resourceContext:

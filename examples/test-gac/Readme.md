@@ -11,49 +11,12 @@ Please see [generic-action-controller.md](../../docs/design/generic-action-contr
 
 1. Export environment variables 1) `KUBE_PATH` where the kubeconfig for edge cluster is located, 2) `CLUSTER_ISTIO_INGRESS_GATEWAY_ADDRESS` to the Istio ingress address of the edge cluster, and 3) `HOST_IP`: IP address of the cluster where EMCO is installed
 
-2. Setup script
-
-    1. Run the setup script for creating artifacts needed to test GAC on a single cluster
-
-          ```shell
-            $ sudo chmod +x setup.sh
-
-            $ ./setup.sh create
-          ```
-
-      The output of this command is
-        1. `emco-cfg.yaml` for the current environment
-        2. `prerequisites.yaml` for the test
-        3. `values.yaml` for the current environment
-        4. `instantiate.yaml` to instantiate the deployment intent group
-        5. `update.yaml` to update the deployment intent group
-        6. `rollback.yaml` to rollback to a previous version
-        7. `helm chart and profiles tar.gz files` for all the use cases
-      
-    2. Cleanup artifacts generated above with the cleanup command
-
-          ```shell
-            $ ./setup.sh cleanup
-          ```
-
 ## Test Kubernetes resource creation
 
-1. Create Prerequisites
+Create prerequisites, create resources and customization in the GAC, and instantiate the GAC compositeApp deploymentIntentGroup
 
     ```shell
-      $ $bin/emcoctl apply --config emco-cfg.yaml -v values.yaml -f prerequisites.yaml
-    ```
-
-2. Create Resources and Customization in the GAC
-
-    ```shell
-      $ $bin/emcoctl apply --config emco-cfg.yaml -v values.yaml -f test-gac.yaml
-    ```
-
-3. Instantiate the GAC compositeApp deploymentIntentGroup
-
-    ```shell
-      $ $bin/emcoctl apply --config emco-cfg.yaml -v values.yaml -f instantiate.yaml
+      $ ./apply.sh test-gac.yaml
     ```
 
 Once the deploymentIntentGroup is instantiated successfully, we can see the following resources on the edge cluster.
@@ -150,47 +113,17 @@ Once the deploymentIntentGroup is instantiated successfully, we can see the foll
 
 ### Cleanup
 
-1. Delete Resources 
+Delete resources, prerequisites, and generated files
 
     ```shell
-      $ $bin/emcoctl delete --config emco-cfg.yaml -v values.yaml -f instantiate.yaml
-
-      $ $bin/emcoctl delete --config emco-cfg.yaml -v values.yaml -f test-gac.yaml
-    ```
-
-    <b> Note: You cannot delete a record without deleting the dependent records (referential integrity). Please retry deleting the records if it fails. <b>
-
-2. Delete Prerequisites
-
-    ```shell
-      $ $bin/emcoctl delete --config emco-cfg.yaml -v values.yaml -f prerequisites.yaml
-    ```
-
-    <b> Note: You cannot delete a record without deleting the dependent records (referential integrity). Please retry deleting the records if it fails. <b>
-
-3. Cleanup generated files
-
-    ```shell
-      $ ./setup.sh cleanup
+	  $ ./delete.sh test-gac.yaml
     ```
 
 ## Test JSON patch with an external lookup URL
-1. Create Prerequisites
+Create prerequisites, create resources and customization in the GAC, and instantiate the GAC compositeApp deploymentIntentGroup
 
     ```shell
-      $ $bin/emcoctl apply --config emco-cfg.yaml -v values.yaml -f prerequisites.yaml
-    ```
-
-2. Create Resources and Customization in the GAC
-
-    ```shell
-      $ $bin/emcoctl apply --config emco-cfg.yaml -v values.yaml -f test-gac-patch-with-external-url.yaml
-    ```
-
-3. Instantiate the GAC compositeApp deploymentIntentGroup
-
-    ```shell
-      $ $bin/emcoctl apply --config emco-cfg.yaml -v values.yaml -f instantiate.yaml
+      $ ./apply.sh test-gac-patch-with-external-url.yaml
     ```
 
 Once the deployment intent group is instantiated successfully, we can see the following resources on the edge cluster.
@@ -221,48 +154,18 @@ Once the deployment intent group is instantiated successfully, we can see the fo
 
 ### Cleanup
 
-1. Delete Resources 
+Delete resources, prerequisites, and generated files
 
     ```shell
-      $ $bin/emcoctl delete --config emco-cfg.yaml -v values.yaml -f instantiate.yaml
-
-      $ $bin/emcoctl delete --config emco-cfg.yaml -v values.yaml -f test-gac-patch-with-external-url.yaml
-    ```
-
-    <b> Note: You cannot delete a record without deleting the dependent records (referential integrity). Please retry deleting the records if it fails. <b>
-
-2. Delete Prerequisites
-
-    ```shell
-      $ $bin/emcoctl delete --config emco-cfg.yaml -v values.yaml -f prerequisites.yaml
-    ```
-
-    <b> Note: You cannot delete a record without deleting the dependent records (referential integrity). Please retry deleting the records if it fails. <b>
-
-3. Cleanup generated files
-
-    ```shell
-      $ ./setup.sh cleanup
+      $ ./delete.sh test-gac-patch-with-external-url.yaml
     ```
 
 ## Test Strategic Merge
 
-1. Create Prerequisites
+1. Create prerequisites, create resources and customization in the GAC, and instantiate the GAC compositeApp deploymentIntentGroup
 
     ```shell
-      $ $bin/emcoctl apply --config emco-cfg.yaml -v values.yaml -f prerequisites.yaml
-    ```
-
-2. Create Resources and Customization in the GAC
-
-    ```shell
-      $ $bin/emcoctl apply --config emco-cfg.yaml -v values.yaml -f test-strategic-merge.yaml
-    ```
-
-3. Instantiate the GAC compositeApp deploymentIntentGroup
-
-    ```shell
-      $ $bin/emcoctl apply --config emco-cfg.yaml -v values.yaml -f instantiate.yaml
+      $ ./apply.sh test-strategic-merge.yaml
     ```
 
 Once the deployment intent group is instantiated successfully, we can see the following resources on the edge cluster.
@@ -322,26 +225,8 @@ Once the deployment intent group is instantiated successfully, we can see the fo
 
 ### Cleanup
 
-1. Delete Resources 
+Delete resources, prerequisites, and generated files
 
     ```shell
-      $ $bin/emcoctl delete --config emco-cfg.yaml -v values.yaml -f instantiate.yaml
-
-      $ $bin/emcoctl delete --config emco-cfg.yaml -v values.yaml -f test-strategic-merge.yaml
-    ```
-
-    <b> Note: You cannot delete a record without deleting the dependent records (referential integrity). Please retry deleting the records if it fails. <b>
-
-2. Delete Prerequisites
-
-    ```shell
-      $ $bin/emcoctl delete --config emco-cfg.yaml -v values.yaml -f prerequisites.yaml
-    ```
-
-    <b> Note: You cannot delete a record without deleting the dependent records (referential integrity). Please retry deleting the records if it fails. <b>
-
-3. Cleanup generated files
-
-    ```shell
-      $ ./setup.sh cleanup
+      $ ./delete.sh test-strategic-merge.yaml
     ```
