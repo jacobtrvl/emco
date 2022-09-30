@@ -19,6 +19,7 @@ import (
 	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 	"gitlab.com/project-emco/core/emco-base/src/ovnaction/api"
 	"gitlab.com/project-emco/core/emco-base/src/ovnaction/pkg/grpc/contextupdateserver"
+	"gitlab.com/project-emco/core/emco-base/src/ovnaction/pkg/metrics"
 )
 
 func main() {
@@ -36,6 +37,7 @@ func main() {
 	}
 
 	httpRouter := api.NewRouter(nil)
+	httpRouter.Handle("/metrics", metrics.Initialize(true).Handler)
 	loggedRouter := handlers.LoggingHandler(os.Stdout, httpRouter)
 	log.Info("Starting Network Customization Manager", log.Fields{"Port": config.GetConfiguration().ServicePort})
 

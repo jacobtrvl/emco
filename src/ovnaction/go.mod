@@ -8,6 +8,7 @@ require (
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.18.1
 	github.com/pkg/errors v0.9.1
+	github.com/prometheus/client_golang v1.11.0
 	github.com/stretchr/testify v1.7.0
 	gitlab.com/project-emco/core/emco-base/src/clm v0.0.0-00010101000000-000000000000
 	gitlab.com/project-emco/core/emco-base/src/orchestrator v0.0.0-00010101000000-000000000000
