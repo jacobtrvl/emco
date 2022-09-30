@@ -16,34 +16,35 @@ func NewRouter(mockClient interface{}) *mux.Router {
 	const baseURL string = "/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/generic-k8s-intents"
 
 	client := module.NewClient()
-	router := mux.NewRouter().PathPrefix("/v2").Subrouter()
+	router := mux.NewRouter()
+	v2Router := router.PathPrefix("/v2").Subrouter()
 
 	genericK8sIntentHandler := genericK8sIntentHandler{
 		client: setClient(client.GenericK8sIntent, mockClient).(module.GenericK8sIntentManager),
 	}
-	router.HandleFunc(baseURL, genericK8sIntentHandler.handleGenericK8sIntentCreate).Methods("POST")
-	router.HandleFunc(baseURL, genericK8sIntentHandler.handleGenericK8sIntentGet).Methods("GET")
-	router.HandleFunc(baseURL+"/{genericK8sIntent}", genericK8sIntentHandler.handleGenericK8sIntentGet).Methods("GET")
-	router.HandleFunc(baseURL+"/{genericK8sIntent}", genericK8sIntentHandler.handleGenericK8sIntentUpdate).Methods("PUT")
-	router.HandleFunc(baseURL+"/{genericK8sIntent}", genericK8sIntentHandler.handleGenericK8sIntentDelete).Methods("DELETE")
+	v2Router.HandleFunc(baseURL, genericK8sIntentHandler.handleGenericK8sIntentCreate).Methods("POST")
+	v2Router.HandleFunc(baseURL, genericK8sIntentHandler.handleGenericK8sIntentGet).Methods("GET")
+	v2Router.HandleFunc(baseURL+"/{genericK8sIntent}", genericK8sIntentHandler.handleGenericK8sIntentGet).Methods("GET")
+	v2Router.HandleFunc(baseURL+"/{genericK8sIntent}", genericK8sIntentHandler.handleGenericK8sIntentUpdate).Methods("PUT")
+	v2Router.HandleFunc(baseURL+"/{genericK8sIntent}", genericK8sIntentHandler.handleGenericK8sIntentDelete).Methods("DELETE")
 
 	resourceHandler := resourceHandler{
 		client: setClient(client.Resource, mockClient).(module.ResourceManager),
 	}
-	router.HandleFunc(baseURL+"/{genericK8sIntent}/resources", resourceHandler.handleResourceCreate).Methods("POST")
-	router.HandleFunc(baseURL+"/{genericK8sIntent}/resources", resourceHandler.handleResourceGet).Methods("GET")
-	router.HandleFunc(baseURL+"/{genericK8sIntent}/resources/{genericResource}", resourceHandler.handleResourceGet).Methods("GET")
-	router.HandleFunc(baseURL+"/{genericK8sIntent}/resources/{genericResource}", resourceHandler.handleResourceUpdate).Methods("PUT")
-	router.HandleFunc(baseURL+"/{genericK8sIntent}/resources/{genericResource}", resourceHandler.handleResourceDelete).Methods("DELETE")
+	v2Router.HandleFunc(baseURL+"/{genericK8sIntent}/resources", resourceHandler.handleResourceCreate).Methods("POST")
+	v2Router.HandleFunc(baseURL+"/{genericK8sIntent}/resources", resourceHandler.handleResourceGet).Methods("GET")
+	v2Router.HandleFunc(baseURL+"/{genericK8sIntent}/resources/{genericResource}", resourceHandler.handleResourceGet).Methods("GET")
+	v2Router.HandleFunc(baseURL+"/{genericK8sIntent}/resources/{genericResource}", resourceHandler.handleResourceUpdate).Methods("PUT")
+	v2Router.HandleFunc(baseURL+"/{genericK8sIntent}/resources/{genericResource}", resourceHandler.handleResourceDelete).Methods("DELETE")
 
 	customizationHandler := customizationHandler{
 		client: setClient(client.Customization, mockClient).(module.CustomizationManager),
 	}
-	router.HandleFunc(baseURL+"/{genericK8sIntent}/resources/{genericResource}/customizations", customizationHandler.handleCustomizationCreate).Methods("POST")
-	router.HandleFunc(baseURL+"/{genericK8sIntent}/resources/{genericResource}/customizations", customizationHandler.handleCustomizationGet).Methods("GET")
-	router.HandleFunc(baseURL+"/{genericK8sIntent}/resources/{genericResource}/customizations/{customization}", customizationHandler.handleCustomizationGet).Methods("GET")
-	router.HandleFunc(baseURL+"/{genericK8sIntent}/resources/{genericResource}/customizations/{customization}", customizationHandler.handleCustomizationUpdate).Methods("PUT")
-	router.HandleFunc(baseURL+"/{genericK8sIntent}/resources/{genericResource}/customizations/{customization}", customizationHandler.handleCustomizationDelete).Methods("DELETE")
+	v2Router.HandleFunc(baseURL+"/{genericK8sIntent}/resources/{genericResource}/customizations", customizationHandler.handleCustomizationCreate).Methods("POST")
+	v2Router.HandleFunc(baseURL+"/{genericK8sIntent}/resources/{genericResource}/customizations", customizationHandler.handleCustomizationGet).Methods("GET")
+	v2Router.HandleFunc(baseURL+"/{genericK8sIntent}/resources/{genericResource}/customizations/{customization}", customizationHandler.handleCustomizationGet).Methods("GET")
+	v2Router.HandleFunc(baseURL+"/{genericK8sIntent}/resources/{genericResource}/customizations/{customization}", customizationHandler.handleCustomizationUpdate).Methods("PUT")
+	v2Router.HandleFunc(baseURL+"/{genericK8sIntent}/resources/{genericResource}/customizations/{customization}", customizationHandler.handleCustomizationDelete).Methods("DELETE")
 
 	return router
 }
