@@ -49,7 +49,8 @@ func setClient(client, testClient interface{}) interface{} {
 func NewRouter(testClient interface{}) *mux.Router {
 	moduleClient = moduleLib.NewHpaPlacementClient()
 
-	router := mux.NewRouter().PathPrefix("/v2").Subrouter()
+	router := mux.NewRouter()
+	v2Router := router.PathPrefix("/v2").Subrouter()
 
 	hpaPlacementIntentHandler := HpaPlacementIntentHandler{
 		client: setClient(moduleClient, testClient).(moduleLib.HpaPlacementManager),
@@ -63,31 +64,31 @@ func NewRouter(testClient interface{}) *mux.Router {
 	const emcoHpaResourcesGetURL = emcoHpaResourcesURL + "/{resource-name}"
 
 	// hpa-intent => /projects/{project-name}/composite-apps/{composite-app-name}/{composite-app-version}/deployment-intent-groups/{deployment-intent-group-name}/hpa-intents
-	router.HandleFunc(emcoHpaIntentsURL, hpaPlacementIntentHandler.addHpaIntentHandler).Methods("POST")
-	router.HandleFunc(emcoHpaIntentsGetURL, hpaPlacementIntentHandler.getHpaIntentHandler).Methods("GET")
-	router.HandleFunc(emcoHpaIntentsURL, hpaPlacementIntentHandler.getHpaIntentHandler).Methods("GET")
-	router.HandleFunc(emcoHpaIntentsURL, hpaPlacementIntentHandler.getHpaIntentByNameHandler).Queries("intent", "{intent-name}")
-	router.HandleFunc(emcoHpaIntentsGetURL, hpaPlacementIntentHandler.putHpaIntentHandler).Methods("PUT")
-	router.HandleFunc(emcoHpaIntentsGetURL, hpaPlacementIntentHandler.deleteHpaIntentHandler).Methods("DELETE")
-	router.HandleFunc(emcoHpaIntentsURL, hpaPlacementIntentHandler.deleteAllHpaIntentsHandler).Methods("DELETE")
+	v2Router.HandleFunc(emcoHpaIntentsURL, hpaPlacementIntentHandler.addHpaIntentHandler).Methods("POST")
+	v2Router.HandleFunc(emcoHpaIntentsGetURL, hpaPlacementIntentHandler.getHpaIntentHandler).Methods("GET")
+	v2Router.HandleFunc(emcoHpaIntentsURL, hpaPlacementIntentHandler.getHpaIntentHandler).Methods("GET")
+	v2Router.HandleFunc(emcoHpaIntentsURL, hpaPlacementIntentHandler.getHpaIntentByNameHandler).Queries("intent", "{intent-name}")
+	v2Router.HandleFunc(emcoHpaIntentsGetURL, hpaPlacementIntentHandler.putHpaIntentHandler).Methods("PUT")
+	v2Router.HandleFunc(emcoHpaIntentsGetURL, hpaPlacementIntentHandler.deleteHpaIntentHandler).Methods("DELETE")
+	v2Router.HandleFunc(emcoHpaIntentsURL, hpaPlacementIntentHandler.deleteAllHpaIntentsHandler).Methods("DELETE")
 
 	// hpa-consumer => /projects/{project-name}/composite-apps/{composite-app-name}/{composite-app-version}/deployment-intent-groups/{deployment-intent-group-name}/hpa-intents/{intent-name}/hpa-resource-consumers
-	router.HandleFunc(emcoHpaConsumersURL, hpaPlacementIntentHandler.addHpaConsumerHandler).Methods("POST")
-	router.HandleFunc(emcoHpaConsumersGetURL, hpaPlacementIntentHandler.getHpaConsumerHandler).Methods("GET")
-	router.HandleFunc(emcoHpaConsumersURL, hpaPlacementIntentHandler.getHpaConsumerHandler).Methods("GET")
-	router.HandleFunc(emcoHpaConsumersURL, hpaPlacementIntentHandler.getHpaConsumerHandlerByName).Queries("consumer", "{consumer-name}")
-	router.HandleFunc(emcoHpaConsumersGetURL, hpaPlacementIntentHandler.putHpaConsumerHandler).Methods("PUT")
-	router.HandleFunc(emcoHpaConsumersGetURL, hpaPlacementIntentHandler.deleteHpaConsumerHandler).Methods("DELETE")
-	router.HandleFunc(emcoHpaConsumersURL, hpaPlacementIntentHandler.deleteAllHpaConsumersHandler).Methods("DELETE")
+	v2Router.HandleFunc(emcoHpaConsumersURL, hpaPlacementIntentHandler.addHpaConsumerHandler).Methods("POST")
+	v2Router.HandleFunc(emcoHpaConsumersGetURL, hpaPlacementIntentHandler.getHpaConsumerHandler).Methods("GET")
+	v2Router.HandleFunc(emcoHpaConsumersURL, hpaPlacementIntentHandler.getHpaConsumerHandler).Methods("GET")
+	v2Router.HandleFunc(emcoHpaConsumersURL, hpaPlacementIntentHandler.getHpaConsumerHandlerByName).Queries("consumer", "{consumer-name}")
+	v2Router.HandleFunc(emcoHpaConsumersGetURL, hpaPlacementIntentHandler.putHpaConsumerHandler).Methods("PUT")
+	v2Router.HandleFunc(emcoHpaConsumersGetURL, hpaPlacementIntentHandler.deleteHpaConsumerHandler).Methods("DELETE")
+	v2Router.HandleFunc(emcoHpaConsumersURL, hpaPlacementIntentHandler.deleteAllHpaConsumersHandler).Methods("DELETE")
 
 	// hpa-resource => /projects/{project-name}/composite-apps/{composite-app-name}/{composite-app-version}/deployment-intent-groups/{deployment-intent-group-name}/hpa-intents/{intent-name}/hpa-resource-consumers/{consumer-name}/resource-requirements
-	router.HandleFunc(emcoHpaResourcesURL, hpaPlacementIntentHandler.addHpaResourceHandler).Methods("POST")
-	router.HandleFunc(emcoHpaResourcesGetURL, hpaPlacementIntentHandler.getHpaResourceHandler).Methods("GET")
-	router.HandleFunc(emcoHpaResourcesURL, hpaPlacementIntentHandler.getHpaResourceHandler).Methods("GET")
-	router.HandleFunc(emcoHpaResourcesURL, hpaPlacementIntentHandler.getHpaResourceHandlerByName).Queries("resource", "{resource-name}")
-	router.HandleFunc(emcoHpaResourcesGetURL, hpaPlacementIntentHandler.putHpaResourceHandler).Methods("PUT")
-	router.HandleFunc(emcoHpaResourcesGetURL, hpaPlacementIntentHandler.deleteHpaResourceHandler).Methods("DELETE")
-	router.HandleFunc(emcoHpaResourcesURL, hpaPlacementIntentHandler.deleteAllHpaResourcesHandler).Methods("DELETE")
+	v2Router.HandleFunc(emcoHpaResourcesURL, hpaPlacementIntentHandler.addHpaResourceHandler).Methods("POST")
+	v2Router.HandleFunc(emcoHpaResourcesGetURL, hpaPlacementIntentHandler.getHpaResourceHandler).Methods("GET")
+	v2Router.HandleFunc(emcoHpaResourcesURL, hpaPlacementIntentHandler.getHpaResourceHandler).Methods("GET")
+	v2Router.HandleFunc(emcoHpaResourcesURL, hpaPlacementIntentHandler.getHpaResourceHandlerByName).Queries("resource", "{resource-name}")
+	v2Router.HandleFunc(emcoHpaResourcesGetURL, hpaPlacementIntentHandler.putHpaResourceHandler).Methods("PUT")
+	v2Router.HandleFunc(emcoHpaResourcesGetURL, hpaPlacementIntentHandler.deleteHpaResourceHandler).Methods("DELETE")
+	v2Router.HandleFunc(emcoHpaResourcesURL, hpaPlacementIntentHandler.deleteAllHpaResourcesHandler).Methods("DELETE")
 
 	return router
 }
