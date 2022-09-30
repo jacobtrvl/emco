@@ -15,8 +15,9 @@ import (
 
 // NewRouter returns the mux router after plugging in all the handlers
 func NewRouter(mockClient interface{}) *mux.Router {
+	router := mux.NewRouter()
 	r := route{
-		router: mux.NewRouter().PathPrefix("/v2").Subrouter(),
+		router: router.PathPrefix("/v2").Subrouter(),
 		client: client.NewClient(),
 		mock:   mockClient}
 
@@ -25,7 +26,7 @@ func NewRouter(mockClient interface{}) *mux.Router {
 	// set routes for adding caCert intent, logicalCloud(s) and clusterGroup(s) for logicalCloud scenario
 	r.setLogicalCloudRoutes()
 
-	return r.router
+	return router
 }
 
 // setClient set the client and its corresponding manager interface
