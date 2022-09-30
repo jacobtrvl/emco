@@ -20,7 +20,7 @@ resourceContext:
 metadata :
   name: {{.HpaPlacementControllerName}}
 spec:
-  host: hpaplacement
+  host: hpaplc
   port: {{.HpaPlacementPort}}
   type: placement
 
@@ -45,7 +45,7 @@ resourceContext:
 metadata :
   name: {{.HpaActionControllerName}}
 spec:
-  host: hpaaction
+  host: hpaac
   port: {{.HpaActionPort}}
   type: "action"
   priority: 1
@@ -58,7 +58,7 @@ resourceContext:
 metadata :
   name: {{.HpaPlacementControllerName}}
 spec:
-  host: hpaplacement
+  host: hpaplc
   port: {{.HpaPlacementPort}}
   priority: 1
 

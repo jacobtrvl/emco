@@ -18,8 +18,7 @@ hugepages labelled before deploying the apps.
 
 ## Deployment
 ### Preparation
-Edit the setup.sh file and replace the KUBE_PATH and HOST_IP variables with the correct
-the paths to the kube configs of the remote clusters and the host IP.
+Edit the setup.sh file and replace the KUBE_PATH, HOST_IP, HTTP_SERVER_IMAGE_REPOSITORY and HTTP_CLIENT_IMAGE_REPOSITORY variables with the correct paths to the kube configs of the remote clusters, the host IP, and the location of the http-server and http-client images.
 
 ### Labelling nodes in the target clusters using NFD
 Nodes with specific features can be labelled using NFD (Node feature discovery). Please
@@ -27,7 +26,7 @@ refer to [this guide][1] to enable NFD in the clusters. For example, a custom la
 hugepages can be applied to the nodes by adding a file with following content to:
 ```
 $ sudo vi /etc/kubernetes/node-feature-discovery/features.d/extra-features
-/hugepages
+feature.node.kubernetes.io/hugepages
 ```
 We can do the same with other features.
 

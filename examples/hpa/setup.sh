@@ -12,6 +12,8 @@ KUBE_PATH1=${KUBE_PATH1:-"oops"}
 KUBE_PATH2=${KUBE_PATH2:-"oops"}
 KUBE_PATH3=${KUBE_PATH3:-"oops"}
 KUBE_PATH4=${KUBE_PATH4:-"oops"}
+HTTP_SERVER_IMAGE_REPOSITORY=${HTTP_SERVER_IMAGE_REPOSITORY:-"<docker-registry-url>/my-custom-httptest-server"}
+HTTP_CLIENT_IMAGE_REPOSITORY=${HTTP_CLIENT_IMAGE_REPOSITORY:-"<docker-registry-url>/my-custom-httptest-client"}
 
 # tar files
 firewall_folder=../helm_charts/composite-cnf-firewall
@@ -127,6 +129,9 @@ function create {
     OvnActionPort: 9032
     HpaActionPort:  9042
 
+    # images
+    HttpServerImageRepository: $HTTP_SERVER_IMAGE_REPOSITORY
+    HttpClientImageRepository: $HTTP_CLIENT_IMAGE_REPOSITORY
 NET
 cat << NET > emco-cfg.yaml
 orchestrator:

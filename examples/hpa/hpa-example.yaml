@@ -95,7 +95,13 @@ spec:
   compositeProfile: collection-composite-profile
   version: r1
   logicalCloud: default
-  overrideValues: []
+  overrideValues:
+  - app: http-server
+    values:
+      "image.repository": "{{.HttpServerImageRepository}}"
+  - app: http-client
+    values:
+      "image.repository": "{{.HttpClientImageRepository}}"
 
 ---
 
