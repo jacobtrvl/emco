@@ -16,23 +16,24 @@ import (
 func NewRouter(mockClient interface{}) *mux.Router {
 	const baseURL string = "/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/temporal-action-controller"
 
-	r := mux.NewRouter().PathPrefix("/v2").Subrouter()
+	router := mux.NewRouter()
+	v2Router := router.PathPrefix("/v2").Subrouter()
 	c := module.NewClient()
 	h := intentHandler{
 		client: setClient(c.WorkflowIntentClient, mockClient).(module.WorkflowIntentManager),
 	}
 
 	// Temporal Action Hook Intent APIs Unit Test Cases for front end and back end
-	r.HandleFunc(baseURL, h.handleTacIntentCreate).Methods("POST")
-	r.HandleFunc(baseURL+"/{tac-intent}", h.handleTacIntentGet).Methods("GET")
-	r.HandleFunc(baseURL, h.handleTacIntentGet).Methods("GET")
-	r.HandleFunc(baseURL+"/{tac-intent}", h.handleTacIntentDelete).Methods("DELETE")
-	r.HandleFunc(baseURL+"/{tac-intent}", h.handleTacIntentPut).Methods("PUT")
+	v2Router.HandleFunc(baseURL, h.handleTacIntentCreate).Methods("POST")
+	v2Router.HandleFunc(baseURL+"/{tac-intent}", h.handleTacIntentGet).Methods("GET")
+	v2Router.HandleFunc(baseURL, h.handleTacIntentGet).Methods("GET")
+	v2Router.HandleFunc(baseURL+"/{tac-intent}", h.handleTacIntentDelete).Methods("DELETE")
+	v2Router.HandleFunc(baseURL+"/{tac-intent}", h.handleTacIntentPut).Methods("PUT")
 	// Cancel or get the status of a temporal action controller intent
-	r.HandleFunc(baseURL+"/{tac-intent}/cancel", h.handleTemporalWorkflowHookCancel).Methods("POST")
-	r.HandleFunc(baseURL+"/{tac-intent}/status", h.handleTemporalWorkflowHookStatus).Methods("GET")
+	v2Router.HandleFunc(baseURL+"/{tac-intent}/cancel", h.handleTemporalWorkflowHookCancel).Methods("POST")
+	v2Router.HandleFunc(baseURL+"/{tac-intent}/status", h.handleTemporalWorkflowHookStatus).Methods("GET")
 
-	return r
+	return router
 }
 
 // setClient set the client and its corresponding manager interface.

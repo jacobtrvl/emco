@@ -19,6 +19,7 @@ import (
 	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 	"gitlab.com/project-emco/core/emco-base/src/tac/api"
 	actioncontroller "gitlab.com/project-emco/core/emco-base/src/tac/pkg/grpc/action-controller"
+	"gitlab.com/project-emco/core/emco-base/src/tac/pkg/metrics"
 )
 
 func main() {
@@ -35,6 +36,7 @@ func main() {
 	}
 
 	httpRouter := api.NewRouter(nil)
+	httpRouter.Handle("/metrics", metrics.Initialize(true).Handler)
 	loggedRouter := handlers.LoggingHandler(os.Stdout, httpRouter)
 	log.Info("Starting Temporal Action Controller", log.Fields{"Port": config.GetConfiguration().ServicePort})
 
