@@ -8,9 +8,11 @@ require (
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.18.1
 	github.com/pkg/errors v0.9.1
-	github.com/stretchr/testify v1.7.0
-	gitlab.com/project-emco/core/emco-base/src/orchestrator v0.0.0-00010101000000-000000000000
+	github.com/prometheus/client_golang v1.11.0
+	github.com/stretchr/testify v1.8.0
+	gitlab.com/project-emco/core/emco-base/src/orchestrator v0.0.0-20220613182525-5b48099794c6
 	gitlab.com/project-emco/core/emco-base/src/rsync v0.0.0-00010101000000-000000000000
+	gitlab.com/project-emco/core/emco-base/src/tac v0.0.0-20221001001411-47b1945e5613
 	k8s.io/api v0.23.3
 	k8s.io/apimachinery v0.23.3
 	k8s.io/client-go v0.23.3
