@@ -14,7 +14,6 @@ import (
 
 	"github.com/gorilla/handlers"
 
-	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/auth"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/config"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
 	"gitlab.com/project-emco/core/emco-base/src/workflowmgr/api"
@@ -50,14 +49,6 @@ func main() {
 		close(connectionsClose)
 	}()
 
-	tlsConfig, err := auth.GetTLSConfig("ca.cert", "server.cert", "server.key")
-	if err != nil {
-		log.Println("Error Getting TLS Configuration. Starting without TLS...")
-		log.Fatal(httpServer.ListenAndServe())
-	}
-
-	httpServer.TLSConfig = tlsConfig
-	// empty strings because tlsconfig already has this information
 	err = httpServer.ListenAndServe()
 	log.Printf("HTTP server returned error: %s", err)
 }
