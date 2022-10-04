@@ -81,3 +81,9 @@ resources:
       cpu: 10m
       memory: 100Mi
   unlimited: {}
+
+podAnnotations:
+  # The metrics use the same port as the service
+  prometheus.io/path: /metrics
+  prometheus.io/port: "9081"
+  prometheus.io/scrape: "true"
