@@ -11,7 +11,7 @@ import (
 	"time"
 
 	pkgerrors "github.com/pkg/errors"
-	"go.etcd.io/etcd/clientv3"
+        clientv3 "go.etcd.io/etcd/client/v3"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"google.golang.org/grpc"
 )
