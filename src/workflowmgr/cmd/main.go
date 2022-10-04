@@ -20,50 +20,6 @@ import (
 	"gitlab.com/project-emco/core/emco-base/src/workflowmgr/api"
 )
 
-/*
-func startGrpcServer() error {
-	var tls bool
-
-	if strings.Contains(config.GetConfiguration().GrpcEnableTLS, "enable") {
-		tls = true
-	} else {
-		tls = false
-	}
-	certFile := config.GetConfiguration().GrpcServerCert
-	keyFile := config.GetConfiguration().GrpcServerKey
-
-	_, port := register.GetServerHostPort()
-
-	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
-	if err != nil {
-		log.Fatalf("Could not listen to port: %v", err)
-	}
-	var opts []grpc.ServerOption
-	if tls {
-		if certFile == "" {
-			certFile = testdata.Path("server.pem")
-		}
-		if keyFile == "" {
-			keyFile = testdata.Path("server.key")
-		}
-		creds, err := credentials.NewServerTLSFromFile(certFile, keyFile)
-		if err != nil {
-			log.Fatalf("Could not generate credentials %v", err)
-		}
-		opts = []grpc.ServerOption{grpc.Creds(creds)}
-	}
-	grpcServer := grpc.NewServer(opts...)
-	//updatepb.RegisterContextupdateServer(grpcServer, contextupdateserver.NewContextupdateServer())
-
-	log.Println("Starting Workflow Manager gRPC Server")
-	err = grpcServer.Serve(lis)
-	if err != nil {
-		log.Fatalf("workflowmgr grpc server is not serving %v", err)
-	}
-	return err
-}
-*/
-
 func main() {
 	rand.Seed(time.Now().UnixNano())
 
@@ -73,16 +29,7 @@ func main() {
 		log.Println(err)
 		log.Fatalln("Exiting...")
 	}
-
-	/*
-		    // workflowmgr does not update appcontext
-			err = contextDb.InitializeContextDatabase()
-			if err != nil {
-				log.Println("Unable to initialize etcd database connection...")
-				log.Println(err)
-				log.Fatalln("Exiting...")
-			}
-	*/
+	// workflowmgr does not update appcontext
 
 	httpRouter := api.NewRouter(nil)
 	loggedRouter := handlers.LoggingHandler(os.Stdout, httpRouter)
@@ -93,15 +40,6 @@ func main() {
 		Addr:    ":" + config.GetConfiguration().ServicePort,
 	}
 	log.Printf("workflowmgr HTTP server will listen at endpoint: %s", httpServer.Addr)
-
-	/*
-		go func() {
-			err := startGrpcServer()
-			if err != nil {
-				log.Fatalf("GRPC server failed to start")
-			}
-		}()
-	*/
 
 	connectionsClose := make(chan struct{})
 	go func() {
