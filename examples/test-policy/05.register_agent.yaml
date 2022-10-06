@@ -1,0 +1,8 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2022 Aarna Networks, Inc.
+
+#create the workflow intent
+version: emco/v2
+resourceContext:
+  anchor: policy/agents/sampleagent
+addr: <agent endpoint>

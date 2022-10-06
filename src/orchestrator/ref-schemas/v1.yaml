@@ -128,7 +128,7 @@ resources:
       - name: sfcIntent
       - name: app
         commonKey: compositeAppVersion
-#emco-workflowmgr
+  #emco-workflowmgr
   - name: workflowIntent
     parent: deploymentIntentGroup
 #emco-tac
@@ -148,3 +148,9 @@ resources:
     parent: caCertLc
   - name: caCertClusterGroupLc
     parent: caCertLogicalCloud
+#emco-policy
+  - name: policyIntent
+    parent: deploymentIntentGroup
+  - name: policyModule
+  - name: agent
+    parent: policyModule

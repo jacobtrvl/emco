@@ -588,6 +588,10 @@ func GetURL(anchor string) (string, error) {
 			baseUrl = GetCaCertUrl()
 			break
 		}
+		if len(s) >= 3 && s[2] == "policy" {
+			baseUrl = GetPolicyURL()
+			break
+		}
 		if len(s) >= 8 && s[7] == "network-chains" {
 			baseUrl = GetSfcURL()
 			break
@@ -618,6 +622,10 @@ func GetURL(anchor string) (string, error) {
 		}
 		if len(s) >= 8 && s[7] == "temporal-action-controller" {
 			baseUrl = GetTacURL()
+			break
+		}
+		if len(s) >= 8 && s[7] == "policy-intents" {
+			baseUrl = GetPolicyURL()
 			break
 		}
 		// All other paths go to Orchestrator

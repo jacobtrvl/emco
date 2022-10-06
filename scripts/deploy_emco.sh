@@ -11,7 +11,7 @@ TAG=${TAG}
 create_helm_chart() {
   echo "Creating helm chart"
   mkdir -p ${BIN_PATH}/helm
-  cp -rf ${EMCOBUILDROOT}/deployments/helm/emcoBase ${EMCOBUILDROOT}/deployments/helm/monitor ${BIN_PATH}/helm/
+  cp -rf ${EMCOBUILDROOT}/deployments/helm/emcoBase ${EMCOBUILDROOT}/deployments/helm/monitor ${EMCOBUILDROOT}/deployments/helm/metricscollector ${BIN_PATH}/helm/
   cat > ${BIN_PATH}/helm/emcoBase/common/values.yaml <<EOF
 global:
   repository: ${REGISTRY}
@@ -42,6 +42,16 @@ global:
   noProxyHosts: ${NO_PROXY}
   loglevel: info
 EOF
+  cat > ${BIN_PATH}/helm/metricscollector/values.yaml <<EOF
+registryPrefix: ${REGISTRY}
+tag: ${TAG}
+
+workingDir: /opt/emco/metricscollector
+
+noProxyHosts: ${NO_PROXY}
+httpProxy: ${HTTP_PROXY}
+httpsProxy: ${HTTPS_PROXY}
+EOF
 
   # emco base
   cp ${EMCOBUILDROOT}/deployments/helm/emco-base-helm-install.sh ${BIN_PATH}/helm/install_template
@@ -60,6 +70,10 @@ EOF
   # monitor
   tar -cvzf  ${BIN_PATH}/helm/monitor-helm-${TAG}.tgz -C ${BIN_PATH}/helm/ monitor
   rm -rf ${BIN_PATH}/helm/monitor
+
+  # metricscollector
+  tar -cvzf  ${BIN_PATH}/helm/metricscollector-helm-${TAG}.tgz -C ${BIN_PATH}/helm/ metricscollector
+  rm -rf ${BIN_PATH}/helm/metricscollector
 }
 
 # check if it is a cron scheduled build

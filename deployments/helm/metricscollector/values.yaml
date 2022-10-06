@@ -1,0 +1,13 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2022 Aarna Networks, Inc.
+
+registryPrefix:
+tag:
+
+workingDir: /opt/emco/metricscollector
+git:
+  enabled: false
+
+noProxyHosts: ""
+httpProxy: ""
+httpsProxy: ""
