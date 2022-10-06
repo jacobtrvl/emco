@@ -1,0 +1,23 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2022 Intel Corporation
+
+#create default logical cloud with admin permissions
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/logical-clouds
+metadata:
+  name: {{.LogicalCloud}}
+spec:
+  level: "0"
+
+---
+#add cluster reference to logical cloud
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/logical-clouds/{{.LogicalCloud}}/cluster-references
+metadata:
+  name: lc-cl-1
+spec:
+  clusterProvider: provider1
+  cluster: cluster1
+  loadbalancerIp: "0.0.0.0"

@@ -29,39 +29,19 @@ Build the http-server and http-client images. Refer to [this Readme](../../test-
 Install the Kubernetes edge clusters and make sure it installs the sdewan crd controller and cnf. Note down the kubeconfig for the edge cluster which is required later during configuration.
 
 ## Configure
-(1) Copy the config file
-```shell
-$ cp src/tools/emcoctl/examples/emco-cfg-remote.yaml examples/dtc/sdewan/emco-cfg-dtc.yaml
-```
-(2) Modify examples/dtc/sdewan/multiple-cluster.yaml and examples/dtc/sdewan/emco-cfg-dtc.yaml files to change host name, port number, kubeconfig path and sdewan cr needed details.
+(1) Set the KUBE_PATH1 environment variables to cluster kubeconfig file path(s).
 
-(3) Compress the profile and helm files
+(2) Set the HOST_IP enviromnet variables to the address where emco is running.
 
-Update the profile files with right proxy address and create tar.gz of profiles
-```shell
-$ cd examples/helm_charts/http-server/profile/sdewan_overrides/http-server-profile
-$ tar -czvf ../http-server-profile.tar.gz .
-$ mv ../http-server-profile.tar.gz ../../../../../dtc/sdewan/
-$ cd examples/helm_charts/http-client/profile/sdewan_overrides/http-client-profile
-$ tar -czvf ../http-client-profile.tar.gz .
-$ mv ../http-client-profile.tar.gz ../../../../../dtc/sdewan/
-```
-Create and copy .tgz of application helm charts
-```shell
-$ cd examples/helm_charts/http-server/helm
-$ tar -czvf http-server.tgz http-server/
-$ mv http-server.tgz ../../../dtc/sdewan/
-$ cd examples/helm_charts/http-client/helm
-$ tar -czvf http-client.tgz http-client/
-$ mv http-client.tgz ../../../dtc/sdewan/
-```
+(3) Set the HTTP_SERVER_IMAGE_REPOSITORY and HTTP_CLIENT_IMAGE_REPOSITORY environment variable to the location of the http-server and http-client images.
+
+(4) Modify examples/dtc/sdewan/setup.sh files to change controller port numbers if they are diffrent than your emco installation.
 
 ## Install the client/server app
 Install the app using the commands:
 ```shell
 $ cd examples/dtc/sdewan/
-$ emcoctl --config emco-cfg-dtc.yaml apply -f multiple-cluster.yaml
-$ emcoctl --config emco-cfg-dtc.yaml apply -f instantiate.yaml
+$ ./apply.sh
 ```
 
 ## Verify resource instantiation
@@ -91,8 +71,7 @@ get:
 ```
 
 ## Uninstall the application
-Uninstall the app using the commands:
+Uninstall the app using the command:
 ```shell
-$ emcoctl --config emco-cfg-dtc.yaml apply -f terminate.yaml
-$ emcoctl --config emco-cfg-dtc.yaml delete -f multiple-cluster.yaml
+$ ./delete.sh
 ```

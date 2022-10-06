@@ -1,0 +1,41 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2022 Intel Corporation
+
+#creating controller entries
+version: emco/v2
+resourceContext:
+  anchor: dtc-controllers
+metadata :
+  name: swc
+spec:
+  host: {{.HostIP}}
+  port: 30488
+  type: "action"
+  priority: 1
+---
+version: emco/v2
+resourceContext:
+  anchor: controllers
+metadata :
+  name: rsync
+  description: test
+  userData1: test1
+  userData2: test2
+spec:
+  host: {{.HostIP}}
+  port: 30431
+
+---
+version: emco/v2
+resourceContext:
+  anchor: controllers
+metadata :
+  name: dtc
+  description: test
+  userData1: test1
+  userData2: test2
+spec:
+  host: {{.HostIP}}
+  port: 30448
+  type: "action"
+  priority: 1

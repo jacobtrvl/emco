@@ -1,0 +1,52 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2022 Intel Corporation
+
+#creating cluster provider
+version: emco/v2
+resourceContext:
+  anchor: cluster-providers
+metadata :
+   name: provider1
+   description: test
+   userData1: test1
+   userData2: test2
+
+---
+#creating cluster
+version: emco/v2
+resourceContext:
+  anchor: cluster-providers/provider1/clusters
+metadata :
+   name: cluster1
+   description: test
+   userData1: test1
+   userData2: test2
+file:
+  {{.KubeConfig1}}
+
+---
+#Add label cluster
+version: emco/v2
+resourceContext:
+  anchor: cluster-providers/provider1/clusters/cluster1/labels
+clusterLabel: edge-cluster
+
+---
+#Add label cluster
+version: emco/v2
+resourceContext:
+  anchor: cluster-providers/provider1/clusters/cluster1/labels
+clusterLabel: networkpolicy-supported
+
+---
+#Add label kvpair
+version: emco/v2
+resourceContext:
+  anchor: cluster-providers/provider1/clusters/cluster1/kv-pairs
+metadata :
+  name: sdewankvpairs
+spec:
+  kv:
+    - SdewanCnfPort: "12354"
+    - SdewanServicePort: "31333"
+    - SdewanServiceAllowedCidr: "192.168.22.22/24"
