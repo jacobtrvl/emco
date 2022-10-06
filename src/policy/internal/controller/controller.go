@@ -10,6 +10,8 @@ import (
 	events "emcopolicy/pkg/grpc"
 	"emcopolicy/pkg/plugins"
 	"github.com/pkg/errors"
+	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/config"
+	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/contextdb"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
 )
 
@@ -22,6 +24,16 @@ func Init(_ ...string) (*Controller, error) {
 		return nil, errors.Errorf("Unable to initialize mongo database connection: %s", err)
 	}
 
+	etcdCfg := contextdb.EtcdConfig{
+		Endpoint: config.GetConfiguration().EtcdIP,
+		CertFile: config.GetConfiguration().EtcdCert,
+		KeyFile:  config.GetConfiguration().EtcdKey,
+		CAFile:   config.GetConfiguration().EtcdCAFile,
+	}
+	etcdClient, err := contextdb.NewEtcdClient(nil, etcdCfg)
+	if err != nil {
+		return nil, errors.Errorf("Unable to initialize contextdb client: %s", err)
+	}
 	// DB connection is a package level variable (db.DBconn) in orchestrator db package.
 	// Scoping this to the client context for better readability
 	c := &Controller{
@@ -40,6 +52,7 @@ func Init(_ ...string) (*Controller, error) {
 		requireRecovery: make(chan interface{}),
 		eventsQueue:     make(chan *events.Event, 1),
 		actors:          make(map[string]event.Actor),
+		contextDb:       etcdClient,
 	}
 	c.policyClient = intent.NewClient(intent.Config{
 		Db:           c.db,

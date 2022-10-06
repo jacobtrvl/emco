@@ -15,15 +15,8 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
-	"io/ioutil"
-	"net/http"
 	"time"
 )
-
-// Workaround for etcd backward compatibility issue.
-// dbhelper will run as a different service on same container.
-// Hence, hard-coding the endpoint for now
-const dbHelperEndpoint = "127.0.0.1:9090"
 
 // OperationalScheduler listens to the different channels for management updates  and invoke
 // corresponding  goroutines for handling them.
@@ -286,15 +279,17 @@ func (c *Controller) getContextMeta(contextId string) (ContextMeta, error) {
 // But the etcd library that ContextDB using is not backward compatible and has conflict with this module.
 // Hence, we are going for a separate service for reading from ContextDB
 func (c *Controller) getContextMetaFromDB(contextId string) ([]byte, error) {
-	response, err := http.Get("http://" + dbHelperEndpoint + "/v2/get/" + contextId)
-	log.Debug("Response from Engine", log.Fields{"Response": response})
+	key := "/context/" + contextId + "/meta/"
+	var value json.RawMessage
+	err := c.contextDb.Get(context.TODO(), key, value)
 	if err != nil {
+		log.Error("Error while getting context db data", log.Fields{"err": err})
 		return nil, err
 	}
-	defer response.Body.Close()
-	body, err := ioutil.ReadAll(response.Body)
+	jsonValue, err := json.Marshal(value)
 	if err != nil {
+		log.Error("Error while parsing context db data", log.Fields{"err": err})
 		return nil, err
 	}
-	return body, nil
+	return jsonValue, nil
 }

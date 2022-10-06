@@ -1,9 +1,0 @@
-#!/bin/sh
-# SPDX-License-Identifier: Apache-2.0
-# Copyright (c) 2022 Aarna Networks, Inc.
-
-# Workaround for running both dbhelpe and sacontroller in same container
-./dbhelper &
-./sacontroller &
-wait -n
-exit $?

@@ -7,6 +7,7 @@ import (
 	event "emcopolicy/internal/events"
 	"emcopolicy/internal/intent"
 	events "emcopolicy/pkg/grpc"
+	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/contextdb"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
 	"golang.org/x/net/context"
 	"sync"
@@ -26,6 +27,7 @@ type Controller struct {
 	requireRecovery chan interface{}
 	eventsQueue     chan *events.Event
 	actors          map[string]event.Actor
+	contextDb       contextdb.ContextDb
 }
 
 type AgentID string
