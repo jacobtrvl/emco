@@ -7,14 +7,14 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/net/context"
 
+	"context"
+	pkgerrors "github.com/pkg/errors"
 	placementcontrollerserver "gitlab.com/project-emco/core/emco-base/src/hpa-plc/pkg/grpc/hpaplacementcontrollerserver"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/appcontext"
 	placementcontrollerpb "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/grpc/placementcontroller"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/contextdb"
 	orchLog "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
-	pkgerrors "github.com/pkg/errors"
 )
 
 func TestHpaPlacementControllerServer(t *testing.T) {
@@ -35,22 +35,22 @@ type contextForCompositeApp struct {
 }
 
 func makeAppContextForCompositeApp(p, ca, v, rName, dig string, namespace string, level string) (contextForCompositeApp, error) {
-	context := appcontext.AppContext{}
-	ctxval, err := context.InitAppContext()
+	appCtx := appcontext.AppContext{}
+	ctxval, err := appCtx.InitAppContext()
 	if err != nil {
 		return contextForCompositeApp{}, pkgerrors.Wrap(err, "Error creating AppContext CompositeApp")
 	}
-	compositeHandle, err := context.CreateCompositeApp()
+	compositeHandle, err := appCtx.CreateCompositeApp(context.Background())
 	if err != nil {
 		return contextForCompositeApp{}, pkgerrors.Wrap(err, "Error creating CompositeApp handle")
 	}
 	compMetadata := appcontext.CompositeAppMeta{Project: p, CompositeApp: ca, Version: v, Release: rName, DeploymentIntentGroup: dig, Namespace: namespace, Level: level}
-	err = context.AddCompositeAppMeta(compMetadata)
+	err = appCtx.AddCompositeAppMeta(context.Background(), compMetadata)
 	if err != nil {
 		return contextForCompositeApp{}, pkgerrors.Wrap(err, "Error Adding CompositeAppMeta")
 	}
 
-	cca := contextForCompositeApp{context: context, ctxval: ctxval, compositeAppHandle: compositeHandle}
+	cca := contextForCompositeApp{context: appCtx, ctxval: ctxval, compositeAppHandle: compositeHandle}
 
 	return cca, nil
 }

@@ -4,6 +4,7 @@
 package module
 
 import (
+	"context"
 	"reflect"
 	"strings"
 	"testing"
@@ -194,9 +195,10 @@ func TestCreateGenericPlacementIntent(t *testing.T) {
 
 	for _, test := range testCases {
 		t.Run(test.label, func(t *testing.T) {
+			ctx := context.Background()
 			db.DBconn = test.db
 			cli := NewGenericPlacementIntentClient()
-			genericPlacementIntent, _, err := cli.CreateGenericPlacementIntent(test.gpi, test.project, test.compositeApp, test.version, test.deploymentIntentGroup, true)
+			genericPlacementIntent, _, err := cli.CreateGenericPlacementIntent(ctx, test.gpi, test.project, test.compositeApp, test.version, test.deploymentIntentGroup, true)
 			if err != nil {
 				if test.err == "" {
 					t.Fatalf("CreateGenericPlacementIntent returned an unexpected error %s", err.Error())
@@ -329,9 +331,10 @@ func TestGetGenericPlacementIntent(t *testing.T) {
 
 	for _, test := range testCases {
 		t.Run(test.label, func(t *testing.T) {
+			ctx := context.Background()
 			db.DBconn = test.db
 			cli := NewGenericPlacementIntentClient()
-			genericPlacementIntent, err := cli.GetGenericPlacementIntent(test.genericPlacementIntent, test.project, test.compositeApp, test.version, test.deploymentIntentGroup)
+			genericPlacementIntent, err := cli.GetGenericPlacementIntent(ctx, test.genericPlacementIntent, test.project, test.compositeApp, test.version, test.deploymentIntentGroup)
 			if err != nil {
 				if test.err == "" {
 					t.Fatalf("GetGenericPlacementIntent returned an unexpected error: %s", err)
@@ -457,9 +460,10 @@ func TestDeleteGenericPlacementIntent(t *testing.T) {
 
 	for _, test := range testCases {
 		t.Run(test.label, func(t *testing.T) {
+			ctx := context.Background()
 			db.DBconn = test.db
 			cli := NewGenericPlacementIntentClient()
-			err := cli.DeleteGenericPlacementIntent(test.genericPlacementIntent, test.project, test.compositeApp, test.version, test.deploymentIntentGroup)
+			err := cli.DeleteGenericPlacementIntent(ctx, test.genericPlacementIntent, test.project, test.compositeApp, test.version, test.deploymentIntentGroup)
 			if err != nil {
 				if test.err == "" {
 					t.Fatalf("DeleteGenericPlacementIntent returned an unexpected error: %s", err.Error())
@@ -627,9 +631,10 @@ func TestGetAllGenericPlacementIntents(t *testing.T) {
 
 	for _, test := range testCases {
 		t.Run(test.label, func(t *testing.T) {
+			ctx := context.Background()
 			db.DBconn = test.db
 			cli := NewGenericPlacementIntentClient()
-			genericPlacementIntents, err := cli.GetAllGenericPlacementIntents(test.project, test.compositeApp, test.version, test.deploymentIntentGroup)
+			genericPlacementIntents, err := cli.GetAllGenericPlacementIntents(ctx, test.project, test.compositeApp, test.version, test.deploymentIntentGroup)
 			if err != nil {
 				if test.err == "" {
 					t.Fatalf("GetAllGenericPlacementIntents returned an unexpected error: %s", err)
@@ -841,9 +846,10 @@ func TestUpdateGenericPlacementIntent(t *testing.T) {
 
 	for _, test := range testCases {
 		t.Run(test.label, func(t *testing.T) {
+			ctx := context.Background()
 			db.DBconn = test.db
 			cli := NewGenericPlacementIntentClient()
-			genericPlacementIntent, gpiExists, err := cli.CreateGenericPlacementIntent(test.gpi, test.project, test.compositeApp, test.version, test.deploymentIntentGroup, false)
+			genericPlacementIntent, gpiExists, err := cli.CreateGenericPlacementIntent(ctx, test.gpi, test.project, test.compositeApp, test.version, test.deploymentIntentGroup, false)
 			if err != nil {
 				if test.err == "" {
 					t.Fatalf("CreateGenericPlacementIntent returned an unexpected error %s", err)

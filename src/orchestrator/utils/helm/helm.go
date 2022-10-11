@@ -11,8 +11,8 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"strings"
 	"sort"
+	"strings"
 
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart/loader"
@@ -26,9 +26,9 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation"
 	k8syaml "k8s.io/apimachinery/pkg/util/yaml"
 
+	pkgerrors "github.com/pkg/errors"
 	logger "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 	utils "gitlab.com/project-emco/core/emco-base/src/orchestrator/utils"
-	pkgerrors "github.com/pkg/errors"
 )
 
 //KubernetesResourceTemplate - Represents the template that is used to create a particular
@@ -57,7 +57,6 @@ func (h Hook) MarshalJSON() ([]byte, error) {
 	}{h.Hook.Name, h.Hook.Kind, h.Hook.Path,
 		h.Hook.Manifest, h.Hook.Events})
 }
-
 
 // Template is the interface for all helm templating commands
 // Any backend implementation will implement this interface and will
@@ -176,7 +175,7 @@ func (h *TemplateClient) GenerateKubernetesArtifacts(inputPath string, valueFile
 	}
 
 	client.Namespace = namespace
-	release, err := client.Run(chartRequested, rawVals)
+	releese, err := client.Run(chartRequested, rawVals)
 	if err != nil {
 		logger.Error("Error in processing the helm chart", logger.Fields{"Error": err.Error()})
 		// Unwrap error returned by Helm library to have the complete cause of the error
@@ -185,7 +184,7 @@ func (h *TemplateClient) GenerateKubernetesArtifacts(inputPath string, valueFile
 	}
 	// SplitManifests returns integer-sortable so that manifests get output
 	// in the same order as the input by `BySplitManifestsOrder`.
-	rmap := releaseutil.SplitManifests(release.Manifest)
+	rmap := releaseutil.SplitManifests(releese.Manifest)
 	keys := make([]string, 0, len(rmap))
 	for k := range rmap {
 		keys = append(keys, k)
@@ -222,9 +221,19 @@ func (h *TemplateClient) GenerateKubernetesArtifacts(inputPath string, valueFile
 		retData = append(retData, kres)
 	}
 	// Handle Hooks
-	sort.Stable(hookByWeight(release.Hooks))
-	for i, h := range release.Hooks {
-		hFilePath := filepath.Join(outputDir, "hook-"+ fmt.Sprint(i))
+	sort.Stable(hookByWeight(releese.Hooks))
+	for i, h := range releese.Hooks {
+		testhook := false
+		for _, e := range h.Events {
+			if e == release.HookTest {
+				testhook = true
+			}
+		}
+		// if hook is only a test hook, then skip it
+		if testhook && len(h.Events) == 1 {
+			continue
+		}
+		hFilePath := filepath.Join(outputDir, "hook-"+fmt.Sprint(i))
 		utils.EnsureDirectory(hFilePath)
 		err = ioutil.WriteFile(hFilePath, []byte(h.Manifest), 0600)
 		if err != nil {
@@ -320,9 +329,9 @@ func GetHooksByEvent(hs []*Hook) (map[string][]*Hook, error) {
 	resources := make(map[string][]*Hook)
 	for _, h := range hs {
 		for _, e := range h.Hook.Events {
-				resources[e.String()] = append(resources[e.String()], h)
-			}
+			resources[e.String()] = append(resources[e.String()], h)
 		}
+	}
 	return resources, nil
 }
 

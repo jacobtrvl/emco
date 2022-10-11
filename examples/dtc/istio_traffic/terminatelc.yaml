@@ -1,0 +1,8 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2022 Intel Corporation
+
+---
+#Terminate the logical clouds installed
+version: emco/v2
+resourceContext:
+  anchor: projects/{{ .ProjectName }}/logical-clouds/{{ .LogicalCloud }}/terminate

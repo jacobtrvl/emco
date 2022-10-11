@@ -16,18 +16,26 @@ deployment_folder=../../../deployments/
 
 HOST_IP=${HOST_IP:-"oops"}
 KUBE_PATH1=${KUBE_PATH1:-"oops"}
-GITHUB_USER=${GITHUB_USER:-"oops"}
-GITHUB_TOKEN=${GITHUB_TOKEN:-"oops"}
-GITHUB_REPO=${GITHUB_REPO:-"oops"}
+GIT_USER=${GIT_USER:-"oops"}
+GIT_TOKEN=${GIT_TOKEN:-"oops"}
+GIT_REPO=${GIT_REPO:-"oops"}
+GIT_BRANCH=${GIT_BRANCH:-"oops"}
+GIT_URL=${GIT_URL:-"oops"}
 OUTPUT_DIR=output
 TIME_OUT=${TIME_OUT:-"60"}
 SYNC_INTERVAL=${SYNC_INTERVAL:-"60"}
 RETRY_INTERVAL=${RETRY_INTERVAL:-"60"}
+LOGICAL_CLOUD_LEVEL=${LOGICAL_CLOUD_LEVEL:-"admin"}
 
 function create_common_values {
     local output_dir=$1
     local host_ip=$2
 
+    if [ "$LOGICAL_CLOUD_LEVEL" = "standard" ]; then
+        LOGICAL_CLOUD="lc1"
+    else
+        LOGICAL_CLOUD="default"
+    fi
     create_apps $output_dir
     create_config_file $host_ip
 
@@ -37,6 +45,9 @@ function create_common_values {
     ClusterProvider: provider-flux
     ClusterLabel: edge-cluster
     AdminCloud: default
+    LogicalCloud: $LOGICAL_CLOUD
+    StandardNamespace: standard-lc-ns
+    StandardPermission: standard-permission
     CompositeApp: test-composite-app
     CompositeProfile: test-composite-profile
     GenericPlacementIntent: test-placement-intent
@@ -53,10 +64,11 @@ function create_common_values {
     APP3: operator
     GitObj: GitObjectFluxRepo
     GitResObj: GitObjectFluxRes
-    GithubUser: $GITHUB_USER
-    GithubToken: $GITHUB_TOKEN
-    GithubRepo: $GITHUB_REPO
-    branch: main
+    GitUser: $GIT_USER
+    GitToken: $GIT_TOKEN
+    GitRepo: $GIT_REPO
+    GitUrl: $GIT_URL
+    GitBranch: $GIT_BRANCH
     TimeOut: $TIME_OUT
     SyncInterval: $SYNC_INTERVAL
     RetryInterval: $RETRY_INTERVAL
@@ -74,7 +86,19 @@ function create_common_values {
         Cluster:
           - cluster2
 
+
 NET
+
+echo "Generating prerequisites.yaml: common section"
+cp templates/prerequisites-common.yaml 00-prerequisites.yaml
+
+if [ "$LOGICAL_CLOUD_LEVEL" = "standard" ]; then
+echo "Generating prerequisites.yaml: Privileged Logical Cloud section"
+cat templates/prerequisites-lc-standard.yaml >> 00-prerequisites.yaml
+else
+echo "Generating prerequisites.yaml: Admin Logical Cloud section"
+cat templates/prerequisites-lc-admin.yaml >> 00-prerequisites.yaml
+fi
 }
 
 
@@ -86,6 +110,7 @@ function cleanup {
     rm -f *.tar.gz
     rm -f values.yaml
     rm -f emco-cfg.yaml
+    rm -f 00-prerequisites.yaml
     rm -rf $OUTPUT_DIR
 }
 
@@ -99,16 +124,16 @@ case "$1" in
             echo -e "ERROR - KUBE_PATH1 must be defined"
             exit
         fi
-        if [ "${GITHUB_TOKEN}" == "oops"  ] ; then
-            echo -e "ERROR - GITHUB_TOKEN must be defined"
+        if [ "${GIT_TOKEN}" == "oops"  ] ; then
+            echo -e "ERROR - GIT_TOKEN must be defined"
             exit
         fi
-        if [ "${GITHUB_REPO}" == "oops"  ] ; then
-            echo -e "ERROR - GITHUB_REPO must be defined"
+        if [ "${GIT_REPO}" == "oops"  ] ; then
+            echo -e "ERROR - GIT_REPO must be defined"
             exit
         fi
-        if [ "${GITHUB_USER}" == "oops" ] ; then
-            echo -e "GITHUB_USER must be defined"
+        if [ "${GIT_USER}" == "oops" ] ; then
+            echo -e "GIT_USER must be defined"
         else
             create_common_values $OUTPUT_DIR $HOST_IP
             echo "Done create!!!"

@@ -5,28 +5,30 @@ package istiosubc
 
 import (
 	"encoding/json"
-	"net"
 	"fmt"
+	"net"
 	"strconv"
 	"strings"
 
+	"context"
+
+	pkgerrors "github.com/pkg/errors"
+	clusterPkg "gitlab.com/project-emco/core/emco-base/src/clm/pkg/cluster"
 	"gitlab.com/project-emco/core/emco-base/src/dtc/pkg/module"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/appcontext"
-	clusterPkg "gitlab.com/project-emco/core/emco-base/src/clm/pkg/cluster"
 	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
-	pkgerrors "github.com/pkg/errors"
 )
 
 const sesubnet string = "240.0.0.1"
 
 type clusterData struct {
-	Reslist          []map[string][]byte //resname: res
-	ClusterName      string
-	GwAddress        string
-	GwExternalPort   uint32
-	GwInternalPort   uint32
-	GwHttpPort       uint32
-	GwHttpsPort      uint32
+	Reslist        []map[string][]byte //resname: res
+	ClusterName    string
+	GwAddress      string
+	GwExternalPort uint32
+	GwInternalPort uint32
+	GwHttpPort     uint32
+	GwHttpsPort    uint32
 }
 type client struct {
 	ClientName        string
@@ -36,36 +38,36 @@ type client struct {
 	AccessData        []clientAccessData
 }
 type serverData struct {
-	AppName		 string
-	ServiceName      string
-	ClusterData	 []clusterData
-	Clients		 []client
-	ExternalSvc      bool
-	AccessClients    bool
-	ExternalSvcData  externalSvcData
+	AppName         string
+	ServiceName     string
+	ClusterData     []clusterData
+	Clients         []client
+	ExternalSvc     bool
+	AccessClients   bool
+	ExternalSvcData externalSvcData
 }
 
 type clientAccessData struct {
-	Action		 string
-	Url              []string
-	Methods          []string
-	Hosts            []string
+	Action  string
+	Url     []string
+	Methods []string
+	Hosts   []string
 }
 
 type externalSvcData struct {
-	TlsType          string
-	Certs            certs
+	TlsType string
+	Certs   certs
 }
 type certs struct {
-	SvcCert          string
-	SvcKey           string
-	CaCert           string
+	SvcCert string
+	SvcKey  string
+	CaCert  string
 }
 
 // Action applies the supplied intent against the given AppContext ID
 func UpdateAppContext(intentName, appContextId string) error {
 	var ac appcontext.AppContext
-	_, err := ac.LoadAppContext(appContextId)
+	_, err := ac.LoadAppContext(context.Background(), appContextId)
 	if err != nil {
 		log.Error("Error loading AppContext", log.Fields{
 			"error": err,
@@ -73,7 +75,7 @@ func UpdateAppContext(intentName, appContextId string) error {
 		return pkgerrors.Wrapf(err, "Error loading AppContext with Id: %v", appContextId)
 	}
 
-	caMeta, err := ac.GetCompositeAppMeta()
+	caMeta, err := ac.GetCompositeAppMeta(context.Background())
 	if err != nil {
 		log.Error("Error getting metadata from AppContext", log.Fields{
 			"error": err,
@@ -105,35 +107,35 @@ func UpdateAppContext(intentName, appContextId string) error {
 		return pkgerrors.Wrapf(err, "Invalid subnet string")
 	}
 	var b [4]byte
-	for i:=0; i<len(sa); i++ {
+	for i := 0; i < len(sa); i++ {
 		iv, _ := strconv.Atoi(sa[i])
 		b[i] = byte(iv)
 	}
-	ips := newIP{Ip: net.IP{b[0], b[1], b[2], b[3]},}
+	ips := newIP{Ip: net.IP{b[0], b[1], b[2], b[3]}}
 	for _, is := range iss {
 		servers[index].ExternalSvc = false
-		if(is.Spec.ServiceMesh != "istio") {
+		if is.Spec.ServiceMesh != "istio" {
 			log.Error("Error ISTIO not enabled for this server", log.Fields{
-				"error": err,
+				"error":    err,
 				"app name": is.Spec.AppName,
 			})
 			return pkgerrors.Wrapf(err, "Error ISTIO not enabled for this server")
 		}
-		if (is.Spec.ExternalSupport && is.Spec.Management.SidecarProxy == "yes") {
+		if is.Spec.ExternalSupport && is.Spec.Management.SidecarProxy == "yes" {
 			servers[index].ExternalSvc = true
 			servers[index].ExternalSvcData.TlsType = is.Spec.Management.TlsType
-			if (servers[index].ExternalSvcData.TlsType == "MUTUAL" ||
-			    servers[index].ExternalSvcData.TlsType == "SIMPLE") {
+			if servers[index].ExternalSvcData.TlsType == "MUTUAL" ||
+				servers[index].ExternalSvcData.TlsType == "SIMPLE" {
 				servers[index].ExternalSvcData.Certs.SvcCert = is.Spec.External.ExternalCerts.ServiceCertificate
 				servers[index].ExternalSvcData.Certs.SvcKey = is.Spec.External.ExternalCerts.ServicePrivateKey
-				if (servers[index].ExternalSvcData.TlsType == "MUTUAL") {
+				if servers[index].ExternalSvcData.TlsType == "MUTUAL" {
 					servers[index].ExternalSvcData.Certs.CaCert = is.Spec.External.ExternalCerts.CaCertificate
 				} else {
 					servers[index].ExternalSvcData.Certs.CaCert = ""
 				}
 			}
 		}
-		clusters, err := ac.GetClusterNames(is.Spec.AppName)
+		clusters, err := ac.GetClusterNames(context.Background(), is.Spec.AppName)
 		if err != nil {
 			log.Error("Error retrieving clusters from App Context", log.Fields{
 				"error":    err,
@@ -151,7 +153,7 @@ func UpdateAppContext(intentName, appContextId string) error {
 			obj, err := getClusterKvPair(c, "istioIngressGatewayAddress")
 			if err != nil {
 				log.Error("Error getting istio ingress gateway address", log.Fields{
-					"error":    err,
+					"error": err,
 				})
 				return pkgerrors.Wrapf(err,
 					"Error getting istio ingress gateway address")
@@ -160,7 +162,7 @@ func UpdateAppContext(intentName, appContextId string) error {
 			obj, err = getClusterKvPair(c, "istioIngressGatewayPort")
 			if err != nil {
 				log.Error("Error getting istio ingress gateway port", log.Fields{
-					"error":    err,
+					"error": err,
 				})
 				return pkgerrors.Wrapf(err,
 					"Error getting istio ingress gateway port")
@@ -168,7 +170,7 @@ func UpdateAppContext(intentName, appContextId string) error {
 			port, err := strconv.Atoi(obj)
 			if err != nil {
 				log.Error("Error converting port from string to uint32", log.Fields{
-					"error":    err,
+					"error": err,
 				})
 				return pkgerrors.Wrapf(err,
 					"Error converting port from string to uint32")
@@ -177,7 +179,7 @@ func UpdateAppContext(intentName, appContextId string) error {
 			obj, err = getClusterKvPair(c, "istioIngressGatewayInternalPort")
 			if err != nil {
 				log.Error("Error getting istio ingress gateway internal port", log.Fields{
-					"error":    err,
+					"error": err,
 				})
 				return pkgerrors.Wrapf(err,
 					"Error getting istio ingress gateway internal port")
@@ -185,7 +187,7 @@ func UpdateAppContext(intentName, appContextId string) error {
 			port, err = strconv.Atoi(obj)
 			if err != nil {
 				log.Error("Error converting port from string to uint32", log.Fields{
-					"error":    err,
+					"error": err,
 				})
 				return pkgerrors.Wrapf(err,
 					"Error converting port from string to uint32")
@@ -194,13 +196,13 @@ func UpdateAppContext(intentName, appContextId string) error {
 
 			if servers[index].ExternalSvc {
 
-				if (servers[index].ExternalSvcData.TlsType == "MUTUAL" ||
-				    servers[index].ExternalSvcData.TlsType == "SIMPLE") {
+				if servers[index].ExternalSvcData.TlsType == "MUTUAL" ||
+					servers[index].ExternalSvcData.TlsType == "SIMPLE" {
 
 					obj, err = getClusterKvPair(c, "istioIngressGatewayHttpsPort")
 					if err != nil {
 						log.Error("Error getting istio ingress gateway https port", log.Fields{
-							"error":    err,
+							"error": err,
 						})
 						return pkgerrors.Wrapf(err,
 							"Error getting istio ingress gateway https port")
@@ -208,7 +210,7 @@ func UpdateAppContext(intentName, appContextId string) error {
 					port, err = strconv.Atoi(obj)
 					if err != nil {
 						log.Error("Error converting port from string to uint32", log.Fields{
-							"error":    err,
+							"error": err,
 						})
 						return pkgerrors.Wrapf(err,
 							"Error converting port from string to uint32")
@@ -218,7 +220,7 @@ func UpdateAppContext(intentName, appContextId string) error {
 					obj, err = getClusterKvPair(c, "istioIngressGatewayHttpPort")
 					if err != nil {
 						log.Error("Error getting istio ingress gateway http port", log.Fields{
-							"error":    err,
+							"error": err,
 						})
 						return pkgerrors.Wrapf(err,
 							"Error getting istio ingress gateway http port")
@@ -226,7 +228,7 @@ func UpdateAppContext(intentName, appContextId string) error {
 					port, err = strconv.Atoi(obj)
 					if err != nil {
 						log.Error("Error converting port from string to uint32", log.Fields{
-							"error":    err,
+							"error": err,
 						})
 						return pkgerrors.Wrapf(err,
 							"Error converting port from string to uint32")
@@ -258,7 +260,7 @@ func UpdateAppContext(intentName, appContextId string) error {
 		for i, ic := range ics {
 			servers[index].Clients[i].ClientName = ic.Spec.AppName
 			servers[index].Clients[i].ClientServiceName = ic.Spec.ServiceName
-			clusters, err = ac.GetClusterNames(ic.Spec.AppName)
+			clusters, err = ac.GetClusterNames(context.Background(), ic.Spec.AppName)
 			if err != nil {
 				log.Error("Error retrieving clusters from App Context", log.Fields{
 					"error":    err,
@@ -273,7 +275,7 @@ func UpdateAppContext(intentName, appContextId string) error {
 				done := false
 				// check if the server and client are on the same cluster
 				for _, scd := range servers[index].ClusterData {
-					if scd.ClusterName  == c {
+					if scd.ClusterName == c {
 						servers[index].Clients[i].ClusterData[cci].ClusterName = c
 						servers[index].Clients[i].ClusterData[cci].Reslist = make([]map[string][]byte, 0)
 						done = true
@@ -286,9 +288,9 @@ func UpdateAppContext(intentName, appContextId string) error {
 				}
 				// check if the client side resources are alreay created for this cluster
 				done = false
-				for j:=0; j<i; j++ {
+				for j := 0; j < i; j++ {
 					for _, cd := range servers[index].Clients[j].ClusterData {
-						if cd.ClusterName  == c {
+						if cd.ClusterName == c {
 							servers[index].Clients[i].ClusterData[cci].ClusterName = c
 							servers[index].Clients[i].ClusterData[cci].Reslist = make([]map[string][]byte, 0)
 							done = true
@@ -313,7 +315,7 @@ func UpdateAppContext(intentName, appContextId string) error {
 					})
 					return err
 				}
-				err = createClientResources(is, c, servers , namespace, index, i, cci, ip)
+				err = createClientResources(is, c, servers, namespace, index, i, cci, ip)
 				if err != nil {
 					log.Error("Error creating client resources", log.Fields{
 						"error":    err,
@@ -347,7 +349,7 @@ func UpdateAppContext(intentName, appContextId string) error {
 				servers[index].Clients[i].AccessData[k].Methods = ac.Spec.Access
 				h1 := is.Spec.ServiceName + "." + namespace
 				hosts = append(hosts, h1)
-				h2 := is.Spec.ServiceName + "." + namespace + "."+ "svc.cluster.local"
+				h2 := is.Spec.ServiceName + "." + namespace + "." + "svc.cluster.local"
 				hosts = append(hosts, h2)
 				hosts = append(hosts, is.Spec.ServiceName)
 				if servers[index].ExternalSvc {
@@ -428,7 +430,7 @@ func UpdateAppContext(intentName, appContextId string) error {
 				continue
 			}
 			for _, r := range cd.Reslist {
-				err = addClusterResource(ac, s.AppName,cd.ClusterName, r)
+				err = addClusterResource(ac, s.AppName, cd.ClusterName, r)
 				if err != nil {
 					log.Error("Error adding cluster Resource", log.Fields{
 						"error":    err,
@@ -462,12 +464,12 @@ func UpdateAppContext(intentName, appContextId string) error {
 }
 
 //func addClusterResource(ac appcontext.AppContext, is module.InboundServerIntent, c string)(error) {
-func addClusterResource(ac appcontext.AppContext, appname string, c string, res map[string][]byte)(error) {
-	ch, err := ac.GetClusterHandle(appname, c)
+func addClusterResource(ac appcontext.AppContext, appname string, c string, res map[string][]byte) error {
+	ch, err := ac.GetClusterHandle(context.Background(), appname, c)
 	if err != nil {
 		log.Error("Error getting clusters handle App Context", log.Fields{
-			"error":	err,
-			"app name":	appname,
+			"error":        err,
+			"app name":     appname,
 			"cluster name": c,
 		})
 		return pkgerrors.Wrapf(err,
@@ -475,14 +477,13 @@ func addClusterResource(ac appcontext.AppContext, appname string, c string, res 
 	}
 	// Add resource to the cluster
 
-
 	if len(res) != 1 {
 		log.Error("Error validating  resource value", log.Fields{
-			"error":	err,
-			"app name":	appname,
+			"error":        err,
+			"app name":     appname,
 			"cluster name": c,
 		})
-		return pkgerrors.Wrapf(err,"Error validating resource value")
+		return pkgerrors.Wrapf(err, "Error validating resource value")
 	}
 	var resname string
 	var r []byte
@@ -491,20 +492,20 @@ func addClusterResource(ac appcontext.AppContext, appname string, c string, res 
 		r = ro
 	}
 
-	_, err = ac.AddResource(ch, resname, string(r))
+	_, err = ac.AddResource(context.Background(), ch, resname, string(r))
 	if err != nil {
 		log.Error("Error adding Resource to AppContext", log.Fields{
-			"error":	err,
-			"app name":	appname,
+			"error":        err,
+			"app name":     appname,
 			"cluster name": c,
 		})
 		return pkgerrors.Wrap(err, "Error adding Resource to AppContext")
 	}
-	resorder, err := ac.GetResourceInstruction(appname, c, "order")
+	resorder, err := ac.GetResourceInstruction(context.Background(), appname, c, "order")
 	if err != nil {
 		log.Error("Error getting Resource order", log.Fields{
-			"error":	err,
-			"app name":	appname,
+			"error":        err,
+			"app name":     appname,
 			"cluster name": c,
 		})
 		return pkgerrors.Wrap(err, "Error getting Resource order")
@@ -514,11 +515,11 @@ func addClusterResource(ac appcontext.AppContext, appname string, c string, res 
 	aov["resorder"] = append(aov["resorder"], resname)
 	jresord, _ := json.Marshal(aov)
 
-	_, err = ac.AddInstruction(ch, "resource", "order", string(jresord))
+	_, err = ac.AddInstruction(context.Background(), ch, "resource", "order", string(jresord))
 	if err != nil {
 		log.Error("Error updating Resource order", log.Fields{
-			"error":	err,
-			"app name":	appname,
+			"error":        err,
+			"app name":     appname,
 			"cluster name": c,
 		})
 		return pkgerrors.Wrap(err, "Error updating Resource order")
@@ -534,7 +535,7 @@ func getProviderAndCluster(c string) (string, string, error) {
 	return s[0], s[1], nil
 }
 
-func createServerExternalResources(is module.InboundServerIntent, c string, servers []serverData, namespace string,index, ci int)(error) {
+func createServerExternalResources(is module.InboundServerIntent, c string, servers []serverData, namespace string, index, ci int) error {
 	host := is.Spec.ExternalName
 	hosts := []string{host}
 
@@ -558,12 +559,12 @@ func createServerExternalResources(is module.InboundServerIntent, c string, serv
 		name = "http"
 	default:
 		log.Error("Invalid tls type", log.Fields{
-                                        "tls type": servers[index].ExternalSvcData.TlsType,
+			"tls type": servers[index].ExternalSvcData.TlsType,
 		})
 		return pkgerrors.New("Invalid tls type")
 	}
 	gwname := is.Spec.ServiceName + "-ext-" + name
-	res, err := createGateway("extsvc", proto, tlsmode, gwname, namespace, is.Spec.ServiceName + "-credential", hosts, gwinp)
+	res, err := createGateway("extsvc", proto, tlsmode, gwname, namespace, is.Spec.ServiceName+"-credential", hosts, gwinp)
 	if err != nil {
 		log.Error("Error creating Gateway", log.Fields{
 			"error":        err,
@@ -574,7 +575,7 @@ func createServerExternalResources(is module.InboundServerIntent, c string, serv
 	}
 	servers[index].ClusterData[ci].Reslist = append(servers[index].ClusterData[ci].Reslist, res)
 
-	res, err = createVirtualService(is, hosts, namespace, gwname + "-gateway", gwinp)
+	res, err = createVirtualService(is, hosts, namespace, gwname+"-gateway", gwinp)
 	if err != nil {
 		log.Error("Error creating Virtual Service", log.Fields{
 			"error":        err,
@@ -585,8 +586,8 @@ func createServerExternalResources(is module.InboundServerIntent, c string, serv
 	}
 	servers[index].ClusterData[ci].Reslist = append(servers[index].ClusterData[ci].Reslist, res)
 
-	if ( servers[index].ExternalSvcData.TlsType == "MUTUAL" ||
-	     servers[index].ExternalSvcData.TlsType == "SIMPLE") {
+	if servers[index].ExternalSvcData.TlsType == "MUTUAL" ||
+		servers[index].ExternalSvcData.TlsType == "SIMPLE" {
 
 		resname := is.Spec.ServiceName + "-credential"
 		meta := createGenericMetadata(resname, "istio-system", "")
@@ -607,11 +608,11 @@ func createServerExternalResources(is module.InboundServerIntent, c string, serv
 	}
 	return nil
 }
-func createServerResources(is module.InboundServerIntent, c string, servers []serverData, namespace string,index, ci int)(error) {
+func createServerResources(is module.InboundServerIntent, c string, servers []serverData, namespace string, index, ci int) error {
 	pro, clu, err := getProviderAndCluster(c)
 	if err != nil {
 		log.Error("Not a valid cluster name", log.Fields{
-                                        "cluster name": c,
+			"cluster name": c,
 		})
 		return pkgerrors.Wrap(err, "Invalid cluster name")
 	}
@@ -640,7 +641,7 @@ func createServerResources(is module.InboundServerIntent, c string, servers []se
 	}
 	servers[index].ClusterData[ci].Reslist = append(servers[index].ClusterData[ci].Reslist, res)
 
-	svcname := is.Spec.ServiceName+"-se-server-dr"
+	svcname := is.Spec.ServiceName + "-se-server-dr"
 	res, err = createDestinationRule(svcname, host, "istio-system")
 	if err != nil {
 		log.Error("Error creating Destination Rule", log.Fields{
@@ -654,13 +655,13 @@ func createServerResources(is module.InboundServerIntent, c string, servers []se
 	return nil
 }
 
-func createGateway(portname, portproto, tlsmode, svcname, namespace, credname string, hosts []string, gwport uint32)(map[string][]byte, error){
+func createGateway(portname, portproto, tlsmode, svcname, namespace, credname string, hosts []string, gwport uint32) (map[string][]byte, error) {
 	// Create gateway resource
 	smap := make(map[string]string)
 	smap["istio"] = "ingressgateway"
-	port := Port{Name: portname, Number: gwport, Protocol: portproto,}
-	var sts  = ServerTLSSettings{
-		Mode: tlsmode,
+	port := Port{Name: portname, Number: gwport, Protocol: portproto}
+	var sts = ServerTLSSettings{
+		Mode:           tlsmode,
 		CredentialName: credname,
 	}
 	csr := createServerItem(port, "", hosts, sts, "tls")
@@ -671,8 +672,8 @@ func createGateway(portname, portproto, tlsmode, svcname, namespace, credname st
 	out, err := createGatewayResource(meta, gspec)
 	if err != nil {
 		log.Error("Error creating Gateway Resource", log.Fields{
-			"error":        err,
-			"svc name":     svcname,
+			"error":    err,
+			"svc name": svcname,
 		})
 		return nil, pkgerrors.Wrap(err, "Error creating Gateway Resource")
 	}
@@ -683,21 +684,21 @@ func createGateway(portname, portproto, tlsmode, svcname, namespace, credname st
 
 }
 
-func createServerServiceEntry(is module.InboundServerIntent, hosts []string, namespace string)(map[string][]byte, error){
+func createServerServiceEntry(is module.InboundServerIntent, hosts []string, namespace string) (map[string][]byte, error) {
 	addresses := []string{}
 	wle := []WorkloadEntry{}
 	addr := is.Spec.ServiceName + "." + namespace
-	wle = []WorkloadEntry{{Address: addr,},}
+	wle = []WorkloadEntry{{Address: addr}}
 
-	ports := []Port{{Name: "tcp", Number: uint32(is.Spec.Port), Protocol: is.Spec.Protocol,},}
+	ports := []Port{{Name: "tcp", Number: uint32(is.Spec.Port), Protocol: is.Spec.Protocol}}
 	resname := is.Spec.ServiceName + "-se-server"
 	meta := createGenericMetadata(resname, "istio-system", "")
-	vsspec := createServiceEntrySpec(hosts, addresses, []string{".",}, wle, ports, "MESH_INTERNAL", "DNS")
+	vsspec := createServiceEntrySpec(hosts, addresses, []string{"."}, wle, ports, "MESH_INTERNAL", "DNS")
 	out, err := createServieEntryResource(meta, vsspec)
 	if err != nil {
 		log.Error("Error creating Servie Entry Resource", log.Fields{
-			"error":        err,
-			"svc name":     is.Spec.ServiceName,
+			"error":    err,
+			"svc name": is.Spec.ServiceName,
 		})
 		return nil, pkgerrors.Wrap(err, "Error creating Servie Entry Resource")
 	}
@@ -708,8 +709,8 @@ func createServerServiceEntry(is module.InboundServerIntent, hosts []string, nam
 	return res, nil
 }
 
-func createVirtualService(is module.InboundServerIntent, hosts []string, namespace, gatewayname string, secport uint32)(map[string][]byte, error){
-	gws := []string{gatewayname,}
+func createVirtualService(is module.InboundServerIntent, hosts []string, namespace, gatewayname string, secport uint32) (map[string][]byte, error) {
+	gws := []string{gatewayname}
 
 	resname := is.Spec.ServiceName + "-vs-" + gatewayname
 	meta := createGenericMetadata(resname, namespace, "")
@@ -717,18 +718,18 @@ func createVirtualService(is module.InboundServerIntent, hosts []string, namespa
 	port := createPortSelector(uint32(is.Spec.Port))
 	dest := createDestination(is.Spec.ServiceName, port)
 	routed := createHTTPRouteDestination(dest)
-	routeds := []HTTPRouteDestination{routed,}
+	routeds := []HTTPRouteDestination{routed}
 
-	routems := []HTTPMatchRequest{{Port: secport},}
-	route := createHTTPRoute(is.Spec.ServiceName + "-http-route", routeds, routems)
+	routems := []HTTPMatchRequest{{Port: secport}}
+	route := createHTTPRoute(is.Spec.ServiceName+"-http-route", routeds, routems)
 
-	routes := []HTTPRoute{route,}
+	routes := []HTTPRoute{route}
 	vsspec := createVirtualServiceSpec(hosts, gws, routes)
 	out, err := createVirtualServieResource(meta, vsspec)
 	if err != nil {
 		log.Error("Error creating Virtual Service Resource", log.Fields{
-			"error":        err,
-			"svc name":     is.Spec.ServiceName,
+			"error":    err,
+			"svc name": is.Spec.ServiceName,
 		})
 		return nil, pkgerrors.Wrap(err, "Error creating Virtual Servie Resource")
 	}
@@ -739,12 +740,12 @@ func createVirtualService(is module.InboundServerIntent, hosts []string, namespa
 	return res, nil
 }
 
-func createDestinationRule(svcname, host, namespace string)(map[string][]byte, error){
+func createDestinationRule(svcname, host, namespace string) (map[string][]byte, error) {
 	// Create dr resource
-	var cts  = ClientTLSSettings{
-		Mode:"ISTIO_MUTUAL",
+	var cts = ClientTLSSettings{
+		Mode: "ISTIO_MUTUAL",
 	}
-	var tp = TrafficPolicy {
+	var tp = TrafficPolicy{
 		Tls: cts,
 	}
 	drspec, err := createDestinationRuleSpec(host, tp)
@@ -752,8 +753,8 @@ func createDestinationRule(svcname, host, namespace string)(map[string][]byte, e
 	out, err := createDestinationRuleResource(meta, drspec)
 	if err != nil {
 		log.Error("Error creating Destination Rule Resource", log.Fields{
-			"error":        err,
-			"svc name":     svcname,
+			"error":    err,
+			"svc name": svcname,
 		})
 		return nil, pkgerrors.Wrap(err, "Error creating Destination Rule Resource")
 	}
@@ -763,21 +764,21 @@ func createDestinationRule(svcname, host, namespace string)(map[string][]byte, e
 	res[resname] = out
 	return res, nil
 }
-func createClientServiceEntry(is module.InboundServerIntent, hosts[]string, gwaddr string, gwextport uint32, namespace string, ip net.IP, rescount string)(map[string][]byte, error){
+func createClientServiceEntry(is module.InboundServerIntent, hosts []string, gwaddr string, gwextport uint32, namespace string, ip net.IP, rescount string) (map[string][]byte, error) {
 	//Create se resource
-	addresses := []string{ip.String(),}
+	addresses := []string{ip.String()}
 	pmap := make(map[string]uint32)
 	pmap["tcp"] = gwextport
-	wle := []WorkloadEntry{{Address: gwaddr,Ports: pmap,},}
-	ports := []Port{{Name: "tcp", Number: uint32(is.Spec.Port), Protocol: is.Spec.Protocol,},}
+	wle := []WorkloadEntry{{Address: gwaddr, Ports: pmap}}
+	ports := []Port{{Name: "tcp", Number: uint32(is.Spec.Port), Protocol: is.Spec.Protocol}}
 	resname := is.Spec.ServiceName + "-se-client" + rescount
 	meta := createGenericMetadata(resname, namespace, "")
 	vsspec := createServiceEntrySpec(hosts, addresses, []string{}, wle, ports, "MESH_INTERNAL", "DNS")
 	out, err := createServieEntryResource(meta, vsspec)
 	if err != nil {
 		log.Error("Error creating Servie Entry Resource", log.Fields{
-			"error":        err,
-			"svc name":     is.Spec.ServiceName,
+			"error":    err,
+			"svc name": is.Spec.ServiceName,
 		})
 		return nil, pkgerrors.Wrap(err, "Error creating Servie Entry Resource")
 	}
@@ -787,18 +788,18 @@ func createClientServiceEntry(is module.InboundServerIntent, hosts[]string, gwad
 
 	return res, nil
 }
-func createClientResources(is module.InboundServerIntent, c string, servers []serverData, namespace string,index, ci, cci int, ip net.IP)(error) {
+func createClientResources(is module.InboundServerIntent, c string, servers []serverData, namespace string, index, ci, cci int, ip net.IP) error {
 	le := len(servers[index].ClusterData)
 	hosts := make([]string, le)
 	for i, sc := range servers[index].ClusterData {
 		pro, clu, err := getProviderAndCluster(sc.ClusterName)
 		if err != nil {
 			log.Error("Not a valid cluster name", log.Fields{
-					"cluster name": sc.ClusterName,
+				"cluster name": sc.ClusterName,
 			})
 			return pkgerrors.Wrap(err, "Invalid cluster name")
 		}
-		host := is.Spec.ServiceName + "." + namespace + "." +  pro + "." + clu
+		host := is.Spec.ServiceName + "." + namespace + "." + pro + "." + clu
 		hosts[i] = host
 	}
 	gwaddr := servers[index].ClusterData[ci].GwAddress
@@ -806,8 +807,8 @@ func createClientResources(is module.InboundServerIntent, c string, servers []se
 	res, err := createClientServiceEntry(is, hosts, gwaddr, gwextport, namespace, ip, "0")
 	if err != nil {
 		log.Error("Error creating client Servie Entry", log.Fields{
-			"error":        err,
-			"svc name":     is.Spec.ServiceName,
+			"error":    err,
+			"svc name": is.Spec.ServiceName,
 		})
 		return pkgerrors.Wrap(err, "Error creating client Servie Entry")
 	}
@@ -818,8 +819,8 @@ func createClientResources(is module.InboundServerIntent, c string, servers []se
 	res, err = createClientServiceEntry(is, hs, gwaddr, gwextport, namespace, ip, "1")
 	if err != nil {
 		log.Error("Error creating client named Servie Entry", log.Fields{
-			"error":        err,
-			"svc name":     is.Spec.ServiceName,
+			"error":    err,
+			"svc name": is.Spec.ServiceName,
 		})
 		return pkgerrors.Wrap(err, "Error creating client Servie Entry")
 	}
@@ -830,9 +831,9 @@ func createClientResources(is module.InboundServerIntent, c string, servers []se
 		res, err = createDestinationRule(svcname, h, namespace)
 		if err != nil {
 			log.Error("Error creating Destination Rule", log.Fields{
-				"error":        err,
-				"svc name":     svcname,
-				"host name":    h,
+				"error":     err,
+				"svc name":  svcname,
+				"host name": h,
 			})
 			return pkgerrors.Wrap(err, "Error creating Destination Rule")
 		}
@@ -845,16 +846,16 @@ func createClientResources(is module.InboundServerIntent, c string, servers []se
 
 }
 
-func getClusterKvPair(c, kvkey string)(string, error) {
+func getClusterKvPair(c, kvkey string) (string, error) {
 
 	parts := strings.Split(c, "+")
 	if len(parts) != 2 {
 		log.Error("Not a valid cluster name", log.Fields{
-                                        "cluster name": c,
+			"cluster name": c,
 		})
 		return "", pkgerrors.New("Not a valid cluster name")
 	}
-	ckv, err := clusterPkg.NewClusterClient().GetAllClusterKvPairs(parts[0], parts[1])
+	ckv, err := clusterPkg.NewClusterClient().GetAllClusterKvPairs(context.Background(), parts[0], parts[1])
 	var val string
 	if err == nil {
 		for _, kvp := range ckv {

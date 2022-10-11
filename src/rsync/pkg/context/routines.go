@@ -16,11 +16,14 @@ import (
 	"gitlab.com/project-emco/core/emco-base/src/rsync/pkg/internal/utils"
 	"gitlab.com/project-emco/core/emco-base/src/rsync/pkg/status"
 	. "gitlab.com/project-emco/core/emco-base/src/rsync/pkg/types"
+	contextUtils "gitlab.com/project-emco/core/emco-base/src/rsync/pkg/utils"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/trace"
 	"golang.org/x/sync/errgroup"
 )
 
 // Check status of AppContext against the event to see if it is valid
-func (c *Context) checkStateChange(e RsyncEvent) (StateChange, bool, error) {
+func (c *Context) checkStateChange(ctx context.Context, e RsyncEvent) (StateChange, bool, error) {
 	var supported bool = false
 	var err error
 	var dState, cState appcontext.AppContextStatus
@@ -31,7 +34,7 @@ func (c *Context) checkStateChange(e RsyncEvent) (StateChange, bool, error) {
 		return StateChange{}, false, pkgerrors.Errorf("Invalid Event %s:", e)
 	}
 	// Check Stop flag return error no processing desired
-	sFlag, err := c.acRef.GetAppContextFlag(StopFlagKey)
+	sFlag, err := c.acRef.GetAppContextFlag(ctx, StopFlagKey)
 	if err != nil {
 		return event, false, pkgerrors.Errorf("AppContext Error: %s:", err)
 	}
@@ -39,7 +42,7 @@ func (c *Context) checkStateChange(e RsyncEvent) (StateChange, bool, error) {
 		return event, false, pkgerrors.Errorf("Stop flag set for context: %s", c.acID)
 	}
 	// Check PendingTerminate Flag
-	tFlag, err := c.acRef.GetAppContextFlag(PendingTerminateFlagKey)
+	tFlag, err := c.acRef.GetAppContextFlag(ctx, PendingTerminateFlagKey)
 	if err != nil {
 		return event, false, pkgerrors.Errorf("AppContext Error: %s:", err)
 	}
@@ -48,7 +51,7 @@ func (c *Context) checkStateChange(e RsyncEvent) (StateChange, bool, error) {
 		return event, false, pkgerrors.Errorf("Terminate Flag is set, Ignoring event: %s:", e)
 	}
 	// Update the desired state of the AppContext based on this event
-	state, err := c.acRef.GetAppContextStatus(CurrentStateKey)
+	state, err := c.acRef.GetAppContextStatus(ctx, CurrentStateKey)
 	if err != nil {
 		return event, false, err
 	}
@@ -70,15 +73,15 @@ func (c *Context) checkStateChange(e RsyncEvent) (StateChange, bool, error) {
 		cState.Status = event.CState
 	}
 	// Event is supported. Update Desired state and current state
-	err = c.acRef.UpdateAppContextStatus(DesiredStateKey, dState)
+	err = c.acRef.UpdateAppContextStatus(ctx, DesiredStateKey, dState)
 	if err != nil {
 		return event, false, err
 	}
-	err = c.acRef.UpdateAppContextStatus(CurrentStateKey, cState)
+	err = c.acRef.UpdateAppContextStatus(ctx, CurrentStateKey, cState)
 	if err != nil {
 		return event, false, err
 	}
-	err = c.acRef.UpdateAppContextStatus(StatusKey, cState)
+	err = c.acRef.UpdateAppContextStatus(ctx, StatusKey, cState)
 	if err != nil {
 		return event, false, err
 	}
@@ -86,20 +89,20 @@ func (c *Context) checkStateChange(e RsyncEvent) (StateChange, bool, error) {
 }
 
 // UpdateQStatus updates status of an element in the queue
-func (c *Context) UpdateQStatus(index int, status string) error {
+func (c *Context) UpdateQStatus(ctx context.Context, index int, status string) error {
 	qUtils := &AppContextQueueUtils{ac: c.acRef.GetAppContextHandle()}
 	c.Lock.Lock()
 	defer c.Lock.Unlock()
-	if err := qUtils.UpdateStatus(index, status); err != nil {
+	if err := qUtils.UpdateStatus(ctx, index, status); err != nil {
 		return err
 	}
 	return nil
 }
 
 // If terminate event recieved set flag to ignore other events
-func (c *Context) terminateContextRoutine() {
+func (c *Context) terminateContextRoutine(ctx context.Context) {
 	// Set Terminate Flag to Pending
-	if err := c.acRef.UpdateAppContextFlag(PendingTerminateFlagKey, true); err != nil {
+	if err := c.acRef.UpdateAppContextFlag(ctx, PendingTerminateFlagKey, true); err != nil {
 		return
 	}
 	// Make all waiting goroutines to stop waiting
@@ -109,15 +112,15 @@ func (c *Context) terminateContextRoutine() {
 }
 
 // Start Main Thread for handling
-func (c *Context) startMainThread(a interface{}, con Connector) error {
+func (c *Context) startMainThread(ctx context.Context, a interface{}, con Connector) error {
 	acID := fmt.Sprintf("%v", a)
 
-	ref, err := utils.NewAppContextReference(acID)
+	ref, err := utils.NewAppContextReference(ctx, acID)
 	if err != nil {
 		return err
 	}
 	// Read AppContext into CompositeApp structure
-	c.ca, err = ReadAppContext(a)
+	c.ca, err = contextUtils.ReadAppContext(ctx, a)
 	if err != nil {
 		log.Error("Fatal! error reading appContext", log.Fields{"err": err})
 		return err
@@ -129,44 +132,44 @@ func (c *Context) startMainThread(a interface{}, con Connector) error {
 	c.waitTime = 2
 	c.maxRetry = getMaxRetries()
 	// Check flags in AppContext to create if they don't exist and add default values
-	_, err = c.acRef.GetAppContextStatus(CurrentStateKey)
+	_, err = c.acRef.GetAppContextStatus(ctx, CurrentStateKey)
 	// If CurrentStateKey doesn't exist assuming this is the very first event for the appcontext
 	if err != nil {
 		as := appcontext.AppContextStatus{Status: appcontext.AppContextStatusEnum.Created}
-		if err := c.acRef.UpdateAppContextStatus(CurrentStateKey, as); err != nil {
+		if err := c.acRef.UpdateAppContextStatus(ctx, CurrentStateKey, as); err != nil {
 			return err
 		}
 	}
-	_, err = c.acRef.GetAppContextFlag(StopFlagKey)
+	_, err = c.acRef.GetAppContextFlag(ctx, StopFlagKey)
 	// Assume doesn't exist and add
 	if err != nil {
-		if err := c.acRef.UpdateAppContextFlag(StopFlagKey, false); err != nil {
+		if err := c.acRef.UpdateAppContextFlag(ctx, StopFlagKey, false); err != nil {
 			return err
 		}
 	}
-	_, err = c.acRef.GetAppContextFlag(PendingTerminateFlagKey)
+	_, err = c.acRef.GetAppContextFlag(ctx, PendingTerminateFlagKey)
 	// Assume doesn't exist and add
 	if err != nil {
-		if err := c.acRef.UpdateAppContextFlag(PendingTerminateFlagKey, false); err != nil {
+		if err := c.acRef.UpdateAppContextFlag(ctx, PendingTerminateFlagKey, false); err != nil {
 			return err
 		}
 	}
-	_, err = c.acRef.GetAppContextStatus(StatusKey)
+	_, err = c.acRef.GetAppContextStatus(ctx, StatusKey)
 	// If CurrentStateKey doesn't exist assuming this is the very first event for the appcontext
 	if err != nil {
 		as := appcontext.AppContextStatus{Status: appcontext.AppContextStatusEnum.Created}
-		if err := c.acRef.UpdateAppContextStatus(StatusKey, as); err != nil {
+		if err := c.acRef.UpdateAppContextStatus(ctx, StatusKey, as); err != nil {
 			return err
 		}
 	}
 	// Read the statusAcID to use with status
-	c.statusAcID, err = c.acRef.GetStatusAppContext(StatusAppContextIDKey)
+	c.statusAcID, err = c.acRef.GetStatusAppContext(ctx, StatusAppContextIDKey)
 	if err != nil {
 		// Use appcontext as status appcontext also
 		c.statusAcID = c.acID
 		c.scRef = c.acRef
 	} else {
-		scRef, err := utils.NewAppContextReference(c.statusAcID)
+		scRef, err := utils.NewAppContextReference(ctx, c.statusAcID)
 		if err != nil {
 			return err
 		}
@@ -175,21 +178,34 @@ func (c *Context) startMainThread(a interface{}, con Connector) error {
 	// Intialize dependency management
 	c.dm = depend.NewDependManager(c.acID)
 	// Start Routine to handle AppContext
-	go c.appContextRoutine()
+	go c.appContextRoutine(ctx)
 	return nil
 }
 
 // Handle AppContext
-func (c *Context) appContextRoutine() {
+func (c *Context) appContextRoutine(callerCtx context.Context) {
 	var lctx context.Context
 	var l context.Context
 	var lGroup *errgroup.Group
 	var lDone context.CancelFunc
 	var op RsyncOperation
 
+	// This function is executed asynchronously, so we must create
+	// a new (not derived) context to prevent the context from
+	// being cancelled when the caller completes: a cancelled
+	// context will cause the below work to exit early.
+	ctx := context.Background()
+
+	// A link is used so that the traces can be associated.
+	tracer := otel.Tracer("rsync")
+	ctx, span := tracer.Start(ctx, "appContextRoutine",
+		trace.WithLinks(trace.LinkFromContext(callerCtx)),
+	)
+	defer span.End()
+
 	qUtils := &AppContextQueueUtils{ac: c.acRef.GetAppContextHandle()}
 	// Create context for the running threads
-	ctx, done := context.WithCancel(context.Background())
+	ctx, done := context.WithCancel(ctx)
 	gGroup, gctx := errgroup.WithContext(ctx)
 	// Stop all running goroutines
 	defer done()
@@ -199,7 +215,7 @@ func (c *Context) appContextRoutine() {
 		for {
 			select {
 			case <-ticker.C:
-				flag, err := c.acRef.GetAppContextFlag(StopFlagKey)
+				flag, err := c.acRef.GetAppContextFlag(ctx, StopFlagKey)
 				if err != nil {
 					done()
 				} else if flag == true {
@@ -217,25 +233,25 @@ func (c *Context) appContextRoutine() {
 	for {
 		// Get first event to process
 		c.Lock.Lock()
-		index, ele := qUtils.FindFirstPending()
+		index, ele := qUtils.FindFirstPending(ctx)
 		if index >= 0 {
 			c.Lock.Unlock()
 			e := ele.Event
-			state, skip, err := c.checkStateChange(e)
+			state, skip, err := c.checkStateChange(ctx, e)
 			// Event is not valid event for the current state of AppContext
 			if err != nil {
 				log.Error("State Change Error", log.Fields{"error": err})
-				if err := c.UpdateQStatus(index, "Skip"); err != nil {
+				if err := c.UpdateQStatus(ctx, index, "Skip"); err != nil {
 					break
 				}
 				if !skip {
 					// Update status with error
-					err = c.acRef.UpdateAppContextStatus(StatusKey, appcontext.AppContextStatus{Status: state.ErrState})
+					err = c.acRef.UpdateAppContextStatus(ctx, StatusKey, appcontext.AppContextStatus{Status: state.ErrState})
 					if err != nil {
 						break
 					}
 					// Update Current status with error
-					err = c.acRef.UpdateAppContextStatus(CurrentStateKey, appcontext.AppContextStatus{Status: state.ErrState})
+					err = c.acRef.UpdateAppContextStatus(ctx, CurrentStateKey, appcontext.AppContextStatus{Status: state.ErrState})
 					if err != nil {
 						break
 					}
@@ -260,27 +276,27 @@ func (c *Context) appContextRoutine() {
 				// In Instantiate Phase find out resources that need to be modified and
 				// set skip to be true for those that match
 				// This is done to avoid applying resources that have no differences
-				if err := c.updateModifyPhase(ele); err != nil {
+				if err := c.updateModifyPhase(ctx, ele); err != nil {
 					break
 				}
 				op = OpApply
 				// Enqueue Delete Event for the AppContext that is being updated to
-				go HandleAppContext(ele.UCID, c.acID, UpdateDeleteEvent, c.con)
+				go HandleAppContext(ctx, ele.UCID, c.acID, UpdateDeleteEvent, c.con)
 			case UpdateDeleteEvent:
 				// Update AppContext to decide what needs deleted
-				if err := c.updateDeletePhase(ele); err != nil {
+				if err := c.updateDeletePhase(ctx, ele); err != nil {
 					break
 				}
 				op = OpDelete
 			case AddChildContextEvent:
 				log.Error("Not Implemented", log.Fields{"event": e})
-				if err := c.UpdateQStatus(index, "Skip"); err != nil {
+				if err := c.UpdateQStatus(ctx, index, "Skip"); err != nil {
 					break
 				}
 				continue
 			default:
 				log.Error("Unknown event", log.Fields{"event": e})
-				if err := c.UpdateQStatus(index, "Skip"); err != nil {
+				if err := c.UpdateQStatus(ctx, index, "Skip"); err != nil {
 					break
 				}
 				continue
@@ -293,16 +309,16 @@ func (c *Context) appContextRoutine() {
 			if err := lGroup.Wait(); err != nil {
 				log.Error("Failed run", log.Fields{"error": err})
 				// Mark the event in Queue
-				if err := c.UpdateQStatus(index, "Error"); err != nil {
+				if err := c.UpdateQStatus(ctx, index, "Error"); err != nil {
 					break
 				}
 				// Update failed status
-				err = c.acRef.UpdateAppContextStatus(StatusKey, appcontext.AppContextStatus{Status: state.ErrState})
+				err = c.acRef.UpdateAppContextStatus(ctx, StatusKey, appcontext.AppContextStatus{Status: state.ErrState})
 				if err != nil {
 					break
 				}
 				// Update Current status with error
-				err = c.acRef.UpdateAppContextStatus(CurrentStateKey, appcontext.AppContextStatus{Status: state.ErrState})
+				err = c.acRef.UpdateAppContextStatus(ctx, CurrentStateKey, appcontext.AppContextStatus{Status: state.ErrState})
 				if err != nil {
 					break
 				}
@@ -310,22 +326,22 @@ func (c *Context) appContextRoutine() {
 			}
 			log.Info("Success all subtasks completed", log.Fields{})
 			// Mark the event in Queue
-			if err := c.UpdateQStatus(index, "Done"); err != nil {
+			if err := c.UpdateQStatus(ctx, index, "Done"); err != nil {
 				break
 			}
 
 			// Success - Update Status for the AppContext to match the Desired State
-			ds, _ := c.acRef.GetAppContextStatus(DesiredStateKey)
-			err = c.acRef.UpdateAppContextStatus(StatusKey, ds)
-			err = c.acRef.UpdateAppContextStatus(CurrentStateKey, ds)
+			ds, _ := c.acRef.GetAppContextStatus(ctx, DesiredStateKey)
+			err = c.acRef.UpdateAppContextStatus(ctx, StatusKey, ds)
+			err = c.acRef.UpdateAppContextStatus(ctx, CurrentStateKey, ds)
 
 		} else {
 			// Done Processing all elements in queue
 			log.Info("Done Processing - no new messages", log.Fields{"context": c.acID})
 			// Set the TerminatePending Flag to false before exiting
-			_ = c.acRef.UpdateAppContextFlag(PendingTerminateFlagKey, false)
+			_ = c.acRef.UpdateAppContextFlag(ctx, PendingTerminateFlagKey, false)
 			// release the active contextIDs
-			ok, err := DeleteActiveContextRecord(c.acID)
+			ok, err := DeleteActiveContextRecord(ctx, c.acID)
 			if !ok {
 				log.Info("Deleting activeContextID failed", log.Fields{"context": c.acID, "error": err})
 			}
@@ -339,7 +355,7 @@ func (c *Context) appContextRoutine() {
 	// Set running flag to false before exiting
 	c.Lock.Lock()
 	// release the active contextIDs
-	ok, err := DeleteActiveContextRecord(c.acID)
+	ok, err := DeleteActiveContextRecord(ctx, c.acID)
 	if !ok {
 		log.Info("Deleting activeContextID failed", log.Fields{"context": c.acID, "error": err})
 	}
@@ -348,10 +364,10 @@ func (c *Context) appContextRoutine() {
 }
 
 // Iterate over the appcontext to mark apps/cluster/resources that doesn't need to be deleted
-func (c *Context) updateDeletePhase(e AppContextQueueElement) error {
+func (c *Context) updateDeletePhase(ctx context.Context, e AppContextQueueElement) error {
 
 	// Read Update AppContext into CompositeApp structure
-	uca, err := ReadAppContext(e.UCID)
+	uca, err := contextUtils.ReadAppContext(ctx, e.UCID)
 	if err != nil {
 		log.Error("Fatal! error reading appContext", log.Fields{"err": err})
 		return err
@@ -359,17 +375,17 @@ func (c *Context) updateDeletePhase(e AppContextQueueElement) error {
 	// Iterate over all the subapps and mark all apps, clusters and resources
 	// that shouldn't be deleted
 	for _, app := range c.ca.Apps {
-		foundApp := FindApp(uca, app.Name)
+		foundApp := contextUtils.FindApp(uca, app.Name)
 		// If app not found that will be deleted (skip false)
 		if foundApp {
 			// Check if any clusters are deleted
 			for _, cluster := range app.Clusters {
-				foundCluster := FindCluster(uca, app.Name, cluster.Name)
+				foundCluster := contextUtils.FindCluster(uca, app.Name, cluster.Name)
 				if foundCluster {
 					// Check if any resources are deleted
 					var resCnt int = 0
 					for _, res := range cluster.Resources {
-						foundRes := FindResource(uca, app.Name, cluster.Name, res.Name)
+						foundRes := contextUtils.FindResource(uca, app.Name, cluster.Name, res.Name)
 						if foundRes {
 							// If resource found in both appContext don't delete it
 							res.Skip = true
@@ -390,16 +406,16 @@ func (c *Context) updateDeletePhase(e AppContextQueueElement) error {
 }
 
 // Iterate over the appcontext to mark apps/cluster/resources that doesn't need to be Modified
-func (c *Context) updateModifyPhase(e AppContextQueueElement) error {
+func (c *Context) updateModifyPhase(ctx context.Context, e AppContextQueueElement) error {
 	// Read Update from AppContext into CompositeApp structure
-	uca, err := ReadAppContext(e.UCID)
+	uca, err := contextUtils.ReadAppContext(ctx, e.UCID)
 	if err != nil {
 		log.Error("Fatal! error reading appContext", log.Fields{"err": err})
 		return err
 	}
 	//acUtils := &utils.AppContextUtils{Ac: c.ac}
 	// Load update appcontext also
-	uRef, err := utils.NewAppContextReference(e.UCID)
+	uRef, err := utils.NewAppContextReference(ctx, e.UCID)
 	if err != nil {
 		return err
 	}
@@ -407,20 +423,20 @@ func (c *Context) updateModifyPhase(e AppContextQueueElement) error {
 	// Iterate over all the subapps and mark all apps, clusters and resources
 	// that match exactly and shouldn't be changed
 	for _, app := range c.ca.Apps {
-		foundApp := FindApp(uca, app.Name)
+		foundApp := contextUtils.FindApp(uca, app.Name)
 		if foundApp {
 			// Check if any clusters are modified
 			for _, cluster := range app.Clusters {
-				foundCluster := FindCluster(uca, app.Name, cluster.Name)
+				foundCluster := contextUtils.FindCluster(uca, app.Name, cluster.Name)
 				if foundCluster {
 					diffRes := false
 					// Check if any resources are added or modified
 					for _, res := range cluster.Resources {
-						foundRes := FindResource(uca, app.Name, cluster.Name, res.Name)
+						foundRes := contextUtils.FindResource(uca, app.Name, cluster.Name, res.Name)
 						if foundRes {
 							// Read the resource from both AppContext and Compare
-							cRes, _, err1 := c.acRef.GetRes(res.Name, app.Name, cluster.Name)
-							uRes, _, err2 := uRef.GetRes(res.Name, app.Name, cluster.Name)
+							cRes, _, err1 := c.acRef.GetRes(ctx, res.Name, app.Name, cluster.Name)
+							uRes, _, err2 := uRef.GetRes(ctx, res.Name, app.Name, cluster.Name)
 							if err1 != nil || err2 != nil {
 								log.Error("Fatal Error: reading resources", log.Fields{"err1": err1, "err2": err2})
 								return err1
@@ -510,8 +526,8 @@ func (c *Context) runApp(ctx context.Context, g *errgroup.Group, op RsyncOperati
 
 func (c *Context) runCluster(ctx context.Context, op RsyncOperation, e RsyncEvent, app, cluster string) error {
 	log.Info(" runCluster::", log.Fields{"app": app, "cluster": cluster})
-	namespace, level := c.acRef.GetNamespace()
-	cl, err := c.con.GetClientProviders(app, cluster, level, namespace)
+	namespace, level := c.acRef.GetNamespace(ctx)
+	cl, err := c.con.GetClientProviders(ctx, app, cluster, level, namespace)
 	if err != nil {
 		log.Error("Error in creating client", log.Fields{"error": err, "cluster": cluster, "app": app})
 		return err
@@ -520,7 +536,7 @@ func (c *Context) runCluster(ctx context.Context, op RsyncOperation, e RsyncEven
 	// Start cluster watcher if there are resources to be watched
 	// case like admin cloud has no resources
 	if len(c.ca.Apps[app].Clusters[cluster].ResOrder) > 0 {
-		err = cl.StartClusterWatcher()
+		err = cl.StartClusterWatcher(ctx)
 		if err != nil {
 			log.Error("Error starting Cluster Watcher", log.Fields{
 				"error":   err,
@@ -560,17 +576,17 @@ func (c *Context) runCluster(ctx context.Context, op RsyncOperation, e RsyncEven
 		if len(c.ca.Apps[app].Clusters[cluster].Dependency["pre-install"]) > 0 {
 			log.Info("Installing preinstall hooks", log.Fields{"App": app, "cluster": cluster, "hooks": c.ca.Apps[app].Clusters[cluster].Dependency["pre-install"]})
 			// Add Status tracking
-			if err := r.addStatusTracker(status.PreInstallHookLabel, namespace); err != nil {
+			if err := r.addStatusTracker(ctx, status.PreInstallHookLabel, namespace); err != nil {
 				return err
 			}
 			// Install Preinstall hooks with wait
 			_, err := r.handleResourcesWithWait(ctx, op, c.ca.Apps[app].Clusters[cluster].Dependency["pre-install"])
 			if err != nil {
-				r.deleteStatusTracker(status.PreInstallHookLabel, namespace)
+				r.deleteStatusTracker(ctx, status.PreInstallHookLabel, namespace)
 				return err
 			}
 			// Delete Status tracking, will be added after the main resources are added
-			r.deleteStatusTracker(status.PreInstallHookLabel, namespace)
+			r.deleteStatusTracker(ctx, status.PreInstallHookLabel, namespace)
 			log.Info("Done Installing preinstall hooks", log.Fields{"App": app, "cluster": cluster, "hooks": c.ca.Apps[app].Clusters[cluster].Dependency["pre-install"]})
 		}
 		// Install main resources without wait
@@ -579,7 +595,7 @@ func (c *Context) runCluster(ctx context.Context, op RsyncOperation, e RsyncEven
 		// handle status tracking before exiting if at least one resource got handled
 		if i > 0 {
 			// Add Status tracking
-			r.addStatusTracker("", namespace)
+			r.addStatusTracker(ctx, "", namespace)
 		}
 		if err != nil {
 			log.Error("Error installing resources for app", log.Fields{"App": app, "cluster": cluster, "resources": c.ca.Apps[app].Clusters[cluster].ResOrder})
@@ -639,7 +655,7 @@ func (c *Context) runCluster(ctx context.Context, op RsyncOperation, e RsyncEven
 		// Check if delete of status tracker is scheduled, if so stop and delete the timer
 		// before scheduling a new one
 		c.StopDeleteStatusCRTimer(key)
-		timer := ScheduleDeleteStatusTracker(c.statusAcID, app, cluster, level, namespace, c.con)
+		timer := ScheduleDeleteStatusTracker(ctx, c.statusAcID, app, cluster, level, namespace, c.con)
 		c.UpdateDeleteStatusCRTimer(key, timer)
 	case UpdateEvent, UpdateDeleteEvent:
 		// Update and Rollback hooks are not supported at this time
@@ -659,7 +675,7 @@ func (c *Context) runCluster(ctx context.Context, op RsyncOperation, e RsyncEven
 		}
 		// Add Status tracking if not already applied for the cluster
 		if op == OpApply {
-			r.addStatusTracker("", namespace)
+			r.addStatusTracker(ctx, "", namespace)
 		}
 	}
 	return nil
@@ -667,7 +683,7 @@ func (c *Context) runCluster(ctx context.Context, op RsyncOperation, e RsyncEven
 
 // Schedule delete status tracker to run after 2 mins
 // This gives time for delete status to be recorded in the monitor CR
-func ScheduleDeleteStatusTracker(acID, app, cluster, level, namespace string, con Connector) *time.Timer {
+func ScheduleDeleteStatusTracker(ctx context.Context, acID, app, cluster, level, namespace string, con Connector) *time.Timer {
 
 	DurationOfTime := time.Duration(120) * time.Second
 	label := acID + "-" + app
@@ -677,17 +693,25 @@ func ScheduleDeleteStatusTracker(acID, app, cluster, level, namespace string, co
 		return &time.Timer{}
 	}
 
+	tracer := otel.Tracer("rsync")
+	ctx, span := tracer.Start(context.Background(), "DeleteStatusCR",
+		trace.WithLinks(trace.LinkFromContext(ctx)),
+	)
+
 	f := func() {
-		cl, err := con.GetClientProviders(app, cluster, level, namespace)
+		cl, err := con.GetClientProviders(ctx, app, cluster, level, namespace)
 		if err != nil {
 			log.Error("Error in creating client", log.Fields{"error": err, "cluster": cluster, "app": app})
+			span.End()
 			return
 		}
 		defer cl.CleanClientProvider()
-		if err = cl.DeleteStatusCR(label, b); err != nil {
+		if err = cl.DeleteStatusCR(ctx, label, b); err != nil {
 			log.Info("Failed to delete res", log.Fields{"error": err, "app": app, "label": label})
+			span.End()
 			return
 		}
+		span.End()
 	}
 	// Schedule for running at a later time
 	handle := time.AfterFunc(DurationOfTime, f)

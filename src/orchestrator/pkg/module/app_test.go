@@ -4,12 +4,13 @@
 package module
 
 import (
+	"context"
 	"reflect"
 	"strings"
 	"testing"
 
-	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
 	pkgerrors "github.com/pkg/errors"
+	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
 	//  pkgerrors "github.com/pkg/errors"
 )
 
@@ -84,9 +85,10 @@ func TestCreateApp(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.label, func(t *testing.T) {
+			ctx := context.Background()
 			db.DBconn = testCase.mockdb
 			impl := NewAppClient()
-			got, err := impl.CreateApp(testCase.inpApp, testCase.inpAppContent, testCase.inpProject, testCase.inpCompositeAppName, testCase.inpCompositeAppVersion, false)
+			got, err := impl.CreateApp(ctx, testCase.inpApp, testCase.inpAppContent, testCase.inpProject, testCase.inpCompositeAppName, testCase.inpCompositeAppVersion, false)
 			if err != nil {
 				if testCase.expectedError == "" {
 					t.Fatalf("Create returned an unexpected error %s", err)
@@ -163,9 +165,10 @@ func TestGetApp(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.label, func(t *testing.T) {
+			ctx := context.Background()
 			db.DBconn = testCase.mockdb
 			impl := NewAppClient()
-			got, err := impl.GetApp(testCase.inpApp, testCase.inpProject, testCase.inpCompositeAppName, testCase.inpCompositeAppVersion)
+			got, err := impl.GetApp(ctx, testCase.inpApp, testCase.inpProject, testCase.inpCompositeAppName, testCase.inpCompositeAppVersion)
 			if err != nil {
 				if testCase.expectedError == "" {
 					t.Fatalf("Get returned an unexpected error: %s", err)
@@ -237,9 +240,10 @@ func TestGetAppContent(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.label, func(t *testing.T) {
+			ctx := context.Background()
 			db.DBconn = testCase.mockdb
 			impl := NewAppClient()
-			got, err := impl.GetAppContent(testCase.inpApp, testCase.inpProject, testCase.inpCompositeAppName, testCase.inpCompositeAppVersion)
+			got, err := impl.GetAppContent(ctx, testCase.inpApp, testCase.inpProject, testCase.inpCompositeAppName, testCase.inpCompositeAppVersion)
 			if err != nil {
 				if testCase.expectedError == "" {
 					t.Fatalf("Get returned an unexpected error: %s", err)
@@ -306,9 +310,10 @@ func TestDeleteApp(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.label, func(t *testing.T) {
+			ctx := context.Background()
 			db.DBconn = testCase.mockdb
 			impl := NewAppClient()
-			err := impl.DeleteApp(testCase.inpApp, testCase.inpProject, testCase.inpCompositeAppName, testCase.inpCompositeAppVersion)
+			err := impl.DeleteApp(ctx, testCase.inpApp, testCase.inpProject, testCase.inpCompositeAppName, testCase.inpCompositeAppVersion)
 			if err != nil {
 				if testCase.expectedError == "" {
 					t.Fatalf("Delete returned an unexpected error %s", err)

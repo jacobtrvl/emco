@@ -4,9 +4,11 @@
 package logicalcloud
 
 import (
+	"context"
 	"reflect"
 
-	"github.com/pkg/errors"
+	"gitlab.com/project-emco/core/emco-base/src/ca-certs/pkg/module"
+	"gitlab.com/project-emco/core/emco-base/src/orchestrator/common/emcoerror"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
 )
 
@@ -53,10 +55,13 @@ func (c *CaCertLogicalCloudClient) CreateLogicalCloud(logicalCloud CaCertLogical
 
 	if lcExists &&
 		failIfExists {
-		return CaCertLogicalCloud{}, lcExists, errors.New("LogicalCloud already exists")
+		return CaCertLogicalCloud{}, lcExists, emcoerror.NewEmcoError(
+			module.CaCertLogicalCloudAlreadyExists,
+			emcoerror.Conflict,
+		)
 	}
 
-	if err := db.DBconn.Insert(c.dbInfo.StoreName, key, nil, c.dbInfo.TagMeta, logicalCloud); err != nil {
+	if err := db.DBconn.Insert(context.Background(), c.dbInfo.StoreName, key, nil, c.dbInfo.TagMeta, logicalCloud); err != nil {
 		return CaCertLogicalCloud{}, lcExists, err
 	}
 
@@ -70,7 +75,7 @@ func (c *CaCertLogicalCloudClient) DeleteLogicalCloud(logicalCloud, cert, projec
 		CaCertLogicalCloud: logicalCloud,
 		Project:            project}
 
-	return db.DBconn.Remove(c.dbInfo.StoreName, key)
+	return db.DBconn.Remove(context.Background(), c.dbInfo.StoreName, key)
 }
 
 // GetAllLogicalClouds returns all the caCert logicalCloud
@@ -79,7 +84,7 @@ func (c *CaCertLogicalCloudClient) GetAllLogicalClouds(cert, project string) ([]
 		Cert:    cert,
 		Project: project}
 
-	values, err := db.DBconn.Find(c.dbInfo.StoreName, key, c.dbInfo.TagMeta)
+	values, err := db.DBconn.Find(context.Background(), c.dbInfo.StoreName, key, c.dbInfo.TagMeta)
 	if err != nil {
 		return []CaCertLogicalCloud{}, err
 	}
@@ -103,13 +108,16 @@ func (c *CaCertLogicalCloudClient) GetLogicalCloud(logicalCloud, cert, project s
 		CaCertLogicalCloud: logicalCloud,
 		Project:            project}
 
-	value, err := db.DBconn.Find(c.dbInfo.StoreName, key, c.dbInfo.TagMeta)
+	value, err := db.DBconn.Find(context.Background(), c.dbInfo.StoreName, key, c.dbInfo.TagMeta)
 	if err != nil {
 		return CaCertLogicalCloud{}, err
 	}
 
 	if len(value) == 0 {
-		return CaCertLogicalCloud{}, errors.New("LogicalCloud not found")
+		return CaCertLogicalCloud{}, emcoerror.NewEmcoError(
+			module.CaCertLogicalCloudNotFound,
+			emcoerror.NotFound,
+		)
 	}
 
 	if value != nil {
@@ -120,5 +128,8 @@ func (c *CaCertLogicalCloudClient) GetLogicalCloud(logicalCloud, cert, project s
 		return lc, nil
 	}
 
-	return CaCertLogicalCloud{}, errors.New("Unknown Error")
+	return CaCertLogicalCloud{}, emcoerror.NewEmcoError(
+		emcoerror.UnknownErrorMessage,
+		emcoerror.Unknown,
+	)
 }

@@ -20,6 +20,8 @@ import (
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/state"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/status"
 
+	"context"
+
 	pkgerrors "github.com/pkg/errors"
 )
 
@@ -60,7 +62,7 @@ type ClusterStatus struct {
 }
 
 func deleteAppContext(ac appcontext.AppContext) {
-	err := ac.DeleteCompositeApp()
+	err := ac.DeleteCompositeApp(context.Background())
 	if err != nil {
 		log.Warn(":: Error deleting AppContext ::", log.Fields{"Error": err})
 	}
@@ -72,7 +74,7 @@ and then sets the RsyncInfo global variable.
 */
 func queryDBAndSetRsyncInfo() (installappclient.RsyncInfo, error) {
 	client := controller.NewControllerClient("resources", "data", "orchestrator")
-	vals, _ := client.GetControllers()
+	vals, _ := client.GetControllers(context.Background())
 	for _, v := range vals {
 		if v.Metadata.Name == rsyncName {
 			log.Info("Initializing RPC connection to resource synchronizer", log.Fields{
@@ -98,7 +100,7 @@ func callRsyncInstall(contextid interface{}) error {
 	}
 
 	appContextID := fmt.Sprintf("%v", contextid)
-	err = installappclient.InvokeInstallApp(appContextID)
+	err = installappclient.InvokeInstallApp(context.Background(), appContextID)
 	if err != nil {
 		return err
 	}
@@ -118,7 +120,7 @@ func callRsyncUninstall(contextid interface{}) error {
 	}
 
 	appContextID := fmt.Sprintf("%v", contextid)
-	err = installappclient.InvokeUninstallApp(appContextID)
+	err = installappclient.InvokeUninstallApp(context.Background(), appContextID)
 	if err != nil {
 		return err
 	}
@@ -128,7 +130,7 @@ func callRsyncUninstall(contextid interface{}) error {
 // Apply Network Intents associated with a cluster
 func (v *SchedulerClient) ApplyNetworkIntents(clusterProvider, cluster string) error {
 
-	s, err := clusterPkg.NewClusterClient().GetClusterState(clusterProvider, cluster)
+	s, err := clusterPkg.NewClusterClient().GetClusterState(context.Background(), clusterProvider, cluster)
 	if err != nil {
 		return err
 	}
@@ -162,14 +164,14 @@ func (v *SchedulerClient) ApplyNetworkIntents(clusterProvider, cluster string) e
 	if err != nil {
 		return pkgerrors.Wrap(err, "Error creating AppContext")
 	}
-	handle, err := ac.CreateCompositeApp()
+	handle, err := ac.CreateCompositeApp(context.Background())
 	if err != nil {
 		deleteAppContext(ac)
 		return pkgerrors.Wrap(err, "Error creating AppContext CompositeApp")
 	}
 
 	// Add an app (fixed value) to the app context
-	apphandle, err := ac.AddApp(handle, nettypes.CONTEXT_CLUSTER_APP)
+	apphandle, err := ac.AddApp(context.Background(), handle, nettypes.CONTEXT_CLUSTER_APP)
 	if err != nil {
 		deleteAppContext(ac)
 		return pkgerrors.Wrap(err, "Error adding App to AppContext")
@@ -198,25 +200,25 @@ func (v *SchedulerClient) ApplyNetworkIntents(clusterProvider, cluster string) e
 		return pkgerrors.Wrap(err, "Error marshalling network intent app dependency instruction")
 	}
 
-	_, err = ac.AddInstruction(handle, "app", "order", string(jinstr))
+	_, err = ac.AddInstruction(context.Background(), handle, "app", "order", string(jinstr))
 	if err != nil {
 		deleteAppContext(ac)
 		return pkgerrors.Wrap(err, "Error adding network intent app order instruction")
 	}
-	_, err = ac.AddInstruction(handle, "app", "dependency", string(jdep))
+	_, err = ac.AddInstruction(context.Background(), handle, "app", "dependency", string(jdep))
 	if err != nil {
 		deleteAppContext(ac)
 		return pkgerrors.Wrap(err, "Error adding network intent app dependency instruction")
 	}
 
 	// Add a cluster to the app
-	_, err = ac.AddCluster(apphandle, clusterProvider+nettypes.SEPARATOR+cluster)
+	_, err = ac.AddCluster(context.Background(), apphandle, clusterProvider+nettypes.SEPARATOR+cluster)
 	if err != nil {
 		deleteAppContext(ac)
 		return pkgerrors.Wrap(err, "Error adding Cluster to AppContext")
 	}
 
-	// Pass the context to the appropriate controller (just default ovncontroller now)
+	// Pass the appCtx to the appropriate controller (just default ovncontroller now)
 	// for internal controller - pass the appcontext, cluster provider and cluster names in directly
 	// external controllers will be given the appcontext id and wiil have to recontstruct
 	// their own context
@@ -246,7 +248,7 @@ func (v *SchedulerClient) ApplyNetworkIntents(clusterProvider, cluster string) e
 	s.Actions = append(s.Actions, a)
 	s.StatusContextId = ctxVal.(string)
 
-	err = db.DBconn.Insert(v.db.StoreName, key, nil, v.db.TagState, s)
+	err = db.DBconn.Insert(context.Background(), v.db.StoreName, key, nil, v.db.TagState, s)
 	if err != nil {
 		log.Warn(":: Error updating Cluster state in DB ::", log.Fields{"Error": err.Error(), "cluster": cluster, "cluster provider": clusterProvider, "AppContext": ctxVal.(string)})
 		return pkgerrors.Wrap(err, "Error updating the stateInfo of cluster after Apply on network intents: "+cluster)
@@ -257,7 +259,7 @@ func (v *SchedulerClient) ApplyNetworkIntents(clusterProvider, cluster string) e
 
 // Terminate Network Intents associated with a cluster
 func (v *SchedulerClient) TerminateNetworkIntents(clusterProvider, cluster string) error {
-	s, err := clusterPkg.NewClusterClient().GetClusterState(clusterProvider, cluster)
+	s, err := clusterPkg.NewClusterClient().GetClusterState(context.Background(), clusterProvider, cluster)
 	if err != nil {
 		return pkgerrors.Wrapf(err, "Error finding StateInfo for cluster: %v, %v", clusterProvider, cluster)
 	}
@@ -287,7 +289,7 @@ func (v *SchedulerClient) TerminateNetworkIntents(clusterProvider, cluster strin
 	// call resource synchronizer to terminate the CRs in the cluster
 	contextId := state.GetLastContextIdFromStateInfo(s)
 	if stateVal == state.StateEnum.InstantiateStopped {
-		err = state.UpdateAppContextStopFlag(contextId, false)
+		err = state.UpdateAppContextStopFlag(context.Background(), contextId, false)
 		if err != nil {
 			return err
 		}
@@ -308,7 +310,7 @@ func (v *SchedulerClient) TerminateNetworkIntents(clusterProvider, cluster strin
 		TimeStamp: time.Now(),
 	}
 	s.Actions = append(s.Actions, a)
-	err = db.DBconn.Insert(v.db.StoreName, key, nil, v.db.TagState, s)
+	err = db.DBconn.Insert(context.Background(), v.db.StoreName, key, nil, v.db.TagState, s)
 	if err != nil {
 		return pkgerrors.Wrap(err, "Error updating the stateInfo of cluster: "+cluster)
 	}
@@ -318,7 +320,7 @@ func (v *SchedulerClient) TerminateNetworkIntents(clusterProvider, cluster strin
 
 // Stop Network Intent instantiation or termination associated with a cluster
 func (v *SchedulerClient) StopNetworkIntents(clusterProvider, cluster string) error {
-	s, err := clusterPkg.NewClusterClient().GetClusterState(clusterProvider, cluster)
+	s, err := clusterPkg.NewClusterClient().GetClusterState(context.Background(), clusterProvider, cluster)
 	if err != nil {
 		return pkgerrors.Wrapf(err, "Error finding StateInfo for cluster: %v, %v", clusterProvider, cluster)
 	}
@@ -350,7 +352,7 @@ func (v *SchedulerClient) StopNetworkIntents(clusterProvider, cluster string) er
 
 	// call resource synchronizer to terminate the CRs in the cluster
 	contextId := state.GetLastContextIdFromStateInfo(s)
-	acStatus, err := state.GetAppContextStatus(contextId)
+	acStatus, err := state.GetAppContextStatus(context.Background(), contextId)
 	if err != nil {
 		return err
 	}
@@ -358,7 +360,7 @@ func (v *SchedulerClient) StopNetworkIntents(clusterProvider, cluster string) er
 		acStatus.Status != appcontext.AppContextStatusEnum.Terminating {
 		return pkgerrors.Errorf("Cluster network intents are not instantiating or terminating:" + cluster)
 	}
-	err = state.UpdateAppContextStopFlag(contextId, true)
+	err = state.UpdateAppContextStopFlag(context.Background(), contextId, true)
 	if err != nil {
 		return err
 	}
@@ -374,7 +376,7 @@ func (v *SchedulerClient) StopNetworkIntents(clusterProvider, cluster string) er
 		TimeStamp: time.Now(),
 	}
 	s.Actions = append(s.Actions, a)
-	err = db.DBconn.Insert(v.db.StoreName, key, nil, v.db.TagState, s)
+	err = db.DBconn.Insert(context.Background(), v.db.StoreName, key, nil, v.db.TagState, s)
 	if err != nil {
 		return pkgerrors.Wrap(err, "Error updating the stateInfo of cluster: "+cluster)
 	}
@@ -389,12 +391,12 @@ the cluster network intents, which is made available in the appcontext
 */
 func (c SchedulerClient) NetworkIntentsStatus(clusterProvider, cluster, qInstance, qType, qOutput string, qApps, qClusters, qResources []string) (ClusterStatus, error) {
 
-	s, err := clusterPkg.NewClusterClient().GetClusterState(clusterProvider, cluster)
+	s, err := clusterPkg.NewClusterClient().GetClusterState(context.Background(), clusterProvider, cluster)
 	if err != nil {
 		return ClusterStatus{}, pkgerrors.Wrap(err, "Cluster state not found")
 	}
 
-	statusResponse, err := status.PrepareClusterStatusResult(s, qInstance, qType, qOutput, qApps, qClusters, qResources)
+	statusResponse, err := status.PrepareClusterStatusResult(context.Background(), s, qInstance, qType, qOutput, qApps, qClusters, qResources)
 	if err != nil {
 		return ClusterStatus{}, err
 	}
@@ -414,7 +416,7 @@ It returns the full StatusResult structure so it can be used with the status not
 */
 func (c SchedulerClient) GenericNetworkIntentsStatus(clusterProvider, cluster, qStatusInstance, qType, qOutput string, qApps, qClusters, qResources []string) (status.StatusResult, error) {
 
-	s, err := clusterPkg.NewClusterClient().GetClusterState(clusterProvider, cluster)
+	s, err := clusterPkg.NewClusterClient().GetClusterState(context.Background(), clusterProvider, cluster)
 	if err != nil {
 		return status.StatusResult{}, pkgerrors.Wrap(err, "Cluster state not found")
 	}
@@ -424,7 +426,7 @@ func (c SchedulerClient) GenericNetworkIntentsStatus(clusterProvider, cluster, q
 		return status.StatusResult{}, err
 	}
 
-	statusResponse, err := status.GenericPrepareStatusResult(status.ClusterStatusQuery, s, qInstance, qType, qOutput, qApps, qClusters, qResources)
+	statusResponse, err := status.GenericPrepareStatusResult(context.Background(), status.ClusterStatusQuery, s, qInstance, qType, qOutput, qApps, qClusters, qResources)
 	if err != nil {
 		return status.StatusResult{}, err
 	}

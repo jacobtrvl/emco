@@ -4,6 +4,7 @@
 package module
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"time"
@@ -45,12 +46,12 @@ DeploymentIntentName, targetCompositeAppVersion and targetDeploymentIntentName.
 This method is responsible for creation and saving of context for saving into etcd
 and ensuring sourceDeploymentIntent gets migrated to targetDeploymentIntent.
 */
-func (c InstantiationClient) Migrate(p string, ca string, v string, tCav string, di string, tDi string) error {
+func (c InstantiationClient) Migrate(ctx context.Context, p string, ca string, v string, tCav string, di string, tDi string) error {
 	log.Info("Migrate API", log.Fields{"project": p, "compositeapp": ca, "version": v, "targetcompositeappversion": tCav,
 		"sourcedeploymentintentgroup": di, "targetdeploymentintentgroup": tDi})
 
 	// Fetch source DIG context ID
-	ss, err := NewDeploymentIntentGroupClient().GetDeploymentIntentGroupState(di, p, ca, v)
+	ss, err := NewDeploymentIntentGroupClient().GetDeploymentIntentGroupState(ctx, di, p, ca, v)
 	if err != nil {
 		return pkgerrors.Wrap(err, "DeploymentIntentGroup has no state info: "+di)
 	}
@@ -67,28 +68,28 @@ func (c InstantiationClient) Migrate(p string, ca string, v string, tCav string,
 	sourceCtxId := state.GetLastContextIdFromStateInfo(ss)
 
 	// in case of migrate dig comes from JSON body
-	dIGrp, err := NewDeploymentIntentGroupClient().GetDeploymentIntentGroup(tDi, p, ca, tCav)
+	dIGrp, err := NewDeploymentIntentGroupClient().GetDeploymentIntentGroup(ctx, tDi, p, ca, tCav)
 	if err != nil {
 		return pkgerrors.Wrap(err, "Not finding the deploymentIntentGroup")
 	}
 
 	// BEGIN : Make app context
 	instantiator := Instantiator{p, ca, tCav, tDi, dIGrp}
-	cca, err := instantiator.MakeAppContext()
+	cca, err := instantiator.MakeAppContext(ctx)
 	if err != nil {
 		return pkgerrors.Wrap(err, "Error in making AppContext")
 	}
 	// END : Make app context
 
 	// BEGIN : callScheduler
-	err = callScheduler(cca.context, cca.ctxval, sourceCtxId, p, ca, tCav, tDi)
+	err = callScheduler(ctx, cca.context, cca.ctxval, sourceCtxId, p, ca, tCav, tDi)
 	if err != nil {
 		return pkgerrors.Wrap(err, "Error in callScheduler")
 	}
 	// END : callScheduler
 
 	// Fetch target DIG context ID
-	ts, err := NewDeploymentIntentGroupClient().GetDeploymentIntentGroupState(tDi, p, ca, tCav)
+	ts, err := NewDeploymentIntentGroupClient().GetDeploymentIntentGroupState(ctx, tDi, p, ca, tCav)
 	if err != nil {
 		return pkgerrors.Wrap(err, "DeploymentIntentGroup has no state info: "+tDi)
 	}
@@ -110,12 +111,12 @@ func (c InstantiationClient) Migrate(p string, ca string, v string, tCav string,
 	// Read the Status ContextID from source
 	statusID := state.GetStatusContextIdFromStateInfo(ss)
 	// Update Status context id
-	err = state.UpdateAppContextStatusContextID(targetCtxId, statusID)
+	err = state.UpdateAppContextStatusContextID(ctx, targetCtxId, statusID)
 	if err != nil {
 		return err
 	}
 
-	err = callRsyncUpdate(sourceCtxId, targetCtxId)
+	err = callRsyncUpdate(ctx, sourceCtxId, targetCtxId)
 	if err != nil {
 		return err
 	}
@@ -133,7 +134,7 @@ func (c InstantiationClient) Migrate(p string, ca string, v string, tCav string,
 	}
 	ss.Actions = append(ss.Actions, a)
 
-	err = db.DBconn.Insert(c.db.storeName, key, nil, c.db.tagState, ss)
+	err = db.DBconn.Insert(ctx, c.db.storeName, key, nil, c.db.tagState, ss)
 	if err != nil {
 		return pkgerrors.Wrap(err, "Error updating the stateInfo of the DeploymentIntentGroup: "+di)
 	}
@@ -154,12 +155,12 @@ func (c InstantiationClient) Migrate(p string, ca string, v string, tCav string,
 	// Update the status context ID to match source
 	ts.StatusContextId = statusID
 
-	err = db.DBconn.Insert(c.db.storeName, key, nil, c.db.tagState, ts)
+	err = db.DBconn.Insert(ctx, c.db.storeName, key, nil, c.db.tagState, ts)
 	if err != nil {
 		return pkgerrors.Wrap(err, "Error updating the stateInfo of the DeploymentIntentGroup: "+tDi)
 	}
 	// Call Post Update Event for all controllers
-	_ = callPostEventScheduler(targetCtxId, p, ca, v, di, "UPDATE")
+	_ = callPostEventScheduler(ctx, targetCtxId, p, ca, v, di, "UPDATE")
 	return nil
 }
 
@@ -168,12 +169,12 @@ Update methods takes in projectName, compositeAppName, compositeAppVersion,
 DeploymentIntentName.
 This method is responsible for creation and saving of context into etcd and ensuring new intents are applied on DeploymentIntentGroup.
 */
-func (c InstantiationClient) Update(p string, ca string, v string, di string) (int64, error) {
+func (c InstantiationClient) Update(ctx context.Context, p string, ca string, v string, di string) (int64, error) {
 
 	log.Info("Update API", log.Fields{"project": p, "compositeapp": ca, "version": v, "deploymentintentgroup": di})
 
 	// Fetch source DIG context ID
-	ss, err := NewDeploymentIntentGroupClient().GetDeploymentIntentGroupState(di, p, ca, v)
+	ss, err := NewDeploymentIntentGroupClient().GetDeploymentIntentGroupState(ctx, di, p, ca, v)
 	if err != nil {
 		return -1, pkgerrors.Wrap(err, "DeploymentIntentGroup has no state info: "+di)
 	}
@@ -193,21 +194,21 @@ func (c InstantiationClient) Update(p string, ca string, v string, di string) (i
 		return -1, pkgerrors.Wrap(err, "Latest revision not found "+di)
 	}
 
-	dIGrp, err := NewDeploymentIntentGroupClient().GetDeploymentIntentGroup(di, p, ca, v)
+	dIGrp, err := NewDeploymentIntentGroupClient().GetDeploymentIntentGroup(ctx, di, p, ca, v)
 	if err != nil {
 		return -1, pkgerrors.Wrap(err, "Not finding the deploymentIntentGroup")
 	}
 
 	// BEGIN : Make app context
 	instantiator := Instantiator{p, ca, v, di, dIGrp}
-	cca, err := instantiator.MakeAppContext()
+	cca, err := instantiator.MakeAppContext(ctx)
 	if err != nil {
 		return -1, pkgerrors.Wrap(err, "Error in making AppContext")
 	}
 	// END : Make app context
 
 	// BEGIN : callScheduler
-	err = callScheduler(cca.context, cca.ctxval, sourceCtxId, p, ca, v, di)
+	err = callScheduler(ctx, cca.context, cca.ctxval, sourceCtxId, p, ca, v, di)
 	if err != nil {
 		return -1, pkgerrors.Wrap(err, "Error in callScheduler")
 	}
@@ -218,11 +219,11 @@ func (c InstantiationClient) Update(p string, ca string, v string, di string) (i
 	// Update Status Context ID in AppContext
 	statusID := state.GetStatusContextIdFromStateInfo(ss)
 	// Update Status context id to be source status collected in source
-	err = state.UpdateAppContextStatusContextID(targetCtxId, statusID)
+	err = state.UpdateAppContextStatusContextID(ctx, targetCtxId, statusID)
 	if err != nil {
 		return -1, err
 	}
-	err = callRsyncUpdate(sourceCtxId, targetCtxId)
+	err = callRsyncUpdate(ctx, sourceCtxId, targetCtxId)
 	if err != nil {
 		return -1, err
 	}
@@ -243,7 +244,7 @@ func (c InstantiationClient) Update(p string, ca string, v string, di string) (i
 	}
 	ss.Actions = append(ss.Actions, a)
 
-	err = db.DBconn.Insert(c.db.storeName, key, nil, c.db.tagState, ss)
+	err = db.DBconn.Insert(ctx, c.db.storeName, key, nil, c.db.tagState, ss)
 	if err != nil {
 		return -1, pkgerrors.Wrap(err, "Error updating the stateInfo of the DeploymentIntentGroup: "+di)
 	}
@@ -260,7 +261,7 @@ func (c InstantiationClient) Update(p string, ca string, v string, di string) (i
 	}
 	ss.Actions = append(ss.Actions, a)
 
-	err = db.DBconn.Insert(c.db.storeName, key, nil, c.db.tagState, ss)
+	err = db.DBconn.Insert(ctx, c.db.storeName, key, nil, c.db.tagState, ss)
 	if err != nil {
 		return -1, pkgerrors.Wrap(err, "Error updating the stateInfo of the DeploymentIntentGroup: "+di)
 	}
@@ -268,7 +269,7 @@ func (c InstantiationClient) Update(p string, ca string, v string, di string) (i
 	log.Info("Updated revisionID", log.Fields{"Updated to revisionID": latestRevision})
 
 	// Call Post Update Event for all controllers
-	_ = callPostEventScheduler(targetCtxId, p, ca, v, di, "UPDATE")
+	_ = callPostEventScheduler(ctx, targetCtxId, p, ca, v, di, "UPDATE")
 
 	return latestRevision, nil
 
@@ -280,11 +281,11 @@ DeploymentIntentName and revision.
 This method is responsible for creation and saving of context for saving into etcd
 and ensuring DeploymentIntentGroup is rollback to given revision.
 */
-func (c InstantiationClient) Rollback(p string, ca string, v string, di string, rbRev string) error {
+func (c InstantiationClient) Rollback(ctx context.Context, p string, ca string, v string, di string, rbRev string) error {
 	log.Info("Rollback API", log.Fields{"project": p, "compositeapp": ca, "version": v, "deploymentintentgroup": di,
 		"rbRev": rbRev})
 
-	ss, err := NewDeploymentIntentGroupClient().GetDeploymentIntentGroupState(di, p, ca, v)
+	ss, err := NewDeploymentIntentGroupClient().GetDeploymentIntentGroupState(ctx, di, p, ca, v)
 	if err != nil {
 		return pkgerrors.Wrap(err, "DeploymentIntentGroup has no state info: "+di)
 	}
@@ -305,7 +306,7 @@ func (c InstantiationClient) Rollback(p string, ca string, v string, di string, 
 		return pkgerrors.Wrap(err, "GetMatchingContextIDforRevision error "+rbRev)
 	}
 
-	err = callRsyncUpdate(sourceCtxId, targetCtxId)
+	err = callRsyncUpdate(ctx, sourceCtxId, targetCtxId)
 	if err != nil {
 		return err
 	}
@@ -325,7 +326,7 @@ func (c InstantiationClient) Rollback(p string, ca string, v string, di string, 
 	}
 	ss.Actions = append(ss.Actions, a)
 
-	err = db.DBconn.Insert(c.db.storeName, key, nil, c.db.tagState, ss)
+	err = db.DBconn.Insert(ctx, c.db.storeName, key, nil, c.db.tagState, ss)
 	if err != nil {
 		return pkgerrors.Wrap(err, "Error updating the stateInfo of the DeploymentIntentGroup: "+di)
 	}
@@ -342,13 +343,13 @@ func (c InstantiationClient) Rollback(p string, ca string, v string, di string, 
 	}
 	ss.Actions = append(ss.Actions, a)
 
-	err = db.DBconn.Insert(c.db.storeName, key, nil, c.db.tagState, ss)
+	err = db.DBconn.Insert(ctx, c.db.storeName, key, nil, c.db.tagState, ss)
 	if err != nil {
 		return pkgerrors.Wrap(err, "Error updating the stateInfo of the DeploymentIntentGroup: "+di)
 	}
 
 	log.Info("Rollback Completed", log.Fields{"Rollback revisionID": latestRevision})
 	// Call Post Update Event for all controllers
-	_ = callPostEventScheduler(targetCtxId, p, ca, v, di, "UPDATE")
+	_ = callPostEventScheduler(ctx, targetCtxId, p, ca, v, di, "UPDATE")
 	return nil
 }

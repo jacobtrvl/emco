@@ -5,4 +5,4 @@ name: currencyservice
 description: A Helm chart for currencyservice
 type: application
 version: 0.1.0
-appVersion: "v0.3.0"
+appVersion: "v0.3.9"

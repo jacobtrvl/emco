@@ -4,4 +4,4 @@ apiVersion: v2
 name: monitor
 description: EMCO Status Monitoring
 type: application
-version: 1.0.0
+version: 1.0.1

@@ -4,6 +4,7 @@
 package connector
 
 import (
+	"context"
 	"fmt"
 
 	"strings"
@@ -12,7 +13,6 @@ import (
 	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 	"gitlab.com/project-emco/core/emco-base/src/rsync/pkg/internal/utils"
 	"gitlab.com/project-emco/core/emco-base/src/rsync/pkg/plugins/anthos"
-	"gitlab.com/project-emco/core/emco-base/src/rsync/pkg/plugins/azurearc"
 	"gitlab.com/project-emco/core/emco-base/src/rsync/pkg/plugins/azurearcv2"
 	"gitlab.com/project-emco/core/emco-base/src/rsync/pkg/plugins/fluxv2"
 	"gitlab.com/project-emco/core/emco-base/src/rsync/pkg/plugins/k8s"
@@ -31,7 +31,7 @@ func NewProvider(id interface{}) Provider {
 	}
 }
 
-func (p *Provider) GetClientProviders(app, cluster, level, namespace string) (ClientProvider, error) {
+func (p *Provider) GetClientProviders(ctx context.Context, app, cluster, level, namespace string) (ClientProvider, error) {
 	// Default Provider type
 	var providerType string = "k8s"
 
@@ -40,7 +40,7 @@ func (p *Provider) GetClientProviders(app, cluster, level, namespace string) (Cl
 		log.Error("Invalid cluster name format::", log.Fields{"cluster": cluster})
 		return nil, pkgerrors.New("Invalid cluster name format")
 	}
-	kc, err := utils.GetKubeConfig(cluster, level, namespace)
+	kc, err := utils.GetKubeConfig(ctx, cluster, level, namespace)
 	if err != nil {
 		if !strings.Contains(err.Error(), "Invalid kubeconfig") {
 			return nil, err
@@ -50,8 +50,7 @@ func (p *Provider) GetClientProviders(app, cluster, level, namespace string) (Cl
 	if len(kc) > 0 {
 		providerType = "k8s"
 	} else {
-		// GitOps uses level "0" credentials at this time
-		c, err := utils.GetGitOpsConfig(cluster, "0", "default")
+		c, err := utils.GetGitOpsConfig(ctx, cluster, level, namespace)
 		if err != nil {
 			return nil, err
 		}
@@ -59,11 +58,19 @@ func (p *Provider) GetClientProviders(app, cluster, level, namespace string) (Cl
 		if providerType == "" {
 			return nil, pkgerrors.New("No provider type specified")
 		}
+		if level == "1" && providerType != "anthos" {
+			// Non-Anthos GitOps uses level "0" credentials at this time.
+			// No need to enter this section if the level passed to GetClientProviders was already "0".
+			c, err = utils.GetGitOpsConfig(ctx, cluster, "0", "default")
+			if err != nil {
+				return nil, err
+			}
+		}
 	}
 
 	switch providerType {
 	case "k8s":
-		cl, err := k8s.NewK8sProvider(p.cid, app, cluster, level, namespace)
+		cl, err := k8s.NewK8sProvider(ctx, p.cid, app, cluster, level, namespace)
 		if err != nil {
 			return nil, err
 		}
@@ -79,32 +86,26 @@ func (p *Provider) GetClientProviders(app, cluster, level, namespace string) (Cl
 		// All or no resources will be applied to the cluster.
 		// More Disk space is required in this approach.
 	case "k8sExp":
-		cl, err := k8sexp.NewK8sProvider(p.cid, app, cluster, level, namespace)
+		cl, err := k8sexp.NewK8sProvider(ctx, p.cid, app, cluster, level, namespace)
 		if err != nil {
 			return nil, err
 		}
 		return cl, nil
 
 	case "fluxcd":
-		cl, err := fluxv2.NewFluxv2Provider(p.cid, app, cluster, level, namespace)
-		if err != nil {
-			return nil, err
-		}
-		return cl, nil
-	case "azureArc":
-		cl, err := azurearc.NewAzureArcProvider(p.cid, app, cluster, level, namespace)
+		cl, err := fluxv2.NewFluxv2Provider(ctx, p.cid, app, cluster, level, namespace)
 		if err != nil {
 			return nil, err
 		}
 		return cl, nil
 	case "azureArcV2":
-		cl, err := azurearcv2.NewAzureArcProvider(p.cid, app, cluster, level, namespace)
+		cl, err := azurearcv2.NewAzureArcProvider(ctx, p.cid, app, cluster, level, namespace)
 		if err != nil {
 			return nil, err
 		}
 		return cl, nil
 	case "anthos":
-		cl, err := anthos.NewAnthosProvider(p.cid, app, cluster, level, namespace)
+		cl, err := anthos.NewAnthosProvider(ctx, p.cid, app, cluster, level, namespace)
 		if err != nil {
 			return nil, err
 		}

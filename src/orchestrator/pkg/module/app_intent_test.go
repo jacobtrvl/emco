@@ -4,6 +4,7 @@
 package module
 
 import (
+	"context"
 	"reflect"
 	"strings"
 	"testing"
@@ -328,9 +329,10 @@ func TestCreateAppIntent(t *testing.T) {
 
 	for _, test := range testCases {
 		t.Run(test.label, func(t *testing.T) {
+			ctx := context.Background()
 			db.DBconn = test.db
 			cli := NewAppIntentClient()
-			appIntent, _, err := cli.CreateAppIntent(test.ai, test.project, test.compositeApp, test.version, test.genericPlacementIntent, test.deploymentIntentGroup, true)
+			appIntent, _, err := cli.CreateAppIntent(ctx, test.ai, test.project, test.compositeApp, test.version, test.genericPlacementIntent, test.deploymentIntentGroup, true)
 			if err != nil {
 				if test.err == "" {
 					t.Fatalf("CreateAppIntent returned an unexpected error %s, ", err.Error())
@@ -771,9 +773,10 @@ func TestUpdateAppIntent(t *testing.T) {
 
 	for _, test := range testCases {
 		t.Run(test.label, func(t *testing.T) {
+			ctx := context.Background()
 			db.DBconn = test.db
 			cli := NewAppIntentClient()
-			appIntent, aiExists, err := cli.CreateAppIntent(test.ai, test.project, test.compositeApp, test.version, test.genericPlacementIntent, test.deploymentIntentGroup, false)
+			appIntent, aiExists, err := cli.CreateAppIntent(ctx, test.ai, test.project, test.compositeApp, test.version, test.genericPlacementIntent, test.deploymentIntentGroup, false)
 			if err != nil {
 				if test.err == "" {
 					t.Fatalf("CreateAppIntent returned an unexpected error %s, ", err.Error())
@@ -944,9 +947,10 @@ func TestGetAppIntent(t *testing.T) {
 
 	for _, test := range testCases {
 		t.Run(test.label, func(t *testing.T) {
+			ctx := context.Background()
 			db.DBconn = test.db
 			cli := NewAppIntentClient()
-			appIntent, err := cli.GetAppIntent(test.appIntent, test.project, test.compositeApp, test.version, test.genericPlacementIntent, test.deploymentIntentGroup)
+			appIntent, err := cli.GetAppIntent(ctx, test.appIntent, test.project, test.compositeApp, test.version, test.genericPlacementIntent, test.deploymentIntentGroup)
 			if err != nil {
 				if test.err == "" {
 					t.Fatalf("GetAppIntent returned an unexpected error: %s", err.Error())
@@ -1175,9 +1179,10 @@ func TestGetAllIntentsByApp(t *testing.T) {
 
 	for _, test := range testCases {
 		t.Run(test.label, func(t *testing.T) {
+			ctx := context.Background()
 			db.DBconn = test.db
 			cli := NewAppIntentClient()
-			specData, err := cli.GetAllIntentsByApp(test.appName, test.project, test.compositeApp, test.version, test.genericPlacementIntent, test.deploymentIntentGroup)
+			specData, err := cli.GetAllIntentsByApp(ctx, test.appName, test.project, test.compositeApp, test.version, test.genericPlacementIntent, test.deploymentIntentGroup)
 			if err != nil {
 				if test.err == "" {
 					t.Fatalf("GetAllIntentsByApp returned an unexpected error: %s", err.Error())
@@ -1376,9 +1381,10 @@ func TestGetAllAppIntents(t *testing.T) {
 
 	for _, test := range testCases {
 		t.Run(test.label, func(t *testing.T) {
+			ctx := context.Background()
 			db.DBconn = test.db
 			cli := NewAppIntentClient()
-			appIntents, err := cli.GetAllAppIntents(test.project, test.compositeApp, test.version, test.genericPlacementIntent, test.deploymentIntentGroup)
+			appIntents, err := cli.GetAllAppIntents(ctx, test.project, test.compositeApp, test.version, test.genericPlacementIntent, test.deploymentIntentGroup)
 			if err != nil {
 				if test.err == "" {
 					t.Fatalf("GetAllAppIntents returned an unexpected error: %s", err)
@@ -1509,9 +1515,10 @@ func TestDeleteAppIntent(t *testing.T) {
 
 	for _, test := range testCases {
 		t.Run(test.label, func(t *testing.T) {
+			ctx := context.Background()
 			db.DBconn = test.db
 			cli := NewAppIntentClient()
-			err := cli.DeleteAppIntent(test.appIntent, test.project, test.compositeApp, test.version, test.genericPlacementIntent, test.deploymentIntentGroup)
+			err := cli.DeleteAppIntent(ctx, test.appIntent, test.project, test.compositeApp, test.version, test.genericPlacementIntent, test.deploymentIntentGroup)
 			if err != nil {
 				if test.err == "" {
 					t.Fatalf("GetAppIntent returned an unexpected error: %s", err.Error())

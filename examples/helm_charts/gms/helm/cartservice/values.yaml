@@ -10,7 +10,7 @@ cartservice:
     redisport: 6379
     image:
       repository: gcr.io/google-samples/microservices-demo/cartservice
-      tag: v0.3.0
+      tag: v0.3.9
       pullPolicy: IfNotPresent
     resources:
       limits:

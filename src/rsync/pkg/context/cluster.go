@@ -106,10 +106,10 @@ func (r *resProvd) waitForClusterReady(ctx context.Context) error {
 
 	// Check if reachable
 	if err := r.cl.IsReachable(); err == nil {
-		r.context.acRef.SetClusterAvailableStatus(r.app, r.cluster, appcontext.ClusterReadyStatusEnum.Available)
+		r.context.acRef.SetClusterAvailableStatus(ctx, r.app, r.cluster, appcontext.ClusterReadyStatusEnum.Available)
 		return nil
 	}
-	r.context.acRef.SetClusterAvailableStatus(r.app, r.cluster, appcontext.ClusterReadyStatusEnum.Retrying)
+	r.context.acRef.SetClusterAvailableStatus(ctx, r.app, r.cluster, appcontext.ClusterReadyStatusEnum.Retrying)
 	timedOut := false
 	retryCnt := 0
 	forceDone := false
@@ -124,7 +124,7 @@ Loop:
 			}
 			// If cluster is reachable then done
 			if err := r.cl.IsReachable(); err == nil {
-				r.context.acRef.SetClusterAvailableStatus(r.app, r.cluster, appcontext.ClusterReadyStatusEnum.Available)
+				r.context.acRef.SetClusterAvailableStatus(ctx, r.app, r.cluster, appcontext.ClusterReadyStatusEnum.Available)
 				return nil
 			}
 			log.Info("Cluster is not reachable - keep trying::", log.Fields{"cluster": r.cluster, "retry count": retryCnt})
@@ -154,26 +154,26 @@ func (r *resProvd) handleResource(ctx context.Context, op RsyncOperation, res st
 	switch op {
 	case OpApply:
 		// Get resource dependency here
-		q, err = r.instantiateResource(res, ref)
+		q, err = r.instantiateResource(ctx, res, ref)
 		if err != nil {
 			// return true for breakon error
 			return q, true, err
 		}
 	case OpCreate:
 		// Get resource dependency here
-		q, err = r.createResource(res, ref)
+		q, err = r.createResource(ctx, res, ref)
 		if err != nil {
 			// return true for breakon error
 			return q, true, err
 		}
 	case OpDelete:
-		q, err = r.terminateResource(res, ref)
+		q, err = r.terminateResource(ctx, res, ref)
 		if err != nil {
 			// return false for breakon error
 			return q, false, err
 		}
 	case OpRead:
-		err = r.readResource(res)
+		err = r.readResource(ctx, res)
 		if err != nil {
 			// return false for breakon error
 			return nil, false, err
@@ -183,14 +183,14 @@ func (r *resProvd) handleResource(ctx context.Context, op RsyncOperation, res st
 	return q, false, nil
 }
 
-func (r *resProvd) instantiateResource(name string, ref interface{}) (interface{}, error) {
+func (r *resProvd) instantiateResource(ctx context.Context, name string, ref interface{}) (interface{}, error) {
 	var q interface{}
 	// call this to ensure 'reference' and 'status' keys are present before Apply() is called
-	r.updateResourceStatus(name, resourcestatus.ResourceStatus{Status: resourcestatus.RsyncStatusEnum.Pending})
+	r.updateResourceStatus(ctx, name, resourcestatus.ResourceStatus{Status: resourcestatus.RsyncStatusEnum.Pending})
 
-	res, _, err := r.context.acRef.GetRes(name, r.app, r.cluster)
+	res, _, err := r.context.acRef.GetRes(ctx, name, r.app, r.cluster)
 	if err != nil {
-		r.updateResourceStatus(name, resourcestatus.ResourceStatus{Status: resourcestatus.RsyncStatusEnum.Failed})
+		r.updateResourceStatus(ctx, name, resourcestatus.ResourceStatus{Status: resourcestatus.RsyncStatusEnum.Failed})
 		return nil, err
 	}
 	label := r.context.statusAcID + "-" + r.app
@@ -199,21 +199,21 @@ func (r *resProvd) instantiateResource(name string, ref interface{}) (interface{
 		log.Error("Error Tag Resoruce with label:", log.Fields{"err": err, "label": label, "resource": name})
 		return nil, err
 	}
-	if q, err = r.cl.Apply(name, ref, b); err != nil {
-		r.updateResourceStatus(name, resourcestatus.ResourceStatus{Status: resourcestatus.RsyncStatusEnum.Failed})
+	if q, err = r.cl.Apply(ctx, name, ref, b); err != nil {
+		r.updateResourceStatus(ctx, name, resourcestatus.ResourceStatus{Status: resourcestatus.RsyncStatusEnum.Failed})
 		log.Error("Failed to apply res", log.Fields{"error": err, "resource": name})
 		return nil, err
 	}
-	r.updateResourceStatus(name, resourcestatus.ResourceStatus{Status: resourcestatus.RsyncStatusEnum.Applied})
+	r.updateResourceStatus(ctx, name, resourcestatus.ResourceStatus{Status: resourcestatus.RsyncStatusEnum.Applied})
 	return q, nil
 }
 
-func (r *resProvd) createResource(name string, ref interface{}) (interface{}, error) {
+func (r *resProvd) createResource(ctx context.Context, name string, ref interface{}) (interface{}, error) {
 	var q interface{}
 
-	res, _, err := r.context.acRef.GetRes(name, r.app, r.cluster)
+	res, _, err := r.context.acRef.GetRes(ctx, name, r.app, r.cluster)
 	if err != nil {
-		r.updateResourceStatus(name, resourcestatus.ResourceStatus{Status: resourcestatus.RsyncStatusEnum.Failed})
+		r.updateResourceStatus(ctx, name, resourcestatus.ResourceStatus{Status: resourcestatus.RsyncStatusEnum.Failed})
 		return nil, err
 	}
 	label := r.context.statusAcID + "-" + r.app
@@ -223,54 +223,54 @@ func (r *resProvd) createResource(name string, ref interface{}) (interface{}, er
 		return nil, err
 	}
 	if q, err = r.cl.Create(name, ref, b); err != nil {
-		r.updateResourceStatus(name, resourcestatus.ResourceStatus{Status: resourcestatus.RsyncStatusEnum.Failed})
+		r.updateResourceStatus(ctx, name, resourcestatus.ResourceStatus{Status: resourcestatus.RsyncStatusEnum.Failed})
 		log.Error("Failed to create res", log.Fields{"error": err, "resource": name})
 		return nil, err
 	}
-	r.updateResourceStatus(name, resourcestatus.ResourceStatus{Status: resourcestatus.RsyncStatusEnum.Applied})
+	r.updateResourceStatus(ctx, name, resourcestatus.ResourceStatus{Status: resourcestatus.RsyncStatusEnum.Applied})
 	return q, nil
 }
 
-func (r *resProvd) terminateResource(name string, ref interface{}) (interface{}, error) {
+func (r *resProvd) terminateResource(ctx context.Context, name string, ref interface{}) (interface{}, error) {
 	var q interface{}
 
-	res, sh, err := r.context.acRef.GetRes(name, r.app, r.cluster)
+	res, sh, err := r.context.acRef.GetRes(ctx, name, r.app, r.cluster)
 	if err != nil {
 		if sh != nil {
-			r.updateResourceStatus(name, resourcestatus.ResourceStatus{Status: resourcestatus.RsyncStatusEnum.Failed})
+			r.updateResourceStatus(ctx, name, resourcestatus.ResourceStatus{Status: resourcestatus.RsyncStatusEnum.Failed})
 		}
 		return nil, err
 	}
 	if q, err = r.cl.Delete(name, ref, res); err != nil {
-		r.updateResourceStatus(name, resourcestatus.ResourceStatus{Status: resourcestatus.RsyncStatusEnum.Failed})
+		r.updateResourceStatus(ctx, name, resourcestatus.ResourceStatus{Status: resourcestatus.RsyncStatusEnum.Failed})
 		log.Error("Failed to delete res", log.Fields{"error": err, "resource": name})
 		return nil, err
 	}
-	r.updateResourceStatus(name, resourcestatus.ResourceStatus{Status: resourcestatus.RsyncStatusEnum.Deleted})
+	r.updateResourceStatus(ctx, name, resourcestatus.ResourceStatus{Status: resourcestatus.RsyncStatusEnum.Deleted})
 	return q, nil
 }
 
-func (r *resProvd) readResource(name string) error {
+func (r *resProvd) readResource(ctx context.Context, name string) error {
 
-	res, _, err := r.context.acRef.GetRes(name, r.app, r.cluster)
+	res, _, err := r.context.acRef.GetRes(ctx, name, r.app, r.cluster)
 	if err != nil {
-		r.updateResourceStatus(name, resourcestatus.ResourceStatus{Status: resourcestatus.RsyncStatusEnum.Failed})
+		r.updateResourceStatus(ctx, name, resourcestatus.ResourceStatus{Status: resourcestatus.RsyncStatusEnum.Failed})
 		return err
 	}
 	// Get the resource from the cluster
-	b, err := r.cl.Get(name, res)
+	b, err := r.cl.Get(ctx, name, res)
 	if err != nil {
-		r.updateResourceStatus(name, resourcestatus.ResourceStatus{Status: resourcestatus.RsyncStatusEnum.Failed})
+		r.updateResourceStatus(ctx, name, resourcestatus.ResourceStatus{Status: resourcestatus.RsyncStatusEnum.Failed})
 		log.Error("Failed to read res", log.Fields{"error": err, "resource": name})
 		return err
 	}
 	// Store result back in AppContext
-	r.context.acRef.PutRes(name, r.app, r.cluster, b)
-	r.updateResourceStatus(name, resourcestatus.ResourceStatus{Status: resourcestatus.RsyncStatusEnum.Applied})
+	r.context.acRef.PutRes(ctx, name, r.app, r.cluster, b)
+	r.updateResourceStatus(ctx, name, resourcestatus.ResourceStatus{Status: resourcestatus.RsyncStatusEnum.Applied})
 	return nil
 }
 
-func (r *resProvd) addStatusTracker(extraLabel string, namespace string) error {
+func (r *resProvd) addStatusTracker(ctx context.Context, extraLabel string, namespace string) error {
 	// Get label and create CR
 	label := r.context.statusAcID + "-" + r.app
 	b, err := status.GetStatusCR(label, extraLabel, namespace)
@@ -278,14 +278,14 @@ func (r *resProvd) addStatusTracker(extraLabel string, namespace string) error {
 		log.Error("Failed to get status CR for installing", log.Fields{"error": err, "label": label})
 		return err
 	}
-	if err = r.cl.ApplyStatusCR(label, b); err != nil {
+	if err = r.cl.ApplyStatusCR(ctx, label, b); err != nil {
 		log.Error("Failed to apply status tracker", log.Fields{"error": err, "cluster": r.cluster, "app": r.app, "label": label})
 		return err
 	}
 	return nil
 }
 
-func (r *resProvd) deleteStatusTracker(extraLabel, namespace string) error {
+func (r *resProvd) deleteStatusTracker(ctx context.Context, extraLabel, namespace string) error {
 	// Get label and create CR
 	label := r.context.statusAcID + "-" + r.app
 	b, err := status.GetStatusCR(label, extraLabel, namespace)
@@ -293,15 +293,15 @@ func (r *resProvd) deleteStatusTracker(extraLabel, namespace string) error {
 		log.Error("Failed to get status CR for deleting", log.Fields{"error": err, "label": label})
 		return err
 	}
-	if err = r.cl.DeleteStatusCR(label, b); err != nil {
+	if err = r.cl.DeleteStatusCR(ctx, label, b); err != nil {
 		log.Error("Failed to delete res", log.Fields{"error": err, "app": r.app, "label": label})
 		return err
 	}
 	return nil
 }
 
-func (r *resProvd) updateResourceStatus(name string, status interface{}) {
+func (r *resProvd) updateResourceStatus(ctx context.Context, name string, status interface{}) {
 	// Use utils with status appContext
-	_ = r.context.scRef.AddResourceStatus(name, r.app, r.cluster, status, r.context.acID)
+	_ = r.context.scRef.AddResourceStatus(ctx, name, r.app, r.cluster, status, r.context.acID)
 	// Treating status errors as non fatal
 }

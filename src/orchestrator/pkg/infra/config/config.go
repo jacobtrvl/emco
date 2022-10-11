@@ -25,6 +25,8 @@ type Configuration struct {
 	EtcdCert               string `json:"etcd-cert"`
 	EtcdKey                string `json:"etcd-key"`
 	EtcdCAFile             string `json:"etcd-ca-file"`
+	ZipkinIP               string `json:"zipkin-ip"`
+	ZipkinPort             string `json:"zipkin-port"`
 	GrpcServerCert         string `json:"grpc-server-cert"`
 	GrpcServerKey          string `json:"grpc-server-key"`
 	GrpcCAFile             string `json:"grpc-ca-file"`
@@ -96,6 +98,8 @@ func defaultConfiguration() *Configuration {
 		EtcdCert:               "",
 		EtcdKey:                "",
 		EtcdCAFile:             "",
+		ZipkinIP:               "",
+		ZipkinPort:             "9411",
 		GrpcServerCert:         "",
 		GrpcServerKey:          "",
 		GrpcCAFile:             "",

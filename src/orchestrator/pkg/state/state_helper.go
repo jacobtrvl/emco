@@ -4,6 +4,7 @@
 package state
 
 import (
+	"context"
 	"encoding/json"
 
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/appcontext"
@@ -13,9 +14,9 @@ import (
 )
 
 // GetAppContextFromStateInfo loads the appcontext present in the StateInfo input
-func GetAppContextFromId(ctxid string) (appcontext.AppContext, error) {
+func GetAppContextFromId(ctx context.Context, ctxid string) (appcontext.AppContext, error) {
 	var cc appcontext.AppContext
-	_, err := cc.LoadAppContext(ctxid)
+	_, err := cc.LoadAppContext(ctx, ctxid)
 	if err != nil {
 		return appcontext.AppContext{}, err
 	}
@@ -144,22 +145,21 @@ func GetContextIdsFromStateInfo(s StateInfo) []string {
 	return ids
 }
 
-func GetAppContextStatus(ctxid string) (appcontext.AppContextStatus, error) {
-
-	ac, err := GetAppContextFromId(ctxid)
+func GetAppContextStatus(ctx context.Context, ctxid string) (appcontext.AppContextStatus, error) {
+	ac, err := GetAppContextFromId(ctx, ctxid)
 	if err != nil {
 		return appcontext.AppContextStatus{}, err
 	}
 
-	h, err := ac.GetCompositeAppHandle()
+	h, err := ac.GetCompositeAppHandle(ctx)
 	if err != nil {
 		return appcontext.AppContextStatus{}, err
 	}
-	sh, err := ac.GetLevelHandle(h, "status")
+	sh, err := ac.GetLevelHandle(ctx, h, "status")
 	if err != nil {
 		return appcontext.AppContextStatus{}, err
 	}
-	s, err := ac.GetValue(sh)
+	s, err := ac.GetValue(ctx, sh)
 	if err != nil {
 		return appcontext.AppContextStatus{}, err
 	}
@@ -171,20 +171,20 @@ func GetAppContextStatus(ctxid string) (appcontext.AppContextStatus, error) {
 
 }
 
-func UpdateAppContextStopFlag(ctxid string, sf bool) error {
-	ac, err := GetAppContextFromId(ctxid)
+func UpdateAppContextStopFlag(ctx context.Context, ctxid string, sf bool) error {
+	ac, err := GetAppContextFromId(ctx, ctxid)
 	if err != nil {
 		return err
 	}
-	hc, err := ac.GetCompositeAppHandle()
+	hc, err := ac.GetCompositeAppHandle(ctx)
 	if err != nil {
 		return err
 	}
-	sh, err := ac.GetLevelHandle(hc, "stopflag")
+	sh, err := ac.GetLevelHandle(ctx, hc, "stopflag")
 	if sh == nil {
-		_, err = ac.AddLevelValue(hc, "stopflag", sf)
+		_, err = ac.AddLevelValue(ctx, hc, "stopflag", sf)
 	} else {
-		err = ac.UpdateValue(sh, sf)
+		err = ac.UpdateValue(ctx, sh, sf)
 	}
 	if err != nil {
 		return err
@@ -193,20 +193,20 @@ func UpdateAppContextStopFlag(ctxid string, sf bool) error {
 }
 
 // UpdateAppContextStatusContextID updates status context id in the AppContext
-func UpdateAppContextStatusContextID(ctxid string, sctxid string) error {
-	ac, err := GetAppContextFromId(ctxid)
+func UpdateAppContextStatusContextID(ctx context.Context, ctxid string, sctxid string) error {
+	ac, err := GetAppContextFromId(ctx, ctxid)
 	if err != nil {
 		return err
 	}
-	hc, err := ac.GetCompositeAppHandle()
+	hc, err := ac.GetCompositeAppHandle(ctx)
 	if err != nil {
 		return err
 	}
-	sh, err := ac.GetLevelHandle(hc, "statusappctxid")
+	sh, err := ac.GetLevelHandle(ctx, hc, "statusappctxid")
 	if sh == nil {
-		_, err = ac.AddLevelValue(hc, "statusappctxid", sctxid)
+		_, err = ac.AddLevelValue(ctx, hc, "statusappctxid", sctxid)
 	} else {
-		err = ac.UpdateValue(sh, sctxid)
+		err = ac.UpdateValue(ctx, sh, sctxid)
 	}
 	if err != nil {
 		return err

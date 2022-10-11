@@ -3,30 +3,33 @@ This document provides high level features, fixes, and known issues and limitati
 
 - [Release Notes](#release-notes)
 	- [Compatibility](#compatibility)
-	- [EMCO 22.06](#emco-2206)
+	- [EMCO 22.09](#emco-2209)
 		- [Changelog](#changelog)
 		- [Known issues](#known-issues)
-	- [EMCO 22.03.1](#emco-22031)
+	- [EMCO 22.06](#emco-2206)
 		- [Changelog](#changelog-1)
 		- [Known issues](#known-issues-1)
-	- [EMCO 22.03](#emco-2203)
+	- [EMCO 22.03.1](#emco-22031)
 		- [Changelog](#changelog-2)
 		- [Known issues](#known-issues-2)
-	- [EMCO 21.12](#emco-2112)
+	- [EMCO 22.03](#emco-2203)
 		- [Changelog](#changelog-3)
 		- [Known issues](#known-issues-3)
-	- [LFN Seed Code](#lfn-seed-code)
+	- [EMCO 21.12](#emco-2112)
 		- [Changelog](#changelog-4)
 		- [Known issues](#known-issues-4)
-	- [EMCO 21.03.05](#emco-210305)
+	- [LFN Seed Code](#lfn-seed-code)
 		- [Changelog](#changelog-5)
 		- [Known issues](#known-issues-5)
-	- [EMCO 21.03](#emco-2103)
+	- [EMCO 21.03.05](#emco-210305)
 		- [Changelog](#changelog-6)
 		- [Known issues](#known-issues-6)
-	- [EMCO 20.12](#emco-2012)
+	- [EMCO 21.03](#emco-2103)
 		- [Changelog](#changelog-7)
 		- [Known issues](#known-issues-7)
+	- [EMCO 20.12](#emco-2012)
+		- [Changelog](#changelog-8)
+		- [Known issues](#known-issues-8)
 
 ## Compatibility
 
@@ -34,6 +37,7 @@ The following table outlines EMCO's compatibility with other software projects, 
 
 | EMCO         | Kubernetes (EMCO)  | Kubernetes (edge)  | Helm    | Go (compile) | Alpine (containerize)
 | ------------ | ------------------ | ------------------ | ------- | ------------ | ---------------------
+| **22.09**    | 1.18.x - 1.24.x    | 1.21.x - 1.24.x    | 3.8.2   | 1.17.x       | 3.12
 | **22.06**    | 1.18.x - 1.23.x    | 1.21.x - 1.23.x    | 3.8.2   | 1.17.x       | 3.12
 | **22.03.1**  | 1.18.x - 1.23.x    | 1.21.x - 1.23.x    | 3.8.2   | 1.17.x       | 3.12
 | **22.03**    | 1.18.x - 1.23.x    | 1.21.x - 1.23.x    | 3.5.2   | 1.17.x       | 3.12
@@ -42,6 +46,31 @@ The following table outlines EMCO's compatibility with other software projects, 
 Kubernetes (EMCO) represents the Kubernetes versions where the EMCO services themselves can run (with the exception of Monitor, which runs on the edge clusters).
 
 Kubernetes (edge) represents the Kubernetes versions that the edge clusters orchestrated by EMCO must be running, for the successful deployment of Logical Clouds and Composite Apps, as well as running the Monitor service.
+
+
+------------------------------
+
+## EMCO 22.09
+
+**Released**: 2022-09-30
+
+### Changelog
+- Expand Google Anthos GitOps support to Standard and Privileged Logical Clouds (i.e. we can deploy apps over namespaces and use RBAC).
+- Add support for tracing and basic metrics to the clm, dcm, orchestrator and rsync services. Details may be found in [EMCO Observability](docs/developer/observability.md).
+- Add a new error package to enforce centralized error handling across all the services in emco.
+- Proof of concepts for issuing workload certificates using intel SGX. The ca-cert controller supports the intermediate ca-cert enrollment and distribution with Intel SGX capabilities.
+- EMCO now comes with a local Git server, powered by Gitea. Scripts for installation and setup added.
+- Core Git support added for GitOps. Through these new interfaces, any git-based repository can be accessed (not just GitHub).
+- Add Intent APIs for the deploy worker in the Temporal Action Controller (tac).
+- Various bugfixes, technical debt, code quality, documentation and other improvements are included in this release.
+- All changes merged as part of 22.09 can be seen on [GitLab](https://gitlab.com/project-emco/core/emco-base/-/merge_requests?scope=all&state=merged&milestone_title=22.09).
+
+### Known issues
+- Open Issues confirmed as affecting EMCO 22.09 can be found at [EMCO Issues](https://gitlab.com/project-emco/core/emco-base/-/issues?sort=created_date&state=opened&label_name[]=affects:22.09).
+- Other Open Issues with the label "Bug" can also be found at [EMCO Issues](https://gitlab.com/project-emco/core/emco-base/-/issues?sort=created_date&state=opened&label_name[]=Bug) although those may not be accurate as not all of them will have been triaged.
+- The status query with `status=ready` parameter (i.e. show status of resources in the edge clusters), will show resources that are not handled by `monitor` as `NotPresent`. See [#149](https://gitlab.com/project-emco/core/emco-base/-/issues/149).
+- The EMCO Monitor isn't currently able to watch resources outside of its own namespace, as such status querying of a standard/privileged Logical Cloud will report certain resources as not ready even when they are ready. See [#159](https://gitlab.com/project-emco/core/emco-base/-/issues/159).
+- EMCO supports Referential Integrity, although in some cases it's still possible to execute operations that shouldn't be allowed after a prior failure. As such, if using `emcoctl`, we recommend using the `-s` flag in every command so that the client will stop executing after the first non-successful API call.
 
 ------------------------------
 

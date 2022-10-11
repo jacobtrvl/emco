@@ -4,6 +4,7 @@
 package controller
 
 import (
+	"context"
 	"reflect"
 	"strings"
 	"testing"
@@ -56,9 +57,10 @@ func TestCreateController(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.label, func(t *testing.T) {
+			ctx := context.Background()
 			db.DBconn = testCase.mockdb
 			impl := NewControllerClient("resources", "data", "orchestrator")
-			got, err := impl.CreateController(testCase.inp, false)
+			got, err := impl.CreateController(ctx, testCase.inp, false)
 			if err != nil {
 				if testCase.expectedError == "" {
 					t.Fatalf("Create returned an unexpected error %s", err)
@@ -126,9 +128,10 @@ func TestGetController(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.label, func(t *testing.T) {
+			ctx := context.Background()
 			db.DBconn = testCase.mockdb
 			impl := NewControllerClient("resources", "data", "orchestrator")
-			got, err := impl.GetController(testCase.name)
+			got, err := impl.GetController(ctx, testCase.name)
 			if err != nil {
 				if testCase.expectedError == "" {
 					t.Fatalf("Get returned an unexpected error: %s", err)
@@ -184,9 +187,10 @@ func TestDeleteController(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.label, func(t *testing.T) {
+			ctx := context.Background()
 			db.DBconn = testCase.mockdb
 			impl := NewControllerClient("resources", "data", "orchestrator")
-			err := impl.DeleteController(testCase.name)
+			err := impl.DeleteController(ctx, testCase.name)
 			if err != nil {
 				if testCase.expectedError == "" {
 					t.Fatalf("Delete returned an unexpected error %s", err)

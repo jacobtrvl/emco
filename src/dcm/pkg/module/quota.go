@@ -4,6 +4,8 @@
 package module
 
 import (
+	"context"
+
 	pkgerrors "github.com/pkg/errors"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
 )
@@ -60,11 +62,11 @@ type QuotaKey struct {
 // QuotaManager is an interface that exposes the connection
 // functionality
 type QuotaManager interface {
-	CreateQuota(project, logicalCloud string, c Quota) (Quota, error)
-	GetQuota(project, logicalCloud, name string) (Quota, error)
-	GetAllQuotas(project, logicalCloud string) ([]Quota, error)
-	DeleteQuota(project, logicalCloud, name string) error
-	UpdateQuota(project, logicalCloud, name string, c Quota) (Quota, error)
+	CreateQuota(ctx context.Context, project, logicalCloud string, c Quota) (Quota, error)
+	GetQuota(ctx context.Context, project, logicalCloud, name string) (Quota, error)
+	GetAllQuotas(ctx context.Context, project, logicalCloud string) ([]Quota, error)
+	DeleteQuota(ctx context.Context, project, logicalCloud, name string) error
+	UpdateQuota(ctx context.Context, project, logicalCloud, name string, c Quota) (Quota, error)
 }
 
 // QuotaClient implements the QuotaManager
@@ -84,7 +86,7 @@ func NewQuotaClient() *QuotaClient {
 }
 
 // Create entry for the quota resource in the database
-func (v *QuotaClient) CreateQuota(project, logicalCloud string, c Quota) (Quota, error) {
+func (v *QuotaClient) CreateQuota(ctx context.Context, project, logicalCloud string, c Quota) (Quota, error) {
 
 	//Construct key consisting of name
 	key := QuotaKey{
@@ -95,7 +97,7 @@ func (v *QuotaClient) CreateQuota(project, logicalCloud string, c Quota) (Quota,
 	lcClient := NewLogicalCloudClient()
 
 	//Check if Logical Cloud Level 0 & then avoid creating Quotas
-	lc, err := lcClient.Get(project, logicalCloud)
+	lc, err := lcClient.Get(ctx, project, logicalCloud)
 	if err != nil {
 		return Quota{}, err
 	}
@@ -103,12 +105,12 @@ func (v *QuotaClient) CreateQuota(project, logicalCloud string, c Quota) (Quota,
 		return Quota{}, pkgerrors.New("Cluster Quotas not allowed for Logical Cloud Level 0")
 	}
 	//Check if this Quota already exists
-	_, err = v.GetQuota(project, logicalCloud, c.MetaData.QuotaName)
+	_, err = v.GetQuota(ctx, project, logicalCloud, c.MetaData.QuotaName)
 	if err == nil {
 		return Quota{}, pkgerrors.New("Quota already exists")
 	}
 
-	err = db.DBconn.Insert(v.storeName, key, nil, v.tagMeta, c)
+	err = db.DBconn.Insert(ctx, v.storeName, key, nil, v.tagMeta, c)
 	if err != nil {
 		return Quota{}, pkgerrors.Wrap(err, "Creating DB Entry")
 	}
@@ -117,7 +119,7 @@ func (v *QuotaClient) CreateQuota(project, logicalCloud string, c Quota) (Quota,
 }
 
 // Get returns Quota for corresponding quota name
-func (v *QuotaClient) GetQuota(project, logicalCloud, quotaName string) (Quota, error) {
+func (v *QuotaClient) GetQuota(ctx context.Context, project, logicalCloud, quotaName string) (Quota, error) {
 
 	//Construct the composite key to select the entry
 	key := QuotaKey{
@@ -125,7 +127,7 @@ func (v *QuotaClient) GetQuota(project, logicalCloud, quotaName string) (Quota, 
 		LogicalCloudName: logicalCloud,
 		QuotaName:        quotaName,
 	}
-	value, err := db.DBconn.Find(v.storeName, key, v.tagMeta)
+	value, err := db.DBconn.Find(ctx, v.storeName, key, v.tagMeta)
 	if err != nil {
 		return Quota{}, err
 	}
@@ -148,7 +150,7 @@ func (v *QuotaClient) GetQuota(project, logicalCloud, quotaName string) (Quota, 
 }
 
 // GetAll returns all cluster quotas in the logical cloud
-func (v *QuotaClient) GetAllQuotas(project, logicalCloud string) ([]Quota, error) {
+func (v *QuotaClient) GetAllQuotas(ctx context.Context, project, logicalCloud string) ([]Quota, error) {
 	//Construct the composite key to select the entry
 	key := QuotaKey{
 		Project:          project,
@@ -156,7 +158,7 @@ func (v *QuotaClient) GetAllQuotas(project, logicalCloud string) ([]Quota, error
 		QuotaName:        "",
 	}
 	var resp []Quota
-	values, err := db.DBconn.Find(v.storeName, key, v.tagMeta)
+	values, err := db.DBconn.Find(ctx, v.storeName, key, v.tagMeta)
 	if err != nil {
 		return []Quota{}, err
 	}
@@ -174,14 +176,14 @@ func (v *QuotaClient) GetAllQuotas(project, logicalCloud string) ([]Quota, error
 }
 
 // Delete the Quota entry from database
-func (v *QuotaClient) DeleteQuota(project, logicalCloud, quotaName string) error {
+func (v *QuotaClient) DeleteQuota(ctx context.Context, project, logicalCloud, quotaName string) error {
 	//Construct the composite key to select the entry
 	key := QuotaKey{
 		Project:          project,
 		LogicalCloudName: logicalCloud,
 		QuotaName:        quotaName,
 	}
-	err := db.DBconn.Remove(v.storeName, key)
+	err := db.DBconn.Remove(ctx, v.storeName, key)
 	if err != nil {
 		return pkgerrors.Wrap(err, "Delete Quota")
 	}
@@ -189,7 +191,7 @@ func (v *QuotaClient) DeleteQuota(project, logicalCloud, quotaName string) error
 }
 
 // Update an entry for the Quota in the database
-func (v *QuotaClient) UpdateQuota(project, logicalCloud, quotaName string, c Quota) (Quota, error) {
+func (v *QuotaClient) UpdateQuota(ctx context.Context, project, logicalCloud, quotaName string, c Quota) (Quota, error) {
 
 	key := QuotaKey{
 		Project:          project,
@@ -201,11 +203,11 @@ func (v *QuotaClient) UpdateQuota(project, logicalCloud, quotaName string, c Quo
 		return Quota{}, pkgerrors.New("Update Error - Quota name mismatch")
 	}
 	//Check if this Quota exists
-	_, err := v.GetQuota(project, logicalCloud, quotaName)
+	_, err := v.GetQuota(ctx, project, logicalCloud, quotaName)
 	if err != nil {
 		return Quota{}, err
 	}
-	err = db.DBconn.Insert(v.storeName, key, nil, v.tagMeta, c)
+	err = db.DBconn.Insert(ctx, v.storeName, key, nil, v.tagMeta, c)
 	if err != nil {
 		return Quota{}, pkgerrors.Wrap(err, "Updating DB Entry")
 	}

@@ -1,6 +1,7 @@
 package metrics
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -12,20 +13,20 @@ func start() {
 	go func() {
 		client := module.NewClient()
 		for {
-			projects, err := orchModule.NewProjectClient().GetAllProjects()
+			projects, err := orchModule.NewProjectClient().GetAllProjects(context.Background())
 			if err != nil {
 				fmt.Println(err)
 				continue
 			}
 
 			for _, proj := range projects {
-				lcs, err := client.LogicalCloud.GetAll(proj.MetaData.Name)
+				lcs, err := client.LogicalCloud.GetAll(context.Background(), proj.MetaData.Name)
 				if err != nil {
 					fmt.Println(err)
 					continue
 				}
 				for _, lc := range lcs {
-					st, err := client.LogicalCloud.GetState(proj.MetaData.Name, lc.MetaData.Name)
+					st, err := client.LogicalCloud.GetState(context.Background(), proj.MetaData.Name, lc.MetaData.Name)
 					if err != nil {
 						fmt.Println("statusError", err)
 					}

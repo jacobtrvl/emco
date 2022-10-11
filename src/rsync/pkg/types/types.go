@@ -5,6 +5,7 @@ package types
 
 import (
 	"context"
+
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/appcontext"
@@ -210,18 +211,18 @@ type App struct {
 // ResourceProvider is interface for working with the resources
 type ResourceProvider interface {
 	Create(name string, ref interface{}, content []byte) (interface{}, error)
-	Apply(name string, ref interface{}, content []byte) (interface{}, error)
+	Apply(ctx context.Context, name string, ref interface{}, content []byte) (interface{}, error)
 	Delete(name string, ref interface{}, content []byte) (interface{}, error)
-	Get(name string, gvkRes []byte) ([]byte, error)
+	Get(ctx context.Context, name string, gvkRes []byte) ([]byte, error)
 	Commit(ctx context.Context, ref interface{}) error
 	IsReachable() error
 	TagResource([]byte, string) ([]byte, error)
 }
 
 type StatusProvider interface {
-	StartClusterWatcher() error
-	ApplyStatusCR(name string, content []byte) error
-	DeleteStatusCR(name string, content []byte) error
+	StartClusterWatcher(ctx context.Context) error
+	ApplyStatusCR(ctx context.Context, name string, content []byte) error
+	DeleteStatusCR(ctx context.Context, name string, content []byte) error
 }
 
 type ReferenceProvider interface {
@@ -239,7 +240,7 @@ type ClientProvider interface {
 
 // Connection is interface for connection
 type Connector interface {
-	GetClientProviders(app, cluster, level, namespace string) (ClientProvider, error)
+	GetClientProviders(ctx context.Context, app, cluster, level, namespace string) (ClientProvider, error)
 }
 
 // AppContextQueueElement element in per AppContext Queue

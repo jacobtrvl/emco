@@ -41,22 +41,30 @@ b) HOST_IP: IP address of the cluster where EMCO is installed
 
     `$ $bin/emcoctl --config emco-cfg.yaml apply -f 00-controllers.yaml -v values.yaml`
 
-
     `$ $bin/emcoctl --config emco-cfg.yaml apply -f 01-prerequisites.yaml -v values.yaml`
+
+    `$ $bin/emcoctl --config emco-cfg.yaml apply -f 02-instantiate-lc.yaml -v values.yaml`
 
 ## Running test cases
 
 1. Run the testcase
 
-    `$ $bin/emcoctl --config emco-cfg.yaml apply -f 02-deployment-intent.yaml -v values.yaml`
+    `$ $bin/emcoctl --config emco-cfg.yaml apply -f 03-deployment-intent.yaml -v values.yaml`
+
+    `$ $bin/emcoctl --config emco-cfg.yaml apply -f 04-deployment-instantiate.yaml -v values.yaml`
 
 2. Cleanup
 
-    `$ $bin/emcoctl --config emco-cfg.yaml delete -f 00-controllers.yaml -v values.yaml`
+    `$ $bin/emcoctl --config emco-cfg.yaml delete -f 04-deployment-instantiate.yaml -v values.yaml`
+
+    `$ $bin/emcoctl --config emco-cfg.yaml delete -f 03-deployment-intent.yaml -v values.yaml`
+
+    `$ $bin/emcoctl --config emco-cfg.yaml delete -f 02-instantiate-lc.yaml -v values.yaml`
 
     `$ $bin/emcoctl --config emco-cfg.yaml delete -f 01-prerequisites.yaml -v values.yaml`
 
-    `$ $bin/emcoctl --config emco-cfg.yaml delete -f 02-deployment-intent.yaml -v values.yaml`
+    `$ $bin/emcoctl --config emco-cfg.yaml delete -f 00-controllers.yaml -v values.yaml`
+
 
 3. Cleanup generated files
 

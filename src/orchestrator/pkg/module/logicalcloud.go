@@ -4,6 +4,8 @@
 package module
 
 import (
+	"context"
+
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/common"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/state"
@@ -27,14 +29,14 @@ func NewLogicalCloudClient() *LogicalCloudClient {
 
 // NOTE: this method is a duplicate of the identically-named one in dcm/pkg/module/logicalcloud.go
 // due to current cross-reference (cyclic dependency) issue between DCM and Orchestrator
-func (v *LogicalCloudClient) Get(project, logicalCloudName string) (common.LogicalCloud, error) {
+func (v *LogicalCloudClient) Get(ctx context.Context, project, logicalCloudName string) (common.LogicalCloud, error) {
 
 	//Construct the composite key to select the entry
 	key := common.LogicalCloudKey{
 		Project:          project,
 		LogicalCloudName: logicalCloudName,
 	}
-	value, err := db.DBconn.Find(v.storeName, key, v.tagMeta)
+	value, err := db.DBconn.Find(ctx, v.storeName, key, v.tagMeta)
 	if err != nil {
 		return common.LogicalCloud{}, err
 	}
@@ -58,14 +60,14 @@ func (v *LogicalCloudClient) Get(project, logicalCloudName string) (common.Logic
 
 // NOTE: this method is a duplicate of the identically-named one in dcm/pkg/module/logicalcloud.go
 // due to current cross-reference (cyclic dependency) issue between DCM and Orchestrator
-func (v *LogicalCloudClient) GetState(p string, lc string) (state.StateInfo, error) {
+func (v *LogicalCloudClient) GetState(ctx context.Context, p string, lc string) (state.StateInfo, error) {
 
 	key := common.LogicalCloudKey{
 		Project:          p,
 		LogicalCloudName: lc,
 	}
 
-	result, err := db.DBconn.Find(v.storeName, key, v.tagState)
+	result, err := db.DBconn.Find(ctx, v.storeName, key, v.tagState)
 	if err != nil {
 		return state.StateInfo{}, err
 	}

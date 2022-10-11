@@ -30,6 +30,8 @@ func (h appDependencyHandler) createAppDependencyHandler(w http.ResponseWriter, 
 
 	var d moduleLib.AppDependency
 
+	ctx := r.Context()
+
 	str, code, err := validateBody(r, &d)
 	if err != nil {
 		http.Error(w, str, code)
@@ -51,7 +53,7 @@ func (h appDependencyHandler) createAppDependencyHandler(w http.ResponseWriter, 
 		return
 	}
 
-	dIntent, createErr := h.client.CreateAppDependency(d, p, ca, v, app, false)
+	dIntent, createErr := h.client.CreateAppDependency(ctx, d, p, ca, v, app, false)
 	if createErr != nil {
 		apiErr := apierror.HandleErrors(vars, createErr, d, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -70,6 +72,7 @@ func (h appDependencyHandler) createAppDependencyHandler(w http.ResponseWriter, 
 
 func (h appDependencyHandler) getAppDependencyHandler(w http.ResponseWriter, r *http.Request) {
 
+	ctx := r.Context()
 	vars := mux.Vars(r)
 
 	p, ca, v, app, dp, errString, code := validateParams(vars, true)
@@ -77,7 +80,7 @@ func (h appDependencyHandler) getAppDependencyHandler(w http.ResponseWriter, r *
 		http.Error(w, errString, code)
 		return
 	}
-	dAppDep, err := h.client.GetAppDependency(dp, p, ca, v, app)
+	dAppDep, err := h.client.GetAppDependency(ctx, dp, p, ca, v, app)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -96,6 +99,7 @@ func (h appDependencyHandler) getAppDependencyHandler(w http.ResponseWriter, r *
 }
 
 func (h appDependencyHandler) getAllAppDependencyHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	pList := []string{"project", "compositeApp", "compositeAppVersion"}
 	err := validation.IsValidParameterPresent(vars, pList)
@@ -110,7 +114,7 @@ func (h appDependencyHandler) getAllAppDependencyHandler(w http.ResponseWriter, 
 		return
 	}
 
-	diList, err := h.client.GetAllAppDependency(p, ca, v, app)
+	diList, err := h.client.GetAllAppDependency(ctx, p, ca, v, app)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -128,6 +132,7 @@ func (h appDependencyHandler) getAllAppDependencyHandler(w http.ResponseWriter, 
 }
 
 func (h appDependencyHandler) deleteappDependencyHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 
 	p, ca, v, app, dp, errString, code := validateParams(vars, true)
@@ -136,14 +141,14 @@ func (h appDependencyHandler) deleteappDependencyHandler(w http.ResponseWriter, 
 		return
 	}
 	// If doesn't exist return
-	_, err := h.client.GetAppDependency(dp, p, ca, v, app)
+	_, err := h.client.GetAppDependency(ctx, dp, p, ca, v, app)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
 		return
 	}
 
-	err = h.client.DeleteAppDependency(dp, p, ca, v, app)
+	err = h.client.DeleteAppDependency(ctx, dp, p, ca, v, app)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -170,6 +175,7 @@ func (h appDependencyHandler) updateAppDependencyHandler(w http.ResponseWriter, 
 		return
 	}
 
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	p, ca, v, app, dep, errString, code := validateParams(vars, true)
 	if code != 0 {
@@ -182,7 +188,7 @@ func (h appDependencyHandler) updateAppDependencyHandler(w http.ResponseWriter, 
 		http.Error(w, "Mismatched name in PUT request", http.StatusBadRequest)
 
 	}
-	dIntent, createErr := h.client.CreateAppDependency(d, p, ca, v, app, true)
+	dIntent, createErr := h.client.CreateAppDependency(ctx, d, p, ca, v, app, true)
 	if createErr != nil {
 		apiErr := apierror.HandleErrors(vars, createErr, d, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)

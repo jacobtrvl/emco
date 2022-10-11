@@ -5,6 +5,7 @@ package api
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -680,7 +681,7 @@ type mockControllerManager struct {
 	Err   error
 }
 
-func (m *mockControllerManager) CreateController(ms clmModel.Controller, mayExist bool) (clmModel.Controller, error) {
+func (m *mockControllerManager) CreateController(ctx context.Context, ms clmModel.Controller, mayExist bool) (clmModel.Controller, error) {
 	if m.Err != nil {
 		return clmModel.Controller{}, m.Err
 	}
@@ -688,7 +689,7 @@ func (m *mockControllerManager) CreateController(ms clmModel.Controller, mayExis
 	return m.Items[0], nil
 }
 
-func (m *mockControllerManager) GetController(name string) (clmModel.Controller, error) {
+func (m *mockControllerManager) GetController(ctx context.Context, name string) (clmModel.Controller, error) {
 	if m.Err != nil {
 		return clmModel.Controller{}, m.Err
 	}
@@ -696,13 +697,13 @@ func (m *mockControllerManager) GetController(name string) (clmModel.Controller,
 	return m.Items[0], nil
 }
 
-func (m *mockControllerManager) GetControllers() ([]clmModel.Controller, error) {
+func (m *mockControllerManager) GetControllers(ctx context.Context) ([]clmModel.Controller, error) {
 	return []clmModel.Controller{}, m.Err
 }
 
-func (m *mockControllerManager) DeleteController(name string) error {
+func (m *mockControllerManager) DeleteController(ctx context.Context, name string) error {
 	return m.Err
 }
 
-func (m *mockControllerManager) InitControllers() {
+func (m *mockControllerManager) InitControllers(ctx context.Context) {
 }

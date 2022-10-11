@@ -5,6 +5,7 @@ package api
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"io"
 	"mime/multipart"
@@ -39,7 +40,7 @@ type mockClusterManager struct {
 	Err                     error
 }
 
-func (m *mockClusterManager) CreateClusterProvider(inp cluster.ClusterProvider, exists bool) (cluster.ClusterProvider, error) {
+func (m *mockClusterManager) CreateClusterProvider(ctx context.Context, inp cluster.ClusterProvider, exists bool) (cluster.ClusterProvider, error) {
 	if m.Err != nil {
 		return cluster.ClusterProvider{}, m.Err
 	}
@@ -47,7 +48,7 @@ func (m *mockClusterManager) CreateClusterProvider(inp cluster.ClusterProvider, 
 	return m.ClusterProviderItems[0], nil
 }
 
-func (m *mockClusterManager) GetClusterProvider(name string) (cluster.ClusterProvider, error) {
+func (m *mockClusterManager) GetClusterProvider(ctx context.Context, name string) (cluster.ClusterProvider, error) {
 	if m.Err != nil {
 		return cluster.ClusterProvider{}, m.Err
 	}
@@ -55,7 +56,7 @@ func (m *mockClusterManager) GetClusterProvider(name string) (cluster.ClusterPro
 	return m.ClusterProviderItems[0], nil
 }
 
-func (m *mockClusterManager) GetClusterProviders() ([]cluster.ClusterProvider, error) {
+func (m *mockClusterManager) GetClusterProviders(ctx context.Context) ([]cluster.ClusterProvider, error) {
 	if m.Err != nil {
 		return []cluster.ClusterProvider{}, m.Err
 	}
@@ -63,11 +64,11 @@ func (m *mockClusterManager) GetClusterProviders() ([]cluster.ClusterProvider, e
 	return m.ClusterProviderItems, nil
 }
 
-func (m *mockClusterManager) DeleteClusterProvider(name string) error {
+func (m *mockClusterManager) DeleteClusterProvider(ctx context.Context, name string) error {
 	return m.Err
 }
 
-func (m *mockClusterManager) CreateCluster(provider string, inp cluster.Cluster, inq cluster.ClusterContent) (cluster.Cluster, error) {
+func (m *mockClusterManager) CreateCluster(ctx context.Context, provider string, inp cluster.Cluster, inq cluster.ClusterContent) (cluster.Cluster, error) {
 	if m.Err != nil {
 		return cluster.Cluster{}, m.Err
 	}
@@ -75,7 +76,7 @@ func (m *mockClusterManager) CreateCluster(provider string, inp cluster.Cluster,
 	return m.ClusterItems[0], nil
 }
 
-func (m *mockClusterManager) GetCluster(provider, name string) (cluster.Cluster, error) {
+func (m *mockClusterManager) GetCluster(ctx context.Context, provider, name string) (cluster.Cluster, error) {
 	if m.Err != nil {
 		return cluster.Cluster{}, m.Err
 	}
@@ -83,7 +84,7 @@ func (m *mockClusterManager) GetCluster(provider, name string) (cluster.Cluster,
 	return m.ClusterItems[0], nil
 }
 
-func (m *mockClusterManager) GetClusterContent(provider, name string) (cluster.ClusterContent, error) {
+func (m *mockClusterManager) GetClusterContent(ctx context.Context, provider, name string) (cluster.ClusterContent, error) {
 	if m.Err != nil {
 		return cluster.ClusterContent{}, m.Err
 	}
@@ -91,7 +92,7 @@ func (m *mockClusterManager) GetClusterContent(provider, name string) (cluster.C
 	return m.ClusterContentItems[0], nil
 }
 
-func (m *mockClusterManager) GetClusterState(provider, name string) (state.StateInfo, error) {
+func (m *mockClusterManager) GetClusterState(ctx context.Context, provider, name string) (state.StateInfo, error) {
 	if m.Err != nil {
 		return state.StateInfo{}, m.Err
 	}
@@ -99,7 +100,7 @@ func (m *mockClusterManager) GetClusterState(provider, name string) (state.State
 	return m.ClusterStateInfo[0], nil
 }
 
-func (m *mockClusterManager) GetClusters(provider string) ([]cluster.Cluster, error) {
+func (m *mockClusterManager) GetClusters(ctx context.Context, provider string) ([]cluster.Cluster, error) {
 	if m.Err != nil {
 		return []cluster.Cluster{}, m.Err
 	}
@@ -107,7 +108,7 @@ func (m *mockClusterManager) GetClusters(provider string) ([]cluster.Cluster, er
 	return m.ClusterItems, nil
 }
 
-func (m *mockClusterManager) GetClustersWithLabel(provider, label string) ([]string, error) {
+func (m *mockClusterManager) GetClustersWithLabel(ctx context.Context, provider, label string) ([]string, error) {
 	if m.Err != nil {
 		return []string{}, m.Err
 	}
@@ -115,18 +116,18 @@ func (m *mockClusterManager) GetClustersWithLabel(provider, label string) ([]str
 	return m.ClusterList, nil
 }
 
-func (m *mockClusterManager) GetAllClustersAndLabels(provider string) ([]cluster.ClusterWithLabels, error) {
+func (m *mockClusterManager) GetAllClustersAndLabels(ctx context.Context, provider string) ([]cluster.ClusterWithLabels, error) {
 	if m.Err != nil {
 		return []cluster.ClusterWithLabels{}, m.Err
 	}
 	return m.ClusterWithLabels, nil
 }
 
-func (m *mockClusterManager) DeleteCluster(provider, name string) error {
+func (m *mockClusterManager) DeleteCluster(ctx context.Context, provider, name string) error {
 	return m.Err
 }
 
-func (m *mockClusterManager) CreateClusterLabel(provider, clusterName string, inp cluster.ClusterLabel, exists bool) (cluster.ClusterLabel, error) {
+func (m *mockClusterManager) CreateClusterLabel(ctx context.Context, provider, clusterName string, inp cluster.ClusterLabel, exists bool) (cluster.ClusterLabel, error) {
 	if m.Err != nil {
 		return cluster.ClusterLabel{}, m.Err
 	}
@@ -134,7 +135,7 @@ func (m *mockClusterManager) CreateClusterLabel(provider, clusterName string, in
 	return m.ClusterLabelItems[0], nil
 }
 
-func (m *mockClusterManager) GetClusterLabel(provider, clusterName, label string) (cluster.ClusterLabel, error) {
+func (m *mockClusterManager) GetClusterLabel(ctx context.Context, provider, clusterName, label string) (cluster.ClusterLabel, error) {
 	if m.Err != nil {
 		return cluster.ClusterLabel{}, m.Err
 	}
@@ -142,7 +143,7 @@ func (m *mockClusterManager) GetClusterLabel(provider, clusterName, label string
 	return m.ClusterLabelItems[0], nil
 }
 
-func (m *mockClusterManager) GetClusterLabels(provider, clusterName string) ([]cluster.ClusterLabel, error) {
+func (m *mockClusterManager) GetClusterLabels(ctx context.Context, provider, clusterName string) ([]cluster.ClusterLabel, error) {
 	if m.Err != nil {
 		return []cluster.ClusterLabel{}, m.Err
 	}
@@ -150,11 +151,11 @@ func (m *mockClusterManager) GetClusterLabels(provider, clusterName string) ([]c
 	return m.ClusterLabelItems, nil
 }
 
-func (m *mockClusterManager) DeleteClusterLabel(provider, clusterName, label string) error {
+func (m *mockClusterManager) DeleteClusterLabel(ctx context.Context, provider, clusterName, label string) error {
 	return m.Err
 }
 
-func (m *mockClusterManager) CreateClusterKvPairs(provider, clusterName string, inp cluster.ClusterKvPairs, exists bool) (cluster.ClusterKvPairs, error) {
+func (m *mockClusterManager) CreateClusterKvPairs(ctx context.Context, provider, clusterName string, inp cluster.ClusterKvPairs, exists bool) (cluster.ClusterKvPairs, error) {
 	if m.Err != nil {
 		return cluster.ClusterKvPairs{}, m.Err
 	}
@@ -162,7 +163,7 @@ func (m *mockClusterManager) CreateClusterKvPairs(provider, clusterName string, 
 	return m.ClusterKvPairsItems[0], nil
 }
 
-func (m *mockClusterManager) GetClusterKvPairs(provider, clusterName, kvpair string) (cluster.ClusterKvPairs, error) {
+func (m *mockClusterManager) GetClusterKvPairs(ctx context.Context, provider, clusterName, kvpair string) (cluster.ClusterKvPairs, error) {
 	if m.Err != nil {
 		return cluster.ClusterKvPairs{}, m.Err
 	}
@@ -170,7 +171,7 @@ func (m *mockClusterManager) GetClusterKvPairs(provider, clusterName, kvpair str
 	return m.ClusterKvPairsItems[0], nil
 }
 
-func (m *mockClusterManager) GetClusterKvPairsValue(provider, cluster, kvpair, kvkey string) (interface{}, error) {
+func (m *mockClusterManager) GetClusterKvPairsValue(ctx context.Context, provider, cluster, kvpair, kvkey string) (interface{}, error) {
 	if m.Err != nil {
 		return nil, m.Err
 	}
@@ -184,7 +185,7 @@ func (m *mockClusterManager) GetClusterKvPairsValue(provider, cluster, kvpair, k
 
 }
 
-func (m *mockClusterManager) GetAllClusterKvPairs(provider, clusterName string) ([]cluster.ClusterKvPairs, error) {
+func (m *mockClusterManager) GetAllClusterKvPairs(ctx context.Context, provider, clusterName string) ([]cluster.ClusterKvPairs, error) {
 	if m.Err != nil {
 		return []cluster.ClusterKvPairs{}, m.Err
 	}
@@ -192,11 +193,11 @@ func (m *mockClusterManager) GetAllClusterKvPairs(provider, clusterName string) 
 	return m.ClusterKvPairsItems, nil
 }
 
-func (m *mockClusterManager) DeleteClusterKvPairs(provider, clusterName, kvpair string) error {
+func (m *mockClusterManager) DeleteClusterKvPairs(ctx context.Context, provider, clusterName, kvpair string) error {
 	return m.Err
 }
 
-func (m *mockClusterManager) CreateClusterSyncObjects(provider string, inp types.ClusterSyncObjects, exists bool) (types.ClusterSyncObjects, error) {
+func (m *mockClusterManager) CreateClusterSyncObjects(ctx context.Context, provider string, inp types.ClusterSyncObjects, exists bool) (types.ClusterSyncObjects, error) {
 	if m.Err != nil {
 		return types.ClusterSyncObjects{}, m.Err
 	}
@@ -204,7 +205,7 @@ func (m *mockClusterManager) CreateClusterSyncObjects(provider string, inp types
 	return m.ClusterSyncObjectsItems[0], nil
 }
 
-func (m *mockClusterManager) GetClusterSyncObjects(provider, syncobject string) (types.ClusterSyncObjects, error) {
+func (m *mockClusterManager) GetClusterSyncObjects(ctx context.Context, provider, syncobject string) (types.ClusterSyncObjects, error) {
 	if m.Err != nil {
 		return types.ClusterSyncObjects{}, m.Err
 	}
@@ -212,11 +213,11 @@ func (m *mockClusterManager) GetClusterSyncObjects(provider, syncobject string) 
 	return m.ClusterSyncObjectsItems[0], nil
 }
 
-func (m *mockClusterManager) DeleteClusterSyncObjects(provider, syncobject string) error {
+func (m *mockClusterManager) DeleteClusterSyncObjects(ctx context.Context, provider, syncobject string) error {
 	return m.Err
 }
 
-func (m *mockClusterManager) GetClusterSyncObjectsValue(provider, syncobject, syncobjectkey string) (interface{}, error) {
+func (m *mockClusterManager) GetClusterSyncObjectsValue(ctx context.Context, provider, syncobject, syncobjectkey string) (interface{}, error) {
 	if m.Err != nil {
 		return nil, m.Err
 	}
@@ -229,7 +230,7 @@ func (m *mockClusterManager) GetClusterSyncObjectsValue(provider, syncobject, sy
 	return nil, m.Err
 }
 
-func (m *mockClusterManager) GetAllClusterSyncObjects(provider string) ([]types.ClusterSyncObjects, error) {
+func (m *mockClusterManager) GetAllClusterSyncObjects(ctx context.Context, provider string) ([]types.ClusterSyncObjects, error) {
 	if m.Err != nil {
 		return []types.ClusterSyncObjects{}, m.Err
 	}

@@ -18,11 +18,12 @@ metadata:
   name: {{ $.GitObj}}
 spec:
   kv:
-  - gitType: github
-  - userName: {{ $.GithubUser }}
-  - gitToken:  {{ $.GithubToken }}
-  - repoName: {{ $.GithubRepo }}
+  #- gitType: github  # Uncomment to use Github REST APIs
+  - userName: {{ $.GitUser }}
+  - gitToken:  {{ $.GitToken }}
+  - repoName: {{ $.GitRepo }}
   - branch: {{ $.Branch }}
+  - url: {{ $.GitUrl }}
 
 ---
 #creating cluster
@@ -30,7 +31,7 @@ version: emco/v2
 resourceContext:
   anchor: cluster-providers/{{ $.ClusterProvider }}/clusters
 metadata:
-   name: cluster2
+   name: {{ $.Cluster1 }}
 spec:
   gitOps:
     gitOpsType: anthos
@@ -43,7 +44,7 @@ file:
 #Add label cluster
 version: emco/v2
 resourceContext:
-  anchor: cluster-providers/{{ $.ClusterProvider }}/clusters/cluster2/labels
+  anchor: cluster-providers/{{ $.ClusterProvider }}/clusters/{{ $.Cluster1 }}/labels
 clusterLabel: {{ $.ClusterLabel }}
 
 ---
@@ -53,32 +54,4 @@ resourceContext:
   anchor: projects
 metadata:
    name: {{ .ProjectName }}
-
----
-#create default logical cloud with admin permissions
-version: emco/v2
-resourceContext:
-  anchor: projects/{{ .ProjectName }}/logical-clouds
-metadata:
-  name: {{ .AdminCloud }}
-spec:
-  level: "0"
-
----
-#add cluster reference to logical cloud
-version: emco/v2
-resourceContext:
-  anchor: projects/{{ $.ProjectName }}/logical-clouds/{{ $.AdminCloud }}/cluster-references
-metadata:
-  name: cluster2
-spec:
-  clusterProvider: {{ $.ClusterProvider }}
-  cluster: cluster2
-  loadbalancerIp: "0.0.0.0"
-
----
-#instantiate logical cloud
-version: emco/v2
-resourceContext:
-  anchor: projects/{{ .ProjectName }}/logical-clouds/{{ .AdminCloud }}/instantiate
 

@@ -10,6 +10,7 @@ import (
 
 	"gitlab.com/project-emco/core/emco-base/src/ca-certs/api"
 	"gitlab.com/project-emco/core/emco-base/src/ca-certs/pkg/module"
+	"gitlab.com/project-emco/core/emco-base/src/orchestrator/common/emcoerror"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
@@ -41,7 +42,10 @@ func (m *mockLogicalCloudCertManager) CreateCert(cert module.CaCert, project str
 	}
 
 	if iExists && failIfExists { // cert already exists
-		return module.CaCert{}, iExists, errors.New("Certificate already exists")
+		return module.CaCert{}, iExists, emcoerror.NewEmcoError(
+			module.CaCertAlreadyExists,
+			emcoerror.Conflict,
+		)
 	}
 
 	if iExists && !failIfExists { // cert already exists. update the cert
@@ -68,7 +72,10 @@ func (m *mockLogicalCloudCertManager) DeleteCert(cert, project string) error {
 		}
 	}
 
-	return errors.New("db Remove resource not found") // cert does not exist
+	return emcoerror.NewEmcoError(
+		"The requested resource not found",
+		emcoerror.NotFound,
+	) // cert does not exist
 
 }
 
@@ -94,7 +101,10 @@ func (m *mockLogicalCloudCertManager) GetCert(cert, project string) (module.CaCe
 		}
 	}
 
-	return module.CaCert{}, errors.New("Certificate not found")
+	return module.CaCert{}, emcoerror.NewEmcoError(
+		module.CaCertNotFound,
+		emcoerror.NotFound,
+	)
 }
 
 var _ = Describe("Test create cert handler",
@@ -110,7 +120,7 @@ var _ = Describe("Test create cert handler",
 					entry:      "request body validation",
 					input:      certInput(""), // create an empty cert payload
 					result:     module.CaCert{},
-					err:        errors.New("caCert name may not be empty\n"),
+					err:        errors.New("caCert name may not be empty"),
 					statusCode: http.StatusBadRequest,
 					client: &mockLogicalCloudCertManager{
 						Err:   nil,
@@ -133,10 +143,13 @@ var _ = Describe("Test create cert handler",
 			),
 			Entry("cert already exists",
 				test{
-					entry:      "cert already exists",
-					input:      certInput("testCert1"),
-					result:     module.CaCert{},
-					err:        errors.New("certificate already exists\n"),
+					entry:  "cert already exists",
+					input:  certInput("testCert1"),
+					result: module.CaCert{},
+					err: emcoerror.NewEmcoError(
+						module.CaCertAlreadyExists,
+						emcoerror.Conflict,
+					),
 					statusCode: http.StatusConflict,
 					client: &mockLogicalCloudCertManager{
 						Err:   nil,
@@ -174,8 +187,11 @@ var _ = Describe("Test get cert handler",
 					entry:      "cert not found",
 					name:       "nonExistingCert",
 					statusCode: http.StatusNotFound,
-					err:        errors.New("certificate not found\n"),
-					result:     module.CaCert{},
+					err: emcoerror.NewEmcoError(
+						module.CaCertNotFound,
+						emcoerror.NotFound,
+					),
+					result: module.CaCert{},
 					client: &mockLogicalCloudCertManager{
 						Err:   nil,
 						Items: populateCertTestData(),
@@ -200,7 +216,7 @@ var _ = Describe("Test update cert handler",
 					name:       "testCert",
 					input:      certInput(""), // create an empty cert payload
 					result:     module.CaCert{},
-					err:        errors.New("caCert name may not be empty\n"),
+					err:        errors.New("caCert name may not be empty"),
 					statusCode: http.StatusBadRequest,
 					client: &mockLogicalCloudCertManager{
 						Err:   nil,
@@ -266,8 +282,11 @@ var _ = Describe("Test delete cert handler",
 					entry:      "db remove cert not found",
 					name:       "nonExistingCert",
 					statusCode: http.StatusNotFound,
-					err:        errors.New("The requested resource not found\n"),
-					result:     module.CaCert{},
+					err: emcoerror.NewEmcoError(
+						"The requested resource not found",
+						emcoerror.NotFound,
+					),
+					result: module.CaCert{},
 					client: &mockLogicalCloudCertManager{
 						Err:   nil,
 						Items: populateCertTestData(),

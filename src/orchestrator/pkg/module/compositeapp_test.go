@@ -4,6 +4,7 @@
 package module
 
 import (
+	"context"
 	"reflect"
 	"strings"
 	"testing"
@@ -70,9 +71,10 @@ func TestCreateCompositeApp(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.label, func(t *testing.T) {
+			ctx := context.Background()
 			db.DBconn = testCase.mockdb
 			impl := NewCompositeAppClient()
-			got, err := impl.CreateCompositeApp(testCase.inpCompApp, testCase.inpProject, false)
+			got, err := impl.CreateCompositeApp(ctx, testCase.inpCompApp, testCase.inpProject, false)
 			if err != nil {
 				if testCase.expectedError == "" {
 					t.Fatalf("Create returned an unexpected error %s", err)
@@ -148,9 +150,10 @@ func TestGetCompositeApp(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.label, func(t *testing.T) {
+			ctx := context.Background()
 			db.DBconn = testCase.mockdb
 			impl := NewCompositeAppClient()
-			got, err := impl.GetCompositeApp(testCase.inpName, testCase.inpVersion, testCase.inpProject)
+			got, err := impl.GetCompositeApp(ctx, testCase.inpName, testCase.inpVersion, testCase.inpProject)
 			if err != nil {
 				if testCase.expectedError == "" {
 					t.Fatalf("Get returned an unexpected error: %s", err)
@@ -213,9 +216,10 @@ func TestDeleteCompositeApp(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.label, func(t *testing.T) {
+			ctx := context.Background()
 			db.DBconn = testCase.mockdb
 			impl := NewCompositeAppClient()
-			err := impl.DeleteCompositeApp(testCase.inpName, testCase.inpVersion, testCase.inpProject)
+			err := impl.DeleteCompositeApp(ctx, testCase.inpName, testCase.inpVersion, testCase.inpProject)
 			if err != nil {
 				if testCase.expectedError == "" {
 					t.Fatalf("Delete returned an unexpected error %s", err)

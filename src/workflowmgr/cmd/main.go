@@ -67,7 +67,7 @@ func startGrpcServer() error {
 func main() {
 	rand.Seed(time.Now().UnixNano())
 
-	err := db.InitializeDatabaseConnection("emco")
+	err := db.InitializeDatabaseConnection(context.Background(), "emco")
 	if err != nil {
 		log.Println("Unable to initialize mongo database connection...")
 		log.Println(err)

@@ -17,6 +17,12 @@ spec:
       - env:
         - name: REDIS_ADDR
           value: redis-cart:{{ .Values.cartservice.server.redisport }}
+        - name: DISABLE_TRACING
+          value: "1"
+        - name: DISABLE_PROFILER
+          value: "1"
+        - name: DISABLE_DEBUGGER
+          value: "1"
         image: {{ .Values.cartservice.server.image.repository }}:{{ .Values.cartservice.server.image.tag | default .Chart.AppVersion }}
         imagePullPolicy: {{ .Values.cartservice.server.image.pullPolicy }}
         livenessProbe:

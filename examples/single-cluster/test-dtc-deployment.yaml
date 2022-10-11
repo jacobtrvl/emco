@@ -91,10 +91,10 @@ spec:
   overrideValues:
   - app: {{.App4}}
     values:
-      ".Values.image.repository": "<myrepository.example.com>/my-custom-httptest-client"
+      "image.repository": "{{.ImageRepository}}/my-custom-httptest-client"
   - app: {{.App5}}
     values:
-      ".Values.image.repository": "<myrepository.example.com>/my-custom-httptest-server"
+      "image.repository": "{{.ImageRepository}}/my-custom-httptest-server"
 
 ---
 #create intent in deployment intent group

@@ -4,6 +4,7 @@
 package module
 
 import (
+	"context"
 	pkgerrors "github.com/pkg/errors"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
 )
@@ -74,7 +75,7 @@ func (v *WorkloadIntentClient) CreateWorkloadIntent(wi WorkloadIntent, project, 
 		return WorkloadIntent{}, pkgerrors.New("WorkloadIntent already exists")
 	}
 
-	err = db.DBconn.Insert(v.db.storeName, key, nil, v.db.tagMeta, wi)
+	err = db.DBconn.Insert(context.Background(), v.db.storeName, key, nil, v.db.tagMeta, wi)
 	if err != nil {
 		return WorkloadIntent{}, pkgerrors.Wrap(err, "Creating DB Entry")
 	}
@@ -95,7 +96,7 @@ func (v *WorkloadIntentClient) GetWorkloadIntent(name, project, compositeapp, co
 		WorkloadIntent:      name,
 	}
 
-	value, err := db.DBconn.Find(v.db.storeName, key, v.db.tagMeta)
+	value, err := db.DBconn.Find(context.Background(), v.db.storeName, key, v.db.tagMeta)
 	if err != nil {
 		return WorkloadIntent{}, err
 	}
@@ -131,7 +132,7 @@ func (v *WorkloadIntentClient) GetWorkloadIntents(project, compositeapp, composi
 	}
 
 	var resp []WorkloadIntent
-	values, err := db.DBconn.Find(v.db.storeName, key, v.db.tagMeta)
+	values, err := db.DBconn.Find(context.Background(), v.db.storeName, key, v.db.tagMeta)
 	if err != nil {
 		return []WorkloadIntent{}, err
 	}
@@ -161,6 +162,6 @@ func (v *WorkloadIntentClient) DeleteWorkloadIntent(name, project, compositeapp,
 		WorkloadIntent:      name,
 	}
 
-	err := db.DBconn.Remove(v.db.storeName, key)
+	err := db.DBconn.Remove(context.Background(), v.db.storeName, key)
 	return err
 }

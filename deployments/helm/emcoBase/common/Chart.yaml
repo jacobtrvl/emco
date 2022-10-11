@@ -5,4 +5,4 @@
 apiVersion: v2
 description: Common templates for other EMCO charts
 name: common
-version: 1.0.0
+version: 1.0.1

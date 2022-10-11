@@ -4,29 +4,29 @@
 apiVersion: v2
 description: EMCO Services Package
 name: emco-services
-version: 1.0.1
+version: 1.0.2
 
 dependencies:
   - name: common
-    version: "1.0.0"
+    version: "1.0.1"
     repository: file://../common
   - name: orchestrator
-    version: "1.0.0"
+    version: "1.0.1"
     repository: 'file://../orchestrator'
   - name: ncm
     version: "1.0.0"
     repository: 'file://../ncm'
   - name: rsync
-    version: "1.0.0"
+    version: "1.0.1"
     repository: 'file://../rsync'
   - name: clm
-    version: "1.0.0"
+    version: "1.0.1"
     repository: 'file://../clm'
   - name: ovnaction
     version: "1.0.0"
     repository: 'file://../ovnaction'
   - name: dcm
-    version: "1.0.0"
+    version: "1.0.1"
     repository: 'file://../dcm'
   - name: dtc
     version: "1.0.0"
@@ -67,3 +67,6 @@ dependencies:
   - name: tac
     version: "1.0.0"
     repository: 'file://../tac'
+  - name: gitea
+    version: "1.0.0"
+    repository: 'file://../gitea'

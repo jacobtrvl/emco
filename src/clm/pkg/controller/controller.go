@@ -9,16 +9,18 @@ import (
 	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 	rpc "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/rpc"
 
+	"context"
+
 	clmModel "gitlab.com/project-emco/core/emco-base/src/clm/pkg/model"
 )
 
 // ControllerManager is an interface exposes the Controller functionality
 type ControllerManager interface {
-	CreateController(ms clmModel.Controller, mayExist bool) (clmModel.Controller, error)
-	GetController(name string) (clmModel.Controller, error)
-	GetControllers() ([]clmModel.Controller, error)
-	InitControllers()
-	DeleteController(name string) error
+	CreateController(ctx context.Context, ms clmModel.Controller, mayExist bool) (clmModel.Controller, error)
+	GetController(ctx context.Context, name string) (clmModel.Controller, error)
+	GetControllers(ctx context.Context) ([]clmModel.Controller, error)
+	InitControllers(ctx context.Context)
+	DeleteController(ctx context.Context, name string) error
 }
 
 // ControllerClient implements the Manager
@@ -40,7 +42,7 @@ func NewControllerClient() *ControllerClient {
 }
 
 // CreateController a new collection based on the Controller
-func (mc *ControllerClient) CreateController(m clmModel.Controller, mayExist bool) (clmModel.Controller, error) {
+func (mc *ControllerClient) CreateController(ctx context.Context, m clmModel.Controller, mayExist bool) (clmModel.Controller, error) {
 
 	log.Info("CLM CreateController .. start", log.Fields{"Controller": m, "exists": mayExist})
 
@@ -51,12 +53,12 @@ func (mc *ControllerClient) CreateController(m clmModel.Controller, mayExist boo
 	}
 
 	//Check if this Controller already exists
-	_, err := mc.GetController(m.Metadata.Name)
+	_, err := mc.GetController(ctx, m.Metadata.Name)
 	if err == nil && !mayExist {
 		return clmModel.Controller{}, pkgerrors.New("ClmController already exists")
 	}
 
-	err = db.DBconn.Insert(mc.collectionName, key, nil, mc.tagMeta, m)
+	err = db.DBconn.Insert(ctx, mc.collectionName, key, nil, mc.tagMeta, m)
 	if err != nil {
 		return clmModel.Controller{}, pkgerrors.Wrap(err, "Creating DB Entry")
 	}
@@ -69,14 +71,14 @@ func (mc *ControllerClient) CreateController(m clmModel.Controller, mayExist boo
 }
 
 // GetController returns the Controller for corresponding name
-func (mc *ControllerClient) GetController(name string) (clmModel.Controller, error) {
+func (mc *ControllerClient) GetController(ctx context.Context, name string) (clmModel.Controller, error) {
 
 	//Construct the composite key to select the entry
 	key := clmModel.ControllerKey{
 		ControllerName:  name,
 		ControllerGroup: mc.tagGroup,
 	}
-	value, err := db.DBconn.Find(mc.collectionName, key, mc.tagMeta)
+	value, err := db.DBconn.Find(ctx, mc.collectionName, key, mc.tagMeta)
 	if err != nil {
 		return clmModel.Controller{}, err
 	}
@@ -98,7 +100,7 @@ func (mc *ControllerClient) GetController(name string) (clmModel.Controller, err
 }
 
 // GetControllers returns all the  Controllers that are registered
-func (mc *ControllerClient) GetControllers() ([]clmModel.Controller, error) {
+func (mc *ControllerClient) GetControllers(ctx context.Context) ([]clmModel.Controller, error) {
 
 	//Construct the composite key to select the entry
 	key := clmModel.ControllerKey{
@@ -107,7 +109,7 @@ func (mc *ControllerClient) GetControllers() ([]clmModel.Controller, error) {
 	}
 
 	var resp []clmModel.Controller
-	values, err := db.DBconn.Find(mc.collectionName, key, mc.tagMeta)
+	values, err := db.DBconn.Find(ctx, mc.collectionName, key, mc.tagMeta)
 	if err != nil {
 		return []clmModel.Controller{}, err
 	}
@@ -126,14 +128,14 @@ func (mc *ControllerClient) GetControllers() ([]clmModel.Controller, error) {
 }
 
 // DeleteController the  Controller from database
-func (mc *ControllerClient) DeleteController(name string) error {
+func (mc *ControllerClient) DeleteController(ctx context.Context, name string) error {
 
 	//Construct the composite key to select the entry
 	key := clmModel.ControllerKey{
 		ControllerName:  name,
 		ControllerGroup: mc.tagGroup,
 	}
-	err := db.DBconn.Remove(mc.collectionName, key)
+	err := db.DBconn.Remove(ctx, mc.collectionName, key)
 	if err != nil {
 		return err
 	}
@@ -145,8 +147,8 @@ func (mc *ControllerClient) DeleteController(name string) error {
 }
 
 // InitControllers initializes connctions for Controllers in the DB
-func (mc *ControllerClient) InitControllers() {
-	vals, _ := mc.GetControllers()
+func (mc *ControllerClient) InitControllers(ctx context.Context) {
+	vals, _ := mc.GetControllers(ctx)
 	for _, v := range vals {
 		log.Info("Initializing RPC connection for Controller", log.Fields{
 			"Controller": v.Metadata.Name,

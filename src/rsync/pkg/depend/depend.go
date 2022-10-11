@@ -13,6 +13,8 @@ import (
 	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 	"gitlab.com/project-emco/core/emco-base/src/rsync/pkg/internal/utils"
 	"gitlab.com/project-emco/core/emco-base/src/rsync/pkg/types"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type DependManager struct {
@@ -124,7 +126,7 @@ func (dm *DependManager) WaitResourceDependency(ctx context.Context, app, cluste
 				return ctx.Err()
 			}
 			waitTime = 30
-			b := dm.GetResourceReadyStatus(app, cluster, name)
+			b := dm.GetResourceReadyStatus(ctx, app, cluster, name)
 			if b {
 				return nil
 			} else {
@@ -227,7 +229,17 @@ func (dm *DependManager) NotifyStatus(dl []appData) {
 }
 
 // Inform waiting threads of App Ready
-func ResourcesReady(acID, app, cluster string) {
+func ResourcesReady(ctx context.Context, acID, app, cluster string) {
+	// This function is executed asynchronously, so we must create
+	// a new (not derived) context to prevent the context from
+	// being cancelled when the caller completes: a cancelled
+	// context will cause the below work to exit early.  A link is
+	// used so that the traces can be associated.
+	tracer := otel.Tracer("rsync")
+	ctx, span := tracer.Start(context.Background(), "ResourcesReady",
+		trace.WithLinks(trace.LinkFromContext(ctx)),
+	)
+	defer span.End()
 
 	dmList.RLock()
 	// Check if AppContext has dependency
@@ -250,12 +262,16 @@ func ResourcesReady(acID, app, cluster string) {
 	if length > 0 {
 		// Inform waiting apps
 		go func() {
+			ctx, span := tracer.Start(context.Background(), "ResourcesReady",
+				trace.WithLinks(trace.LinkFromContext(ctx)),
+			)
+			defer span.End()
 			// Check in appContext if app is ready on all clusters inform ready status
-			acUtils, err := utils.NewAppContextReference(acID)
+			acUtils, err := utils.NewAppContextReference(ctx, acID)
 			if err != nil {
 				return
 			}
-			if acUtils.CheckAppReadyOnAllClusters(app) {
+			if acUtils.CheckAppReadyOnAllClusters(ctx, app) {
 				// Notify the apps waiting for the app to be ready
 				dm.NotifyReadyStatus(app)
 			}
@@ -266,8 +282,12 @@ func ResourcesReady(acID, app, cluster string) {
 	dm.RUnlock()
 	if len(res) > 0 {
 		go func() {
+			ctx, span := tracer.Start(context.Background(), "ResourcesReady",
+				trace.WithLinks(trace.LinkFromContext(ctx)),
+			)
+			defer span.End()
 			for _, r := range res {
-				b := dm.GetResourceReadyStatus(app, cluster, r.res)
+				b := dm.GetResourceReadyStatus(ctx, app, cluster, r.res)
 				if b {
 					// If succeded inform the waiting channel
 					r.ch <- struct{}{}
@@ -277,9 +297,9 @@ func ResourcesReady(acID, app, cluster string) {
 	}
 }
 
-func (dm *DependManager) GetResourceReadyStatus(app, cluster, res string) bool {
+func (dm *DependManager) GetResourceReadyStatus(ctx context.Context, app, cluster, res string) bool {
 	var resStatus bool
-	acUtils, err := utils.NewAppContextReference(dm.acID)
+	acUtils, err := utils.NewAppContextReference(ctx, dm.acID)
 	if err != nil {
 		return false
 	}
@@ -290,9 +310,9 @@ func (dm *DependManager) GetResourceReadyStatus(app, cluster, res string) bool {
 	}
 	// In case of Pod and Job Success state is used for Hook readiness
 	if result[1] == "Pod" || result[1] == "Job" {
-		resStatus = acUtils.GetResourceReadyStatus(app, cluster, res, string(types.SuccessStatus))
+		resStatus = acUtils.GetResourceReadyStatus(ctx, app, cluster, res, string(types.SuccessStatus))
 	} else {
-		resStatus = acUtils.GetResourceReadyStatus(app, cluster, res, string(types.ReadyStatus))
+		resStatus = acUtils.GetResourceReadyStatus(ctx, app, cluster, res, string(types.ReadyStatus))
 	}
 	return resStatus
 }

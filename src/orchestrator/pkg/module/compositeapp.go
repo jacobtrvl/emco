@@ -4,6 +4,7 @@
 package module
 
 import (
+	"context"
 	"encoding/json"
 
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
@@ -49,10 +50,10 @@ func (cK CompositeAppKey) String() string {
 
 // CompositeAppManager is an interface exposes the CompositeApp functionality
 type CompositeAppManager interface {
-	CreateCompositeApp(c CompositeApp, p string, exists bool) (CompositeApp, error)
-	GetCompositeApp(name string, version string, p string) (CompositeApp, error)
-	GetAllCompositeApps(p string) ([]CompositeApp, error)
-	DeleteCompositeApp(name string, version string, p string) error
+	CreateCompositeApp(ctx context.Context, c CompositeApp, p string, exists bool) (CompositeApp, error)
+	GetCompositeApp(ctx context.Context, name string, version string, p string) (CompositeApp, error)
+	GetAllCompositeApps(ctx context.Context, p string) ([]CompositeApp, error)
+	DeleteCompositeApp(ctx context.Context, name string, version string, p string) error
 }
 
 // CompositeAppClient implements the CompositeAppManager
@@ -72,7 +73,7 @@ func NewCompositeAppClient() *CompositeAppClient {
 }
 
 // CreateCompositeApp creates a new collection based on the CompositeApp
-func (v *CompositeAppClient) CreateCompositeApp(c CompositeApp, p string, exists bool) (CompositeApp, error) {
+func (v *CompositeAppClient) CreateCompositeApp(ctx context.Context, c CompositeApp, p string, exists bool) (CompositeApp, error) {
 
 	//Construct the composite key to select the entry
 	key := CompositeAppKey{
@@ -82,12 +83,12 @@ func (v *CompositeAppClient) CreateCompositeApp(c CompositeApp, p string, exists
 	}
 
 	//Check if this CompositeApp already exists
-	_, err := v.GetCompositeApp(c.Metadata.Name, c.Spec.Version, p)
+	_, err := v.GetCompositeApp(ctx, c.Metadata.Name, c.Spec.Version, p)
 	if err == nil && !exists {
 		return CompositeApp{}, pkgerrors.New("CompositeApp already exists")
 	}
 
-	err = db.DBconn.Insert(v.storeName, key, nil, v.tagMeta, c)
+	err = db.DBconn.Insert(ctx, v.storeName, key, nil, v.tagMeta, c)
 	if err != nil {
 		return CompositeApp{}, pkgerrors.Wrap(err, "Create DB entry error")
 	}
@@ -96,7 +97,7 @@ func (v *CompositeAppClient) CreateCompositeApp(c CompositeApp, p string, exists
 }
 
 // GetCompositeApp returns the CompositeApp for corresponding name
-func (v *CompositeAppClient) GetCompositeApp(name string, version string, p string) (CompositeApp, error) {
+func (v *CompositeAppClient) GetCompositeApp(ctx context.Context, name string, version string, p string) (CompositeApp, error) {
 
 	//Construct the composite key to select the entry
 	key := CompositeAppKey{
@@ -104,7 +105,7 @@ func (v *CompositeAppClient) GetCompositeApp(name string, version string, p stri
 		Version:          version,
 		Project:          p,
 	}
-	value, err := db.DBconn.Find(v.storeName, key, v.tagMeta)
+	value, err := db.DBconn.Find(ctx, v.storeName, key, v.tagMeta)
 	if err != nil {
 		return CompositeApp{}, err
 	} else if len(value) == 0 {
@@ -125,9 +126,9 @@ func (v *CompositeAppClient) GetCompositeApp(name string, version string, p stri
 }
 
 // GetAllCompositeApps returns all the compositeApp for a given project
-func (v *CompositeAppClient) GetAllCompositeApps(p string) ([]CompositeApp, error) {
+func (v *CompositeAppClient) GetAllCompositeApps(ctx context.Context, p string) ([]CompositeApp, error) {
 
-	_, err := NewProjectClient().GetProject(p)
+	_, err := NewProjectClient().GetProject(ctx, p)
 	if err != nil {
 		return []CompositeApp{}, pkgerrors.Wrap(err, "Project not found")
 	}
@@ -139,7 +140,7 @@ func (v *CompositeAppClient) GetAllCompositeApps(p string) ([]CompositeApp, erro
 	}
 
 	var caList []CompositeApp
-	values, err := db.DBconn.Find(v.storeName, key, v.tagMeta)
+	values, err := db.DBconn.Find(ctx, v.storeName, key, v.tagMeta)
 	if err != nil {
 		return []CompositeApp{}, err
 	}
@@ -157,7 +158,7 @@ func (v *CompositeAppClient) GetAllCompositeApps(p string) ([]CompositeApp, erro
 }
 
 // DeleteCompositeApp deletes the  CompositeApp from database
-func (v *CompositeAppClient) DeleteCompositeApp(name string, version string, p string) error {
+func (v *CompositeAppClient) DeleteCompositeApp(ctx context.Context, name string, version string, p string) error {
 
 	//Construct the composite key to select the entry
 	key := CompositeAppKey{
@@ -165,6 +166,6 @@ func (v *CompositeAppClient) DeleteCompositeApp(name string, version string, p s
 		Version:          version,
 		Project:          p,
 	}
-	err := db.DBconn.Remove(v.storeName, key)
+	err := db.DBconn.Remove(ctx, v.storeName, key)
 	return err
 }

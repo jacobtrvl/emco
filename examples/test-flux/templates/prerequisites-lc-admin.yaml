@@ -1,0 +1,24 @@
+---
+#create admin logical cloud
+version: emco/v2
+resourceContext:
+  anchor: projects/{{ .ProjectName }}/logical-clouds
+metadata:
+  name: {{ $.LogicalCloud }}
+spec:
+  level: "0"
+
+{{- range $index, $cluster := .Clusters }}
+
+---
+#add cluster reference to logical cloud
+version: emco/v2
+resourceContext:
+  anchor: projects/{{ $.ProjectName }}/logical-clouds/{{ $.LogicalCloud }}/cluster-references
+metadata:
+  name: {{ $cluster.Name }}
+spec:
+  clusterProvider: {{ $.ClusterProvider }}
+  cluster: {{ $cluster.Name }}
+  loadbalancerIp: "0.0.0.0"
+{{- end }}

@@ -31,6 +31,7 @@ type logicalCloudHandler struct {
 
 // CreateHandler handles the creation of a logical cloud
 func (h logicalCloudHandler) createHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	project := vars["project"]
 	var v common.LogicalCloud
@@ -66,14 +67,14 @@ func (h logicalCloudHandler) createHandler(w http.ResponseWriter, r *http.Reques
 	// Validate that the specified Project exists
 	// before associating a Logical Cloud with it
 	p := orch.NewProjectClient()
-	_, err = p.GetProject(project)
+	_, err = p.GetProject(ctx, project)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, v, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
 		return
 	}
 
-	ret, err := h.client.Create(project, v)
+	ret, err := h.client.Create(ctx, project, v)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, v, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -93,12 +94,13 @@ func (h logicalCloudHandler) createHandler(w http.ResponseWriter, r *http.Reques
 // getAllHandler handles GET operations over logical clouds
 // Returns a list of Logical Clouds
 func (h logicalCloudHandler) getAllHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	project := vars["project"]
 	var ret interface{}
 	var err error
 
-	ret, err = h.client.GetAll(project)
+	ret, err = h.client.GetAll(ctx, project)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -118,13 +120,14 @@ func (h logicalCloudHandler) getAllHandler(w http.ResponseWriter, r *http.Reques
 // getHandler handles GET operations on a particular name
 // Returns a Logical Cloud
 func (h logicalCloudHandler) getHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	project := vars["project"]
 	name := vars["logicalCloud"]
 	var ret interface{}
 	var err error
 
-	ret, err = h.client.Get(project, name)
+	ret, err = h.client.Get(ctx, project, name)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -143,6 +146,7 @@ func (h logicalCloudHandler) getHandler(w http.ResponseWriter, r *http.Request) 
 
 // updateHandler handles Update operations on a particular logical cloud
 func (h logicalCloudHandler) updateHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	var v common.LogicalCloud
 	vars := mux.Vars(r)
 	project := vars["project"]
@@ -150,14 +154,14 @@ func (h logicalCloudHandler) updateHandler(w http.ResponseWriter, r *http.Reques
 	var err error
 
 	// Get logical cloud
-	_, err = h.client.Get(project, name)
+	_, err = h.client.Get(ctx, project, name)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
 		return
 	}
 
-	ret, err := h.client.UpdateInstantiation(project, name, v)
+	ret, err := h.client.UpdateInstantiation(ctx, project, name, v)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, v, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -175,6 +179,7 @@ func (h logicalCloudHandler) updateHandler(w http.ResponseWriter, r *http.Reques
 
 // putHandler handles PUT API update operations on a particular logical cloud
 func (h logicalCloudHandler) putHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	var v common.LogicalCloud
 	vars := mux.Vars(r)
 	project := vars["project"]
@@ -182,7 +187,7 @@ func (h logicalCloudHandler) putHandler(w http.ResponseWriter, r *http.Request) 
 	var err error
 
 	// Get logical cloud
-	_, err = h.client.Get(project, name)
+	_, err = h.client.Get(ctx, project, name)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -214,7 +219,7 @@ func (h logicalCloudHandler) putHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	ret, err := h.client.UpdateLogicalCloud(project, name, v)
+	ret, err := h.client.UpdateLogicalCloud(ctx, project, name, v)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, v, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -232,13 +237,14 @@ func (h logicalCloudHandler) putHandler(w http.ResponseWriter, r *http.Request) 
 
 // deleteHandler handles Delete operations on a particular logical cloud
 func (h logicalCloudHandler) deleteHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	project := vars["project"]
 	name := vars["logicalCloud"]
 	var err error
 
 	// call to Delete also takes care of checking whether Logical Cloud exists
-	err = h.client.Delete(project, name)
+	err = h.client.Delete(ctx, project, name)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -250,13 +256,14 @@ func (h logicalCloudHandler) deleteHandler(w http.ResponseWriter, r *http.Reques
 
 // instantiateHandler handles instantiateing a particular logical cloud
 func (h logicalCloudHandler) instantiateHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	project := vars["project"]
 	name := vars["logicalCloud"]
 	var err error
 
 	// Get logical cloud
-	lc, err := h.client.Get(project, name)
+	lc, err := h.client.Get(ctx, project, name)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -264,7 +271,7 @@ func (h logicalCloudHandler) instantiateHandler(w http.ResponseWriter, r *http.R
 	}
 
 	// Get Clusters
-	clusters, err := h.clusterClient.GetAllClusters(project, name)
+	clusters, err := h.clusterClient.GetAllClusters(ctx, project, name)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -272,14 +279,14 @@ func (h logicalCloudHandler) instantiateHandler(w http.ResponseWriter, r *http.R
 	}
 
 	// Get Quotas
-	quotas, err := h.quotaClient.GetAllQuotas(project, name)
+	quotas, err := h.quotaClient.GetAllQuotas(ctx, project, name)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
 		return
 	}
 
-	userPermissions, err := h.userPermissionClient.GetAllUserPerms(project, name)
+	userPermissions, err := h.userPermissionClient.GetAllUserPerms(ctx, project, name)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -287,7 +294,7 @@ func (h logicalCloudHandler) instantiateHandler(w http.ResponseWriter, r *http.R
 	}
 
 	// Instantiate the Logical Cloud
-	err = dcm.Instantiate(project, lc, clusters, quotas, userPermissions)
+	err = dcm.Instantiate(ctx, project, lc, clusters, quotas, userPermissions)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -299,22 +306,26 @@ func (h logicalCloudHandler) instantiateHandler(w http.ResponseWriter, r *http.R
 
 // terminateHandler handles terminating a particular logical cloud
 func (h logicalCloudHandler) terminateHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	project := vars["project"]
 	name := vars["logicalCloud"]
 	var err error
 
 	// Get logical cloud
-	lc, err := h.client.Get(project, name)
+	lc, err := h.client.Get(ctx, project, name)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
-		http.Error(w, apiErr.Message, apiErr.Status)
-		return
+		if apiErr.Message != "No Cluster References associated" {
+			http.Error(w, apiErr.Message, apiErr.Status)
+			return
+		}
+		log.Warn("Proceeding to terminate Logical Cloud even though Cluster References no longer exist", log.Fields{"logicalcloud": name})
 	}
 
 	// Check if any DIGs are associated to this logical cloud before attempting any termination
 	digClient := orch.NewDeploymentIntentGroupClient()
-	digs, _ := digClient.GetAllDeploymentIntentGroups(project, "", "")
+	digs, _ := digClient.GetAllDeploymentIntentGroups(ctx, project, "", "")
 
 	// filter DIGs for given Logical Cloud
 	for _, dig := range digs {
@@ -327,7 +338,7 @@ func (h logicalCloudHandler) terminateHandler(w http.ResponseWriter, r *http.Req
 	}
 
 	// Get Clusters
-	clusters, err := h.clusterClient.GetAllClusters(project, name)
+	clusters, err := h.clusterClient.GetAllClusters(ctx, project, name)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -335,7 +346,7 @@ func (h logicalCloudHandler) terminateHandler(w http.ResponseWriter, r *http.Req
 	}
 
 	// Get Quotas
-	quotas, err := h.quotaClient.GetAllQuotas(project, name)
+	quotas, err := h.quotaClient.GetAllQuotas(ctx, project, name)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -343,7 +354,7 @@ func (h logicalCloudHandler) terminateHandler(w http.ResponseWriter, r *http.Req
 	}
 
 	// Terminate the Logical Cloud
-	err = dcm.Terminate(project, lc, clusters, quotas)
+	err = dcm.Terminate(ctx, project, lc, clusters, quotas)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -355,13 +366,14 @@ func (h logicalCloudHandler) terminateHandler(w http.ResponseWriter, r *http.Req
 
 // stopHandler handles aborting the pending instantiation or termination of a logical cloud
 func (h logicalCloudHandler) stopHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	project := vars["project"]
 	name := vars["logicalCloud"]
 	var err error
 
 	// Get logical cloud
-	lc, err := h.client.Get(project, name)
+	lc, err := h.client.Get(ctx, project, name)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -369,7 +381,7 @@ func (h logicalCloudHandler) stopHandler(w http.ResponseWriter, r *http.Request)
 	}
 
 	// Attempt to stop instantiating/terminating
-	err = dcm.Stop(project, lc)
+	err = dcm.Stop(ctx, project, lc)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -380,6 +392,7 @@ func (h logicalCloudHandler) stopHandler(w http.ResponseWriter, r *http.Request)
 }
 
 func (h logicalCloudHandler) statusHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	p := vars["project"]
 	lc := vars["logicalCloud"]
@@ -495,11 +508,11 @@ func (h logicalCloudHandler) statusHandler(w http.ResponseWriter, r *http.Reques
 	// invoked: i. clusters, ii. resources, iii. default.
 	// Supplied query parameters which are not appropriate for the select function call are simply ignored.
 	if qClusters {
-		status, err = h.client.StatusClusters(p, lc, qInstance)
+		status, err = h.client.StatusClusters(ctx, p, lc, qInstance)
 	} else if qResources {
-		status, err = h.client.StatusResources(p, lc, qInstance, qType, fClusters)
+		status, err = h.client.StatusResources(ctx, p, lc, qInstance, qType, fClusters)
 	} else {
-		status, err = h.client.Status(p, lc, qInstance, qType, qOutput, fClusters, fResources)
+		status, err = h.client.Status(ctx, p, lc, qInstance, qType, qOutput, fClusters, fResources)
 	}
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)

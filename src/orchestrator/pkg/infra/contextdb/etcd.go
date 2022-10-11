@@ -12,6 +12,8 @@ import (
 
 	pkgerrors "github.com/pkg/errors"
 	"go.etcd.io/etcd/clientv3"
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
+	"google.golang.org/grpc"
 )
 
 // EtcdConfig Configuration values needed for Etcd Client
@@ -44,10 +46,15 @@ func NewEtcdClient(store *clientv3.Client, c EtcdConfig) (ContextDb, error) {
 	var endpoint string
 	if store == nil {
 		endpoint = "http://" + net.JoinHostPort(c.Endpoint, "2379")
-
 		etcdClient := clientv3.Config{
 			Endpoints:   []string{endpoint},
 			DialTimeout: 5 * time.Second,
+			DialOptions: []grpc.DialOption{
+				// The chained version must be used here as clientv3 inserts its own
+				// interceptors (retry) which we still want to use
+				grpc.WithChainUnaryInterceptor(otelgrpc.UnaryClientInterceptor()),
+				grpc.WithChainStreamInterceptor(otelgrpc.StreamClientInterceptor()),
+			},
 		}
 		if len(os.Getenv("CONTEXTDB_EMCO_USERNAME")) > 0 && len(os.Getenv("CONTEXTDB_EMCO_PASSWORD")) > 0 {
 			etcdClient.Username = os.Getenv("CONTEXTDB_EMCO_USERNAME")
@@ -67,7 +74,7 @@ func NewEtcdClient(store *clientv3.Client, c EtcdConfig) (ContextDb, error) {
 }
 
 // Put values in Etcd DB
-func (e *EtcdClient) Put(key string, value interface{}) error {
+func (e *EtcdClient) Put(ctx context.Context, key string, value interface{}) error {
 	cli := getEtcd(e)
 	if cli == nil {
 		return pkgerrors.Errorf("Etcd Client not initialized")
@@ -82,7 +89,7 @@ func (e *EtcdClient) Put(key string, value interface{}) error {
 	if err != nil {
 		return pkgerrors.Errorf("Json Marshal error: %s", err.Error())
 	}
-	_, err = cli.Put(context.Background(), key, string(v))
+	_, err = cli.Put(ctx, key, string(v))
 	if err != nil {
 		return pkgerrors.Errorf("Error creating etcd entry: %s", err.Error())
 	}
@@ -90,7 +97,7 @@ func (e *EtcdClient) Put(key string, value interface{}) error {
 }
 
 // Get values from Etcd DB and decodes from json
-func (e *EtcdClient) Get(key string, value interface{}) error {
+func (e *EtcdClient) Get(ctx context.Context, key string, value interface{}) error {
 	cli := getEtcd(e)
 	if cli == nil {
 		return pkgerrors.Errorf("Etcd Client not initialized")
@@ -101,7 +108,7 @@ func (e *EtcdClient) Get(key string, value interface{}) error {
 	if value == nil {
 		return pkgerrors.Errorf("Value is nil")
 	}
-	getResp, err := cli.Get(context.Background(), key)
+	getResp, err := cli.Get(ctx, key)
 	if err != nil {
 		return pkgerrors.Errorf("Error getting etcd entry: %s", err.Error())
 	}
@@ -112,12 +119,12 @@ func (e *EtcdClient) Get(key string, value interface{}) error {
 }
 
 // GetAllKeys values from Etcd DB
-func (e *EtcdClient) GetAllKeys(key string) ([]string, error) {
+func (e *EtcdClient) GetAllKeys(ctx context.Context, key string) ([]string, error) {
 	cli := getEtcd(e)
 	if cli == nil {
 		return nil, pkgerrors.Errorf("Etcd Client not initialized")
 	}
-	getResp, err := cli.Get(context.Background(), key, clientv3.WithPrefix())
+	getResp, err := cli.Get(ctx, key, clientv3.WithPrefix())
 	if err != nil {
 		return nil, pkgerrors.Errorf("Error getting etcd entry: %s", err.Error())
 	}
@@ -132,12 +139,12 @@ func (e *EtcdClient) GetAllKeys(key string) ([]string, error) {
 }
 
 // DeleteAll keys from Etcd DB
-func (e *EtcdClient) DeleteAll(key string) error {
+func (e *EtcdClient) DeleteAll(ctx context.Context, key string) error {
 	cli := getEtcd(e)
 	if cli == nil {
 		return pkgerrors.Errorf("Etcd Client not initialized")
 	}
-	_, err := cli.Delete(context.Background(), key, clientv3.WithPrefix())
+	_, err := cli.Delete(ctx, key, clientv3.WithPrefix())
 	if err != nil {
 		return pkgerrors.Errorf("Delete failed etcd entry: %s", err.Error())
 	}
@@ -145,12 +152,12 @@ func (e *EtcdClient) DeleteAll(key string) error {
 }
 
 // Delete values from Etcd DB
-func (e *EtcdClient) Delete(key string) error {
+func (e *EtcdClient) Delete(ctx context.Context, key string) error {
 	cli := getEtcd(e)
 	if cli == nil {
 		return pkgerrors.Errorf("Etcd Client not initialized")
 	}
-	_, err := cli.Delete(context.Background(), key)
+	_, err := cli.Delete(ctx, key)
 	if err != nil {
 		return pkgerrors.Errorf("Delete failed etcd entry: %s", err.Error())
 	}
@@ -163,7 +170,7 @@ func (e *EtcdClient) HealthCheck() error {
 }
 
 // Put values in Etcd DB and check if already present
-func (e *EtcdClient) PutWithCheck(key string, value interface{}) error {
+func (e *EtcdClient) PutWithCheck(ctx context.Context, key string, value interface{}) error {
 	cli := getEtcd(e)
 	if cli == nil {
 		return pkgerrors.Errorf("Etcd Client not initialized")
@@ -180,7 +187,7 @@ func (e *EtcdClient) PutWithCheck(key string, value interface{}) error {
 	}
 	opts := []clientv3.OpOption{}
 	opts = append(opts, clientv3.WithPrevKV())
-	resp, err := cli.Put(context.Background(), key, string(v), opts...)
+	resp, err := cli.Put(ctx, key, string(v), opts...)
 	if err != nil {
 		return pkgerrors.Errorf("Error creating etcd entry: %s", err.Error())
 	}

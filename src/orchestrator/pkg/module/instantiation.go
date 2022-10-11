@@ -4,6 +4,7 @@
 package module
 
 import (
+	"context"
 	"encoding/base64"
 	"fmt"
 	"os"
@@ -19,6 +20,7 @@ import (
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/state"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/status"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/utils/helm"
+	"go.opentelemetry.io/otel/trace"
 )
 
 // ManifestFileName is the name given to the manifest file in the profile package
@@ -93,18 +95,18 @@ type InstantiationKey struct {
 // InstantiationManager is an interface which exposes the
 // InstantiationManager functionalities
 type InstantiationManager interface {
-	Approve(p string, ca string, v string, di string) error
-	Instantiate(p string, ca string, v string, di string) error
-	Status(p, ca, v, di, qInstance, qType, qOutput string, fApps, fClusters, fResources []string) (DeploymentStatus, error)
-	GenericStatus(p, ca, v, di, qInstance, qType, qOutput string, fApps, fClusters, fResources []string) (status.StatusResult, error)
-	StatusAppsList(p, ca, v, di, qInstance string) (DeploymentAppsListStatus, error)
-	StatusClustersByApp(p, ca, v, di, qInstance string, fApps []string) (DeploymentClustersByAppStatus, error)
-	StatusResourcesByApp(p, ca, v, di, qInstance, qType string, fApps, fClusters []string) (DeploymentResourcesByAppStatus, error)
-	Terminate(p string, ca string, v string, di string) error
-	Stop(p string, ca string, v string, di string) error
-	Migrate(p string, ca string, v string, tCav string, di string, tDi string) error
-	Update(p string, ca string, v string, di string) (int64, error)
-	Rollback(p string, ca string, v string, di string, rbRev string) error
+	Approve(ctx context.Context, p string, ca string, v string, di string) error
+	Instantiate(ctx context.Context, p string, ca string, v string, di string) error
+	Status(ctx context.Context, p, ca, v, di, qInstance, qType, qOutput string, fApps, fClusters, fResources []string) (DeploymentStatus, error)
+	GenericStatus(ctx context.Context, p, ca, v, di, qInstance, qType, qOutput string, fApps, fClusters, fResources []string) (status.StatusResult, error)
+	StatusAppsList(ctx context.Context, p, ca, v, di, qInstance string) (DeploymentAppsListStatus, error)
+	StatusClustersByApp(ctx context.Context, p, ca, v, di, qInstance string, fApps []string) (DeploymentClustersByAppStatus, error)
+	StatusResourcesByApp(ctx context.Context, p, ca, v, di, qInstance, qType string, fApps, fClusters []string) (DeploymentResourcesByAppStatus, error)
+	Terminate(ctx context.Context, p string, ca string, v string, di string) error
+	Stop(ctx context.Context, p string, ca string, v string, di string) error
+	Migrate(ctx context.Context, p string, ca string, v string, tCav string, di string, tDi string) error
+	Update(ctx context.Context, p string, ca string, v string, di string) (int64, error)
+	Rollback(ctx context.Context, p string, ca string, v string, di string, rbRev string) error
 }
 
 // InstantiationClientDbInfo consists of storeName and tagState
@@ -124,8 +126,8 @@ func NewInstantiationClient() *InstantiationClient {
 }
 
 //Approve approves an instantiation
-func (c InstantiationClient) Approve(p string, ca string, v string, di string) error {
-	s, err := NewDeploymentIntentGroupClient().GetDeploymentIntentGroupState(di, p, ca, v)
+func (c InstantiationClient) Approve(ctx context.Context, p string, ca string, v string, di string) error {
+	s, err := NewDeploymentIntentGroupClient().GetDeploymentIntentGroupState(ctx, di, p, ca, v)
 	if err != nil {
 		log.Info("DeploymentIntentGroup has no state info ", log.Fields{"DeploymentIntentGroup: ": di})
 		return pkgerrors.Wrap(err, "DeploymentIntentGroup has no state info: "+di)
@@ -165,7 +167,7 @@ func (c InstantiationClient) Approve(p string, ca string, v string, di string) e
 	}
 	s.Actions = append(s.Actions, a)
 
-	err = db.DBconn.Insert(c.db.storeName, key, nil, c.db.tagState, s)
+	err = db.DBconn.Insert(ctx, c.db.storeName, key, nil, c.db.tagState, s)
 	if err != nil {
 		return pkgerrors.Wrap(err, "Error updating the stateInfo of the DeploymentIntentGroup: "+di)
 	}
@@ -186,9 +188,9 @@ func getOverrideValuesByAppName(ov []OverrideValues, a string) map[string]string
 	findGenericPlacementIntent takes in projectName, CompositeAppName, CompositeAppVersion, DeploymentIntentName
 	and returns the name of the genericPlacementIntentName. Returns empty value if string not found.
 */
-func findGenericPlacementIntent(p, ca, v, di string) (string, error) {
+func findGenericPlacementIntent(ctx context.Context, p, ca, v, di string) (string, error) {
 	var gi string
-	iList, err := NewIntentClient().GetAllIntents(p, ca, v, di)
+	iList, err := NewIntentClient().GetAllIntents(ctx, p, ca, v, di)
 	if err != nil {
 		return gi, err
 	}
@@ -204,14 +206,14 @@ func findGenericPlacementIntent(p, ca, v, di string) (string, error) {
 
 // GetSortedTemplateForApp returns the sorted templates.
 //It takes in arguments - appName, project, compositeAppName, releaseName, compositeProfileName, array of override values
-func GetSortedTemplateForApp(appName, p, ca, v, rName, cp, namespace string, overrideValues []OverrideValues) ([]helm.KubernetesResourceTemplate, []*helm.Hook, error) {
+func GetSortedTemplateForApp(ctx context.Context, appName, p, ca, v, rName, cp, namespace string, overrideValues []OverrideValues) ([]helm.KubernetesResourceTemplate, []*helm.Hook, error) {
 
 	log.Info(":: Processing App ::", log.Fields{"appName": appName})
 
 	var sortedTemplates []helm.KubernetesResourceTemplate
 	var hookList []*helm.Hook
 
-	aC, err := NewAppClient().GetAppContent(appName, p, ca, v)
+	aC, err := NewAppClient().GetAppContent(ctx, appName, p, ca, v)
 	if err != nil {
 		return sortedTemplates, hookList, pkgerrors.Wrap(err, fmt.Sprint("AppContent not found for:: ", appName))
 	}
@@ -222,7 +224,7 @@ func GetSortedTemplateForApp(appName, p, ca, v, rName, cp, namespace string, ove
 
 	log.Info(":: Got the app content.. ::", log.Fields{"appName": appName})
 
-	appPC, err := NewAppProfileClient().GetAppProfileContentByApp(p, ca, v, cp, appName)
+	appPC, err := NewAppProfileClient().GetAppProfileContentByApp(ctx, p, ca, v, cp, appName)
 	if err != nil {
 		return sortedTemplates, hookList, pkgerrors.Wrap(err, fmt.Sprintf("AppProfileContent not found for:: %s", appName))
 	}
@@ -277,9 +279,9 @@ func cleanTmpfiles(sortedTemplates []helm.KubernetesResourceTemplate) error {
 	return nil
 }
 
-func validateLogicalCloud(p string, lc string, dcmCloudClient *LogicalCloudClient) error {
+func validateLogicalCloud(ctx context.Context, p string, lc string, dcmCloudClient *LogicalCloudClient) error {
 	// check that specified logical cloud is already instantiated
-	logicalCloud, err := dcmCloudClient.Get(p, lc)
+	logicalCloud, err := dcmCloudClient.Get(ctx, p, lc)
 	if err != nil {
 		log.Error("Failed to obtain Logical Cloud specified", log.Fields{"error": err.Error()})
 		return pkgerrors.Wrap(err, "Failed to obtain Logical Cloud specified")
@@ -287,7 +289,7 @@ func validateLogicalCloud(p string, lc string, dcmCloudClient *LogicalCloudClien
 	log.Info(":: logicalCloud ::", log.Fields{"logicalCloud": logicalCloud})
 
 	// Check if there was a previous context for this logical cloud
-	s, err := dcmCloudClient.GetState(p, lc)
+	s, err := dcmCloudClient.GetState(ctx, p, lc)
 	if err != nil {
 		return err
 	}
@@ -299,7 +301,7 @@ func validateLogicalCloud(p string, lc string, dcmCloudClient *LogicalCloudClien
 
 	// make sure rsync status for this logical cloud is Instantiated (instantiated),
 	// otherwise the cloud isn't ready to receive the application being instantiated
-	acStatus, err := state.GetAppContextStatus(cid) // new from state
+	acStatus, err := state.GetAppContextStatus(ctx, cid) // new from state
 	if err != nil {
 		return err
 	}
@@ -329,10 +331,10 @@ func validateLogicalCloud(p string, lc string, dcmCloudClient *LogicalCloudClien
 	return nil
 }
 
-func getLogicalCloudInfo(p string, lc string) ([]common.Cluster, string, string, error) {
+func getLogicalCloudInfo(ctx context.Context, p string, lc string) ([]common.Cluster, string, string, error) {
 	dcmCloudClient := NewLogicalCloudClient()
-	logicalCloud, _ := dcmCloudClient.Get(p, lc)
-	if err := validateLogicalCloud(p, lc, dcmCloudClient); err != nil {
+	logicalCloud, _ := dcmCloudClient.Get(ctx, p, lc)
+	if err := validateLogicalCloud(ctx, p, lc, dcmCloudClient); err != nil {
 		return nil, "", "", err
 	}
 
@@ -345,7 +347,7 @@ func getLogicalCloudInfo(p string, lc string) ([]common.Cluster, string, string,
 	// get all clusters from specified logical cloud (LC)
 	// [candidate in the future for emco-lib]
 	dcmClusterClient := NewClusterClient()
-	dcmClusters, _ := dcmClusterClient.GetAllClusters(p, lc)
+	dcmClusters, _ := dcmClusterClient.GetAllClusters(ctx, p, lc)
 	log.Info(":: dcmClusters ::", log.Fields{"dcmClusters": dcmClusters})
 	return dcmClusters, namespace, level, nil
 }
@@ -385,49 +387,53 @@ Instantiate methods takes in projectName, compositeAppName, compositeAppVersion,
 DeploymentIntentName. This method is responsible for template resolution, intent
 resolution, creation and saving of context for saving into etcd.
 */
-func (c InstantiationClient) Instantiate(p string, ca string, v string, di string) error {
+func (c InstantiationClient) Instantiate(ctx context.Context, p string, ca string, v string, di string) error {
 
 	log.Info(":: Orchestrator Instantiate ::", log.Fields{"project": p, "composite-app": ca, "composite-app-ver": v, "dep-group": di})
 
+	span := trace.SpanFromContext(ctx)
+	span.AddEvent("retrieve-info")
+
 	// in case of migrate dig comes from JSON body
-	dIGrp, err := NewDeploymentIntentGroupClient().GetDeploymentIntentGroup(di, p, ca, v)
+	dIGrp, err := NewDeploymentIntentGroupClient().GetDeploymentIntentGroup(ctx, di, p, ca, v)
 	if err != nil {
 		return pkgerrors.Wrap(err, "DeploymentIntentGroup not found")
 	}
 
 	// handle state info
-	s, err := handleStateInfo(p, ca, v, di)
+	s, err := handleStateInfo(ctx, p, ca, v, di)
 	if err != nil {
 		return pkgerrors.Wrap(err, "Error in handleStateInfo for DeploymentIntent:: "+di)
 	}
 
 	// BEGIN : Make app context
+	span.AddEvent("create-app-context")
 	instantiator := Instantiator{p, ca, v, di, dIGrp}
-	cca, err := instantiator.MakeAppContext()
+	cca, err := instantiator.MakeAppContext(ctx)
 	if err != nil {
 		return pkgerrors.Wrap(err, "Error in making AppContext")
 	}
 	// END : Make app context
 
 	// BEGIN : callScheduler
-	err = callScheduler(cca.context, cca.ctxval, nil, p, ca, v, di)
+	err = callScheduler(ctx, cca.context, cca.ctxval, nil, p, ca, v, di)
 	if err != nil {
 		return pkgerrors.Wrap(err, "Error in callScheduler")
 	}
 	// END : callScheduler
 
 	// BEGIN : Rsync code
-	err = callRsyncInstall(cca.ctxval)
+	err = callRsyncInstall(ctx, cca.ctxval)
 	if err != nil {
-		deleteAppContext(cca.context)
+		deleteAppContext(ctx, cca.context)
 		return pkgerrors.Wrap(err, "Error calling rsync")
 	}
 	// END : Rsync code
 
-	err = storeAppContextIntoMetaDB(cca.ctxval, c.db.storeName, c.db.tagState, s, p, ca, v, di)
+	err = storeAppContextIntoMetaDB(ctx, cca.ctxval, c.db.storeName, c.db.tagState, s, p, ca, v, di)
 
 	// Call Post INSTANTIATE Event for all controllers
-	_ = callPostEventScheduler(cca.ctxval, p, ca, v, di, "INSTANTIATE")
+	_ = callPostEventScheduler(ctx, cca.ctxval, p, ca, v, di, "INSTANTIATE")
 
 	log.Info(":: Done with instantiation call to rsync... ::", log.Fields{"CompositeAppName": ca})
 	return err
@@ -438,19 +444,18 @@ Status takes in projectName, compositeAppName, compositeAppVersion,
 DeploymentIntentName. This method is responsible obtaining the status of
 the deployment, which is made available in the appcontext.
 */
-func (c InstantiationClient) Status(p, ca, v, di, qInstance, qType, qOutput string, fApps, fClusters, fResources []string) (DeploymentStatus, error) {
-
-	dIGrp, err := NewDeploymentIntentGroupClient().GetDeploymentIntentGroup(di, p, ca, v)
+func (c InstantiationClient) Status(ctx context.Context, p, ca, v, di, qInstance, qType, qOutput string, fApps, fClusters, fResources []string) (DeploymentStatus, error) {
+	dIGrp, err := NewDeploymentIntentGroupClient().GetDeploymentIntentGroup(ctx, di, p, ca, v)
 	if err != nil {
 		return DeploymentStatus{}, pkgerrors.Wrap(err, "DeploymentIntentGroup not found")
 	}
 
-	diState, err := NewDeploymentIntentGroupClient().GetDeploymentIntentGroupState(di, p, ca, v)
+	diState, err := NewDeploymentIntentGroupClient().GetDeploymentIntentGroupState(ctx, di, p, ca, v)
 	if err != nil {
 		return DeploymentStatus{}, pkgerrors.Wrap(err, "DeploymentIntentGroup state not found: "+di)
 	}
 
-	statusResponse, err := status.PrepareStatusResult(diState, qInstance, qType, qOutput, fApps, fClusters, fResources)
+	statusResponse, err := status.PrepareStatusResult(ctx, diState, qInstance, qType, qOutput, fApps, fClusters, fResources)
 	if err != nil {
 		return DeploymentStatus{}, err
 	}
@@ -471,8 +476,8 @@ GenericStatus takes in projectName, compositeAppName, compositeAppVersion,
 DeploymentIntentName. This method is responsible obtaining the status of
 the deployment, which is made available in the appcontext.
 */
-func (c InstantiationClient) GenericStatus(p, ca, v, di, qStatusInstance, qType, qOutput string, fApps, fClusters, fResources []string) (status.StatusResult, error) {
-	diState, err := NewDeploymentIntentGroupClient().GetDeploymentIntentGroupState(di, p, ca, v)
+func (c InstantiationClient) GenericStatus(ctx context.Context, p, ca, v, di, qStatusInstance, qType, qOutput string, fApps, fClusters, fResources []string) (status.StatusResult, error) {
+	diState, err := NewDeploymentIntentGroupClient().GetDeploymentIntentGroupState(ctx, di, p, ca, v)
 	if err != nil {
 		return status.StatusResult{}, pkgerrors.Wrap(err, "DeploymentIntentGroup state not found: "+di)
 	}
@@ -482,7 +487,7 @@ func (c InstantiationClient) GenericStatus(p, ca, v, di, qStatusInstance, qType,
 		return status.StatusResult{}, err
 	}
 
-	statusResponse, err := status.GenericPrepareStatusResult(status.DeploymentIntentGroupStatusQuery, diState, qInstance, qType, qOutput, fApps, fClusters, fResources)
+	statusResponse, err := status.GenericPrepareStatusResult(ctx, status.DeploymentIntentGroupStatusQuery, diState, qInstance, qType, qOutput, fApps, fClusters, fResources)
 	if err != nil {
 		return status.StatusResult{}, err
 	}
@@ -496,19 +501,18 @@ StatusAppsList takes in projectName, compositeAppName, compositeAppVersion,
 DeploymentIntentName. This method returns the list of apps in use for the given instance
 of appcontext of this deployment intent group.
 */
-func (c InstantiationClient) StatusAppsList(p, ca, v, di, qInstance string) (DeploymentAppsListStatus, error) {
-
-	dIGrp, err := NewDeploymentIntentGroupClient().GetDeploymentIntentGroup(di, p, ca, v)
+func (c InstantiationClient) StatusAppsList(ctx context.Context, p, ca, v, di, qInstance string) (DeploymentAppsListStatus, error) {
+	dIGrp, err := NewDeploymentIntentGroupClient().GetDeploymentIntentGroup(ctx, di, p, ca, v)
 	if err != nil {
 		return DeploymentAppsListStatus{}, pkgerrors.Wrap(err, "DeploymentIntentGroup not found")
 	}
 
-	diState, err := NewDeploymentIntentGroupClient().GetDeploymentIntentGroupState(di, p, ca, v)
+	diState, err := NewDeploymentIntentGroupClient().GetDeploymentIntentGroupState(ctx, di, p, ca, v)
 	if err != nil {
 		return DeploymentAppsListStatus{}, pkgerrors.Wrap(err, "DeploymentIntentGroup state not found: "+di)
 	}
 
-	statusResponse, err := status.PrepareAppsListStatusResult(diState, qInstance)
+	statusResponse, err := status.PrepareAppsListStatusResult(ctx, diState, qInstance)
 	if err != nil {
 		return DeploymentAppsListStatus{}, err
 	}
@@ -529,19 +533,18 @@ StatusClustersByApp takes in projectName, compositeAppName, compositeAppVersion,
 DeploymentIntentName. This method returns the list of apps in use for the given instance
 of appcontext of this deployment intent group.
 */
-func (c InstantiationClient) StatusClustersByApp(p, ca, v, di, qInstance string, fApps []string) (DeploymentClustersByAppStatus, error) {
-
-	dIGrp, err := NewDeploymentIntentGroupClient().GetDeploymentIntentGroup(di, p, ca, v)
+func (c InstantiationClient) StatusClustersByApp(ctx context.Context, p, ca, v, di, qInstance string, fApps []string) (DeploymentClustersByAppStatus, error) {
+	dIGrp, err := NewDeploymentIntentGroupClient().GetDeploymentIntentGroup(ctx, di, p, ca, v)
 	if err != nil {
 		return DeploymentClustersByAppStatus{}, pkgerrors.Wrap(err, "DeploymentIntentGroup not found")
 	}
 
-	diState, err := NewDeploymentIntentGroupClient().GetDeploymentIntentGroupState(di, p, ca, v)
+	diState, err := NewDeploymentIntentGroupClient().GetDeploymentIntentGroupState(ctx, di, p, ca, v)
 	if err != nil {
 		return DeploymentClustersByAppStatus{}, pkgerrors.Wrap(err, "DeploymentIntentGroup state not found: "+di)
 	}
 
-	statusResponse, err := status.PrepareClustersByAppStatusResult(diState, qInstance, fApps)
+	statusResponse, err := status.PrepareClustersByAppStatusResult(ctx, diState, qInstance, fApps)
 	if err != nil {
 		return DeploymentClustersByAppStatus{}, err
 	}
@@ -562,19 +565,18 @@ StatusResourcesByApp takes in projectName, compositeAppName, compositeAppVersion
 DeploymentIntentName. This method returns the list of apps in use for the given instance
 of appcontext of this deployment intent group.
 */
-func (c InstantiationClient) StatusResourcesByApp(p, ca, v, di, qInstance, qType string, fApps, fClusters []string) (DeploymentResourcesByAppStatus, error) {
-
-	dIGrp, err := NewDeploymentIntentGroupClient().GetDeploymentIntentGroup(di, p, ca, v)
+func (c InstantiationClient) StatusResourcesByApp(ctx context.Context, p, ca, v, di, qInstance, qType string, fApps, fClusters []string) (DeploymentResourcesByAppStatus, error) {
+	dIGrp, err := NewDeploymentIntentGroupClient().GetDeploymentIntentGroup(ctx, di, p, ca, v)
 	if err != nil {
 		return DeploymentResourcesByAppStatus{}, pkgerrors.Wrap(err, "DeploymentIntentGroup not found")
 	}
 
-	diState, err := NewDeploymentIntentGroupClient().GetDeploymentIntentGroupState(di, p, ca, v)
+	diState, err := NewDeploymentIntentGroupClient().GetDeploymentIntentGroupState(ctx, di, p, ca, v)
 	if err != nil {
 		return DeploymentResourcesByAppStatus{}, pkgerrors.Wrap(err, "DeploymentIntentGroup state not found: "+di)
 	}
 
-	statusResponse, err := status.PrepareResourcesByAppStatusResult(diState, qInstance, qType, fApps, fClusters)
+	statusResponse, err := status.PrepareResourcesByAppStatusResult(ctx, diState, qInstance, qType, fApps, fClusters)
 	if err != nil {
 		return DeploymentResourcesByAppStatus{}, err
 	}
@@ -594,9 +596,9 @@ func (c InstantiationClient) StatusResourcesByApp(p, ca, v, di, qInstance, qType
 Terminate takes in projectName, compositeAppName, compositeAppVersion,
 DeploymentIntentName and calls rsync to terminate.
 */
-func (c InstantiationClient) Terminate(p string, ca string, v string, di string) error {
+func (c InstantiationClient) Terminate(ctx context.Context, p string, ca string, v string, di string) error {
 
-	s, err := NewDeploymentIntentGroupClient().GetDeploymentIntentGroupState(di, p, ca, v)
+	s, err := NewDeploymentIntentGroupClient().GetDeploymentIntentGroupState(ctx, di, p, ca, v)
 	if err != nil {
 		return pkgerrors.Wrap(err, "DeploymentIntentGroup has no state info: "+di)
 	}
@@ -613,34 +615,34 @@ func (c InstantiationClient) Terminate(p string, ca string, v string, di string)
 	currentCtxId := state.GetLastContextIdFromStateInfo(s)
 
 	// BEGIN : callScheduler
-	err = callTerminateScheduler(currentCtxId, p, ca, v, di)
+	err = callTerminateScheduler(ctx, currentCtxId, p, ca, v, di)
 	if err != nil {
 		return pkgerrors.Wrap(err, "Error in callTerminateScheduler")
 	}
 	// END : callScheduler
 
 	if stateVal == state.StateEnum.InstantiateStopped {
-		err = state.UpdateAppContextStopFlag(currentCtxId, false)
+		err = state.UpdateAppContextStopFlag(ctx, currentCtxId, false)
 		if err != nil {
 			return err
 		}
 	}
 
 	var ac appcontext.AppContext
-	_, err = ac.LoadAppContext(currentCtxId)
+	_, err = ac.LoadAppContext(ctx, currentCtxId)
 	if err != nil {
 		return pkgerrors.Wrapf(err, "Error getting AppContext with Id: %v", currentCtxId)
 	}
 
 	// Get the composite app meta
-	m, err := ac.GetCompositeAppMeta()
+	m, err := ac.GetCompositeAppMeta(ctx)
 	if err != nil {
 		return pkgerrors.Wrap(err, "Error getting CompositeAppMeta")
 	}
 	if len(m.ChildContextIDs) > 0 {
 		// Uninstall the resources associated to the child contexts
 		for _, childContextID := range m.ChildContextIDs {
-			err = callRsyncUninstall(childContextID)
+			err = callRsyncUninstall(ctx, childContextID)
 			if err != nil {
 				log.Warn("Unable to uninstall the resources associated to the child context", log.Fields{"childContext": childContextID})
 				continue
@@ -648,7 +650,7 @@ func (c InstantiationClient) Terminate(p string, ca string, v string, di string)
 		}
 	}
 	// Uninstall the resources associated to the parent contexts
-	err = callRsyncUninstall(currentCtxId)
+	err = callRsyncUninstall(ctx, currentCtxId)
 	if err != nil {
 		return err
 	}
@@ -666,12 +668,12 @@ func (c InstantiationClient) Terminate(p string, ca string, v string, di string)
 	}
 	s.Actions = append(s.Actions, a)
 
-	err = db.DBconn.Insert(c.db.storeName, key, nil, c.db.tagState, s)
+	err = db.DBconn.Insert(ctx, c.db.storeName, key, nil, c.db.tagState, s)
 	if err != nil {
 		return pkgerrors.Wrap(err, "Error updating the stateInfo of the DeploymentIntentGroup: "+di)
 	}
 	// Call Post Terminate Event for all controllers
-	_ = callPostEventScheduler(currentCtxId, p, ca, v, di, "TERMINATE")
+	_ = callPostEventScheduler(ctx, currentCtxId, p, ca, v, di, "TERMINATE")
 
 	return nil
 }
@@ -680,9 +682,9 @@ func (c InstantiationClient) Terminate(p string, ca string, v string, di string)
 Stop takes in projectName, compositeAppName, compositeAppVersion,
 DeploymentIntentName and sets the stopFlag in the associated appContext.
 */
-func (c InstantiationClient) Stop(p string, ca string, v string, di string) error {
+func (c InstantiationClient) Stop(ctx context.Context, p string, ca string, v string, di string) error {
 
-	s, err := NewDeploymentIntentGroupClient().GetDeploymentIntentGroupState(di, p, ca, v)
+	s, err := NewDeploymentIntentGroupClient().GetDeploymentIntentGroupState(ctx, di, p, ca, v)
 	if err != nil {
 		return pkgerrors.Wrap(err, "DeploymentIntentGroup has no state info: "+di)
 	}
@@ -716,7 +718,7 @@ func (c InstantiationClient) Stop(p string, ca string, v string, di string) erro
 
 	currentCtxId := state.GetLastContextIdFromStateInfo(s)
 
-	acStatus, err := state.GetAppContextStatus(currentCtxId)
+	acStatus, err := state.GetAppContextStatus(ctx, currentCtxId)
 	if err != nil {
 		return err
 	}
@@ -724,7 +726,7 @@ func (c InstantiationClient) Stop(p string, ca string, v string, di string) erro
 		acStatus.Status != appcontext.AppContextStatusEnum.Terminating {
 		return pkgerrors.Errorf("DeploymentIntentGroup is not instantiating or terminating:" + di)
 	}
-	err = state.UpdateAppContextStopFlag(currentCtxId, true)
+	err = state.UpdateAppContextStopFlag(ctx, currentCtxId, true)
 	if err != nil {
 		return err
 	}
@@ -742,7 +744,7 @@ func (c InstantiationClient) Stop(p string, ca string, v string, di string) erro
 	}
 	s.Actions = append(s.Actions, a)
 
-	err = db.DBconn.Insert(c.db.storeName, key, nil, c.db.tagState, s)
+	err = db.DBconn.Insert(ctx, c.db.storeName, key, nil, c.db.tagState, s)
 	if err != nil {
 		return pkgerrors.Wrap(err, "Error updating the stateInfo of the DeploymentIntentGroup: "+di)
 	}

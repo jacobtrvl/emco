@@ -9,6 +9,7 @@ Adding/Querying AppIntents for each application in the composite-app
 */
 
 import (
+	"context"
 	"encoding/json"
 	"reflect"
 
@@ -40,11 +41,11 @@ type SpecData struct {
 // AppIntentManager is an interface which exposes the
 // AppIntentManager functionalities
 type AppIntentManager interface {
-	CreateAppIntent(a AppIntent, p string, ca string, v string, i string, digName string, failIfExists bool) (AppIntent, bool, error)
-	GetAppIntent(ai string, p string, ca string, v string, i string, digName string) (AppIntent, error)
-	GetAllIntentsByApp(aN, p, ca, v, i, digName string) (SpecData, error)
-	GetAllAppIntents(p, ca, v, i, digName string) ([]AppIntent, error)
-	DeleteAppIntent(ai string, p string, ca string, v string, i string, digName string) error
+	CreateAppIntent(ctx context.Context, a AppIntent, p string, ca string, v string, i string, digName string, failIfExists bool) (AppIntent, bool, error)
+	GetAppIntent(ctx context.Context, ai string, p string, ca string, v string, i string, digName string) (AppIntent, error)
+	GetAllIntentsByApp(ctx context.Context, aN, p, ca, v, i, digName string) (SpecData, error)
+	GetAllAppIntents(ctx context.Context, p, ca, v, i, digName string) ([]AppIntent, error)
+	DeleteAppIntent(ctx context.Context, ai string, p string, ca string, v string, i string, digName string) error
 }
 
 //AppIntentQueryKey required for query
@@ -122,11 +123,11 @@ func NewAppIntentClient() *AppIntentClient {
 // CreateAppIntent creates an entry for AppIntent in the db.
 // Other input parameters for it - projectName, compositeAppName, version, intentName and deploymentIntentGroupName.
 // failIfExists - indicates the request is POST=true or PUT=false
-func (c *AppIntentClient) CreateAppIntent(a AppIntent, p string, ca string, v string, i string, digName string, failIfExists bool) (AppIntent, bool, error) {
+func (c *AppIntentClient) CreateAppIntent(ctx context.Context, a AppIntent, p string, ca string, v string, i string, digName string, failIfExists bool) (AppIntent, bool, error) {
 	aiExists := false
 
 	//Check for the AppIntent already exists here.
-	res, err := c.GetAppIntent(a.MetaData.Name, p, ca, v, i, digName)
+	res, err := c.GetAppIntent(ctx, a.MetaData.Name, p, ca, v, i, digName)
 	if err == nil && !reflect.DeepEqual(res, AppIntent{}) {
 		aiExists = true
 	}
@@ -148,7 +149,7 @@ func (c *AppIntentClient) CreateAppIntent(a AppIntent, p string, ca string, v st
 		AppName: a.Spec.AppName,
 	}
 
-	err = db.DBconn.Insert(c.storeName, akey, qkey, c.tagMetaData, a)
+	err = db.DBconn.Insert(ctx, c.storeName, akey, qkey, c.tagMetaData, a)
 	if err != nil {
 		return AppIntent{}, aiExists, err
 	}
@@ -157,7 +158,7 @@ func (c *AppIntentClient) CreateAppIntent(a AppIntent, p string, ca string, v st
 }
 
 // GetAppIntent shall take arguments - name of the app intent, name of the project, name of the composite app, version of the composite app,intent name and deploymentIntentGroupName. It shall return the AppIntent
-func (c *AppIntentClient) GetAppIntent(ai string, p string, ca string, v string, i string, digName string) (AppIntent, error) {
+func (c *AppIntentClient) GetAppIntent(ctx context.Context, ai string, p string, ca string, v string, i string, digName string) (AppIntent, error) {
 
 	k := AppIntentKey{
 		Name:                      ai,
@@ -168,7 +169,7 @@ func (c *AppIntentClient) GetAppIntent(ai string, p string, ca string, v string,
 		DeploymentIntentGroupName: digName,
 	}
 
-	result, err := db.DBconn.Find(c.storeName, k, c.tagMetaData)
+	result, err := db.DBconn.Find(ctx, c.storeName, k, c.tagMetaData)
 	if err != nil {
 		return AppIntent{}, err
 	}
@@ -194,7 +195,7 @@ GetAllIntentsByApp queries intent by AppName, it takes in parameters AppName, Co
 GenericPlacementIntentName & DeploymentIntentGroupName. Returns SpecData which contains
 all the intents for the app.
 */
-func (c *AppIntentClient) GetAllIntentsByApp(aN, p, ca, v, i, digName string) (SpecData, error) {
+func (c *AppIntentClient) GetAllIntentsByApp(ctx context.Context, aN, p, ca, v, i, digName string) (SpecData, error) {
 	k := AppIntentFindByAppKey{
 		Project:                   p,
 		CompositeApp:              ca,
@@ -203,7 +204,7 @@ func (c *AppIntentClient) GetAllIntentsByApp(aN, p, ca, v, i, digName string) (S
 		DeploymentIntentGroupName: digName,
 		AppName:                   aN,
 	}
-	result, err := db.DBconn.Find(c.storeName, k, c.tagMetaData)
+	result, err := db.DBconn.Find(ctx, c.storeName, k, c.tagMetaData)
 	if err != nil {
 		return SpecData{}, err
 	}
@@ -224,7 +225,7 @@ func (c *AppIntentClient) GetAllIntentsByApp(aN, p, ca, v, i, digName string) (S
 GetAllAppIntents takes in paramaters ProjectName, CompositeAppName, CompositeNameVersion
 and GenericPlacementIntentName,DeploymentIntentGroupName. Returns an array of AppIntents
 */
-func (c *AppIntentClient) GetAllAppIntents(p, ca, v, i, digName string) ([]AppIntent, error) {
+func (c *AppIntentClient) GetAllAppIntents(ctx context.Context, p, ca, v, i, digName string) ([]AppIntent, error) {
 	k := AppIntentKey{
 		Name:                      "",
 		Project:                   p,
@@ -233,7 +234,7 @@ func (c *AppIntentClient) GetAllAppIntents(p, ca, v, i, digName string) ([]AppIn
 		Intent:                    i,
 		DeploymentIntentGroupName: digName,
 	}
-	result, err := db.DBconn.Find(c.storeName, k, c.tagMetaData)
+	result, err := db.DBconn.Find(ctx, c.storeName, k, c.tagMetaData)
 	if err != nil {
 		return []AppIntent{}, err
 	}
@@ -255,7 +256,7 @@ func (c *AppIntentClient) GetAllAppIntents(p, ca, v, i, digName string) ([]AppIn
 }
 
 // DeleteAppIntent delete an AppIntent
-func (c *AppIntentClient) DeleteAppIntent(ai string, p string, ca string, v string, i string, digName string) error {
+func (c *AppIntentClient) DeleteAppIntent(ctx context.Context, ai string, p string, ca string, v string, i string, digName string) error {
 	k := AppIntentKey{
 		Name:                      ai,
 		Project:                   p,
@@ -265,7 +266,7 @@ func (c *AppIntentClient) DeleteAppIntent(ai string, p string, ca string, v stri
 		DeploymentIntentGroupName: digName,
 	}
 
-	err := db.DBconn.Remove(c.storeName, k)
+	err := db.DBconn.Remove(ctx, c.storeName, k)
 	return err
 
 }

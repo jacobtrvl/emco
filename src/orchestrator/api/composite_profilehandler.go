@@ -50,12 +50,13 @@ func (h compositeProfileHandler) createHandler(w http.ResponseWriter, r *http.Re
 		return
 	}
 
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	projectName := vars["project"]
 	compositeAppName := vars["compositeApp"]
 	version := vars["compositeAppVersion"]
 
-	cProf, createErr := h.client.CreateCompositeProfile(cpf, projectName, compositeAppName, version, false)
+	cProf, createErr := h.client.CreateCompositeProfile(ctx, cpf, projectName, compositeAppName, version, false)
 	if createErr != nil {
 		apiErr := apierror.HandleErrors(vars, createErr, cpf, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -74,6 +75,7 @@ func (h compositeProfileHandler) createHandler(w http.ResponseWriter, r *http.Re
 
 // getHandler handles the GET operations on CompositeProfile
 func (h compositeProfileHandler) getHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	cProfName := vars["compositeProfile"]
 
@@ -101,7 +103,7 @@ func (h compositeProfileHandler) getHandler(w http.ResponseWriter, r *http.Reque
 	if len(cProfName) == 0 {
 		var retList []moduleLib.CompositeProfile
 
-		ret, err := h.client.GetCompositeProfiles(projectName, compositeAppName, version)
+		ret, err := h.client.GetCompositeProfiles(ctx, projectName, compositeAppName, version)
 		if err != nil {
 			apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 			http.Error(w, apiErr.Message, apiErr.Status)
@@ -123,7 +125,7 @@ func (h compositeProfileHandler) getHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	cProf, err := h.client.GetCompositeProfile(cProfName, projectName, compositeAppName, version)
+	cProf, err := h.client.GetCompositeProfile(ctx, cProfName, projectName, compositeAppName, version)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -142,13 +144,14 @@ func (h compositeProfileHandler) getHandler(w http.ResponseWriter, r *http.Reque
 
 // deleteHandler handles the delete operations on CompostiteProfile
 func (h compositeProfileHandler) deleteHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	c := vars["compositeProfile"]
 	p := vars["project"]
 	ca := vars["compositeApp"]
 	v := vars["compositeAppVersion"]
 
-	err := h.client.DeleteCompositeProfile(c, p, ca, v)
+	err := h.client.DeleteCompositeProfile(ctx, c, p, ca, v)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -182,12 +185,13 @@ func (h compositeProfileHandler) updateHandler(w http.ResponseWriter, r *http.Re
 		return
 	}
 
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	projectName := vars["project"]
 	compositeAppName := vars["compositeApp"]
 	version := vars["compositeAppVersion"]
 
-	cProf, createErr := h.client.CreateCompositeProfile(cpf, projectName, compositeAppName, version, true)
+	cProf, createErr := h.client.CreateCompositeProfile(ctx, cpf, projectName, compositeAppName, version, true)
 	if createErr != nil {
 		apiErr := apierror.HandleErrors(vars, createErr, cpf, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)

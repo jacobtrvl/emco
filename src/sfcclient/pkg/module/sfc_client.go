@@ -8,6 +8,7 @@ import (
 	orchmod "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/module"
 	"gitlab.com/project-emco/core/emco-base/src/sfcclient/pkg/model"
 
+	"context"
 	pkgerrors "github.com/pkg/errors"
 )
 
@@ -28,7 +29,7 @@ func (v *SfcClient) CreateSfcClientIntent(intent model.SfcClientIntent, pr, ca, 
 		return model.SfcClientIntent{}, pkgerrors.New("SFC Client Intent already exists")
 	}
 
-	err = db.DBconn.Insert(v.db.storeName, key, nil, v.db.tagMeta, intent)
+	err = db.DBconn.Insert(context.Background(), v.db.storeName, key, nil, v.db.tagMeta, intent)
 	if err != nil {
 		return model.SfcClientIntent{}, pkgerrors.Wrap(err, "Creating DB Entry")
 	}
@@ -47,7 +48,7 @@ func (v *SfcClient) GetSfcClientIntent(name, pr, ca, caver, dig string) (model.S
 		SfcClientIntent:     name,
 	}
 
-	value, err := db.DBconn.Find(v.db.storeName, key, v.db.tagMeta)
+	value, err := db.DBconn.Find(context.Background(), v.db.storeName, key, v.db.tagMeta)
 	if err != nil {
 		return model.SfcClientIntent{}, err
 	} else if len(value) == 0 {
@@ -81,12 +82,12 @@ func (v *SfcClient) GetAllSfcClientIntents(pr, ca, caver, dig string) ([]model.S
 	resp := make([]model.SfcClientIntent, 0)
 
 	// Verify the Deployment Intent Group exists
-	_, err := orchmod.NewDeploymentIntentGroupClient().GetDeploymentIntentGroup(dig, pr, ca, caver)
+	_, err := orchmod.NewDeploymentIntentGroupClient().GetDeploymentIntentGroup(context.Background(), dig, pr, ca, caver)
 	if err != nil {
 		return resp, err
 	}
 
-	values, err := db.DBconn.Find(v.db.storeName, key, v.db.tagMeta)
+	values, err := db.DBconn.Find(context.Background(), v.db.storeName, key, v.db.tagMeta)
 	if err != nil {
 		return resp, err
 	}
@@ -115,6 +116,6 @@ func (v *SfcClient) DeleteSfcClientIntent(name, pr, ca, caver, dig string) error
 		SfcClientIntent:     name,
 	}
 
-	err := db.DBconn.Remove(v.db.storeName, key)
+	err := db.DBconn.Remove(context.Background(), v.db.storeName, key)
 	return err
 }

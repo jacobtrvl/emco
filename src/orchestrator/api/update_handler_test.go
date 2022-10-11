@@ -5,6 +5,7 @@ package api
 
 import (
 	"bytes"
+	"context"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -23,7 +24,7 @@ type mockInstantiationManager struct {
 	Err error
 }
 
-func (m mockInstantiationManager) Migrate(p string, ca string, v string, tCav string, di string, tDi string) error {
+func (m mockInstantiationManager) Migrate(ctx context.Context, p string, ca string, v string, tCav string, di string, tDi string) error {
 	if m.Err != nil {
 		return m.Err
 	}
@@ -31,7 +32,7 @@ func (m mockInstantiationManager) Migrate(p string, ca string, v string, tCav st
 	return nil
 }
 
-func (m mockInstantiationManager) Update(p string, ca string, v string, di string) (int64, error) {
+func (m mockInstantiationManager) Update(ctx context.Context, p string, ca string, v string, di string) (int64, error) {
 	if m.Err != nil {
 		return -1, m.Err
 	}
@@ -39,7 +40,7 @@ func (m mockInstantiationManager) Update(p string, ca string, v string, di strin
 	return 0, nil
 }
 
-func (m mockInstantiationManager) Rollback(p string, ca string, v string, di string, rbRev string) error {
+func (m mockInstantiationManager) Rollback(ctx context.Context, p string, ca string, v string, di string, rbRev string) error {
 	if m.Err != nil {
 		return m.Err
 	}

@@ -9,6 +9,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	"context"
 	"gitlab.com/project-emco/core/emco-base/src/genericactioncontroller/pkg/module"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/module/types"
 )
@@ -198,7 +199,7 @@ func populateResourceTestData() {
 		DeploymentIntentGroup: v.DeploymentIntentGroup,
 		GenericK8sIntent:      v.Intent,
 	}
-	_ = mockdb.Insert("resources", key, nil, "data", r)
+	_ = mockdb.Insert(context.Background(), "resources", key, nil, "data", r)
 
 	// Resource 2
 	r = mockResource("test-resource-2")
@@ -210,7 +211,7 @@ func populateResourceTestData() {
 		DeploymentIntentGroup: v.DeploymentIntentGroup,
 		GenericK8sIntent:      v.Intent,
 	}
-	_ = mockdb.Insert("resources", key, nil, "data", r)
+	_ = mockdb.Insert(context.Background(), "resources", key, nil, "data", r)
 
 	// Resource 3
 	r = mockResource("test-resource-3")
@@ -222,7 +223,7 @@ func populateResourceTestData() {
 		DeploymentIntentGroup: v.DeploymentIntentGroup,
 		GenericK8sIntent:      v.Intent,
 	}
-	_ = mockdb.Insert("resources", key, nil, "data", r)
+	_ = mockdb.Insert(context.Background(), "resources", key, nil, "data", r)
 }
 
 // populateResourceContent
@@ -238,5 +239,5 @@ func populateResourceContent(resource string) {
 	rContent := module.ResourceContent{
 		Content: "YXBpVmVyc2lvbjogdjEKa2luZDogQ29",
 	}
-	_ = mockdb.Insert("resources", key, nil, "resourcecontent", rContent)
+	_ = mockdb.Insert(context.Background(), "resources", key, nil, "resourcecontent", rContent)
 }

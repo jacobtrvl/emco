@@ -11,9 +11,12 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"strings"
 
 	"gitlab.com/project-emco/core/emco-base/src/ca-certs/api"
 	"gitlab.com/project-emco/core/emco-base/src/ca-certs/pkg/client/logicalcloud"
+	"gitlab.com/project-emco/core/emco-base/src/ca-certs/pkg/module"
+	"gitlab.com/project-emco/core/emco-base/src/orchestrator/common/emcoerror"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/module/types"
 
 	. "github.com/onsi/ginkgo"
@@ -47,7 +50,11 @@ func (m *mockLogicalCloudManager) CreateLogicalCloud(logicalCloud logicalcloud.C
 	}
 
 	if iExists && failIfExists { // logicalCloud already exists
-		return logicalcloud.CaCertLogicalCloud{}, iExists, errors.New("LogicalCloud already exists")
+		return logicalcloud.CaCertLogicalCloud{}, iExists,
+			emcoerror.NewEmcoError(
+				module.CaCertLogicalCloudAlreadyExists,
+				emcoerror.Conflict,
+			)
 	}
 
 	if iExists && !failIfExists { // logicalCloud already exists. update the logicalCloud
@@ -74,7 +81,10 @@ func (m *mockLogicalCloudManager) DeleteLogicalCloud(logicalCloud, cert, project
 		}
 	}
 
-	return errors.New("db Remove resource not found") // logicalCloud does not exist
+	return emcoerror.NewEmcoError(
+		"The requested resource not found",
+		emcoerror.NotFound,
+	) // logicalCloud does not exist
 
 }
 
@@ -100,7 +110,10 @@ func (m *mockLogicalCloudManager) GetLogicalCloud(logicalCloud, cert, project st
 		}
 	}
 
-	return logicalcloud.CaCertLogicalCloud{}, errors.New("LogicalCloud not found")
+	return logicalcloud.CaCertLogicalCloud{}, emcoerror.NewEmcoError(
+		module.CaCertLogicalCloudNotFound,
+		emcoerror.NotFound,
+	)
 }
 
 var _ = Describe("Test create logical-cloud handler",
@@ -115,7 +128,7 @@ var _ = Describe("Test create logical-cloud handler",
 				test{
 					input:      logicalCLoudInput(""), // create an empty logicalCloud payload
 					result:     logicalcloud.CaCertLogicalCloud{},
-					err:        errors.New("caCert logicalCloud name may not be empty\n"),
+					err:        errors.New("caCert logicalCloud name may not be empty"),
 					statusCode: http.StatusBadRequest,
 					client: &mockLogicalCloudManager{
 						Err:   nil,
@@ -137,9 +150,12 @@ var _ = Describe("Test create logical-cloud handler",
 			),
 			Entry("logicalCloud already exists",
 				test{
-					input:      logicalCLoudInput("testLogicalCloud-1"),
-					result:     logicalcloud.CaCertLogicalCloud{},
-					err:        errors.New("logical cloud already exists\n"),
+					input:  logicalCLoudInput("testLogicalCloud-1"),
+					result: logicalcloud.CaCertLogicalCloud{},
+					err: emcoerror.NewEmcoError(
+						module.CaCertLogicalCloudAlreadyExists,
+						emcoerror.Conflict,
+					),
 					statusCode: http.StatusConflict,
 					client: &mockLogicalCloudManager{
 						Err:   nil,
@@ -175,8 +191,11 @@ var _ = Describe("Test get logicalCloud handler",
 				test{
 					name:       "nonExistingLogicalCloud",
 					statusCode: http.StatusNotFound,
-					err:        errors.New("logical cloud not found\n"),
-					result:     logicalcloud.CaCertLogicalCloud{},
+					err: emcoerror.NewEmcoError(
+						module.CaCertLogicalCloudNotFound,
+						emcoerror.NotFound,
+					),
+					result: logicalcloud.CaCertLogicalCloud{},
 					client: &mockLogicalCloudManager{
 						Err:   nil,
 						Items: populateLogicalCloudTestData(),
@@ -201,7 +220,7 @@ var _ = Describe("Test update logicalCloud handler",
 					name:       "testLogicalCloud",
 					input:      logicalCLoudInput(""), // create an empty logicalCloud payload
 					result:     logicalcloud.CaCertLogicalCloud{},
-					err:        errors.New("caCert logicalCloud name may not be empty\n"),
+					err:        errors.New("caCert logicalCloud name may not be empty"),
 					statusCode: http.StatusBadRequest,
 					client: &mockLogicalCloudManager{
 						Err:   nil,
@@ -267,8 +286,11 @@ var _ = Describe("Test delete logicalCloud handler",
 					entry:      "db remove logicalCloud not found",
 					name:       "nonExistingLogicalCloud",
 					statusCode: http.StatusNotFound,
-					err:        errors.New("The requested resource not found\n"),
-					result:     logicalcloud.CaCertLogicalCloud{},
+					err: emcoerror.NewEmcoError(
+						"The requested resource not found",
+						emcoerror.NotFound,
+					),
+					result: logicalcloud.CaCertLogicalCloud{},
 					client: &mockLogicalCloudManager{
 						Err:   nil,
 						Items: populateLogicalCloudTestData(),
@@ -378,7 +400,7 @@ func validateLogicalCloudResponse(res *http.Response, t test) {
 	Expect(res.StatusCode).To(Equal(t.statusCode))
 
 	if t.err != nil {
-		b := string(data)
+		b := strings.Replace(string(data), "\n", "", -1) // replace the new line at the end
 		Expect(b).To(Equal(t.err.Error()))
 	}
 

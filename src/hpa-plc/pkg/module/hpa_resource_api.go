@@ -6,6 +6,7 @@ package module
 import (
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
 
+	"context"
 	pkgerrors "github.com/pkg/errors"
 	hpaModel "gitlab.com/project-emco/core/emco-base/src/hpa-plc/pkg/model"
 	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
@@ -34,7 +35,7 @@ func (c *HpaPlacementClient) AddResource(a hpaModel.HpaResourceRequirement, p st
 	}
 
 	log.Info("AddResource ... Creating DB entry", log.Fields{"StoreName": c.db.StoreName, "key": dbKey, "project": p, "compositeApp": ca, "compositeAppVersion": v, "dep-group": di, "hpaIntent": i, "hpaConsumer": cn, "hpaResource": a.MetaData.Name})
-	err = db.DBconn.Insert(c.db.StoreName, dbKey, nil, c.db.TagMetaData, a)
+	err = db.DBconn.Insert(context.Background(), c.db.StoreName, dbKey, nil, c.db.TagMetaData, a)
 	if err != nil {
 		log.Error("AddResource ... DB Error .. Creating DB entry error", log.Fields{"hpaResource": a.MetaData.Name})
 		return hpaModel.HpaResourceRequirement{}, pkgerrors.Wrap(err, "Creating DB Entry")
@@ -58,7 +59,7 @@ func (c *HpaPlacementClient) GetResource(rn string, p string, ca string, v strin
 		DeploymentIntentGroup: di,
 	}
 
-	result, err := db.DBconn.Find(c.db.StoreName, dbKey, c.db.TagMetaData)
+	result, err := db.DBconn.Find(context.Background(), c.db.StoreName, dbKey, c.db.TagMetaData)
 	if err != nil {
 		log.Error("GetResource ... DB Error .. Get Resource error", log.Fields{"hpaResource": rn})
 		return hpaModel.HpaResourceRequirement{}, false, err
@@ -96,7 +97,7 @@ func (c HpaPlacementClient) GetAllResources(p, ca, v, di, i, cn string) ([]hpaMo
 		DeploymentIntentGroup: di,
 	}
 
-	result, err := db.DBconn.Find(c.db.StoreName, dbKey, c.db.TagMetaData)
+	result, err := db.DBconn.Find(context.Background(), c.db.StoreName, dbKey, c.db.TagMetaData)
 	if err != nil {
 		log.Error("GetAllResources ... DB Error .. Get HpaResources db error", log.Fields{"hpaConsumer": cn})
 		return []hpaModel.HpaResourceRequirement{}, err
@@ -134,7 +135,7 @@ func (c HpaPlacementClient) GetResourceByName(rn, p, ca, v, di, i, cn string) (h
 		DeploymentIntentGroup: di,
 	}
 
-	result, err := db.DBconn.Find(c.db.StoreName, dbKey, c.db.TagMetaData)
+	result, err := db.DBconn.Find(context.Background(), c.db.StoreName, dbKey, c.db.TagMetaData)
 	if err != nil {
 		log.Error("GetResourceByName ... DB Error .. Get HpaResource error", log.Fields{"hpaResource": rn})
 		return hpaModel.HpaResourceRequirement{}, err
@@ -173,7 +174,7 @@ func (c HpaPlacementClient) DeleteResource(rn string, p string, ca string, v str
 	}
 
 	log.Info("DeleteResource ... Delete Hpa Consumer entry", log.Fields{"StoreName": c.db.StoreName, "key": dbKey, "project": p, "compositeApp": ca, "compositeAppVersion": v, "dep-group": di, "hpaIntent": i, "hpaConsumer": cn, "hpaResource": rn})
-	err = db.DBconn.Remove(c.db.StoreName, dbKey)
+	err = db.DBconn.Remove(context.Background(), c.db.StoreName, dbKey)
 	if err != nil {
 		log.Error("DeleteResource ... DB Error .. Delete Hpa Resource entry error", log.Fields{"err": err, "StoreName": c.db.StoreName, "key": dbKey, "project": p, "compositeApp": ca, "compositeAppVersion": v, "dep-group": di, "hpaIntent": i, "hpaConsumer": cn})
 		return pkgerrors.Wrap(err, "DB Error .. Delete Hpa Resource entry error")

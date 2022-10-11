@@ -6,10 +6,10 @@ package clusterprovider
 import (
 	"reflect"
 
-	"github.com/pkg/errors"
 	"gitlab.com/project-emco/core/emco-base/src/ca-certs/pkg/certificate/distribution"
 	"gitlab.com/project-emco/core/emco-base/src/ca-certs/pkg/certificate/enrollment"
 	"gitlab.com/project-emco/core/emco-base/src/ca-certs/pkg/module"
+	"gitlab.com/project-emco/core/emco-base/src/orchestrator/common/emcoerror"
 )
 
 // CaCertManager exposes all the clusterProvider caCert functionalities
@@ -51,7 +51,10 @@ func (c *CaCertClient) CreateCert(cert module.CaCert, clusterProvider string, fa
 
 	if certExists &&
 		failIfExists {
-		return module.CaCert{}, certExists, errors.New("Certificate already exists")
+		return module.CaCert{}, certExists, emcoerror.NewEmcoError(
+			module.CaCertAlreadyExists,
+			emcoerror.Conflict,
+		)
 	}
 
 	if certExists {
@@ -101,7 +104,14 @@ func (c *CaCertClient) DeleteCert(cert, clusterProvider string) error {
 	// check the enrollment state
 	if err := verifyEnrollmentStateBeforeDelete(cert, clusterProvider); err != nil {
 		// if the StateInfo cannot be found, then a caCert record may not present
-		if err.Error() != "StateInfo not found" {
+		// Continue with the caCert deletion if the error is NotFound
+		// In all other cases, intercept and return the error
+		switch e := err.(type) { // To avoid any panic if the error is other than the emco error type
+		case *emcoerror.Error:
+			if e.Reason != emcoerror.NotFound {
+				return e
+			}
+		default:
 			return err
 		}
 	}
@@ -109,7 +119,14 @@ func (c *CaCertClient) DeleteCert(cert, clusterProvider string) error {
 	// check the distribution state
 	if err := verifyDistributionStateBeforeDelete(cert, clusterProvider); err != nil {
 		// if the StateInfo cannot be found, then a caCert record may not present
-		if err.Error() != "StateInfo not found" {
+		// Continue with the caCert deletion if the error is NotFound
+		// In all other cases, intercept and return the error
+		switch e := err.(type) { // To avoid any panic if the error is other than the emco error type
+		case *emcoerror.Error:
+			if e.Reason != emcoerror.NotFound {
+				return e
+			}
+		default:
 			return err
 		}
 	}

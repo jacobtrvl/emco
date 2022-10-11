@@ -24,6 +24,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.opentelemetry.io/contrib/instrumentation/go.mongodb.org/mongo-driver/mongo/otelmongo"
 )
 
 // MongoCollection defines the a subset of MongoDB operations
@@ -78,10 +79,11 @@ var cursorClose = func(ctx context.Context, cursor *mongo.Cursor) error {
 
 // NewMongoStore initializes a Mongo Database with the name provided
 // If a database with that name exists, it will be returned
-func NewMongoStore(name string, store *mongo.Database) (Store, error) {
+func NewMongoStore(ctx context.Context, name string, store *mongo.Database) (Store, error) {
 	if store == nil {
 		ip := "mongodb://" + net.JoinHostPort(config.GetConfiguration().DatabaseIP, "27017")
 		clientOptions := options.Client()
+		clientOptions.Monitor = otelmongo.NewMonitor()
 		clientOptions.ApplyURI(ip)
 		if len(os.Getenv("DB_EMCO_USERNAME")) > 0 && len(os.Getenv("DB_EMCO_PASSWORD")) > 0 {
 			clientOptions.SetAuth(options.Credential{
@@ -95,7 +97,7 @@ func NewMongoStore(name string, store *mongo.Database) (Store, error) {
 			return nil, err
 		}
 
-		err = mongoClient.Connect(context.Background())
+		err = mongoClient.Connect(ctx)
 		if err != nil {
 			return nil, err
 		}
@@ -107,15 +109,15 @@ func NewMongoStore(name string, store *mongo.Database) (Store, error) {
 		db: store,
 	}
 
-	go mongoStore.ReadRefSchema()
+	go mongoStore.ReadRefSchema(ctx)
 
 	return mongoStore, nil
 }
 
 // HealthCheck verifies if the database is up and running
-func (m *MongoStore) HealthCheck() error {
+func (m *MongoStore) HealthCheck(ctx context.Context) error {
 
-	_, err := decodeBytes(m.db.RunCommand(context.Background(), bson.D{{"serverStatus", 1}}))
+	_, err := decodeBytes(m.db.RunCommand(ctx, bson.D{{"serverStatus", 1}}))
 	if err != nil {
 		return pkgerrors.Wrap(err, "Error getting server status")
 	}
@@ -125,7 +127,7 @@ func (m *MongoStore) HealthCheck() error {
 
 // findReferencedBys will search to see if this resource (identified by the key) is
 // referenced by any other resources.
-func (m *MongoStore) findReferencedBys(c MongoCollection, key Key) (int64, error) {
+func (m *MongoStore) findReferencedBys(ctx context.Context, c MongoCollection, key Key) (int64, error) {
 
 	// Create the key tag value for this resource (i.e. resource identifier)
 	keyId, err := m.createKeyIdField(key)
@@ -140,7 +142,7 @@ func (m *MongoStore) findReferencedBys(c MongoCollection, key Key) (int64, error
 	}
 
 	// search for documents with this resource in their resources list
-	count, err := c.CountDocuments(context.Background(), filter)
+	count, err := c.CountDocuments(ctx, filter)
 	if err != nil {
 		return 0, err
 	}
@@ -280,7 +282,7 @@ func findKeyValues(inKey, filterKey map[string]struct{}, data interface{}) (map[
 // 2. The keys for other references, as identified for the schema, are found
 //    by searching the "spec" object of the resource "data".
 //    These references are then verified to exist.
-func (m *MongoStore) verifyReferences(coll string, key Key, keyId string, data interface{}) ([]ReferenceEntry, error) {
+func (m *MongoStore) verifyReferences(ctx context.Context, coll string, key Key, keyId string, data interface{}) ([]ReferenceEntry, error) {
 
 	// make a references slice to store keys of any references found
 	refs := make([]ReferenceEntry, 0)
@@ -334,7 +336,7 @@ func (m *MongoStore) verifyReferences(coll string, key Key, keyId string, data i
 		// if no parent key is left, then no need to check for parent resource
 		if len(parentKey) > 0 {
 			// All resources should have a "data" element, so search for the parents "data"
-			result, err := m.Find(coll, parentKey, "data")
+			result, err := m.Find(ctx, coll, parentKey, "data")
 			if err != nil {
 				return refs, pkgerrors.Wrapf(err, "Error finding parent resource for %s. Parent: %T %v", name, parentKey, parentKey)
 			}
@@ -452,7 +454,7 @@ func (m *MongoStore) verifyReferences(coll string, key Key, keyId string, data i
 
 	// Verify that referenced resources exist
 	for _, ref := range refs {
-		result, err := m.Find(coll, ref.Key, "data")
+		result, err := m.Find(ctx, coll, ref.Key, "data")
 		if err != nil {
 			log.Warn("Error finding resource reference", log.Fields{"resource": name, "referenceKey": ref.Key})
 			/* For now, just log a warning if there was an error finding the referenced resource.
@@ -627,7 +629,7 @@ func (m *MongoStore) createKeyIdField(key interface{}) (string, error) {
 }
 
 // Insert is used to insert/add element to a document
-func (m *MongoStore) Insert(coll string, key Key, query interface{}, tag string, data interface{}) error {
+func (m *MongoStore) Insert(ctx context.Context, coll string, key Key, query interface{}, tag string, data interface{}) error {
 
 	if data == nil {
 		return pkgerrors.Errorf("db Insert error: No data to store")
@@ -638,7 +640,6 @@ func (m *MongoStore) Insert(coll string, key Key, query interface{}, tag string,
 	}
 
 	c := getCollection(coll, m)
-	ctx := context.Background()
 
 	filter, err := m.findFilter(key)
 	if err != nil {
@@ -673,7 +674,7 @@ func (m *MongoStore) Insert(coll string, key Key, query interface{}, tag string,
 	refs := make([]ReferenceEntry, 0)
 
 	if tag == "data" {
-		refs, err = m.verifyReferences(coll, key, keyId, data)
+		refs, err = m.verifyReferences(ctx, coll, key, keyId, data)
 		if err != nil {
 			if strings.Contains(err.Error(), "Parent resource not found") {
 				// these errors should be handled separately, not as an internal server error
@@ -741,7 +742,7 @@ func (m *MongoStore) Insert(coll string, key Key, query interface{}, tag string,
 }
 
 // Find method returns the data stored for this key and for this particular tag
-func (m *MongoStore) Find(coll string, key Key, tag string) ([][]byte, error) {
+func (m *MongoStore) Find(ctx context.Context, coll string, key Key, tag string) ([][]byte, error) {
 
 	//result, err := m.findInternal(coll, key, tag, "")
 	//return result, err
@@ -750,7 +751,6 @@ func (m *MongoStore) Find(coll string, key Key, tag string) ([][]byte, error) {
 	}
 
 	c := getCollection(coll, m)
-	ctx := context.Background()
 
 	filter, err := m.findFilterWithKey(key)
 	if err != nil {
@@ -762,7 +762,7 @@ func (m *MongoStore) Find(coll string, key Key, tag string) ([][]byte, error) {
 		{"_id", 0},
 	}
 
-	cursor, err := c.Find(context.Background(), filter, options.Find().SetProjection(projection))
+	cursor, err := c.Find(ctx, filter, options.Find().SetProjection(projection))
 	if err != nil {
 		return nil, pkgerrors.Wrap(err, "db Find error")
 	}
@@ -788,12 +788,11 @@ func (m *MongoStore) Find(coll string, key Key, tag string) ([][]byte, error) {
 }
 
 // RemoveAll method to removes all the documet matching key
-func (m *MongoStore) RemoveAll(coll string, key Key) error {
+func (m *MongoStore) RemoveAll(ctx context.Context, coll string, key Key) error {
 	if !m.validateParams(coll, key) {
 		return pkgerrors.Errorf("db Remove error: Mandatory fields are missing. Collection: %s, Key: %T %v", coll, key, key)
 	}
 	c := getCollection(coll, m)
-	ctx := context.Background()
 	filter, err := m.findFilterWithKey(key)
 	if err != nil {
 		return pkgerrors.Wrapf(err, "db Remove error: Error finding filter with key %T %v", key, key)
@@ -806,7 +805,7 @@ func (m *MongoStore) RemoveAll(coll string, key Key) error {
 }
 
 // Remove method to remove the documet by key if no child references
-func (m *MongoStore) Remove(coll string, key Key) error {
+func (m *MongoStore) Remove(ctx context.Context, coll string, key Key) error {
 	if !m.validateParams(coll, key) {
 		return pkgerrors.Errorf("db Remove error: Mandatory fields are missing. Collection: %s, Key: %T %v", coll, key, key)
 	}
@@ -814,13 +813,12 @@ func (m *MongoStore) Remove(coll string, key Key) error {
 	// search for child references - assumes all children are part of the
 	// same collection
 	c := getCollection(coll, m)
-	ctx := context.Background()
 	filter, err := m.findFilter(key)
 	if err != nil {
 		return pkgerrors.Wrapf(err, "db Remove error: Error finding filter with key %T %v", key, key)
 	}
 
-	count, err := c.CountDocuments(context.Background(), filter)
+	count, err := c.CountDocuments(ctx, filter)
 	if err != nil {
 		return pkgerrors.Wrap(err, "db Remove error")
 	}
@@ -834,7 +832,7 @@ func (m *MongoStore) Remove(coll string, key Key) error {
 	}
 
 	// search to see if this document is referenced by any other document
-	count, err = m.findReferencedBys(c, key)
+	count, err = m.findReferencedBys(ctx, c, key)
 	if err != nil {
 		return pkgerrors.Wrapf(err, "db Remove error: Error finding referencing resources for key %T %v", key, key)
 	}
@@ -852,9 +850,8 @@ func (m *MongoStore) Remove(coll string, key Key) error {
 }
 
 // RemoveTag is used to remove an element from a document
-func (m *MongoStore) RemoveTag(coll string, key Key, tag string) error {
+func (m *MongoStore) RemoveTag(ctx context.Context, coll string, key Key, tag string) error {
 	c := getCollection(coll, m)
-	ctx := context.Background()
 
 	filter, err := m.findFilter(key)
 	if err != nil {

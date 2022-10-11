@@ -1,0 +1,48 @@
+FROM ubuntu:20.04
+
+WORKDIR /project
+
+ARG HELM_VERSION
+ARG HTTP_PROXY
+ARG HTTPS_PROXY
+
+RUN apt-get update -y
+RUN apt-get upgrade -y
+
+RUN apt -y install libssl-dev
+
+RUN apt-get install -y cmake
+RUN apt-get install openssl
+RUN apt-get install -y wget
+
+RUN apt-get install -y pkg-config
+RUN apt-get install -y make
+RUN apt-get install -y curl
+RUN apt-get install ca-certificates
+RUN apt-get install -y git
+
+#install golang
+ENV GOLANG_VERSION 1.17.11
+RUN curl -sSL https://storage.googleapis.com/golang/go$GOLANG_VERSION.linux-amd64.tar.gz \
+        | tar -v -C /usr/local -xz
+
+ENV PATH /usr/local/go/bin:$PATH
+RUN mkdir -p /go/src /go/bin && chmod -R 777 /go
+ENV GOROOT /usr/local/go
+ENV GOPATH /go
+ENV PATH /go/bin:$PATH
+
+# Install some run-time build tools in the container.
+RUN curl -fssL -o helm-v${HELM_VERSION}-linux-amd64.tar.gz https://get.helm.sh/helm-v${HELM_VERSION}-linux-amd64.tar.gz
+RUN tar -zxvf helm-v${HELM_VERSION}-linux-amd64.tar.gz
+RUN mv linux-amd64/helm /usr/local/bin/helm
+
+
+#install libgit2
+ENV LD_LIBRARY_PATH=/project/libgit2-1.3.1/build
+RUN wget https://github.com/libgit2/libgit2/archive/refs/tags/v1.3.1.tar.gz
+RUN tar -xvzf v1.3.1.tar.gz
+RUN cd libgit2-1.3.1 && mkdir build && cd build && cmake .. -DBUILD_CLAR=OFF && cmake --build . && cmake --build . --target install
+
+
+

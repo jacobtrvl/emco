@@ -21,6 +21,7 @@ import (
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
 	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 	rpc "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/rpc"
+	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/tracing"
 	mtypes "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/module/types"
 )
 
@@ -66,11 +67,11 @@ func (mk ControllerKey) String() string {
 
 // ControllerManager is an interface exposes the Controller functionality
 type ControllerManager interface {
-	CreateController(ms Controller, mayExist bool) (Controller, error)
-	GetController(name string) (Controller, error)
-	GetControllers() ([]Controller, error)
-	InitControllers()
-	DeleteController(name string) error
+	CreateController(ctx context.Context, ms Controller, mayExist bool) (Controller, error)
+	GetController(ctx context.Context, name string) (Controller, error)
+	GetControllers(ctx context.Context) ([]Controller, error)
+	InitControllers(ctx context.Context)
+	DeleteController(ctx context.Context, name string) error
 }
 
 // ControllerClient implements the Manager
@@ -98,7 +99,8 @@ func NewControllerClient(name, tag, group string) *ControllerClient {
 }
 
 // CreateController a new collection based on the Controller
-func (mc *ControllerClient) CreateController(m Controller, mayExist bool) (Controller, error) {
+func (mc *ControllerClient) CreateController(ctx context.Context, m Controller, mayExist bool) (Controller, error) {
+
 	log.Info("CreateController .. start", log.Fields{"Controller": m, "exists": mayExist})
 
 	// Construct the composite key to select the entry
@@ -107,13 +109,13 @@ func (mc *ControllerClient) CreateController(m Controller, mayExist bool) (Contr
 		ControllerGroup: mc.tagGroup,
 	}
 
-	// Check if this Controller already exists
-	_, err := mc.GetController(m.Metadata.Name)
+	//Check if this Controller already exists
+	_, err := mc.GetController(ctx, m.Metadata.Name)
 	if err == nil && !mayExist {
 		return Controller{}, pkgerrors.New("Controller already exists")
 	}
 
-	err = db.DBconn.Insert(mc.collectionName, key, nil, mc.tagMeta, m)
+	err = db.DBconn.Insert(ctx, mc.collectionName, key, nil, mc.tagMeta, m)
 	if err != nil {
 		return Controller{}, pkgerrors.Wrap(err, "Creating DB Entry")
 	}
@@ -126,12 +128,13 @@ func (mc *ControllerClient) CreateController(m Controller, mayExist bool) (Contr
 }
 
 // GetController returns the Controller for corresponding name
-func (mc *ControllerClient) GetController(name string) (Controller, error) {
-	// Construct the composite key to select the entry
+func (mc *ControllerClient) GetController(ctx context.Context, name string) (Controller, error) {
+
+	//Construct the composite key to select the entry
 	key := ControllerKey{
 		ControllerName: name,
 	}
-	value, err := db.DBconn.Find(mc.collectionName, key, mc.tagMeta)
+	value, err := db.DBconn.Find(ctx, mc.collectionName, key, mc.tagMeta)
 	if err != nil {
 		return Controller{}, err
 	} else if len(value) == 0 {
@@ -151,15 +154,16 @@ func (mc *ControllerClient) GetController(name string) (Controller, error) {
 }
 
 // GetControllers returns all the  Controllers that are registered
-func (mc *ControllerClient) GetControllers() ([]Controller, error) {
-	// Construct the composite key to select the entry
+func (mc *ControllerClient) GetControllers(ctx context.Context) ([]Controller, error) {
+
+	//Construct the composite key to select the entry
 	key := ControllerKey{
 		ControllerName:  "",
 		ControllerGroup: mc.tagGroup,
 	}
 
 	var resp []Controller
-	values, err := db.DBconn.Find(mc.collectionName, key, mc.tagMeta)
+	values, err := db.DBconn.Find(ctx, mc.collectionName, key, mc.tagMeta)
 	if err != nil {
 		return []Controller{}, err
 	}
@@ -178,13 +182,14 @@ func (mc *ControllerClient) GetControllers() ([]Controller, error) {
 }
 
 // DeleteController the  Controller from database
-func (mc *ControllerClient) DeleteController(name string) error {
-	// Construct the composite key to select the entry
+func (mc *ControllerClient) DeleteController(ctx context.Context, name string) error {
+
+	//Construct the composite key to select the entry
 	key := ControllerKey{
 		ControllerName:  name,
 		ControllerGroup: mc.tagGroup,
 	}
-	err := db.DBconn.Remove(mc.collectionName, key)
+	err := db.DBconn.Remove(ctx, mc.collectionName, key)
 	if err != nil {
 		return err
 	}
@@ -196,8 +201,8 @@ func (mc *ControllerClient) DeleteController(name string) error {
 }
 
 // InitControllers initializes connctions for controllers in the DB
-func (mc *ControllerClient) InitControllers() {
-	vals, _ := mc.GetControllers()
+func (mc *ControllerClient) InitControllers(ctx context.Context) {
+	vals, _ := mc.GetControllers(ctx)
 	for _, v := range vals {
 		log.Info("Initializing RPC connection for controller", log.Fields{
 			"Controller": v.Metadata.Name,
@@ -211,6 +216,11 @@ func NewControllerServer(name string, httpRouter *mux.Router, grpcServer *regist
 		return nil, errors.New("NewControllerServer: must provide non-nil httpRouter or grpcServer")
 	}
 
+	err := tracing.InitializeTracer()
+	if err != nil {
+		return nil, errors.New("Unable to initialize tracing")
+	}
+
 	httpServerPort := config.GetConfiguration().ServicePort
 	if httpServerPort == "" {
 		return nil, errors.New("NewControllerServer: must configure a \"service-port\"")
@@ -218,6 +228,7 @@ func NewControllerServer(name string, httpRouter *mux.Router, grpcServer *regist
 	if httpRouter == nil {
 		httpRouter = mux.NewRouter()
 	}
+	httpRouter.Use(tracing.Middleware)
 	httpServer, err := newHttpServer(httpServerPort, httpRouter)
 	if err != nil {
 		log.Error("Unable to create HTTP server", log.Fields{"Error": err})

@@ -11,9 +11,9 @@ import (
 	hpaModel "gitlab.com/project-emco/core/emco-base/src/hpa-plc/pkg/model"
 	orchLog "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 
-	"gitlab.com/project-emco/core/emco-base/src/hpa-plc/pkg/resources"
-	"gitlab.com/project-emco/core/emco-base/src/rsync/pkg/connector"
 	"github.com/sirupsen/logrus"
+	"gitlab.com/project-emco/core/emco-base/src/hpa-plc/pkg/resources"
+	connector "gitlab.com/project-emco/core/emco-base/src/rsync/pkg/utils"
 )
 
 func TestResources(t *testing.T) {

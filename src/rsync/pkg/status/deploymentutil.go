@@ -33,13 +33,13 @@ import (
 // No changes to the code were made other than removing some unused functions
 
 // RsListFunc returns the ReplicaSet from the ReplicaSet namespace and the List metav1.ListOptions.
-type RsListFunc func(string, metav1.ListOptions) ([]*apps.ReplicaSet, error)
+type RsListFunc func(context.Context, string, metav1.ListOptions) ([]*apps.ReplicaSet, error)
 
 // ListReplicaSets returns a slice of RSes the given deployment targets.
 // Note that this does NOT attempt to reconcile ControllerRef (adopt/orphan),
 // because only the controller itself should do that.
 // However, it does filter out anything whose ControllerRef doesn't match.
-func ListReplicaSets(deployment *apps.Deployment, getRSList RsListFunc) ([]*apps.ReplicaSet, error) {
+func ListReplicaSets(ctx context.Context, deployment *apps.Deployment, getRSList RsListFunc) ([]*apps.ReplicaSet, error) {
 	// TODO: Right now we list replica sets by their labels. We should list them by selector, i.e. the replica set's selector
 	//       should be a superset of the deployment's selector, see https://github.com/kubernetes/kubernetes/issues/19830.
 	namespace := deployment.Namespace
@@ -48,7 +48,7 @@ func ListReplicaSets(deployment *apps.Deployment, getRSList RsListFunc) ([]*apps
 		return nil, err
 	}
 	options := metav1.ListOptions{LabelSelector: selector.String()}
-	all, err := getRSList(namespace, options)
+	all, err := getRSList(ctx, namespace, options)
 	if err != nil {
 		return nil, err
 	}
@@ -106,8 +106,8 @@ func EqualIgnoreHash(template1, template2 *v1.PodTemplateSpec) bool {
 
 // GetNewReplicaSet returns a replica set that matches the intent of the given deployment; get ReplicaSetList from client interface.
 // Returns nil if the new replica set doesn't exist yet.
-func GetNewReplicaSet(deployment *apps.Deployment, c appsclient.AppsV1Interface) (*apps.ReplicaSet, error) {
-	rsList, err := ListReplicaSets(deployment, RsListFromClient(c))
+func GetNewReplicaSet(ctx context.Context, deployment *apps.Deployment, c appsclient.AppsV1Interface) (*apps.ReplicaSet, error) {
+	rsList, err := ListReplicaSets(ctx, deployment, RsListFromClient(c))
 	if err != nil {
 		return nil, err
 	}
@@ -116,8 +116,8 @@ func GetNewReplicaSet(deployment *apps.Deployment, c appsclient.AppsV1Interface)
 
 // RsListFromClient returns an rsListFunc that wraps the given client.
 func RsListFromClient(c appsclient.AppsV1Interface) RsListFunc {
-	return func(namespace string, options metav1.ListOptions) ([]*apps.ReplicaSet, error) {
-		rsList, err := c.ReplicaSets(namespace).List(context.Background(), options)
+	return func(ctx context.Context, namespace string, options metav1.ListOptions) ([]*apps.ReplicaSet, error) {
+		rsList, err := c.ReplicaSets(namespace).List(ctx, options)
 		if err != nil {
 			return nil, err
 		}

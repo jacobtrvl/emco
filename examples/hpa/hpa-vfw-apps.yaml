@@ -98,14 +98,14 @@ spec:
   overrideValues:
   - app: {{.VfwPacketGen}}
     values:
-      ".Values.service.ports.nodePort": '30888'
+      "service.ports.nodePort": '30888'
   - app: {{.VfwFirewall}}
     values:
-      ".Values.global.dcaeCollectorIp": 1.2.3.4
-      ".Values.global.dcaeCollectorPort": '8888'
+      "global.dcaeCollectorIp": 1.2.3.4
+      "global.dcaeCollectorPort": '8888'
   - app: {{.VfwSink}}
     values:
-      ".Values.service.ports.nodePort": '30677'
+      "service.ports.nodePort": '30677'
 
 ---
 

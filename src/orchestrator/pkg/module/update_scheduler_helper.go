@@ -4,14 +4,15 @@
 package module
 
 import (
+	"context"
 	"fmt"
 
 	rsyncclient "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/grpc/updateappclient"
 	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 )
 
-func callRsyncUpdate(FromContextid, ToContextid interface{}) error {
-	rsyncInfo, err := queryDBAndSetRsyncInfo()
+func callRsyncUpdate(ctx context.Context, FromContextid, ToContextid interface{}) error {
+	rsyncInfo, err := queryDBAndSetRsyncInfo(ctx)
 	log.Info("Calling the Rsync ", log.Fields{
 		"RsyncName": rsyncInfo.RsyncName,
 	})
@@ -21,7 +22,7 @@ func callRsyncUpdate(FromContextid, ToContextid interface{}) error {
 
 	fromAppContextID := fmt.Sprintf("%v", FromContextid)
 	toAppContextID := fmt.Sprintf("%v", ToContextid)
-	err = rsyncclient.InvokeUpdateApp(fromAppContextID, toAppContextID)
+	err = rsyncclient.InvokeUpdateApp(ctx, fromAppContextID, toAppContextID)
 	if err != nil {
 		return err
 	}

@@ -59,13 +59,13 @@ var appContextData = AppContextData{
 }
 
 // HandleAppContext adds event to queue and starts main thread
-func HandleAppContext(a interface{}, ucid interface{}, e RsyncEvent, con Connector) error {
+func HandleAppContext(ctx context.Context, a interface{}, ucid interface{}, e RsyncEvent, con Connector) error {
 
 	acID := fmt.Sprintf("%v", a)
 	// Create AppContext data if not already created
 	_, c := CreateAppContextData(acID)
 	// Add event to queue
-	err := c.EnqueueToAppContext(a, ucid, e)
+	err := c.EnqueueToAppContext(ctx, a, ucid, e)
 	if err != nil {
 		return err
 	}
@@ -75,12 +75,12 @@ func HandleAppContext(a interface{}, ucid interface{}, e RsyncEvent, con Connect
 	defer c.Lock.Unlock()
 	if c.Running {
 		if e == TerminateEvent {
-			c.terminateContextRoutine()
+			c.terminateContextRoutine(ctx)
 		}
 	} else {
 		// One main thread for AppContext
 		c.Running = true
-		err = c.startMainThread(a, con)
+		err = c.startMainThread(ctx, a, con)
 		if err != nil {
 			c.Running = false
 			return err
@@ -90,9 +90,9 @@ func HandleAppContext(a interface{}, ucid interface{}, e RsyncEvent, con Connect
 }
 
 // EnqueueToAppContext adds the event to the appContext Queue
-func (c *Context) EnqueueToAppContext(a interface{}, ucid interface{}, e RsyncEvent) error {
+func (c *Context) EnqueueToAppContext(ctx context.Context, a interface{}, ucid interface{}, e RsyncEvent) error {
 	acID := fmt.Sprintf("%v", a)
-	acUtils, err := utils.NewAppContextReference(acID)
+	acUtils, err := utils.NewAppContextReference(ctx, acID)
 	if err != nil {
 		return err
 	}
@@ -108,12 +108,12 @@ func (c *Context) EnqueueToAppContext(a interface{}, ucid interface{}, e RsyncEv
 	// Acquire Mutex before adding to queue
 	c.Lock.Lock()
 	// Push the appContext to ActiveContext space of etcD
-	ok, err := RecordActiveContext(acID)
+	ok, err := RecordActiveContext(ctx, acID)
 	if !ok {
 		logutils.Info("Already in active context", logutils.Fields{"AppContextID": acID, "err": err})
 	}
 	// Enqueue event
-	qUtils.Enqueue(elem)
+	qUtils.Enqueue(ctx, elem)
 	c.Lock.Unlock()
 	return nil
 }
@@ -137,7 +137,7 @@ func (c *Context) UpdateDeleteStatusCRTimer(key string, timer *time.Timer) {
 }
 
 // RestartAppContext called in Restart scenario to handle an AppContext
-func RestartAppContext(a interface{}, con Connector) error {
+func RestartAppContext(ctx context.Context, a interface{}, con Connector) error {
 	var err error
 	acID := fmt.Sprintf("%v", a)
 	// Create AppContext data if not already created
@@ -147,7 +147,7 @@ func RestartAppContext(a interface{}, con Connector) error {
 	c.Lock.Lock()
 	defer c.Lock.Unlock()
 	if c.Running == false {
-		err = c.startMainThread(a, con)
+		err = c.startMainThread(ctx, a, con)
 	}
 	return err
 }
@@ -205,29 +205,29 @@ type CompositeAppContext struct {
 }
 
 // InstantiateComApp Instantiatep Aps in Composite App
-func (instca *CompositeAppContext) InstantiateComApp(cid interface{}) error {
+func (instca *CompositeAppContext) InstantiateComApp(ctx context.Context, cid interface{}) error {
 	instca.cid = cid
 	con := connector.NewProvider(instca.cid)
-	return HandleAppContext(instca.cid, nil, InstantiateEvent, &con)
+	return HandleAppContext(ctx, instca.cid, nil, InstantiateEvent, &con)
 }
 
 // TerminateComApp Terminates Apps in Composite App
-func (instca *CompositeAppContext) TerminateComApp(cid interface{}) error {
+func (instca *CompositeAppContext) TerminateComApp(ctx context.Context, cid interface{}) error {
 	instca.cid = cid
 	con := connector.NewProvider(instca.cid)
-	return HandleAppContext(instca.cid, nil, TerminateEvent, &con)
+	return HandleAppContext(ctx, instca.cid, nil, TerminateEvent, &con)
 }
 
 // UpdateComApp Updates Apps in Composite App
-func (instca *CompositeAppContext) UpdateComApp(cid interface{}, ucid interface{}) error {
+func (instca *CompositeAppContext) UpdateComApp(ctx context.Context, cid interface{}, ucid interface{}) error {
 	instca.cid = cid
 	con := connector.NewProvider(instca.cid)
-	return HandleAppContext(ucid, instca.cid, UpdateEvent, &con)
+	return HandleAppContext(ctx, ucid, instca.cid, UpdateEvent, &con)
 }
 
 // ReadComApp Reads resources in AppContext
-func (instca *CompositeAppContext) ReadComApp(cid interface{}) error {
+func (instca *CompositeAppContext) ReadComApp(ctx context.Context, cid interface{}) error {
 	instca.cid = cid
 	con := connector.NewProvider(instca.cid)
-	return HandleAppContext(instca.cid, nil, ReadEvent, &con)
+	return HandleAppContext(ctx, instca.cid, nil, ReadEvent, &con)
 }

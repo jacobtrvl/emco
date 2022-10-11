@@ -4,8 +4,7 @@
 export GO111MODULE=on
 
 all: clean
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
-	go build -o ../../../bin/emcoctl/emcoctl ./emcoctl.go
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o ../../../bin/emcoctl/emcoctl ./emcoctl.go
 
 build: clean test cover
 deploy: build

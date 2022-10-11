@@ -50,13 +50,14 @@ func (h genericPlacementIntentHandler) createGenericPlacementIntentHandler(w htt
 		return
 	}
 
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	projectName := vars["project"]
 	compositeAppName := vars["compositeApp"]
 	version := vars["compositeAppVersion"]
 	digName := vars["deploymentIntentGroup"]
 
-	gPIntent, _, createErr := h.client.CreateGenericPlacementIntent(g, projectName, compositeAppName, version, digName, true)
+	gPIntent, _, createErr := h.client.CreateGenericPlacementIntent(ctx, g, projectName, compositeAppName, version, digName, true)
 	if createErr != nil {
 		apiErr := apierror.HandleErrors(vars, createErr, g, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -75,6 +76,7 @@ func (h genericPlacementIntentHandler) createGenericPlacementIntentHandler(w htt
 
 // getGenericPlacementHandler handles the GET operations on intent
 func (h genericPlacementIntentHandler) getGenericPlacementHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	intentName := vars["genericPlacementIntent"]
 	if intentName == "" {
@@ -109,7 +111,7 @@ func (h genericPlacementIntentHandler) getGenericPlacementHandler(w http.Respons
 		return
 	}
 
-	gPIntent, err := h.client.GetGenericPlacementIntent(intentName, projectName, compositeAppName, version, dig)
+	gPIntent, err := h.client.GetGenericPlacementIntent(ctx, intentName, projectName, compositeAppName, version, dig)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -127,6 +129,7 @@ func (h genericPlacementIntentHandler) getGenericPlacementHandler(w http.Respons
 }
 
 func (h genericPlacementIntentHandler) getAllGenericPlacementIntentsHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	pList := []string{"project", "compositeApp", "compositeAppVersion"}
 	err := validation.IsValidParameterPresent(vars, pList)
@@ -140,7 +143,7 @@ func (h genericPlacementIntentHandler) getAllGenericPlacementIntentsHandler(w ht
 	v := vars["compositeAppVersion"]
 	digName := vars["deploymentIntentGroup"]
 
-	gpList, err := h.client.GetAllGenericPlacementIntents(p, ca, v, digName)
+	gpList, err := h.client.GetAllGenericPlacementIntents(ctx, p, ca, v, digName)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -158,6 +161,7 @@ func (h genericPlacementIntentHandler) getAllGenericPlacementIntentsHandler(w ht
 
 // deleteGenericPlacementHandler handles the delete operations on intent
 func (h genericPlacementIntentHandler) deleteGenericPlacementHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	i := vars["genericPlacementIntent"]
 	p := vars["project"]
@@ -165,7 +169,7 @@ func (h genericPlacementIntentHandler) deleteGenericPlacementHandler(w http.Resp
 	v := vars["compositeAppVersion"]
 	digName := vars["deploymentIntentGroup"]
 
-	err := h.client.DeleteGenericPlacementIntent(i, p, ca, v, digName)
+	err := h.client.DeleteGenericPlacementIntent(ctx, i, p, ca, v, digName)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -177,6 +181,7 @@ func (h genericPlacementIntentHandler) deleteGenericPlacementHandler(w http.Resp
 // putGenericPlacementHandler handles the update operations on intent
 func (h genericPlacementIntentHandler) putGenericPlacementHandler(w http.ResponseWriter, r *http.Request) {
 	var gpi moduleLib.GenericPlacementIntent
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	p := vars["project"]
 	ca := vars["compositeApp"]
@@ -204,7 +209,7 @@ func (h genericPlacementIntentHandler) putGenericPlacementHandler(w http.Respons
 	}
 
 	// Update generic placement intent
-	genericPlacementIntent, gpiExists, err := h.client.CreateGenericPlacementIntent(gpi, p, ca, v, dig, false)
+	genericPlacementIntent, gpiExists, err := h.client.CreateGenericPlacementIntent(ctx, gpi, p, ca, v, dig, false)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, gpi, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)

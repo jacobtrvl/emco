@@ -26,13 +26,14 @@ type instantiationHandler struct {
 
 func (h instantiationHandler) approveHandler(w http.ResponseWriter, r *http.Request) {
 
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	p := vars["project"]
 	ca := vars["compositeApp"]
 	v := vars["compositeAppVersion"]
 	di := vars["deploymentIntentGroup"]
 
-	iErr := h.client.Approve(p, ca, v, di)
+	iErr := h.client.Approve(ctx, p, ca, v, di)
 	if iErr != nil {
 		log.Error(iErr.Error(), log.Fields{})
 		http.Error(w, iErr.Error(), http.StatusInternalServerError)
@@ -43,14 +44,14 @@ func (h instantiationHandler) approveHandler(w http.ResponseWriter, r *http.Requ
 }
 
 func (h instantiationHandler) instantiateHandler(w http.ResponseWriter, r *http.Request) {
-
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	p := vars["project"]
 	ca := vars["compositeApp"]
 	v := vars["compositeAppVersion"]
 	di := vars["deploymentIntentGroup"]
 
-	iErr := h.client.Instantiate(p, ca, v, di)
+	iErr := h.client.Instantiate(ctx, p, ca, v, di)
 	if iErr != nil {
 		log.Error(":: Error instantiate handler ::", log.Fields{"Error": iErr.Error(), "project": p, "compositeApp": ca, "compositeAppVer": v, "depGroup": di})
 		apiErr := apierror.HandleLogicalCloudErrors(vars, iErr, lcErrors)
@@ -70,14 +71,14 @@ func (h instantiationHandler) instantiateHandler(w http.ResponseWriter, r *http.
 }
 
 func (h instantiationHandler) terminateHandler(w http.ResponseWriter, r *http.Request) {
-
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	p := vars["project"]
 	ca := vars["compositeApp"]
 	v := vars["compositeAppVersion"]
 	di := vars["deploymentIntentGroup"]
 
-	iErr := h.client.Terminate(p, ca, v, di)
+	iErr := h.client.Terminate(ctx, p, ca, v, di)
 	if iErr != nil {
 		log.Error(iErr.Error(), log.Fields{})
 		http.Error(w, iErr.Error(), http.StatusInternalServerError)
@@ -88,14 +89,14 @@ func (h instantiationHandler) terminateHandler(w http.ResponseWriter, r *http.Re
 }
 
 func (h instantiationHandler) stopHandler(w http.ResponseWriter, r *http.Request) {
-
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	p := vars["project"]
 	ca := vars["compositeApp"]
 	v := vars["compositeAppVersion"]
 	di := vars["deploymentIntentGroup"]
 
-	iErr := h.client.Stop(p, ca, v, di)
+	iErr := h.client.Stop(ctx, p, ca, v, di)
 	if iErr != nil {
 		log.Error(iErr.Error(), log.Fields{})
 		http.Error(w, iErr.Error(), http.StatusInternalServerError)
@@ -107,6 +108,7 @@ func (h instantiationHandler) stopHandler(w http.ResponseWriter, r *http.Request
 
 func (h instantiationHandler) statusHandler(w http.ResponseWriter, r *http.Request) {
 
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	p := vars["project"]
 	ca := vars["compositeApp"]
@@ -256,13 +258,13 @@ func (h instantiationHandler) statusHandler(w http.ResponseWriter, r *http.Reque
 	var status interface{}
 
 	if queryApps {
-		status, iErr = h.client.StatusAppsList(p, ca, v, di, queryInstance)
+		status, iErr = h.client.StatusAppsList(ctx, p, ca, v, di, queryInstance)
 	} else if queryClusters {
-		status, iErr = h.client.StatusClustersByApp(p, ca, v, di, queryInstance, filterApps)
+		status, iErr = h.client.StatusClustersByApp(ctx, p, ca, v, di, queryInstance, filterApps)
 	} else if queryResources {
-		status, iErr = h.client.StatusResourcesByApp(p, ca, v, di, queryInstance, queryType, filterApps, filterClusters)
+		status, iErr = h.client.StatusResourcesByApp(ctx, p, ca, v, di, queryInstance, queryType, filterApps, filterClusters)
 	} else {
-		status, iErr = h.client.Status(p, ca, v, di, queryInstance, queryType, queryOutput, filterApps, filterClusters, filterResources)
+		status, iErr = h.client.Status(ctx, p, ca, v, di, queryInstance, queryType, queryOutput, filterApps, filterClusters, filterResources)
 	}
 	if iErr != nil {
 		log.Error(iErr.Error(), log.Fields{})

@@ -31,7 +31,7 @@ const (
 // CreateAppContext Action applies the supplied intent against the given AppContext ID
 func CreateAppContext(intentName, appContextID string) error {
 	var ac appcontext.AppContext
-	_, err := ac.LoadAppContext(appContextID)
+	_, err := ac.LoadAppContext(context.Background(), appContextID)
 	if err != nil {
 		log.Error("Error loading AppContext", log.Fields{
 			"error": err,
@@ -39,7 +39,7 @@ func CreateAppContext(intentName, appContextID string) error {
 		return pkgerrors.Wrapf(err, "Error getting AppContext with Id: %v", appContextID)
 	}
 
-	caMeta, err := ac.GetCompositeAppMeta()
+	caMeta, err := ac.GetCompositeAppMeta(context.Background())
 	if err != nil {
 		log.Error("Error getting metadata from AppContext", log.Fields{
 			"error": err,
@@ -94,7 +94,7 @@ func CreateAppContext(intentName, appContextID string) error {
 		}
 
 		// Register for an appcontext alert and receive the stream handle
-		stream, client, err := rsyncclient.InvokeReadyNotify(appContextID, "sds")
+		stream, client, err := rsyncclient.InvokeReadyNotify(context.Background(), appContextID, "sds")
 		if err != nil {
 			log.Error("Error in callRsyncReadyNotify", log.Fields{
 				"error": err, "appContextID": appContextID,
@@ -113,7 +113,7 @@ func CreateAppContext(intentName, appContextID string) error {
 func processServiceDiscovery(appContextID string, clientSets map[string]string, server string, stream readynotifypb.ReadyNotify_AlertClient, cl readynotifypb.ReadyNotifyClient) error {
 
 	var ac appcontext.AppContext
-	_, err := ac.LoadAppContext(appContextID)
+	_, err := ac.LoadAppContext(context.Background(), appContextID)
 	if err != nil {
 		log.Error("Error getting AppContext with Id", log.Fields{
 			"error": err, "appContextID": appContextID,
@@ -141,7 +141,7 @@ func processServiceDiscovery(appContextID string, clientSets map[string]string, 
 	// deploy these new child app contexts which contains the virtual service entries
 
 	// Get the appcontext status value
-	acStatus, err := state.GetAppContextStatus(appContextID)
+	acStatus, err := state.GetAppContextStatus(context.Background(), appContextID)
 	if err != nil {
 		log.Error("Unable to get the parent's app context status", log.Fields{"err": err.Error()})
 		return pkgerrors.Wrap(err, "Unable to get the status of the app context")
@@ -167,7 +167,7 @@ func processAlertForServiceDiscovery(stream readynotifypb.ReadyNotify_AlertClien
 		loadBalancerIPSet := false
 		// Now check whether the parent app context has been "Instantiated".
 
-		acStatus, err := state.GetAppContextStatus(appContextID)
+		acStatus, err := state.GetAppContextStatus(context.Background(), appContextID)
 		if err != nil {
 			log.Warn("[ReadyNotify gRPC] Unable to get the status of the app context", log.Fields{"err": err, "appContextID": appContextID})
 			continue
@@ -187,7 +187,7 @@ func processAlertForServiceDiscovery(stream readynotifypb.ReadyNotify_AlertClien
 
 				// Check for the loadbalancer external IP
 				var ac appcontext.AppContext
-				_, err := ac.LoadAppContext(appContextID)
+				_, err := ac.LoadAppContext(context.Background(), appContextID)
 				if err != nil {
 					log.Error("Error loading AppContext", log.Fields{
 						"error": err,
@@ -196,7 +196,7 @@ func processAlertForServiceDiscovery(stream readynotifypb.ReadyNotify_AlertClien
 				}
 
 				// Get the clusters in the appcontext for this app
-				clusters, err := ac.GetClusterNames(serverAppName)
+				clusters, err := ac.GetClusterNames(context.Background(), serverAppName)
 				if err != nil {
 					log.Error("Unable to get the cluster names",
 						log.Fields{"AppName": serverAppName, "Error": err})

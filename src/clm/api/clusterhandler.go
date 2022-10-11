@@ -15,12 +15,12 @@ import (
 	"net/textproto"
 	"strings"
 
+	"github.com/gorilla/mux"
 	clusterPkg "gitlab.com/project-emco/core/emco-base/src/clm/pkg/cluster"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/apierror"
 	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/validation"
 	mtypes "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/module/types"
-	"github.com/gorilla/mux"
 )
 
 var cpJSONFile string = "json-schemas/metadata.json"
@@ -39,6 +39,8 @@ type clusterHandler struct {
 // Create handles creation of the ClusterProvider entry in the database
 func (h clusterHandler) createClusterProviderHandler(w http.ResponseWriter, r *http.Request) {
 	var p clusterPkg.ClusterProvider
+
+	ctx := r.Context()
 
 	err := json.NewDecoder(r.Body).Decode(&p)
 
@@ -67,7 +69,7 @@ func (h clusterHandler) createClusterProviderHandler(w http.ResponseWriter, r *h
 		return
 	}
 
-	ret, err := h.client.CreateClusterProvider(p, false)
+	ret, err := h.client.CreateClusterProvider(ctx, p, false)
 	if err != nil {
 		apiErr := apierror.HandleErrors(mux.Vars(r), err, p, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -88,6 +90,7 @@ func (h clusterHandler) createClusterProviderHandler(w http.ResponseWriter, r *h
 func (h clusterHandler) putClusterProviderHandler(w http.ResponseWriter, r *http.Request) {
 	var p clusterPkg.ClusterProvider
 	var err error
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	name := vars["clusterProvider"]
 
@@ -125,7 +128,7 @@ func (h clusterHandler) putClusterProviderHandler(w http.ResponseWriter, r *http
 		return
 	}
 
-	ret, err := h.client.CreateClusterProvider(p, true)
+	ret, err := h.client.CreateClusterProvider(ctx, p, true)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, p, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -145,15 +148,16 @@ func (h clusterHandler) putClusterProviderHandler(w http.ResponseWriter, r *http
 // Get handles GET operations on a particular ClusterProvider Name
 // Returns a ClusterProvider
 func (h clusterHandler) getClusterProviderHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	name := vars["clusterProvider"]
 	var ret interface{}
 	var err error
 
 	if len(name) == 0 {
-		ret, err = h.client.GetClusterProviders()
+		ret, err = h.client.GetClusterProviders(ctx)
 	} else {
-		ret, err = h.client.GetClusterProvider(name)
+		ret, err = h.client.GetClusterProvider(ctx, name)
 	}
 
 	if err != nil {
@@ -174,10 +178,11 @@ func (h clusterHandler) getClusterProviderHandler(w http.ResponseWriter, r *http
 
 // Delete handles DELETE operations on a particular ClusterProvider  Name
 func (h clusterHandler) deleteClusterProviderHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	name := vars["clusterProvider"]
 
-	err := h.client.DeleteClusterProvider(name)
+	err := h.client.DeleteClusterProvider(ctx, name)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -189,6 +194,7 @@ func (h clusterHandler) deleteClusterProviderHandler(w http.ResponseWriter, r *h
 
 // Create handles creation of the Cluster entry in the database
 func (h clusterHandler) createClusterHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	provider := vars["clusterProvider"]
 	var p clusterPkg.Cluster
@@ -253,7 +259,7 @@ func (h clusterHandler) createClusterHandler(w http.ResponseWriter, r *http.Requ
 		}
 
 		q.Kubeconfig = base64.StdEncoding.EncodeToString(content)
-		ret, err := h.client.CreateCluster(provider, p, q)
+		ret, err := h.client.CreateCluster(ctx, provider, p, q)
 		if err != nil {
 			apiErr := apierror.HandleErrors(vars, err, p, apiErrors)
 			http.Error(w, apiErr.Message, apiErr.Status)
@@ -270,7 +276,7 @@ func (h clusterHandler) createClusterHandler(w http.ResponseWriter, r *http.Requ
 		}
 	} else {
 		q.Kubeconfig = ""
-		ret, err := h.client.CreateCluster(provider, p, q)
+		ret, err := h.client.CreateCluster(ctx, provider, p, q)
 		if err != nil {
 			apiErr := apierror.HandleErrors(vars, err, p, apiErrors)
 			http.Error(w, apiErr.Message, apiErr.Status)
@@ -291,6 +297,7 @@ func (h clusterHandler) createClusterHandler(w http.ResponseWriter, r *http.Requ
 // Get handles GET operations on a particular Cluster Name
 // Returns a Cluster
 func (h clusterHandler) getClusterHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	provider := vars["clusterProvider"]
 	name := vars["cluster"]
@@ -298,7 +305,7 @@ func (h clusterHandler) getClusterHandler(w http.ResponseWriter, r *http.Request
 	withLabels := r.URL.Query().Get("withLabels")
 	log.Warn("with Labels ", log.Fields{"val": withLabels})
 	if strings.ToLower(withLabels) == "true" && len(name) == 0 {
-		ret, err := h.client.GetAllClustersAndLabels(provider)
+		ret, err := h.client.GetAllClustersAndLabels(ctx, provider)
 		if err != nil {
 			apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 			http.Error(w, apiErr.Message, apiErr.Status)
@@ -319,7 +326,7 @@ func (h clusterHandler) getClusterHandler(w http.ResponseWriter, r *http.Request
 	label := r.URL.Query().Get("label")
 	log.Info(":: get clusters by label parameters ::", log.Fields{"label": label, "provider": provider, "cluster": name})
 	if len(label) != 0 && len(name) == 0 {
-		ret, err := h.client.GetClustersWithLabel(provider, label)
+		ret, err := h.client.GetClustersWithLabel(ctx, provider, label)
 		if err != nil {
 			apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 			http.Error(w, apiErr.Message, apiErr.Status)
@@ -339,7 +346,7 @@ func (h clusterHandler) getClusterHandler(w http.ResponseWriter, r *http.Request
 
 	// handle the get all clusters case - return a list of only the json parts
 	if len(name) == 0 {
-		ret, err := h.client.GetClusters(provider)
+		ret, err := h.client.GetClusters(ctx, provider)
 		if err != nil {
 			apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 			http.Error(w, apiErr.Message, apiErr.Status)
@@ -364,7 +371,7 @@ func (h clusterHandler) getClusterHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	retCluster, err := h.client.GetCluster(provider, name)
+	retCluster, err := h.client.GetCluster(ctx, provider, name)
 
 	if err != nil {
 		log.Error(":: Error getting cluster ::", log.Fields{"Error": err})
@@ -375,7 +382,7 @@ func (h clusterHandler) getClusterHandler(w http.ResponseWriter, r *http.Request
 
 	// check for spec section in the response
 	if retCluster.Spec.Props.GitOpsType == "" {
-		retKubeconfig, err := h.client.GetClusterContent(provider, name)
+		retKubeconfig, err := h.client.GetClusterContent(ctx, provider, name)
 		if err != nil {
 			apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 			http.Error(w, apiErr.Message, apiErr.Status)
@@ -460,11 +467,12 @@ func (h clusterHandler) getClusterHandler(w http.ResponseWriter, r *http.Request
 
 // Delete handles DELETE operations on a particular Cluster Name
 func (h clusterHandler) deleteClusterHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	provider := vars["clusterProvider"]
 	name := vars["cluster"]
 
-	err := h.client.DeleteCluster(provider, name)
+	err := h.client.DeleteCluster(ctx, provider, name)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -476,6 +484,7 @@ func (h clusterHandler) deleteClusterHandler(w http.ResponseWriter, r *http.Requ
 
 // Create handles creation of the ClusterLabel entry in the database
 func (h clusterHandler) createClusterLabelHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	provider := vars["clusterProvider"]
 	cluster := vars["cluster"]
@@ -507,7 +516,7 @@ func (h clusterHandler) createClusterLabelHandler(w http.ResponseWriter, r *http
 		return
 	}
 
-	ret, err := h.client.CreateClusterLabel(provider, cluster, p, false)
+	ret, err := h.client.CreateClusterLabel(ctx, provider, cluster, p, false)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, p, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -526,6 +535,7 @@ func (h clusterHandler) createClusterLabelHandler(w http.ResponseWriter, r *http
 
 // putClusterLabelHanderl handles updating of a ClusterLabel entry in the database
 func (h clusterHandler) putClusterLabelHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	provider := vars["clusterProvider"]
 	cluster := vars["cluster"]
@@ -565,7 +575,7 @@ func (h clusterHandler) putClusterLabelHandler(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	ret, err := h.client.CreateClusterLabel(provider, cluster, p, true)
+	ret, err := h.client.CreateClusterLabel(ctx, provider, cluster, p, true)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, p, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -585,6 +595,7 @@ func (h clusterHandler) putClusterLabelHandler(w http.ResponseWriter, r *http.Re
 // Get handles GET operations on a particular Cluster Label
 // Returns a ClusterLabel
 func (h clusterHandler) getClusterLabelHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	provider := vars["clusterProvider"]
 	cluster := vars["cluster"]
@@ -594,9 +605,9 @@ func (h clusterHandler) getClusterLabelHandler(w http.ResponseWriter, r *http.Re
 	var err error
 
 	if len(label) == 0 {
-		ret, err = h.client.GetClusterLabels(provider, cluster)
+		ret, err = h.client.GetClusterLabels(ctx, provider, cluster)
 	} else {
-		ret, err = h.client.GetClusterLabel(provider, cluster, label)
+		ret, err = h.client.GetClusterLabel(ctx, provider, cluster, label)
 	}
 
 	if err != nil {
@@ -617,12 +628,13 @@ func (h clusterHandler) getClusterLabelHandler(w http.ResponseWriter, r *http.Re
 
 // Delete handles DELETE operations on a particular ClusterLabel Name
 func (h clusterHandler) deleteClusterLabelHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	provider := vars["clusterProvider"]
 	cluster := vars["cluster"]
 	label := vars["clusterLabel"]
 
-	err := h.client.DeleteClusterLabel(provider, cluster, label)
+	err := h.client.DeleteClusterLabel(ctx, provider, cluster, label)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -634,6 +646,7 @@ func (h clusterHandler) deleteClusterLabelHandler(w http.ResponseWriter, r *http
 
 // Create handles creation of the ClusterKvPairs entry in the database
 func (h clusterHandler) createClusterKvPairsHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	provider := vars["clusterProvider"]
 	cluster := vars["cluster"]
@@ -666,7 +679,7 @@ func (h clusterHandler) createClusterKvPairsHandler(w http.ResponseWriter, r *ht
 		return
 	}
 
-	ret, err := h.client.CreateClusterKvPairs(provider, cluster, p, false)
+	ret, err := h.client.CreateClusterKvPairs(ctx, provider, cluster, p, false)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, p, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -685,6 +698,7 @@ func (h clusterHandler) createClusterKvPairsHandler(w http.ResponseWriter, r *ht
 
 // putClusterKvPairsHandler  handles update of a ClusterKvPairs entry in the database
 func (h clusterHandler) putClusterKvPairsHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	provider := vars["clusterProvider"]
 	cluster := vars["cluster"]
@@ -725,7 +739,7 @@ func (h clusterHandler) putClusterKvPairsHandler(w http.ResponseWriter, r *http.
 		return
 	}
 
-	ret, err := h.client.CreateClusterKvPairs(provider, cluster, p, true)
+	ret, err := h.client.CreateClusterKvPairs(ctx, provider, cluster, p, true)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, p, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -745,6 +759,7 @@ func (h clusterHandler) putClusterKvPairsHandler(w http.ResponseWriter, r *http.
 // Get handles GET operations on a particular Cluster Key Value Pair
 // Returns a ClusterKvPairs
 func (h clusterHandler) getClusterKvPairsHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	provider := vars["clusterProvider"]
 	cluster := vars["cluster"]
@@ -755,11 +770,11 @@ func (h clusterHandler) getClusterKvPairsHandler(w http.ResponseWriter, r *http.
 	var err error
 
 	if len(kvpair) == 0 {
-		ret, err = h.client.GetAllClusterKvPairs(provider, cluster)
+		ret, err = h.client.GetAllClusterKvPairs(ctx, provider, cluster)
 	} else if len(kvkey) != 0 {
-		ret, err = h.client.GetClusterKvPairsValue(provider, cluster, kvpair, kvkey)
+		ret, err = h.client.GetClusterKvPairsValue(ctx, provider, cluster, kvpair, kvkey)
 	} else {
-		ret, err = h.client.GetClusterKvPairs(provider, cluster, kvpair)
+		ret, err = h.client.GetClusterKvPairs(ctx, provider, cluster, kvpair)
 	}
 
 	if err != nil {
@@ -780,12 +795,13 @@ func (h clusterHandler) getClusterKvPairsHandler(w http.ResponseWriter, r *http.
 
 // Delete handles DELETE operations on a particular Cluster Name
 func (h clusterHandler) deleteClusterKvPairsHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	provider := vars["clusterProvider"]
 	cluster := vars["cluster"]
 	kvpair := vars["clusterKv"]
 
-	err := h.client.DeleteClusterKvPairs(provider, cluster, kvpair)
+	err := h.client.DeleteClusterKvPairs(ctx, provider, cluster, kvpair)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -797,6 +813,7 @@ func (h clusterHandler) deleteClusterKvPairsHandler(w http.ResponseWriter, r *ht
 
 // Create handles creation of the Cluster Sync Objects entry in the database
 func (h clusterHandler) createClusterSyncObjectsHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	provider := vars["clusterProvider"]
 
@@ -829,7 +846,7 @@ func (h clusterHandler) createClusterSyncObjectsHandler(w http.ResponseWriter, r
 		return
 	}
 
-	ret, err := h.client.CreateClusterSyncObjects(provider, p, false)
+	ret, err := h.client.CreateClusterSyncObjects(ctx, provider, p, false)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, p, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -848,6 +865,7 @@ func (h clusterHandler) createClusterSyncObjectsHandler(w http.ResponseWriter, r
 
 // putClusterSyncObjectsHandler  handles update of a ClusterSyncObjects entry in the database
 func (h clusterHandler) putClusterSyncObjectsHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	provider := vars["clusterProvider"]
 	syncobject := vars["clusterSyncObject"]
@@ -887,7 +905,7 @@ func (h clusterHandler) putClusterSyncObjectsHandler(w http.ResponseWriter, r *h
 		return
 	}
 
-	ret, err := h.client.CreateClusterSyncObjects(provider, p, true)
+	ret, err := h.client.CreateClusterSyncObjects(ctx, provider, p, true)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, p, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -907,6 +925,7 @@ func (h clusterHandler) putClusterSyncObjectsHandler(w http.ResponseWriter, r *h
 // Get handles GET operations on a particular Cluster Sync Object
 // Returns a ClusterSyncObjects
 func (h clusterHandler) getClusterSyncObjectsHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	provider := vars["clusterProvider"]
 	syncobject := vars["clusterSyncObject"]
@@ -916,11 +935,11 @@ func (h clusterHandler) getClusterSyncObjectsHandler(w http.ResponseWriter, r *h
 	var err error
 
 	if len(syncobject) == 0 {
-		ret, err = h.client.GetAllClusterSyncObjects(provider)
+		ret, err = h.client.GetAllClusterSyncObjects(ctx, provider)
 	} else if len(syncobjectkey) != 0 {
-		ret, err = h.client.GetClusterSyncObjectsValue(provider, syncobject, syncobjectkey)
+		ret, err = h.client.GetClusterSyncObjectsValue(ctx, provider, syncobject, syncobjectkey)
 	} else {
-		ret, err = h.client.GetClusterSyncObjects(provider, syncobject)
+		ret, err = h.client.GetClusterSyncObjects(ctx, provider, syncobject)
 	}
 
 	if err != nil {
@@ -941,11 +960,12 @@ func (h clusterHandler) getClusterSyncObjectsHandler(w http.ResponseWriter, r *h
 
 // Delete handles DELETE operations on a particular Cluster Provider
 func (h clusterHandler) deleteClusterSyncObjectsHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	provider := vars["clusterProvider"]
 	syncobject := vars["clusterSyncObject"]
 
-	err := h.client.DeleteClusterSyncObjects(provider, syncobject)
+	err := h.client.DeleteClusterSyncObjects(ctx, provider, syncobject)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)

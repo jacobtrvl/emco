@@ -11,18 +11,20 @@
 package action
 
 import (
+	"context"
+
 	"github.com/pkg/errors"
 	"gitlab.com/project-emco/core/emco-base/examples/sample-controller/pkg/module"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/appcontext"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
-	"gitlab.com/project-emco/core/emco-base/src/rsync/pkg/context"
+	con "gitlab.com/project-emco/core/emco-base/src/rsync/pkg/context"
 )
 
 // UpdateAppContext applies the supplied intent against the given AppContext ID
-func UpdateAppContext(intentName, appContextId string) error {
+func UpdateAppContext(ctx context.Context, intentName, appContextId string) error {
 	var ac appcontext.AppContext
 
-	_, err := ac.LoadAppContext(appContextId)
+	_, err := ac.LoadAppContext(ctx, appContextId)
 	if err != nil {
 		logutils.Error("Failed to get the appContext.",
 			logutils.Fields{
@@ -30,12 +32,12 @@ func UpdateAppContext(intentName, appContextId string) error {
 		return errors.Wrapf(err, "Failed to get the appContext with ID: %s.", appContextId)
 	}
 
-	_, err = ac.GetCompositeAppHandle()
+	_, err = ac.GetCompositeAppHandle(ctx)
 	if err != nil {
 		return err
 	}
 
-	appContext, err := context.ReadAppContext(appContextId)
+	appContext, err := con.ReadAppContext(ctx, appContextId)
 	if err != nil {
 		logutils.Error("Failed to get the compositeApp for the appContext.",
 			logutils.Fields{
@@ -49,7 +51,7 @@ func UpdateAppContext(intentName, appContextId string) error {
 	group := appContext.CompMetadata.DeploymentIntentGroup
 
 	// Look up all  Intents
-	intents, err := module.NewClient().SampleIntent.GetSampleIntents("", project, app, version, group)
+	intents, err := module.NewClient().SampleIntent.GetSampleIntents(ctx, "", project, app, version, group)
 	if err != nil {
 		logutils.Error("Failed to get the intents for the deploymentIntentGroup.",
 			logutils.Fields{
@@ -76,10 +78,10 @@ func UpdateAppContext(intentName, appContextId string) error {
 }
 
 // FilterClusters applies the supplied intent against the given AppContext ID
-func FilterClusters(appContextID string) error {
+func FilterClusters(ctx context.Context, appContextID string) error {
 	var ac appcontext.AppContext
 
-	_, err := ac.LoadAppContext(appContextID)
+	_, err := ac.LoadAppContext(ctx, appContextID)
 	if err != nil {
 		logutils.Error("Failed to get the appContext",
 			logutils.Fields{
@@ -87,7 +89,7 @@ func FilterClusters(appContextID string) error {
 		return errors.Wrapf(err, "Failed to get the appContext with ID: %s", appContextID)
 	}
 
-	ca, err := ac.GetCompositeAppMeta()
+	ca, err := ac.GetCompositeAppMeta(ctx)
 	if err != nil {
 		logutils.Error("Failed to get the appContext metaData",
 			logutils.Fields{
@@ -101,7 +103,7 @@ func FilterClusters(appContextID string) error {
 	group := ca.DeploymentIntentGroup
 
 	// Look up all  Intents
-	intents, err := module.NewClient().SampleIntent.GetSampleIntents("", project, app, version, group)
+	intents, err := module.NewClient().SampleIntent.GetSampleIntents(ctx, "", project, app, version, group)
 	if err != nil {
 		logutils.Error("Failed to get the intents for the deploymentIntentGroup.",
 			logutils.Fields{

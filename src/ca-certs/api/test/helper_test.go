@@ -10,6 +10,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"strings"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -319,7 +320,7 @@ func validateCertResponse(res *http.Response, t test) {
 	Expect(res.StatusCode).To(Equal(t.statusCode))
 
 	if t.err != nil {
-		b := string(data)
+		b := strings.Replace(string(data), "\n", "", -1) // replace the new line at the end
 		Expect(b).To(Equal(t.err.Error()))
 	}
 
@@ -450,7 +451,7 @@ func validateClusterGroupResponse(res *http.Response, t test) {
 	Expect(res.StatusCode).To(Equal(t.statusCode))
 
 	if t.err != nil {
-		b := string(data)
+		b := strings.Replace(string(data), "\n", "", -1) // replace the new line at the end
 		Expect(b).To(Equal(t.err.Error()))
 	}
 

@@ -7,6 +7,7 @@ import (
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
 	"gitlab.com/project-emco/core/emco-base/src/sfc/pkg/model"
 
+	"context"
 	pkgerrors "github.com/pkg/errors"
 )
 
@@ -28,7 +29,7 @@ func (v *SfcLinkIntentClient) CreateSfcLinkIntent(intent model.SfcLinkIntent, pr
 		return model.SfcLinkIntent{}, pkgerrors.New("SFC Link Intent already exists")
 	}
 
-	err = db.DBconn.Insert(v.db.storeName, key, nil, v.db.tagMeta, intent)
+	err = db.DBconn.Insert(context.Background(), v.db.storeName, key, nil, v.db.tagMeta, intent)
 	if err != nil {
 		return model.SfcLinkIntent{}, pkgerrors.Wrap(err, "Creating DB Entry")
 	}
@@ -48,7 +49,7 @@ func (v *SfcLinkIntentClient) GetSfcLinkIntent(name, pr, ca, caver, dig, sfcInte
 		SfcLinkIntent:       name,
 	}
 
-	value, err := db.DBconn.Find(v.db.storeName, key, v.db.tagMeta)
+	value, err := db.DBconn.Find(context.Background(), v.db.storeName, key, v.db.tagMeta)
 	if err != nil {
 		return model.SfcLinkIntent{}, err
 	} else if len(value) == 0 {
@@ -88,7 +89,7 @@ func (v *SfcLinkIntentClient) GetAllSfcLinkIntents(pr, ca, caver, dig, sfcIntent
 		return resp, err
 	}
 
-	values, err := db.DBconn.Find(v.db.storeName, key, v.db.tagMeta)
+	values, err := db.DBconn.Find(context.Background(), v.db.storeName, key, v.db.tagMeta)
 	if err != nil {
 		return resp, err
 	}
@@ -118,6 +119,6 @@ func (v *SfcLinkIntentClient) DeleteSfcLinkIntent(name, pr, ca, caver, dig, sfcI
 		SfcLinkIntent:       name,
 	}
 
-	err := db.DBconn.Remove(v.db.storeName, key)
+	err := db.DBconn.Remove(context.Background(), v.db.storeName, key)
 	return err
 }

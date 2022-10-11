@@ -5,6 +5,7 @@ package api
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -27,7 +28,7 @@ type mockProjectManager struct {
 	Err   error
 }
 
-func (m *mockProjectManager) CreateProject(inp moduleLib.Project, exists bool) (moduleLib.Project, error) {
+func (m *mockProjectManager) CreateProject(ctx context.Context, inp moduleLib.Project, exists bool) (moduleLib.Project, error) {
 	if m.Err != nil {
 		return moduleLib.Project{}, m.Err
 	}
@@ -35,7 +36,7 @@ func (m *mockProjectManager) CreateProject(inp moduleLib.Project, exists bool) (
 	return m.Items[0], nil
 }
 
-func (m *mockProjectManager) GetProject(name string) (moduleLib.Project, error) {
+func (m *mockProjectManager) GetProject(ctx context.Context, name string) (moduleLib.Project, error) {
 	if m.Err != nil {
 		return moduleLib.Project{}, m.Err
 	}
@@ -43,11 +44,11 @@ func (m *mockProjectManager) GetProject(name string) (moduleLib.Project, error) 
 	return m.Items[0], nil
 }
 
-func (m *mockProjectManager) DeleteProject(name string) error {
+func (m *mockProjectManager) DeleteProject(ctx context.Context, name string) error {
 	return m.Err
 }
 
-func (m *mockProjectManager) GetAllProjects() ([]moduleLib.Project, error) {
+func (m *mockProjectManager) GetAllProjects(ctx context.Context) ([]moduleLib.Project, error) {
 	return []moduleLib.Project{}, m.Err
 }
 

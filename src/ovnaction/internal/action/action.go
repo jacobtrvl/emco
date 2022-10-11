@@ -6,32 +6,35 @@ package action
 import (
 	"encoding/json"
 	"fmt"
-	"strings"
 	"strconv"
+	"strings"
 
 	jyaml "github.com/ghodss/yaml"
-	clusterPkg "gitlab.com/project-emco/core/emco-base/src/clm/pkg/cluster"
 	nettypes "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/apis/k8s.cni.cncf.io/v1"
+	clusterPkg "gitlab.com/project-emco/core/emco-base/src/clm/pkg/cluster"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/appcontext"
 	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 	"gitlab.com/project-emco/core/emco-base/src/ovnaction/pkg/module"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
 
+	"context"
+
 	pkgerrors "github.com/pkg/errors"
 )
+
 var CNI_Networking_Nodus_CNI_For_all_interfaces string = "CNI-Networking-Nodus-CNI-For-all-interfaces"
-var CNI_Networking_Multi_CNI_Wrapper  string = "CNI-Networking-Multi-CNI-Wrapper"
+var CNI_Networking_Multi_CNI_Wrapper string = "CNI-Networking-Multi-CNI-Wrapper"
 var MultusCNINetworking string = "multus"
 
 // Action applies the supplied intent against the given AppContext ID
 func UpdateAppContext(intentName, appContextId string) error {
 	var ac appcontext.AppContext
-	_, err := ac.LoadAppContext(appContextId)
+	_, err := ac.LoadAppContext(context.Background(), appContextId)
 	if err != nil {
 		return pkgerrors.Wrapf(err, "Error getting AppContext with Id: %v", appContextId)
 	}
-	caMeta, err := ac.GetCompositeAppMeta()
+	caMeta, err := ac.GetCompositeAppMeta(context.Background())
 	if err != nil {
 		return pkgerrors.Wrapf(err, "Error getting metadata for AppContext with Id: %v", appContextId)
 	}
@@ -80,12 +83,12 @@ func UpdateAppContext(intentName, appContextId string) error {
 		}
 
 		// Get all clusters for the current App from the AppContext
-		clusters, err := ac.GetClusterNames(wi.Spec.AppName)
+		clusters, err := ac.GetClusterNames(context.Background(), wi.Spec.AppName)
 		if err != nil {
 			return pkgerrors.Wrapf(err, "Error getting clusters for app: %v", wi.Spec.AppName)
 		}
 		for _, c := range clusters {
-			rh, err := ac.GetResourceHandle(wi.Spec.AppName, c,
+			rh, err := ac.GetResourceHandle(context.Background(), wi.Spec.AppName, c,
 				strings.Join([]string{wi.Spec.WorkloadResource, wi.Spec.Type}, "+"))
 			if err != nil {
 				log.Error("App Context resource handle not found", log.Fields{
@@ -101,7 +104,7 @@ func UpdateAppContext(intentName, appContextId string) error {
 				})
 				continue
 			}
-			r, err := ac.GetValue(rh)
+			r, err := ac.GetValue(context.Background(), rh)
 			if err != nil {
 				log.Error("Error retrieving resource from App Context", log.Fields{
 					"error":           err,
@@ -111,7 +114,7 @@ func UpdateAppContext(intentName, appContextId string) error {
 			}
 			pc := strings.Split(c, "+")
 			// Read the cluster kv pairs for cluster capabilities
-			ckv, err := clusterPkg.NewClusterClient().GetAllClusterKvPairs(pc[0], pc[1])
+			ckv, err := clusterPkg.NewClusterClient().GetAllClusterKvPairs(context.Background(), pc[0], pc[1])
 			var allIntf, cniWrapper string
 			// Deafults
 			allIntf = "false"
@@ -187,7 +190,7 @@ func UpdateAppContext(intentName, appContextId string) error {
 			}
 
 			// Update resource in AppContext
-			err = ac.UpdateResourceValue(rh, string(y))
+			err = ac.UpdateResourceValue(context.Background(), rh, string(y))
 			if err != nil {
 				log.Error("Network updating app context resource handle", log.Fields{
 					"error":           err,

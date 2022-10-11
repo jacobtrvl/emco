@@ -4,7 +4,7 @@ Copyright (c) 2022 Intel Corporation
 ```
 <!-- omit in toc -->
 # GMS application to demonstrate istio traffic controller
-This document describes how to deploy an example application with istio traffic controller. The deployment consists of httpbin and sleep microservices, running in two different edge clusters. Once deployed, httpbin service can be accessed from the outside cluster as well as from the sleep service from the other cluster. The auth policy allows the service to be accessed through GET method and "/status/" path only. The curl output shows the succesful mutual handshake details (In case of mutual tls) as well as connection to the service. 
+This document describes how to deploy an example application with istio traffic controller. The deployment consists of httpbin and sleep microservices, running in two different edge clusters. Once deployed, httpbin service can be accessed from the outside cluster as well as from the sleep service from the other cluster. The auth policy allows the service to be accessed through GET method and "/status/" path only. The curl output shows the succesful mutual handshake details (In case of mutual tls) as well as connection to the service.
 
 - Requirements
 - Install EMCO and emcoctl
@@ -31,11 +31,13 @@ Build the httpbin-client images. Refer to [this Readme](../../test-apps/README.m
 Install the Kubernetes edge clusters and make sure it supports istio with single root CA. Note down the kubeconfig for the edge cluster which is required later during configuration.
 
 ## Configure
-(1) Set the KUBE_PATH1 and KUBE_PATH2 enviromnet variables to cluster kubeconfig file path.
+(1) Set the KUBE_PATH1 and KUBE_PATH2 environment variables to cluster kubeconfig file path.  Set the CLUSTER1_ISTIO_INGRESS_GATEWAY_ADDRESS and CLUSTER2_ISTIO_INGRESS_GATEWAY_ADDRESS environment variables to reflect the Istio ingress address for each cluster.
 
 (2) Set the HOST_IP enviromnet variables to the address where emco is running.
 
-(3) Generate certs and keys 
+(3) Set the CLIENT_SERVICE_IMAGE_REPOSITORY environment variable to the location of the httpbin-client image.
+
+(4) Generate certs and keys
 ```shell
 cd examples/certs/httpbin/server
 ./gen-server-certs.sh
@@ -46,9 +48,7 @@ Use the output from the above command and update the examples/dtc/external_acces
 cd ../client
 ./gen-client-certs.sh
 ```
-(4) Modify examples/dtc/external_access/setup.sh files to change controller port numbers if they are diffrent than your emco installation.
-
-(5) Modify examples/dtc/external_access/clusters.yaml to reflect istio ingress address for both the clusters.
+(5) Modify examples/dtc/external_access/setup.sh files to change controller port numbers if they are diffrent than your emco installation.
 
 ## Install the application
 Install the app using the commands:
@@ -86,11 +86,11 @@ $ curl-mutual.sh
 
 Output:
 ```shell
-* Added httpbin.example.com:30830:172.16.16.200 to DNS cache
+* Added httpbin.example.com:30830:172.16.16.100 to DNS cache
 * Hostname httpbin.example.com was found in DNS cache
-*   Trying 172.16.16.200...
+*   Trying 172.16.16.100...
 * TCP_NODELAY set
-* Connected to httpbin.example.com (172.16.16.200) port 30830 (#0)
+* Connected to httpbin.example.com (172.16.16.100) port 30830 (#0)
 * ALPN, offering h2
 * ALPN, offering http/1.1
 * successfully set certificate verify locations:
@@ -169,11 +169,11 @@ $ curl-http.sh
 ```
 Output:
 ```shell
-* Added httpbin.example.com:31756:172.16.16.200 to DNS cache
+* Added httpbin.example.com:31756:172.16.16.100 to DNS cache
 * Hostname httpbin.example.com was found in DNS cache
-*   Trying 172.16.16.200...
+*   Trying 172.16.16.100...
 * TCP_NODELAY set
-* Connected to httpbin.example.com (172.16.16.200) port 31756 (#0)
+* Connected to httpbin.example.com (172.16.16.100) port 31756 (#0)
 > GET /status/418 HTTP/1.1
 > Host:httpbin.example.com
 > User-Agent: curl/7.58.0
@@ -200,17 +200,16 @@ Output:
         `"""`
 * Connection #0 to host httpbin.example.com left intact
 ```
-## Verify the connectivity from the client pod 
+## Verify the connectivity from the client pod
 ```shell
 kubectl exec -it client-7d7bf44b5c-qmzhh -c client -n httpbin-ns -- /bin/sh
 ```
 ```shell
-# curl -v --noproxy '*' -HHost:httpbin.example.com --resolve "httpbin.example.com:31756:172.16.16.2
-00" "http://httpbin.example.com:31756/status/418"
-* Added httpbin.example.com:31756:172.16.16.200 to DNS cache
+# curl -v --noproxy '*' -HHost:httpbin.example.com --resolve "httpbin.example.com:31756:172.16.16.100" "http://httpbin.example.com:31756/status/418"
+* Added httpbin.example.com:31756:172.16.16.100 to DNS cache
 * Hostname httpbin.example.com was found in DNS cache
-*   Trying 172.16.16.200:31756...
-* Connected to httpbin.example.com (172.16.16.200) port 31756 (#0)
+*   Trying 172.16.16.100:31756...
+* Connected to httpbin.example.com (172.16.16.100) port 31756 (#0)
 > GET /status/418 HTTP/1.1
 > Host:httpbin.example.com
 > User-Agent: curl/7.79.1
@@ -274,5 +273,5 @@ kubectl exec -it client-7d7bf44b5c-qmzhh -c client -n httpbin-ns -- /bin/sh
 ## Uninstall the application
 Uninstall the app using the command:
 ```shell
-$ ./delete.sh 
+$ ./delete.sh
 ```

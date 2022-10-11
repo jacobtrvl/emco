@@ -14,6 +14,8 @@ var apiErrors = []apierror.APIError{
 	{ID: "empty Post Body", Message: "empty post body", Status: http.StatusBadRequest},
 	{ID: "error decoding json body", Message: "error decoding json body", Status: http.StatusUnprocessableEntity},
 	{ID: "Workflow Hook not found", Message: "Workflow Hook not found", Status: http.StatusNotFound},
+	{ID: "Worker Not Found", Message: "The worker you are looking for was not found.", Status: http.StatusNotFound},
+	{ID: "This worker already exists.", Message: "A worker with this name already exists.", Status: http.StatusConflict},
 }
 
 // HandleErrors exposes the generic action controller API errors

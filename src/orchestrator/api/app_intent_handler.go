@@ -49,6 +49,7 @@ func (h appIntentHandler) createAppIntentHandler(w http.ResponseWriter, r *http.
 		return
 	}
 
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	projectName := vars["project"]
 	compositeAppName := vars["compositeApp"]
@@ -56,7 +57,7 @@ func (h appIntentHandler) createAppIntentHandler(w http.ResponseWriter, r *http.
 	intent := vars["genericPlacementIntent"]
 	digName := vars["deploymentIntentGroup"]
 
-	appIntent, _, createErr := h.client.CreateAppIntent(a, projectName, compositeAppName, version, intent, digName, true)
+	appIntent, _, createErr := h.client.CreateAppIntent(ctx, a, projectName, compositeAppName, version, intent, digName, true)
 	if createErr != nil {
 		apiErr := apierror.HandleErrors(vars, createErr, a, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -74,6 +75,7 @@ func (h appIntentHandler) createAppIntentHandler(w http.ResponseWriter, r *http.
 }
 
 func (h appIntentHandler) getAppIntentHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 
 	p := vars["project"]
@@ -117,7 +119,7 @@ func (h appIntentHandler) getAppIntentHandler(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	appIntent, err := h.client.GetAppIntent(ai, p, ca, v, i, dig)
+	appIntent, err := h.client.GetAppIntent(ctx, ai, p, ca, v, i, dig)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -141,6 +143,7 @@ getAllIntentsByAppHandler handles the URL:
 */
 func (h appIntentHandler) getAllIntentsByAppHandler(w http.ResponseWriter, r *http.Request) {
 
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	pList := []string{"project", "compositeApp", "compositeAppVersion", "genericPlacementIntent"}
 	err := validation.IsValidParameterPresent(vars, pList)
@@ -162,7 +165,7 @@ func (h appIntentHandler) getAllIntentsByAppHandler(w http.ResponseWriter, r *ht
 		return
 	}
 
-	specData, err := h.client.GetAllIntentsByApp(aN, p, ca, v, i, digName)
+	specData, err := h.client.GetAllIntentsByApp(ctx, aN, p, ca, v, i, digName)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -185,6 +188,7 @@ getAllAppIntentsHandler handles the URL:
 /v2/project/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/generic-placement-intent/{genericPlacementIntent}/app-intents
 */
 func (h appIntentHandler) getAllAppIntentsHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	pList := []string{"project", "compositeApp", "compositeAppVersion", "genericPlacementIntent"}
 	err := validation.IsValidParameterPresent(vars, pList)
@@ -199,7 +203,7 @@ func (h appIntentHandler) getAllAppIntentsHandler(w http.ResponseWriter, r *http
 	i := vars["genericPlacementIntent"]
 	digName := vars["deploymentIntentGroup"]
 
-	applicationsAndClusterInfo, err := h.client.GetAllAppIntents(p, ca, v, i, digName)
+	applicationsAndClusterInfo, err := h.client.GetAllAppIntents(ctx, p, ca, v, i, digName)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -218,6 +222,7 @@ func (h appIntentHandler) getAllAppIntentsHandler(w http.ResponseWriter, r *http
 }
 
 func (h appIntentHandler) deleteAppIntentHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 
 	p := vars["project"]
@@ -227,7 +232,7 @@ func (h appIntentHandler) deleteAppIntentHandler(w http.ResponseWriter, r *http.
 	ai := vars["genericAppPlacementIntent"]
 	digName := vars["deploymentIntentGroup"]
 
-	err := h.client.DeleteAppIntent(ai, p, ca, v, i, digName)
+	err := h.client.DeleteAppIntent(ctx, ai, p, ca, v, i, digName)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -240,6 +245,7 @@ func (h appIntentHandler) deleteAppIntentHandler(w http.ResponseWriter, r *http.
 // putAppIntentHandler handles the put operation of intent
 func (h appIntentHandler) putAppIntentHandler(w http.ResponseWriter, r *http.Request) {
 	var ai moduleLib.AppIntent
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	p := vars["project"]
 	ca := vars["compositeApp"]
@@ -267,7 +273,7 @@ func (h appIntentHandler) putAppIntentHandler(w http.ResponseWriter, r *http.Req
 	}
 
 	// Update App Intent
-	appIntent, aiExists, err := h.client.CreateAppIntent(ai, p, ca, v, gpi, dig, false)
+	appIntent, aiExists, err := h.client.CreateAppIntent(ctx, ai, p, ca, v, gpi, dig, false)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, ai, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)

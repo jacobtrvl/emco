@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -21,7 +22,7 @@ type ReadResource struct {
 }
 
 // Get gets the resource from the remote cluster
-func (c *Client) Get(gvkRes []byte, namespace string) ([]byte, error) {
+func (c *Client) Get(ctx context.Context, gvkRes []byte, namespace string) ([]byte, error) {
 
 	var g ReadResource
 	var ns string
@@ -50,9 +51,9 @@ func (c *Client) Get(gvkRes []byte, namespace string) ([]byte, error) {
 	// Handle based on namespace scopped GVK or not
 	switch mapping.Scope.Name() {
 	case meta.RESTScopeNameNamespace:
-		unstruct, err = c.DynamicClient.Resource(gvr).Namespace(ns).Get(context.TODO(), g.Name, opts)
+		unstruct, err = c.DynamicClient.Resource(gvr).Namespace(ns).Get(ctx, g.Name, opts)
 	case meta.RESTScopeNameRoot:
-		unstruct, err = c.DynamicClient.Resource(gvr).Get(context.TODO(), g.Name, opts)
+		unstruct, err = c.DynamicClient.Resource(gvr).Get(ctx, g.Name, opts)
 	default:
 		return nil, fmt.Errorf("RESTScopeName for GVK failed %v, %s", err, g.Gvk.String())
 	}

@@ -1,0 +1,79 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2020-2021 Intel Corporation
+
+#creating cluster provider
+version: emco/v2
+resourceContext:
+  anchor: cluster-providers
+metadata :
+   name: provider1
+   description: test
+   userData1: test1
+   userData2: test2
+
+---
+#creating cluster
+version: emco/v2
+resourceContext:
+  anchor: cluster-providers/provider1/clusters
+metadata :
+   name: cluster1
+   description: test
+   userData1: test1
+   userData2: test2
+file:
+  {{.KubeConfig1}}
+
+---
+#creating cluster
+version: emco/v2
+resourceContext:
+  anchor: cluster-providers/provider1/clusters
+metadata :
+   name: cluster2
+   description: test
+   userData1: test1
+   userData2: test2
+file:
+  {{.KubeConfig2}}
+
+---
+#Add label cluster
+version: emco/v2
+resourceContext:
+  anchor: cluster-providers/provider1/clusters/cluster1/labels
+clusterLabel: edge-cluster
+
+---
+#Add label cluster
+version: emco/v2
+resourceContext:
+  anchor: cluster-providers/provider1/clusters/cluster2/labels
+clusterLabel: edge-cluster1
+
+---
+#Add label cluster
+version: emco/v2
+resourceContext:
+  anchor: cluster-providers/provider1/clusters/cluster1/labels
+clusterLabel: networkpolicy-supported
+
+---
+#Add label cluster
+version: emco/v2
+resourceContext:
+  anchor: cluster-providers/provider1/clusters/cluster2/labels
+clusterLabel: networkpolicy-supported
+
+---
+#Add label kvpair
+version: emco/v2
+resourceContext:
+  anchor: cluster-providers/provider1/clusters/cluster2/kv-pairs
+metadata :
+  name: istioingresskvpairs
+spec:
+  kv:
+    - istioIngressGatewayAddress : "{{.Cluster2IstioIngressGatewayAddress}}"
+    - istioIngressGatewayPort: "32001"
+    - istioIngressGatewayInternalPort: "15443"

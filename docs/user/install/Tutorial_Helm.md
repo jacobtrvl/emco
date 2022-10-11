@@ -1,4 +1,3 @@
-
 ```
 SPDX-License-Identifier: Apache-2.0
 Copyright (c) 2019-2020 Intel Corporation
@@ -42,6 +41,11 @@ Set Docker registry parameter before creating helm package
 export EMCODOCKERREPO=${container_registry_url}/
 
 ```
+
+To locally build images and push to a container registry:
+
+[Pushing EMCO images to container registry](#pushing-emco-images-to-container-registry)
+
 ## Create Helm Package
 Run `make deploy` from root EMCO folder to create the helmchart tar package under the `EMCO/bin/helm` folder.
 
@@ -335,4 +339,5 @@ It is often required to use developer tags for locally built EMCO images, push t
 To enable these features, run `export BUILD_CAUSE=DEV_TEST` prior to running `make deploy`. This will tag locally built images as `<username>-latest`, push to a container registry and reference these images in the generated helmcharts.
 
 Developers can then use the ```emco-base-helm-install.sh``` script from the above sections to install these custom images on their cluster.
+
 

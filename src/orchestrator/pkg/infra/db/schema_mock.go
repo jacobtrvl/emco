@@ -2,6 +2,7 @@ package db
 
 import (
 	pkgerrors "github.com/pkg/errors"
+	"golang.org/x/net/context"
 )
 
 type MockMongoStore struct {
@@ -9,24 +10,24 @@ type MockMongoStore struct {
 }
 
 // ReadRefSchema reads the Referential Schema Segment file and creates the refSchemaMap.
-func (m *MockMongoStore) ReadRefSchema() error {
+func (m *MockMongoStore) ReadRefSchema(ctx context.Context) error {
 	schema, err := readSchema()
 	if err != nil {
 		return err
 	}
 
-	return m.verifyReferentialIntegrity(schema)
+	return m.verifyReferentialIntegrity(ctx, schema)
 }
 
 // verifyReferentialIntegrity verifies the referential integrity of the resources
 // defined by the controller(s) schema.
 // Wait for controllers to register schema in scenarios where
 // multiple controllers start simultaneously.
-func (m *MockMongoStore) verifyReferentialIntegrity(serviceSchema DbSchema) error {
+func (m *MockMongoStore) verifyReferentialIntegrity(ctx context.Context, serviceSchema DbSchema) error {
 	refSchemaMap = nil
 	refKeyMap = nil
 
-	waitForSchema, err := m.processSchema(serviceSchema)
+	waitForSchema, err := m.processSchema(ctx, serviceSchema)
 	if err != nil {
 		return err
 	}
@@ -38,7 +39,7 @@ func (m *MockMongoStore) verifyReferentialIntegrity(serviceSchema DbSchema) erro
 }
 
 // processSchema process each schema segment in the db.
-func (m *MockMongoStore) processSchema(serviceSchema DbSchema) (bool, error) {
+func (m *MockMongoStore) processSchema(ctx context.Context, serviceSchema DbSchema) (bool, error) {
 	var (
 		emcoRefSchema    DbSchema
 		schemaExists     bool
@@ -48,7 +49,7 @@ func (m *MockMongoStore) processSchema(serviceSchema DbSchema) (bool, error) {
 	const baseSchemaName string = "emco-base"
 
 	// Retrieve all the schema segments.
-	segments, err := m.db.Find("resources", DbSchemaKey{}, "segment")
+	segments, err := m.db.Find(ctx, "resources", DbSchemaKey{}, "segment")
 	if err != nil {
 		return false, err
 	}
@@ -108,7 +109,7 @@ func (m *MockMongoStore) processSchema(serviceSchema DbSchema) (bool, error) {
 	if !schemaExists &&
 		serviceSchema.SegmentId != "" {
 		// Register the controller schema in the db.
-		err := m.db.Insert("resources", DbSchemaKey{SegmentId: serviceSchema.SegmentId}, nil, "segment", serviceSchema)
+		err := m.db.Insert(ctx, "resources", DbSchemaKey{SegmentId: serviceSchema.SegmentId}, nil, "segment", serviceSchema)
 		if err != nil {
 			return false, err
 		}

@@ -18,23 +18,25 @@ import (
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/state"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/status"
 
+	"context"
+
 	pkgerrors "github.com/pkg/errors"
 )
 
 // LogicalCloudManager is an interface that exposes the connection
 // functionality
 type LogicalCloudManager interface {
-	Create(project string, c common.LogicalCloud) (common.LogicalCloud, error)
-	Get(project, name string) (common.LogicalCloud, error)
-	GetAll(project string) ([]common.LogicalCloud, error)
-	GetState(p string, lc string) (state.StateInfo, error)
-	Delete(project, name string) error
-	GenericStatus(project, name, qStatusInstance, qType, qOutput string, fClusters, fResources []string) (status.StatusResult, error)
-	StatusClusters(p, lc, qStatusInstance string) (status.LogicalCloudClustersStatus, error)
-	StatusResources(p, lc, qStatusInstance, qType string, fClusters []string) (status.LogicalCloudResourcesStatus, error)
-	Status(p, lc, qStatusInstance, qType, qOutput string, fClusters, fResources []string) (status.LogicalCloudStatus, error)
-	UpdateLogicalCloud(project, name string, c common.LogicalCloud) (common.LogicalCloud, error)
-	UpdateInstantiation(project, name string, c common.LogicalCloud) (common.LogicalCloud, error)
+	Create(ctx context.Context, project string, c common.LogicalCloud) (common.LogicalCloud, error)
+	Get(ctx context.Context, project, name string) (common.LogicalCloud, error)
+	GetAll(ctx context.Context, project string) ([]common.LogicalCloud, error)
+	GetState(ctx context.Context, p string, lc string) (state.StateInfo, error)
+	Delete(ctx context.Context, project, name string) error
+	GenericStatus(ctx context.Context, project, name, qStatusInstance, qType, qOutput string, fClusters, fResources []string) (status.StatusResult, error)
+	StatusClusters(ctx context.Context, p, lc, qStatusInstance string) (status.LogicalCloudClustersStatus, error)
+	StatusResources(ctx context.Context, p, lc, qStatusInstance, qType string, fClusters []string) (status.LogicalCloudResourcesStatus, error)
+	Status(ctx context.Context, p, lc, qStatusInstance, qType, qOutput string, fClusters, fResources []string) (status.LogicalCloudStatus, error)
+	UpdateLogicalCloud(ctx context.Context, project, name string, c common.LogicalCloud) (common.LogicalCloud, error)
+	UpdateInstantiation(ctx context.Context, project, name string, c common.LogicalCloud) (common.LogicalCloud, error)
 }
 
 // LogicalCloudClient implements the LogicalCloudManager
@@ -56,7 +58,7 @@ func NewLogicalCloudClient() *LogicalCloudClient {
 }
 
 // Create entry for the logical cloud resource in the database
-func (v *LogicalCloudClient) Create(project string, c common.LogicalCloud) (common.LogicalCloud, error) {
+func (v *LogicalCloudClient) Create(ctx context.Context, project string, c common.LogicalCloud) (common.LogicalCloud, error) {
 
 	//Construct key consisting of name
 	key := common.LogicalCloudKey{
@@ -65,7 +67,7 @@ func (v *LogicalCloudClient) Create(project string, c common.LogicalCloud) (comm
 	}
 
 	//Check if this Logical Cloud already exists
-	_, err := v.Get(project, c.MetaData.Name)
+	_, err := v.Get(ctx, project, c.MetaData.Name)
 	if err == nil {
 		return common.LogicalCloud{}, pkgerrors.New("Logical Cloud already exists")
 	}
@@ -75,7 +77,7 @@ func (v *LogicalCloudClient) Create(project string, c common.LogicalCloud) (comm
 		c.Specification.Level = "1"
 	}
 
-	err = db.DBconn.Insert(v.storeName, key, nil, v.tagMeta, c)
+	err = db.DBconn.Insert(ctx, v.storeName, key, nil, v.tagMeta, c)
 	if err != nil {
 		return common.LogicalCloud{}, pkgerrors.Wrap(err, "Creating DB Entry")
 	}
@@ -98,7 +100,7 @@ func (v *LogicalCloudClient) Create(project string, c common.LogicalCloud) (comm
 			KeyValue: string(pkData),
 		}
 
-		err = db.DBconn.Insert(v.storeName, key, nil, "privatekey", privKey)
+		err = db.DBconn.Insert(ctx, v.storeName, key, nil, "privatekey", privKey)
 		if err != nil {
 			return common.LogicalCloud{}, pkgerrors.New("Failure storing Logical Cloud user key")
 		}
@@ -113,7 +115,7 @@ func (v *LogicalCloudClient) Create(project string, c common.LogicalCloud) (comm
 	}
 	s.Actions = append(s.Actions, a)
 
-	err = db.DBconn.Insert(v.storeName, key, nil, v.tagState, s)
+	err = db.DBconn.Insert(ctx, v.storeName, key, nil, v.tagState, s)
 	if err != nil {
 		return common.LogicalCloud{}, pkgerrors.Wrap(err, "Error updating the state info of the LogicalCloud: "+c.MetaData.Name)
 	}
@@ -122,14 +124,14 @@ func (v *LogicalCloudClient) Create(project string, c common.LogicalCloud) (comm
 }
 
 // Get returns Logical Cloud corresponding to logical cloud name
-func (v *LogicalCloudClient) Get(project, logicalCloudName string) (common.LogicalCloud, error) {
+func (v *LogicalCloudClient) Get(ctx context.Context, project, logicalCloudName string) (common.LogicalCloud, error) {
 
 	//Construct the composite key to select the entry
 	key := common.LogicalCloudKey{
 		Project:          project,
 		LogicalCloudName: logicalCloudName,
 	}
-	value, err := db.DBconn.Find(v.storeName, key, v.tagMeta)
+	value, err := db.DBconn.Find(ctx, v.storeName, key, v.tagMeta)
 	if err != nil {
 		return common.LogicalCloud{}, err
 	}
@@ -152,7 +154,7 @@ func (v *LogicalCloudClient) Get(project, logicalCloudName string) (common.Logic
 }
 
 // GetAll returns Logical Clouds in the project
-func (v *LogicalCloudClient) GetAll(project string) ([]common.LogicalCloud, error) {
+func (v *LogicalCloudClient) GetAll(ctx context.Context, project string) ([]common.LogicalCloud, error) {
 
 	//Construct the composite key to select the entry
 	key := common.LogicalCloudKey{
@@ -161,7 +163,7 @@ func (v *LogicalCloudClient) GetAll(project string) ([]common.LogicalCloud, erro
 	}
 
 	var resp []common.LogicalCloud
-	values, err := db.DBconn.Find(v.storeName, key, v.tagMeta)
+	values, err := db.DBconn.Find(ctx, v.storeName, key, v.tagMeta)
 	if err != nil {
 		return []common.LogicalCloud{}, err
 	}
@@ -179,14 +181,14 @@ func (v *LogicalCloudClient) GetAll(project string) ([]common.LogicalCloud, erro
 }
 
 // GetState returns the LogicalCloud StateInfo with a given logical cloud name and project
-func (v *LogicalCloudClient) GetState(p string, lc string) (state.StateInfo, error) {
+func (v *LogicalCloudClient) GetState(ctx context.Context, p string, lc string) (state.StateInfo, error) {
 
 	key := common.LogicalCloudKey{
 		Project:          p,
 		LogicalCloudName: lc,
 	}
 
-	result, err := db.DBconn.Find(v.storeName, key, v.tagState)
+	result, err := db.DBconn.Find(ctx, v.storeName, key, v.tagState)
 	if err != nil {
 		return state.StateInfo{}, err
 	}
@@ -208,7 +210,7 @@ func (v *LogicalCloudClient) GetState(p string, lc string) (state.StateInfo, err
 }
 
 // Delete the Logical Cloud entry from database
-func (v *LogicalCloudClient) Delete(project, logicalCloudName string) error {
+func (v *LogicalCloudClient) Delete(ctx context.Context, project, logicalCloudName string) error {
 
 	//Construct the composite key to select the entry
 	key := common.LogicalCloudKey{
@@ -216,35 +218,35 @@ func (v *LogicalCloudClient) Delete(project, logicalCloudName string) error {
 		LogicalCloudName: logicalCloudName,
 	}
 	//Check if this Logical Cloud exists
-	_, err := v.Get(project, logicalCloudName)
+	_, err := v.Get(ctx, project, logicalCloudName)
 	if err != nil {
 		return err
 	}
 
-	// Check if there was a previous context for this logical cloud
-	s, err := v.GetState(project, logicalCloudName)
+	// Check if there was a previous appCtx for this logical cloud
+	s, err := v.GetState(ctx, project, logicalCloudName)
 	if err != nil {
 		return err
 	}
 	cid := state.GetLastContextIdFromStateInfo(s)
 
-	// If there's no context for Logical Cloud, just go ahead and delete it now
+	// If there's no appCtx for Logical Cloud, just go ahead and delete it now
 	if cid == "" {
-		err = db.DBconn.Remove(v.storeName, key)
+		err = db.DBconn.Remove(ctx, v.storeName, key)
 		if err != nil {
 			return pkgerrors.Wrap(err, "Error when deleting Logical Cloud (scenario with no context)")
 		}
 		return nil
 	}
 
-	ac, err := state.GetAppContextFromId(cid)
+	ac, err := state.GetAppContextFromId(ctx, cid)
 	if err != nil {
 		return err
 	}
 
 	// Make sure rsync status for this logical cloud is Terminated,
 	// otherwise we can't re-instantiate logical cloud yet
-	acStatus, err := state.GetAppContextStatus(cid) // new from state
+	acStatus, err := state.GetAppContextStatus(ctx, cid) // new from state
 	if err != nil {
 		return err
 	}
@@ -267,7 +269,7 @@ func (v *LogicalCloudClient) Delete(project, logicalCloudName string) error {
 		fallthrough
 	case appcontext.AppContextStatusEnum.Terminated:
 		// remove the appcontext
-		err := ac.DeleteCompositeApp()
+		err := ac.DeleteCompositeApp(ctx)
 		if err != nil {
 			log.Error("Error deleting AppContext CompositeApp Logical Cloud", log.Fields{"logicalcloud": logicalCloudName})
 			return pkgerrors.Wrap(err, "Error deleting AppContext CompositeApp Logical Cloud")
@@ -281,9 +283,9 @@ func (v *LogicalCloudClient) Delete(project, logicalCloudName string) error {
 			// remove all associated app contexts
 			for _, id := range state.GetContextIdsFromStateInfo(s) {
 				log.Debug("Delete(): attempting to get appcontext", log.Fields{"id": id})
-				context, err := state.GetAppContextFromId(id)
+				appCtx, err := state.GetAppContextFromId(ctx, id)
 				if err == nil {
-					err = context.DeleteCompositeApp()
+					err = appCtx.DeleteCompositeApp(ctx)
 					if err != nil {
 						return pkgerrors.Wrap(err, "Error deleting appcontext for Logical Cloud")
 					}
@@ -294,7 +296,7 @@ func (v *LogicalCloudClient) Delete(project, logicalCloudName string) error {
 			}
 		}
 
-		err = db.DBconn.Remove(v.storeName, key)
+		err = db.DBconn.Remove(ctx, v.storeName, key)
 		if err != nil {
 			log.Error("Error when deleting Logical Cloud (scenario with Terminated status)", log.Fields{"logicalcloud": logicalCloudName})
 			return pkgerrors.Wrap(err, "Error when deleting Logical Cloud (scenario with Terminated status)")
@@ -308,7 +310,7 @@ func (v *LogicalCloudClient) Delete(project, logicalCloudName string) error {
 }
 
 // Update an entry for the Logical Cloud in the database
-func (v *LogicalCloudClient) UpdateLogicalCloud(project, logicalCloudName string, c common.LogicalCloud) (common.LogicalCloud, error) {
+func (v *LogicalCloudClient) UpdateLogicalCloud(ctx context.Context, project, logicalCloudName string, c common.LogicalCloud) (common.LogicalCloud, error) {
 
 	key := common.LogicalCloudKey{
 		Project:          project,
@@ -319,11 +321,11 @@ func (v *LogicalCloudClient) UpdateLogicalCloud(project, logicalCloudName string
 		return common.LogicalCloud{}, pkgerrors.New("Logical Cloud name mismatch")
 	}
 	//Check if this Logical Cloud exists
-	_, err := v.Get(project, logicalCloudName)
+	_, err := v.Get(ctx, project, logicalCloudName)
 	if err != nil {
 		return common.LogicalCloud{}, err
 	}
-	err = db.DBconn.Insert(v.storeName, key, nil, v.tagMeta, c)
+	err = db.DBconn.Insert(ctx, v.storeName, key, nil, v.tagMeta, c)
 	if err != nil {
 		return common.LogicalCloud{}, pkgerrors.Wrap(err, "Updating DB Entry")
 	}
@@ -331,7 +333,7 @@ func (v *LogicalCloudClient) UpdateLogicalCloud(project, logicalCloudName string
 }
 
 // Update an entry for the Logical Cloud in the database
-func (v *LogicalCloudClient) UpdateInstantiation(project, logicalCloudName string, c common.LogicalCloud) (common.LogicalCloud, error) {
+func (v *LogicalCloudClient) UpdateInstantiation(ctx context.Context, project, logicalCloudName string, c common.LogicalCloud) (common.LogicalCloud, error) {
 
 	key := common.LogicalCloudKey{
 		Project:          project,
@@ -339,13 +341,13 @@ func (v *LogicalCloudClient) UpdateInstantiation(project, logicalCloudName strin
 	}
 
 	//Check if this Logical Cloud exists
-	logicalCloud, err := v.Get(project, logicalCloudName)
+	logicalCloud, err := v.Get(ctx, project, logicalCloudName)
 	if err != nil {
 		return common.LogicalCloud{}, err
 	}
 
 	// If Logical Cloud was already instantiated, then prepare new appcontext to give to rsync
-	lcStateInfo, err := v.GetState(project, logicalCloudName)
+	lcStateInfo, err := v.GetState(ctx, project, logicalCloudName)
 	if err != nil {
 		return common.LogicalCloud{}, err
 	}
@@ -354,16 +356,16 @@ func (v *LogicalCloudClient) UpdateInstantiation(project, logicalCloudName strin
 	if oldCID != "" {
 		log.Debug("", log.Fields{"oldCID": oldCID})
 
-		// Since there's a context associated, if the logical cloud isn't fully Terminated then prevent
+		// Since there's a appCtx associated, if the logical cloud isn't fully Terminated then prevent
 		// clusters from being added since this is a functional scenario not currently supported
-		contextStatus, err := state.GetAppContextStatus(oldCID) // new from state
+		contextStatus, err := state.GetAppContextStatus(ctx, oldCID) // new from state
 		if err != nil {
 			return common.LogicalCloud{}, pkgerrors.New("Logical Cloud is not in a state where a cluster can be created")
 		}
 		// If Logical Cloud is instantiated, it's safe to proceed with an updated-instantiation
 		if contextStatus.Status == appcontext.AppContextStatusEnum.Instantiated {
 			// We need to know which clusters to instantiate on
-			clusterList, err := NewClusterClient().GetAllClusters(project, logicalCloudName)
+			clusterList, err := NewClusterClient().GetAllClusters(ctx, project, logicalCloudName)
 			if err != nil {
 				return common.LogicalCloud{}, err
 			}
@@ -375,18 +377,18 @@ func (v *LogicalCloudClient) UpdateInstantiation(project, logicalCloudName strin
 			// Prepare new appcontext to replace previous one
 			if level == "1" {
 				// For L1, we need to know what quotas and user permissions to use
-				quotaList, err := NewQuotaClient().GetAllQuotas(project, logicalCloudName)
+				quotaList, err := NewQuotaClient().GetAllQuotas(ctx, project, logicalCloudName)
 				if err != nil {
 					return common.LogicalCloud{}, err
 				}
-				userPermissionList, err := NewUserPermissionClient().GetAllUserPerms(project, logicalCloudName)
+				userPermissionList, err := NewUserPermissionClient().GetAllUserPerms(ctx, project, logicalCloudName)
 				if err != nil {
 					return common.LogicalCloud{}, err
 				}
-				_, newCID, err = blindInstantiateL1(oldCID, project, logicalCloud, v, clusterList, quotaList, userPermissionList)
+				_, newCID, err = blindInstantiateL1(ctx, oldCID, project, logicalCloud, v, clusterList, quotaList, userPermissionList)
 				log.Debug("", log.Fields{"newCID": newCID})
 			} else if level == "0" {
-				_, newCID, err = blindInstantiateL0(project, logicalCloud, v, clusterList)
+				_, newCID, err = blindInstantiateL0(ctx, project, logicalCloud, v, clusterList)
 				log.Debug("", log.Fields{"newCID": newCID})
 			}
 			if err != nil {
@@ -394,13 +396,13 @@ func (v *LogicalCloudClient) UpdateInstantiation(project, logicalCloudName strin
 			}
 
 			// Update DB Status CID
-			err = state.UpdateAppContextStatusContextID(newCID, oldCID)
+			err = state.UpdateAppContextStatusContextID(ctx, newCID, oldCID)
 			if err != nil {
 				return common.LogicalCloud{}, err
 			}
 
 			// Call rsync to update Logical Cloud in clusters (calculate differences and bring clusters up to DCM state)
-			err = callRsyncUpdate(oldCID, newCID)
+			err = callRsyncUpdate(ctx, oldCID, newCID)
 			if err != nil {
 				log.Error("Failed calling rsync update", log.Fields{"err": err})
 				return common.LogicalCloud{}, pkgerrors.Wrap(err, "Failed calling rsync update")
@@ -422,7 +424,7 @@ func (v *LogicalCloudClient) UpdateInstantiation(project, logicalCloudName strin
 			}
 			lcStateInfo.Actions = append(lcStateInfo.Actions, a)
 
-			err = db.DBconn.Insert(v.storeName, key, nil, v.tagState, lcStateInfo)
+			err = db.DBconn.Insert(ctx, v.storeName, key, nil, v.tagState, lcStateInfo)
 			if err != nil {
 				log.Error("Error updating the state info of the LogicalCloud: ", log.Fields{"logicalCloud": logicalCloud})
 				return common.LogicalCloud{}, err
@@ -433,7 +435,7 @@ func (v *LogicalCloudClient) UpdateInstantiation(project, logicalCloudName strin
 				// Call rsync grpc streaming api, which launches a goroutine to wait for the response of
 				// every cluster (function should know how many clusters are expected and only finish when
 				// all respective certificates have been obtained and all kubeconfigs stored in CloudConfig)
-				err = callRsyncReadyNotify(oldCID)
+				err = callRsyncReadyNotify(ctx, oldCID)
 				if err != nil {
 					log.Error("Failed calling rsync ready-notify", log.Fields{"err": err})
 					return common.LogicalCloud{}, pkgerrors.Wrap(err, "Failed calling rsync ready-notify")
@@ -446,8 +448,8 @@ func (v *LogicalCloudClient) UpdateInstantiation(project, logicalCloudName strin
 	return c, nil
 }
 
-func (v *LogicalCloudClient) GenericStatus(p, lc, qStatusInstance, qType, qOutput string, fClusters, fResources []string) (status.StatusResult, error) {
-	stateInfo, err := v.GetState(p, lc)
+func (v *LogicalCloudClient) GenericStatus(ctx context.Context, p, lc, qStatusInstance, qType, qOutput string, fClusters, fResources []string) (status.StatusResult, error) {
+	stateInfo, err := v.GetState(ctx, p, lc)
 	if err != nil {
 		return status.StatusResult{}, pkgerrors.Wrap(err, "LogicalCloud state not found: "+lc)
 	}
@@ -457,7 +459,7 @@ func (v *LogicalCloudClient) GenericStatus(p, lc, qStatusInstance, qType, qOutpu
 		return status.StatusResult{}, err
 	}
 
-	statusResponse, err := status.GenericPrepareStatusResult(status.LcStatusQuery, stateInfo, qInstance, qType, qOutput, make([]string, 0), fClusters, fResources)
+	statusResponse, err := status.GenericPrepareStatusResult(ctx, status.LcStatusQuery, stateInfo, qInstance, qType, qOutput, make([]string, 0), fClusters, fResources)
 	if err != nil {
 		return status.StatusResult{}, err
 	}
@@ -466,13 +468,13 @@ func (v *LogicalCloudClient) GenericStatus(p, lc, qStatusInstance, qType, qOutpu
 	return statusResponse, nil
 }
 
-func (v *LogicalCloudClient) StatusClusters(p, lc, qStatusInstance string) (status.LogicalCloudClustersStatus, error) {
-	lcState, err := v.GetState(p, lc)
+func (v *LogicalCloudClient) StatusClusters(ctx context.Context, p, lc, qStatusInstance string) (status.LogicalCloudClustersStatus, error) {
+	lcState, err := v.GetState(ctx, p, lc)
 	if err != nil {
 		return status.LogicalCloudClustersStatus{}, pkgerrors.Wrap(err, "Logical Cloud state not found")
 	}
 
-	statusResponse, err := status.PrepareClustersByAppStatusResult(lcState, qStatusInstance, []string{"logical-cloud"})
+	statusResponse, err := status.PrepareClustersByAppStatusResult(ctx, lcState, qStatusInstance, []string{"logical-cloud"})
 	if err != nil {
 		return status.LogicalCloudClustersStatus{}, err
 	}
@@ -485,13 +487,13 @@ func (v *LogicalCloudClient) StatusClusters(p, lc, qStatusInstance string) (stat
 	return lcStatus, nil
 }
 
-func (v *LogicalCloudClient) StatusResources(p, lc, qStatusInstance, qType string, fClusters []string) (status.LogicalCloudResourcesStatus, error) {
-	lcState, err := v.GetState(p, lc)
+func (v *LogicalCloudClient) StatusResources(ctx context.Context, p, lc, qStatusInstance, qType string, fClusters []string) (status.LogicalCloudResourcesStatus, error) {
+	lcState, err := v.GetState(ctx, p, lc)
 	if err != nil {
 		return status.LogicalCloudResourcesStatus{}, pkgerrors.Wrap(err, "Logical Cloud state not found")
 	}
 
-	statusResponse, err := status.PrepareResourcesByAppStatusResult(lcState, qStatusInstance, qType, []string{"logical-cloud"}, fClusters)
+	statusResponse, err := status.PrepareResourcesByAppStatusResult(ctx, lcState, qStatusInstance, qType, []string{"logical-cloud"}, fClusters)
 	if err != nil {
 		return status.LogicalCloudResourcesStatus{}, err
 	}
@@ -504,13 +506,13 @@ func (v *LogicalCloudClient) StatusResources(p, lc, qStatusInstance, qType strin
 	return lcStatus, nil
 }
 
-func (v *LogicalCloudClient) Status(p, lc, qStatusInstance, qType, qOutput string, fClusters, fResources []string) (status.LogicalCloudStatus, error) {
-	lcState, err := v.GetState(p, lc)
+func (v *LogicalCloudClient) Status(ctx context.Context, p, lc, qStatusInstance, qType, qOutput string, fClusters, fResources []string) (status.LogicalCloudStatus, error) {
+	lcState, err := v.GetState(ctx, p, lc)
 	if err != nil {
 		return status.LogicalCloudStatus{}, pkgerrors.Wrap(err, "Logical Cloud state not found")
 	}
 
-	statusResponse, err := status.PrepareStatusResult(lcState, qStatusInstance, qType, qOutput, make([]string, 0), fClusters, fResources)
+	statusResponse, err := status.PrepareStatusResult(ctx, lcState, qStatusInstance, qType, qOutput, make([]string, 0), fClusters, fResources)
 	if err != nil {
 		return status.LogicalCloudStatus{}, err
 	}

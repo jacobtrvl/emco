@@ -17,13 +17,15 @@ import (
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/module/controller"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/status"
 	readynotifypb "gitlab.com/project-emco/core/emco-base/src/rsync/pkg/grpc/readynotify"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/trace"
 	proto "google.golang.org/protobuf/proto"
 )
 
 // StatusNotifyServerHelpers is an interface supported by the specific microservices that need to provide status notification
 type StatusNotifyServerHelpers interface {
-	GetAppContextId(reg *pb.StatusRegistration) (string, error)
-	StatusQuery(reg *pb.StatusRegistration, qInstance, qType, qOutput string, qApps, qClusters, qResources []string) status.StatusResult
+	GetAppContextId(ctx context.Context, reg *pb.StatusRegistration) (string, error)
+	StatusQuery(ctx context.Context, reg *pb.StatusRegistration, qInstance, qType, qOutput string, qApps, qClusters, qResources []string) status.StatusResult
 	PrepareStatusNotification(reg *pb.StatusRegistration, statusResult status.StatusResult) *pb.StatusNotification
 }
 
@@ -234,6 +236,7 @@ func queryNeeded(qType string, apps, clusters map[string]struct{}, acInfo appCon
 
 // StatusRegister gets notified when a client registers for a status notification stream for a given resource
 func (s *StatusNotifyServer) StatusRegister(reg *pb.StatusRegistration, stream pb.StatusNotify_StatusRegisterServer) error {
+	ctx := stream.Context()
 
 	// Check if the clientId is already in use, return error if yes
 	clientId := reg.GetClientId()
@@ -246,7 +249,7 @@ func (s *StatusNotifyServer) StatusRegister(reg *pb.StatusRegistration, stream p
 			log.Fields{"client": clientId})
 		return pkgerrors.New("Duplicate client ID: " + clientId)
 	}
-	appContextID, err := s.sh.GetAppContextId(reg)
+	appContextID, err := s.sh.GetAppContextId(ctx, reg)
 	if err != nil {
 		log.Info("[StatusNotify gRPC] Could not get appContextID for status notification registration",
 			log.Fields{"client": clientId, "AppContextID": appContextID})
@@ -285,24 +288,36 @@ func (s *StatusNotifyServer) StatusRegister(reg *pb.StatusRegistration, stream p
 	// update streamChannels
 	s.streamChannels[stream] = make(chan int)
 	c := s.streamChannels[stream]
-	ctx := stream.Context()
 
 	var wg sync.WaitGroup
 
 	if needReadyNotifyStream {
-		s.readyNotifyClient = newReadyNotifyClient() // always call this - rsync controller could have been deleted/re-added
+		s.readyNotifyClient = newReadyNotifyClient(ctx) // always call this - rsync controller could have been deleted/re-added
 		if s.readyNotifyClient == nil {
 			s.mutex.Unlock()
 			log.Error("[StatusNotify gRPC] Could not get ReadyNotify Client",
 				log.Fields{"appContextID": appContextID, "client": clientId})
 			return pkgerrors.Errorf("Unable to get ReadyNotifyClient for StatusNotifyServer: %v, %v", appContextID, clientId)
 		}
-		readyNotifyStream, err := s.readyNotifyClient.Alert(context.Background(),
+
+		// The readyNotifyClient ctx used below belongs to the
+		// stream, so we must create a new (not derived)
+		// context to prevent the context from being cancelled
+		// when the caller completes: a cancelled context will
+		// cause the below work to exit early.  A link is used
+		// so that the traces can be associated.
+		tracer := otel.Tracer("orchestrator")
+		readyNotifyStreamCtx, span := tracer.Start(context.Background(), "sendStatusNotifications",
+			trace.WithLinks(trace.LinkFromContext(ctx)),
+		)
+
+		readyNotifyStream, err := s.readyNotifyClient.Alert(readyNotifyStreamCtx,
 			&readynotifypb.Topic{ClientName: s.name, AppContext: appContextID})
 		if err != nil {
 			s.mutex.Unlock()
 			log.Error("[StatusNotify gRPC] Could not get ReadyNotify Stream",
 				log.Fields{"appContextID": appContextID, "client": clientId, "error": err})
+			span.End()
 			return err
 		}
 
@@ -314,7 +329,7 @@ func (s *StatusNotifyServer) StatusRegister(reg *pb.StatusRegistration, stream p
 		log.Info("[StatusNotify gRPC] ready to start sending status notifications",
 			log.Fields{"appContextID": appContextID, "client": clientId})
 		wg.Add(1)
-		go sendStatusNotifications(readyNotifyStream, &wg, appContextID)
+		go sendStatusNotifications(readyNotifyStreamCtx, readyNotifyStream, &wg, appContextID)
 	} else {
 		s.mutex.Unlock()
 	}
@@ -324,7 +339,7 @@ func (s *StatusNotifyServer) StatusRegister(reg *pb.StatusRegistration, stream p
 		select {
 		case <-ctx.Done():
 			log.Info("[StatusNotify gRPC] Client has disconnected", log.Fields{"client": clientId})
-			cleanup(clientId)
+			cleanup(ctx, clientId)
 			wg.Wait()
 			return nil
 		case <-c:
@@ -337,7 +352,10 @@ func (s *StatusNotifyServer) StatusRegister(reg *pb.StatusRegistration, stream p
 }
 
 // SendStatusNotification sends a status notification message to the subscriber
-func sendStatusNotifications(stream readynotifypb.ReadyNotify_AlertClient, wg *sync.WaitGroup, appContextID string) error {
+func sendStatusNotifications(ctx context.Context, stream readynotifypb.ReadyNotify_AlertClient, wg *sync.WaitGroup, appContextID string) error {
+	span := trace.SpanFromContext(ctx)
+	defer span.End()
+
 	type recvEvent struct {
 		app     string
 		cluster string
@@ -442,7 +460,7 @@ func sendStatusNotifications(stream readynotifypb.ReadyNotify_AlertClient, wg *s
 				continue
 			}
 
-			statusResult := notifServer.sh.StatusQuery(reg, appContextID, qType, qOutput, qApps, qClusters, qResources)
+			statusResult := notifServer.sh.StatusQuery(ctx, reg, appContextID, qType, qOutput, qApps, qClusters, qResources)
 
 			// For a given alert, send a status notification to each status client watching the appcontextId
 			for clientId, _ := range acInfo.statusClientIDs {
@@ -475,7 +493,7 @@ func sendStatusNotifications(stream readynotifypb.ReadyNotify_AlertClient, wg *s
 }
 
 // cleanup will be called when the subscriber wants to terminate the stream
-func cleanup(clientId string) {
+func cleanup(ctx context.Context, clientId string) {
 	notifServer.mutex.Lock()
 	defer notifServer.mutex.Unlock()
 
@@ -499,7 +517,7 @@ func cleanup(clientId string) {
 	delete(acInfo.statusClientIDs, clientId)
 	if len(acInfo.statusClientIDs) == 0 {
 		// if no clients are left for the app context - unsubscribe from rsync readyNotify service
-		_, err := notifServer.readyNotifyClient.Unsubscribe(context.Background(),
+		_, err := notifServer.readyNotifyClient.Unsubscribe(ctx,
 			&readynotifypb.Topic{ClientName: notifServer.name, AppContext: si.appContextID})
 		if err != nil {
 			log.Error("[StatusNotify gRPC] Error unsubscribing from rsync readyNotify", log.Fields{"rsync readyNotify clientId": notifServer.name, "appContextID": si.appContextID, "Error": err})
@@ -564,9 +582,9 @@ func NewStatusNotifyServer(readyNotifyClientID string, sh StatusNotifyServerHelp
 
 const rsyncName = "rsync"
 
-func queryDBAndInitRsync() error {
+func queryDBAndInitRsync(ctx context.Context) error {
 	client := controller.NewControllerClient("resources", "data", "orchestrator")
-	vals, _ := client.GetControllers()
+	vals, _ := client.GetControllers(ctx)
 	for _, v := range vals {
 		if v.Metadata.Name == rsyncName {
 			log.Info("Initializing RPC connection to resource synchronizer", log.Fields{
@@ -580,17 +598,17 @@ func queryDBAndInitRsync() error {
 	return pkgerrors.Errorf("queryRsyncInfoInMCODB Failed - Could not get find rsync by name : %v", rsyncName)
 }
 
-func newReadyNotifyClient() readynotifypb.ReadyNotifyClient {
-	conn := rpc.GetRpcConn(rsyncName)
+func newReadyNotifyClient(ctx context.Context) readynotifypb.ReadyNotifyClient {
+	conn := rpc.GetRpcConn(ctx, rsyncName)
 	if conn == nil {
 		if !inc.InitRsyncClient() {
-			err := queryDBAndInitRsync()
+			err := queryDBAndInitRsync(ctx)
 			if err != nil {
 				log.Warn("[StatusNotify gRPC] Failed to initialize get ReadyNotifyClient", log.Fields{})
 				return nil
 			}
 		}
-		conn = rpc.GetRpcConn(rsyncName)
+		conn = rpc.GetRpcConn(ctx, rsyncName)
 	}
 
 	if conn != nil {

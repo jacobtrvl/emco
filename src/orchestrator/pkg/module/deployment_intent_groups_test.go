@@ -4,6 +4,7 @@
 package module
 
 import (
+	"context"
 	"reflect"
 	"strings"
 	"testing"
@@ -202,9 +203,10 @@ func TestCreateDeploymentIntentGroup(t *testing.T) {
 
 	for _, test := range testCases {
 		t.Run(test.label, func(t *testing.T) {
+			ctx := context.Background()
 			db.DBconn = test.db
 			cli := NewDeploymentIntentGroupClient()
-			deploymentIntentGroup, _, err := cli.CreateDeploymentIntentGroup(test.dig, test.project, test.compositeApp, test.version, true)
+			deploymentIntentGroup, _, err := cli.CreateDeploymentIntentGroup(ctx, test.dig, test.project, test.compositeApp, test.version, true)
 			if err != nil {
 				if test.err == "" {
 					t.Fatalf("CreateDeploymentIntentGroup returned an unexpected error %s, ", err.Error())
@@ -392,9 +394,10 @@ func TestGetDeploymentIntentGroup(t *testing.T) {
 
 	for _, test := range testCases {
 		t.Run(test.label, func(t *testing.T) {
+			ctx := context.Background()
 			db.DBconn = test.db
 			cli := NewDeploymentIntentGroupClient()
-			deploymentIntentGroup, err := cli.GetDeploymentIntentGroup(test.deploymentIntentGroup, test.project, test.compositeApp, test.version)
+			deploymentIntentGroup, err := cli.GetDeploymentIntentGroup(ctx, test.deploymentIntentGroup, test.project, test.compositeApp, test.version)
 			if err != nil {
 				if test.err == "" {
 					t.Fatalf("GetDeploymentIntentGroup returned an unexpected error: %s", err.Error())
@@ -542,9 +545,10 @@ func TestGetDeploymentIntentGroupState(t *testing.T) {
 
 	for _, test := range testCases {
 		t.Run(test.label, func(t *testing.T) {
+			ctx := context.Background()
 			db.DBconn = test.db
 			cli := NewDeploymentIntentGroupClient()
-			stateInfo, err := cli.GetDeploymentIntentGroupState(test.deploymentIntentGroup, test.project, test.compositeApp, test.version)
+			stateInfo, err := cli.GetDeploymentIntentGroupState(ctx, test.deploymentIntentGroup, test.project, test.compositeApp, test.version)
 			if err != nil {
 				if test.err == "" {
 					t.Fatalf("GetDeploymentIntentGroupState returned an unexpected error: %s", err)
@@ -689,9 +693,10 @@ func TestDeleteDeploymentIntentGroup(t *testing.T) {
 
 	for _, test := range testCases {
 		t.Run(test.label, func(t *testing.T) {
+			ctx := context.Background()
 			db.DBconn = test.db
 			cli := NewDeploymentIntentGroupClient()
-			err := cli.DeleteDeploymentIntentGroup(test.deploymentIntentGroup, test.project, test.compositeApp, test.version)
+			err := cli.DeleteDeploymentIntentGroup(ctx, test.deploymentIntentGroup, test.project, test.compositeApp, test.version)
 			if err != nil {
 				if test.err == "" {
 					t.Fatalf("DeleteDeploymentIntentGroup returned an unexpected error: %s", err.Error())
@@ -839,9 +844,10 @@ func TestGetAllDeploymentIntentGroups(t *testing.T) {
 
 	for _, test := range testCases {
 		t.Run(test.label, func(t *testing.T) {
+			ctx := context.Background()
 			db.DBconn = test.db
 			cli := NewDeploymentIntentGroupClient()
-			deploymentIntentGroups, err := cli.GetAllDeploymentIntentGroups(test.project, test.compositeApp, test.version)
+			deploymentIntentGroups, err := cli.GetAllDeploymentIntentGroups(ctx, test.project, test.compositeApp, test.version)
 			if err != nil {
 				if test.err == "" {
 					t.Fatalf("GetAllDeploymentIntentGroups returned an unexpected error: %s", err.Error())
@@ -1186,9 +1192,10 @@ func TestUpdateDeploymentIntentGroup(t *testing.T) {
 
 	for _, test := range testCases {
 		t.Run(test.label, func(t *testing.T) {
+			ctx := context.Background()
 			db.DBconn = test.db
 			cli := NewDeploymentIntentGroupClient()
-			deploymentIntentGroup, digExists, err := cli.CreateDeploymentIntentGroup(test.dig, test.project, test.compositeApp, test.compositeAppVersion, false)
+			deploymentIntentGroup, digExists, err := cli.CreateDeploymentIntentGroup(ctx, test.dig, test.project, test.compositeApp, test.compositeAppVersion, false)
 			if err != nil {
 				if test.err == "" {
 					t.Fatalf("CreateDeploymentIntentGroup returned an unexpected error %s, ", err.Error())

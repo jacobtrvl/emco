@@ -12,6 +12,7 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 	"gitlab.com/project-emco/core/emco-base/src/ca-certs/api"
 	"gitlab.com/project-emco/core/emco-base/src/ca-certs/pkg/module"
+	"gitlab.com/project-emco/core/emco-base/src/orchestrator/common/emcoerror"
 )
 
 type mockClusterProviderClusterManager struct {
@@ -41,7 +42,10 @@ func (m *mockClusterProviderClusterManager) CreateClusterGroup(cluster module.Cl
 	}
 
 	if iExists && failIfExists { // clusterGroup already exists
-		return module.ClusterGroup{}, iExists, errors.New("ClusterGroup already exists")
+		return module.ClusterGroup{}, iExists, emcoerror.NewEmcoError(
+			module.CaCertClusterGroupAlreadyExists,
+			emcoerror.Conflict,
+		)
 	}
 
 	if iExists && !failIfExists { // clusterGroup already exists. update the clusterGroup
@@ -69,7 +73,10 @@ func (m *mockClusterProviderClusterManager) DeleteClusterGroup(cert, cluster, cl
 		}
 	}
 
-	return errors.New("db Remove resource not found") // clusterGroup does not exist
+	return emcoerror.NewEmcoError(
+		"The requested resource not found",
+		emcoerror.NotFound,
+	) // clusterGroup does not exist
 }
 
 // GetAllClusterGroups
@@ -99,7 +106,10 @@ func (m *mockClusterProviderClusterManager) GetClusterGroup(cert, cluster, clust
 		}
 	}
 
-	return module.ClusterGroup{}, errors.New("ClusterGroup not found")
+	return module.ClusterGroup{}, emcoerror.NewEmcoError(
+		module.CaCertClusterGroupNotFound,
+		emcoerror.NotFound,
+	)
 }
 
 var _ = Describe("Test create cluster handler",
@@ -115,7 +125,7 @@ var _ = Describe("Test create cluster handler",
 					entry:      "request body validation",
 					input:      clusterGroupInput(""), // create an empty clusterGroup payload
 					result:     module.ClusterGroup{},
-					err:        errors.New("clusterGroup name may not be empty\n"),
+					err:        errors.New("clusterGroup name may not be empty"),
 					statusCode: http.StatusBadRequest,
 					client: &mockClusterProviderClusterManager{
 						Err:   nil,
@@ -138,10 +148,13 @@ var _ = Describe("Test create cluster handler",
 			),
 			Entry("clusterGroup already exists",
 				test{
-					entry:      "clusterGroup already exists",
-					input:      clusterGroupInput("testClusterGroup-1"),
-					result:     module.ClusterGroup{},
-					err:        errors.New("cluster group already exists\n"),
+					entry:  "clusterGroup already exists",
+					input:  clusterGroupInput("testClusterGroup-1"),
+					result: module.ClusterGroup{},
+					err: emcoerror.NewEmcoError(
+						module.CaCertClusterGroupAlreadyExists,
+						emcoerror.Conflict,
+					),
 					statusCode: http.StatusConflict,
 					client: &mockClusterProviderClusterManager{
 						Err:   nil,
@@ -177,8 +190,11 @@ var _ = Describe("Test get clusterGroup handler",
 				test{
 					name:       "nonExistingClusterGroup",
 					statusCode: http.StatusNotFound,
-					err:        errors.New("cluster group not found\n"),
-					result:     module.ClusterGroup{},
+					err: emcoerror.NewEmcoError(
+						module.CaCertClusterGroupNotFound,
+						emcoerror.NotFound,
+					),
+					result: module.ClusterGroup{},
 					client: &mockClusterProviderClusterManager{
 						Err:   nil,
 						Items: populateClusterGroupTestData(),
@@ -203,7 +219,7 @@ var _ = Describe("Test update clusterGroup handler",
 					name:       "testClusterGroup",
 					input:      clusterGroupInput(""), // create an empty clusterGroup payload
 					result:     module.ClusterGroup{},
-					err:        errors.New("clusterGroup name may not be empty\n"),
+					err:        errors.New("clusterGroup name may not be empty"),
 					statusCode: http.StatusBadRequest,
 					client: &mockClusterProviderClusterManager{
 						Err:   nil,
@@ -269,8 +285,11 @@ var _ = Describe("Test delete clusterGroup handler",
 					entry:      "db remove clusterGroup not found",
 					name:       "nonExistingClusterGroup",
 					statusCode: http.StatusNotFound,
-					err:        errors.New("The requested resource not found\n"),
-					result:     module.ClusterGroup{},
+					err: emcoerror.NewEmcoError(
+						"The requested resource not found",
+						emcoerror.NotFound,
+					),
+					result: module.ClusterGroup{},
 					client: &mockClusterProviderClusterManager{
 						Err:   nil,
 						Items: populateClusterGroupTestData(),

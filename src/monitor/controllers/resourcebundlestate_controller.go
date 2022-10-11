@@ -5,9 +5,11 @@ package controllers
 
 import (
 	"context"
-	k8spluginv1alpha1 "gitlab.com/project-emco/core/emco-base/src/monitor/pkg/apis/k8splugin/v1alpha1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"log"
+
+	k8spluginv1alpha1 "gitlab.com/project-emco/core/emco-base/src/monitor/pkg/apis/k8splugin/v1alpha1"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	slog "sigs.k8s.io/controller-runtime/pkg/log"
@@ -33,10 +35,37 @@ type ResourceBundleStateReconciler struct {
 //
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.10.0/pkg/reconcile
+
 func (r *ResourceBundleStateReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+
 	_ = slog.FromContext(ctx)
+
 	log.Println("Reconcile CR", req)
+
+	rbstate := &k8spluginv1alpha1.ResourceBundleState{}
+
+	err := r.Get(context.TODO(), req.NamespacedName, rbstate)
+
+	if err != nil {
+
+		if k8serrors.IsNotFound(err) {
+
+			// CR Deleted, delete status from Git
+			appName := req.NamespacedName.Name
+			if GitClient != (GitAccessClient{}) {
+				err := GitClient.DeleteStatusFromGit(appName)
+
+				return ctrl.Result{}, err
+			}
+
+		}
+
+		return ctrl.Result{}, err
+
+	}
+
 	return ctrl.Result{}, nil
+
 }
 
 // SetupWithManager sets up the controller with the Manager.

@@ -8,13 +8,14 @@ import (
 	"io"
 	"net/http"
 
+	"context"
 	"github.com/gorilla/mux"
+	pkgerrors "github.com/pkg/errors"
 	"gitlab.com/project-emco/core/emco-base/src/dtc/pkg/module"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/apierror"
 	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/validation"
 	orcmod "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/module"
-	pkgerrors "github.com/pkg/errors"
 )
 
 var inClientsAccessIntJSONFile string = "json-schemas/inbound-clients-access.json"
@@ -44,7 +45,7 @@ func (h inboundclientsaccessintentHandler) createHandler(w http.ResponseWriter, 
 	inboundIntentName := vars["inboundServerIntent"]
 	inboundClientIntentName := vars["inboundClientsIntent"]
 	// check if the deploymentIntentGrpName exists
-	_, err := orcmod.NewDeploymentIntentGroupClient().GetDeploymentIntentGroup(deploymentIntentGroupName, project, compositeApp, compositeAppVersion)
+	_, err := orcmod.NewDeploymentIntentGroupClient().GetDeploymentIntentGroup(context.Background(), deploymentIntentGroupName, project, compositeApp, compositeAppVersion)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -114,7 +115,7 @@ func (h inboundclientsaccessintentHandler) putHandler(w http.ResponseWriter, r *
 	inboundClientIntentName := vars["inboundClientsIntent"]
 
 	// check if the deploymentIntentGrpName exists
-	_, err := orcmod.NewDeploymentIntentGroupClient().GetDeploymentIntentGroup(deploymentIntentGroupName, project, compositeApp, compositeAppVersion)
+	_, err := orcmod.NewDeploymentIntentGroupClient().GetDeploymentIntentGroup(context.Background(), deploymentIntentGroupName, project, compositeApp, compositeAppVersion)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)

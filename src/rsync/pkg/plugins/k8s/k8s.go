@@ -5,6 +5,7 @@ package k8s
 
 import (
 	//"fmt"
+	"context"
 	"io/ioutil"
 	"os"
 
@@ -25,7 +26,7 @@ type K8sProvider struct {
 	client    *kubeclient.Client
 }
 
-func NewK8sProvider(cid, app, cluster, level, namespace string) (*K8sProvider, error) {
+func NewK8sProvider(ctx context.Context, cid, app, cluster, level, namespace string) (*K8sProvider, error) {
 	p := K8sProvider{
 		cid:       cid,
 		app:       app,
@@ -34,7 +35,7 @@ func NewK8sProvider(cid, app, cluster, level, namespace string) (*K8sProvider, e
 		namespace: namespace,
 	}
 	// Get file from DB
-	dec, err := utils.GetKubeConfig(cluster, level, namespace)
+	dec, err := utils.GetKubeConfig(ctx, cluster, level, namespace)
 	if err != nil {
 		return nil, err
 	}

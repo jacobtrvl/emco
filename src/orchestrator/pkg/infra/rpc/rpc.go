@@ -15,6 +15,7 @@ import (
 	pkgerrors "github.com/pkg/errors"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/config"
 	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/connectivity"
 	"google.golang.org/grpc/credentials"
@@ -48,7 +49,7 @@ func isGoodState(state connectivity.State) bool {
 	return state == connectivity.Ready || state == connectivity.Idle
 }
 
-func waitForReady(conn *grpc.ClientConn) (connectivity.State, bool) {
+func waitForReady(ctx context.Context, conn *grpc.ClientConn) (connectivity.State, bool) {
 	state := conn.GetState()
 	if isGoodState(state) {
 		return state, true
@@ -60,7 +61,7 @@ func waitForReady(conn *grpc.ClientConn) (connectivity.State, bool) {
 		log.Fields{"state": state, "waitTime": waitTime})
 
 	// The wait is done under mutex. TODO This may need a revisit.
-	ctx, cancel := context.WithTimeout(context.Background(), waitTime)
+	ctx, cancel := context.WithTimeout(ctx, waitTime)
 	defer cancel()
 	conn.ResetConnectBackoff() // wake up subchannels in transient failure, if any
 	changed := conn.WaitForStateChange(ctx, state)
@@ -75,7 +76,7 @@ func waitForReady(conn *grpc.ClientConn) (connectivity.State, bool) {
 
 // GetRpcConn is used by RPC client code which needs the connection for a
 // given controller for doing RPC calls with that controller.
-func GetRpcConn(name string) *grpc.ClientConn {
+func GetRpcConn(ctx context.Context, name string) *grpc.ClientConn {
 	mutex.Lock()
 	defer mutex.Unlock()
 	val, ok := rpcConnections[name]
@@ -87,7 +88,7 @@ func GetRpcConn(name string) *grpc.ClientConn {
 	state := val.conn.GetState()
 	log.Info("GetRpcConn: RPC connection info", log.Fields{"name": name, "conn": val.conn, "host": val.host, "port": val.port, "conn-state": state.String()})
 
-	state, goodConn := waitForReady(val.conn)
+	state, goodConn := waitForReady(ctx, val.conn)
 	if goodConn {
 		return val.conn
 	}
@@ -213,6 +214,8 @@ func createClientConn(Host string, Port int) (*grpc.ClientConn, error) {
 	} else {
 		opts = append(opts, grpc.WithInsecure())
 	}
+	opts = append(opts, grpc.WithUnaryInterceptor(otelgrpc.UnaryClientInterceptor()))
+	opts = append(opts, grpc.WithStreamInterceptor(otelgrpc.StreamClientInterceptor()))
 
 	//dialOpts := getGrpcDialOpts()
 	//opts = append(opts, dialOpts...)

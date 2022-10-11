@@ -8,6 +8,7 @@ emcoTag: "latest" # can be overridden with $ helm install --set emcoTag=22.03 em
 workingDir: /opt/emco/monitor
 git:
   enabled: false
+  gittype: ""
 
 noProxyHosts: ""
 httpProxy: ""

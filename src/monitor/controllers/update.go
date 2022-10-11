@@ -6,12 +6,13 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"log"
+
 	k8spluginv1alpha1 "gitlab.com/project-emco/core/emco-base/src/monitor/pkg/apis/k8splugin/v1alpha1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/util/retry"
-	"log"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -66,9 +67,12 @@ func (u *UpdateStatusClient) Update() error {
 		return fmt.Errorf("failed to update resource status: %w", err)
 	}
 	// Check if GIT Info is provided if so store the information in the Git Repo also
-	err = GitHubClient.CommitCRToGitHub(rbStatus, rbStatus.GetLabels())
-	if err != nil {
-		log.Println("Error commiting status to Github", err)
+
+	if GitClient != (GitAccessClient{}) {
+		err = GitClient.CommitCRToGit(rbStatus, rbStatus.GetLabels())
+		if err != nil {
+			log.Println("Error commiting status to Git", err)
+		}
 	}
 	return nil
 }
@@ -132,9 +136,12 @@ func (u *DeleteStatusClient) DeleteOne(rbState *k8spluginv1alpha1.ResourceBundle
 		return fmt.Errorf("failed to update resource status: %w", err)
 	}
 	// Check if GIT Info is provided if so store the information in the Git Repo also
-	err = GitHubClient.CommitCRToGitHub(rbState, rbState.GetLabels())
-	if err != nil {
-		log.Println("Error commiting status to Github", err)
+
+	if GitClient != (GitAccessClient{}) {
+		err = GitClient.CommitCRToGit(rbState, rbState.GetLabels())
+		if err != nil {
+			log.Println("Error commiting status to Git", err)
+		}
 	}
 	return nil
 }

@@ -4,14 +4,15 @@
 package action_test
 
 import (
+	"context"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/appcontext"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/contextdb"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
 	orch "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/module"
-	cacontext "gitlab.com/project-emco/core/emco-base/src/rsync/pkg/context"
 	catypes "gitlab.com/project-emco/core/emco-base/src/rsync/pkg/types"
+	cacontext "gitlab.com/project-emco/core/emco-base/src/rsync/pkg/utils"
 	sfcmodel "gitlab.com/project-emco/core/emco-base/src/sfc/pkg/model"
 	sfcmodule "gitlab.com/project-emco/core/emco-base/src/sfc/pkg/module"
 	"gitlab.com/project-emco/core/emco-base/src/sfcclient/internal/action"
@@ -130,7 +131,7 @@ var _ = Describe("SFC Client Action", func() {
 		contextdb.Db = cdb
 
 		// make an AppContext
-		cid, _ := cacontext.CreateCompApp(TestCA1)
+		cid, _ := cacontext.CreateCompApp(context.Background(), TestCA1)
 		contextIdCA1 = cid
 
 		// setup the mock DB resources
@@ -286,11 +287,11 @@ var _ = Describe("SFC Client Action", func() {
 		db.DBconn = mdb
 
 		// set up prerequisites - client CA
-		_, err := (*projClient).CreateProject(proj, false)
+		_, err := (*projClient).CreateProject(context.Background(), proj, false)
 		Expect(err).To(BeNil())
-		_, err = (*caClient).CreateCompositeApp(ca, "testp", false)
+		_, err = (*caClient).CreateCompositeApp(context.Background(), ca, "testp", false)
 		Expect(err).To(BeNil())
-		_, _, err = (*digClient).CreateDeploymentIntentGroup(dig, "testp", "clientCA", "v1", true)
+		_, _, err = (*digClient).CreateDeploymentIntentGroup(context.Background(), dig, "testp", "clientCA", "v1", true)
 		Expect(err).To(BeNil())
 		_, err = (*sfcClient).CreateSfcClientIntent(sfcLeftClientIntent, "testp", "clientCA", "v1", "dig1", false)
 		Expect(err).To(BeNil())
@@ -298,9 +299,9 @@ var _ = Describe("SFC Client Action", func() {
 		Expect(err).To(BeNil())
 
 		// set up prerequisites - chain CA
-		_, err = (*caClient).CreateCompositeApp(chainCa, "testp", false)
+		_, err = (*caClient).CreateCompositeApp(context.Background(), chainCa, "testp", false)
 		Expect(err).To(BeNil())
-		_, _, err = (*digClient).CreateDeploymentIntentGroup(chainDig, "testp", "chainCA", "v1", true)
+		_, _, err = (*digClient).CreateDeploymentIntentGroup(context.Background(), chainDig, "testp", "chainCA", "v1", true)
 		Expect(err).To(BeNil())
 		_, err = (*sfcIntentClient).CreateSfcIntent(sfcIntent, "testp", "chainCA", "v1", "chainDig1", false)
 		Expect(err).To(BeNil())

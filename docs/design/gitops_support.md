@@ -104,16 +104,19 @@ Example of a GitOps Cluster Sync object for the above API:
   "spec": {
     "kv": [
       {
-        "gitType": "github",
-        "user": "user1",
-        "token": "xxx_abfc",
-        "repoUrl": "https://github.com/org1/myRepo", // Can we just have the repo name
+        "gitType": "github", // Optional
+        "userName": "user1",
+        "gitToken": "xxx_abfc",
+        "repoName": "myRepo" ,
+        "url": "https://github.com/org1/myRepo",
         "branch": "main"
       }
     ]
   }
 }
 ```
+
+> Note: gitType is an optional field. If not set core Git APIs will be used for interacting with Git Server. Instead, if its set to "github" then GitHub REST APIs will be used for interacting with the Github Server.
 
 Example of a Azure Arc Object Cluster Sync object for the above API:
 
@@ -141,7 +144,7 @@ Example of a Azure Arc Object Cluster Sync object for the above API:
 Existing cluster registration API takes in a kubeconfig file for accessing a cluster directly. The API is extended to add 3 fields under gitOps section in spec. If gitOps section is provided than all 3 fields are mandatory. If this section is omitted than that is the default case and behaviour of the API doesn't change from the existing API.
 
 - gitOpsType: This specifies the provider of GitOps. Examples are Azure Arc, Google Anthos, FluxCD, and ArgoCD.
-    - Fixed values will be "azureArc", "fluxv2", "anthos".
+    - Fixed values will be "azureArcV2", "fluxv2", "anthos".
 
 - gitOpsReferenceObject: This is the cluster-sync-object for providing credentials for the gitOps provider.
 
@@ -161,7 +164,7 @@ Existing cluster registration API takes in a kubeconfig file for accessing a clu
   },
   "spec": {
     "gitOps": {
-      "gitOpsType": "azureArc",
+      "gitOpsType": "azureArcV2",
       "gitOpsReferenceObject": "AzureReferenceObject",
       "gitOpsResourceObject": "GitObjectMyRepo"
     }
@@ -277,15 +280,21 @@ On the edge cluster that supports Flux v2 install monitor like the example below
 ```
 $ cd emco-base/deployments/helm/monitor
 ```
+By default monitor uses the core Git APIs for interacting with Git Server.
 ```
-$ helm  install --kubeconfig $KUBE_PATH  --set git.token=$GITHUB_TOKEN --set git.repo=SREPO --set git.username=$OWNER --set git.clustername="provider1flux+cluster2" --set git.enabled=true  -n emco monitor .
+$ helm install --kubeconfig $KUBE_PATH --set git.token=$GIT_TOKEN --set git.repo=$REPO --set git.username=$OWNER --set git.clustername="provider1flux+cluster2" --set git.gitbranch="main" --set git.giturl=$GIT_URL --set git.enabled=true -n emco monitor .
 ```
+To use GitHub REST APIs for interacting with Github server set git.gittype=github
+```
+$ helm install --kubeconfig $KUBE_PATH --set git.token=$GIT_TOKEN --set git.repo=$REPO --set git.username=$OWNER --set git.clustername="provider1flux+cluster2" --set git.gittype=github --set git.gitbranch="main" --set git.giturl=$GIT_URL --set git.enabled=true -n emco monitor .
+```
+> NOTE: If using the GitHub REST APIs for interacting with Github server ensure that the monitor as well as the resources are installed with gittype set to github.
 
 Follow the example below to install and monitor an application on Fluxv2 based cluster and a regular direct access cluster
 
 https://gitlab.com/project-emco/core/emco-base/-/tree/main/examples/test-flux
 
-export $GITHUB_USER, $GITHUB_TOKEN, $GITHUB_REPO and $KUBE_PATH1 and run setup.sh create script.
+export $GIT_USER, $GIT_TOKEN, $GIT_REPO, $GIT_URL, $GIT_BRANCH and $KUBE_PATH1 and run setup.sh create script.
 
 ### Azure Arc Setup
 
@@ -316,6 +325,8 @@ $ cd emco-base/deployments/helm/monitor/templates
 
 Update the secret.yaml with git username, git token, git repo name, and clustername. Ensure that the values are base64 encoded.
 
+By default monitor uses the core Git APIs for interacting with Git Server.
+
 ```
 apiVersion: v1
 kind: Secret
@@ -328,8 +339,29 @@ data:
   token: XXXX
   repo: test
   clustername: <base64 encoded value of "provider-arc-1+cluster2">
-
+  gitbranch: main
+  giturl: <https or http>://<Host Name>/<User Name>/<Repo Name>
 ```
+
+To use GitHub REST APIs for interacting with Github server set gittype as github
+```
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ .Release.Name }}-git-monitor
+  namespace: {{ .Release.Namespace }}
+type: Opaque
+data:
+  username: abc
+  token: XXXX
+  repo: test
+  clustername: <base64 encoded value of "provider-arc-1+cluster2">
+  gitbranch: main
+  gittype: github
+  giturl: <https or http>://<Host Name>/<User Name>/<Repo Name>
+```
+
+> NOTE: If using the GitHub REST APIs ensure that monitor as well as the resources are installed with gittype set to github.
 
 ```
 $ cd ../
@@ -359,7 +391,7 @@ Replace the app name to monitor in the setup.sh script as shown below. Ensure th
         Cluster:
           - cluster2
 ```
-  export $GITHUB_USER, $GITHUB_TOKEN, $GITHUB_REPO, $HOST_IP, $CLIENT_ID, $TENANT_ID, $CLIENT_SECRET, $SUB_ID, $ARC_CLUSTER, $ARC_RG, $DELAY, $GIT_BRANCH, $TIME_OUT, $SYNC_INTERVAL and $RETRY_INTERVAL.
+  export $GIT_USER, $GIT_TOKEN, $GIT_REPO, $GIT_URL, $GIT_BRANCH, $HOST_IP, $CLIENT_ID, $TENANT_ID, $CLIENT_SECRET, $SUB_ID, $ARC_CLUSTER, $ARC_RG, $DELAY, $GIT_BRANCH, $TIME_OUT, $SYNC_INTERVAL and $RETRY_INTERVAL.
 
   Refer https://gitlab.com/project-emco/core/emco-base/-/tree/main/examples/test-azurearcv2/README.md for further steps to install monitor.
 
@@ -380,15 +412,18 @@ You can change the name of app in setup.sh as shown in "Installing monitor secti
         Cluster:
           - cluster2
 ```
-export $GITHUB_USER, $GITHUB_TOKEN, $GITHUB_REPO, $HOST_IP, $CLIENT_ID, $TENANT_ID, $CLIENT_SECRET, $SUB_ID, $ARC_CLUSTER, $ARC_RG, $DELAY, $GIT_BRANCH, $TIME_OUT, $SYNC_INTERVAL and $RETRY_INTERVAL.
+export $GIT_USER, $GIT_TOKEN, $GIT_REPO, $GIT_URL, $GIT_BRANCH, $HOST_IP, $CLIENT_ID, $TENANT_ID, $CLIENT_SECRET, $SUB_ID, $ARC_CLUSTER, $ARC_RG, $DELAY, $GIT_BRANCH, $TIME_OUT, $SYNC_INTERVAL and $RETRY_INTERVAL.
 
 Refer https://gitlab.com/project-emco/core/emco-base/-/tree/main/examples/test-azurearcv2/README.md for further steps to run the testcase.
 
 
 | Variable  | Definition |
 | ------------- | ------------- |
-| GITHUB_USER   | Username of the Github account. |
-| GITHUB_TOKEN  | Git Token for accessing the Github account. |
+| GIT_USER   | Username of the Git account. |
+| GIT_TOKEN  | Git Token for accessing the Git account. |
+| GIT_REPO  | Name of the Git Repo. |
+| GIT_URL  | URL endpoint for the Git Repo. |
+| GIT_BRANCH  | Git branch name in which resources are stored.  |
 | HOST_IP    | IP of the cluster where EMCO is installed and running. |
 | CLIENT_ID | Obtained on registering an app (Refer "Obtaining credentials to access Azure account" section), used for accessing Azure account.  |
 | TENANT_ID    | Obtained on registering an app (Refer "Obtaining credentials to access Azure account" section), used for accessing Azure account.  |
@@ -397,7 +432,6 @@ Refer https://gitlab.com/project-emco/core/emco-base/-/tree/main/examples/test-a
 | ARC_CLUSTER  | Name of the Azure Arc connected cluster (Refer "Creating Azure Arc Cluster" section). |
 | ARC_RG  | Name of the Azure resource group in which the Azure Arc cluster is created (Refer Section B). |
 | DELAY  | The delay between the deletion of Git resources and Git configuration.  |
-| GIT_BRANCH  | Git branch name in which resources are stored.  |
 | SYNC_INTERVAL | The interval at which to reconcile the Kustomization. |
 | TIME_OUT | Timeout for apply and health checking operations. |
 | RETRY_INTERVAL | The interval at which to retry a previously failed reconciliation. |
@@ -408,7 +442,7 @@ Refer https://gitlab.com/project-emco/core/emco-base/-/tree/main/examples/test-a
 
 Before proceeding with the creation of Anthos-enabled clusters on GKE, enable the Anthos Config Management: https://cloud.google.com/anthos-config-management/docs/how-to/install-anthos-config-management#enabling.
 
-Then, create a new cluster (https://console.cloud.google.com/kubernetes/list/overview) and for the git repository type, pick ``unstructured``. See more at https://cloud.google.com/anthos-config-management/docs/how-to/unstructured-repo. Set the other fields as appropriate, and for directory name set `rootsync/*name of cluster`. More on this below.
+Then, create a new cluster (https://console.cloud.google.com/kubernetes/list/overview) and for the git repository type, pick ``unstructured``. See more at https://cloud.google.com/anthos-config-management/docs/how-to/unstructured-repo. Set the other fields as appropriate, and for directory name set `clusters/*full EMCO clustername*`. More on this below.
 
 #### Installing Monitor
 
@@ -420,68 +454,147 @@ The steps below build a Monitor package and then extract its template-replaced r
 cd ~/emco-base/deployments/helm
 helm package monitor
 tar -xf monitor-1.0.0.tgz
-CLUSTER_REF="provider-anthos+cluster2"
-GITHUB_OWNER="REPLACE_WITH_GITHUB_USER"
-GITHUB_TOKEN="REPLACE_WITH_GITHUB_ACCESS_TOKEN"
-GITHUB_REPO="REPLACE_WITH_GITHUB_REPO_NAME"
-helm template emco monitor -n emco --set git.token=$GITHUB_TOKEN --set git.repo=$GITHUB_REPO --set git.username=$GITHUB_OWNER --set git.clustername=$CLUSTER_REF --set git.enabled=true > monitor.yaml
-cp monitor.yaml ~/REPLACE_WITH_GITHUB_REPO_NAME/rootsync/acm-cluster/
-cd ~/REPLACE_WITH_GITHUB_REPO_NAME/rootsync/acm-cluster/
+CLUSTER_REF="provider-anthos+acm-cluster"
+GIT_OWNER="REPLACE_WITH_GIT_USER"
+GIT_TOKEN="REPLACE_WITH_GIT_ACCESS_TOKEN"
+GIT_REPO="REPLACE_WITH_GIT_REPO_NAME"
+GIT_BRANCH="REPLACE_WITH_GIT_BRANCH_NAME
+GIT_URL="REPLACE_WITH_GIT_URL
+helm template emco monitor -n emco --set git.token=$GIT_TOKEN --set git.repo=$GIT_REPO --set git.username=$GIT_OWNER --set git.clustername=$CLUSTER_REF --set git.gitbranch=$GIT_BRANCH --set git.giturl=$GIT_URL --set git.enabled=true > monitor.yaml
+cp monitor.yaml ~/REPLACE_WITH_GITHUB_REPO_NAME/clusters/provider-anthos+acm-cluster/
+cd ~/REPLACE_WITH_GITHUB_REPO_NAME/clusters/provider-anthos+acm-cluster/
 git add monitor.yaml
 git commit -a
 git push
 ```
 
-**Note:** following the steps above for a public GitHub repo will expose the access token to the Internet, thus making the entire deployment vulnerable. Either make sure the repository is private, or install monitor via another method such as a direct `kubectl apply -f [prefix/]monitor.yaml` on the GKE clusters.
+**Note:** following the steps above for a public GitHub repo will expose the access token to the Internet, thus making the entire deployment vulnerable. Either make sure the repository is private, or install monitor via another method such as a direct `kubectl apply -f [prefix/]monitor.yaml` on the GKE clusters. By default monitor uses the core Git APIs for interacting with Git Server. Instead, to use GitHub REST APIs for interacting with Github server, additonally set git.gittype=github in the helm install monitor step.
 
 
 #### Git repo structure
 
-Here's a sample of the structure of a git repository supporting 1 Anthos-enabled cluster (named `acm-cluster` in GKE, and `provider-anthos+cluster2` in EMCO):
+Here's a sample structure of a git repository supporting 1 Anthos-enabled cluster (named `acm-cluster` in GKE, and `provider-anthos+acm-cluster` in EMCO) with 1 Privileged Logical Cloud and 1 Composite App instantiated:
 
 ```
 ├── clusters
-│   ├── anthos
-│   └── provider-anthos+cluster2
-│       ├── context
-│       │   └── 6044482791265439821
-│       │       ├── app
-│       │       │   └── collectd
-│       │       │       ├── 6044482791265439821-collectd.yaml
-│       │       │       ├── collectd+Service.yaml
-│       │       │       ├── r1-collectd-config+ConfigMap.yaml
-│       │       │       └── r1-collectd+DaemonSet.yaml
-│       │       └── deployed
-│       └── status
-│           └── 5221547608623062846
-│               └── app
-│                   └── collectd
-│                       └── 5221547608623062846-collectd
-└── rootsync
-    └── acm-cluster
-        ├── monitor.yaml
-        └── rootsync.yaml
+│   └── provider-anthos+acm-cluster
+│       ├── monitor.yaml
+│       └── context
+│           └── 7254916754657549701
+│               ├── app
+│               │   └── logical-cloud
+│               │       ├── 7254916754657549701-logical-cloud.json
+│               │       ├── lc1-clusterRole2+ClusterRole.json
+│               │       ├── lc1-clusterRoleBinding2+ClusterRoleBinding.json
+│               │       ├── lc1-role0+Role.json
+│               │       ├── lc1-role1+Role.json
+│               │       ├── lc1-roleBinding0+RoleBinding.json
+│               │       ├── lc1-roleBinding1+RoleBinding.json
+│               │       ├── privileged-lc-ns+Namespace.json
+│               │       └── repo-sync-lc1+RepoSync.json
+│               └── deployed
+├── namespaces
+│   └── privileged-lc-ns
+│       └── provider-anthos+acm-cluster
+│           └── context
+│               └── 5772429642747222531
+│                   ├── app
+│                   │   └── collectd
+│                   │       ├── 5772429642747222531-collectd-modified.json
+│                   │       ├── collectd+Service.json
+│                   │       ├── r1-collectd-config+ConfigMap.json
+│                   │       └── r1-collectd+DaemonSet.json
+│                   └── deployed
 ```
+
+In the tree of the repository above, we can see that sets of resources are either associated with a cluster directly, or indirectly via a namespace. The namespace name is defined by a Standard or Privileged Logical Cloud in EMCO's Distributed Cloud Manager (DCM).
 
 The `context` and `status` folders are per-cluster and represent deployed composite apps as well the reporting of their respective statuses via Monitor.
 
-The `rootsync` folder contains one folder per cluster, with the non EMCO API deployed resources such as Monitor itself, as well as the `rootsync.yaml` configuration file that further tells Anthos which resources to give to the specified cluster. Here are the contents of the `rootsync.yaml` file above:
+The `monitor.yaml` file contains the Monitor installation for the respective cluster. The installation of this file was done according to the instructions above.
+
+On the EMCO side, both Cluster Provider and Cluster must be created. The Cluster should be registered to point at the git repository that will contain the `clusters/` directory. Inside that directory, folders with the full EMCO clustername will be created. This name is in the following format: `CLUSTER_PROVIDER_NAME+CLUSTER_NAME`.
+
+When configurating an Anthos cluster from the dashboard/console, it must be configured to read from the appropriate `clusters/*full EMCO clustername*` folder according to the format below, so the cluster knows where its resources should be read from (within the same repository) and installs Monitor.
+
+Example:
+
+Cluster Provider:
 
 ```
-apiVersion: configsync.gke.io/v1beta1
-kind: RootSync
+version: emco/v2
+resourceContext:
+  anchor: cluster-providers
 metadata:
-  name: root-sync-emco
-  namespace: config-management-system
-spec:
-  sourceFormat: unstructured
-  git:
-    repo: https://github.com/REPLACE_WITH_GITHUB_USER/REPLACE_WITH_GITHUB_REPO_NAME.git
-    revision: HEAD
-    branch: main
-    dir: "/clusters/provider-anthos+cluster2"
-    auth: none
-    noSSLVerify: false
+   name: provider-anthos
 ```
 
-When configurating an Anthos cluster from the dashboard/console, it must be configured to read from the appropriate `rootsync/*name of cluster*` folder, so the cluster knows where its resources should be read from (within the same repository) and installs Monitor.
+Cluster Sync Objects:
+
+By default Core Git APIs are used for interacting with the Git Server.
+```
+version: emco/v2
+resourceContext:
+  anchor: cluster-providers/provider-anthos/cluster-sync-objects
+metadata:
+  name: anthos-sync-object
+spec:
+  kv:
+  - userName: myorg
+  - gitToken: 0123456789abcdef
+  - repoName: mygitopsrepo
+  - branch: main
+  - url: https://github.com/myorg/mygitopsrepo
+```
+
+To use GitHub REST APIs add "gitType: github" kv pair to spec.
+```
+version: emco/v2
+resourceContext:
+  anchor: cluster-providers/provider-anthos/cluster-sync-objects
+metadata:
+  name: anthos-sync-object
+spec:
+  kv:
+  - gitType: github
+  - userName: myorg
+  - gitToken: 0123456789abcdef
+  - repoName: mygitopsrepo
+  - branch: main
+  - url: https://github.com/myorg/mygitopsrepo
+```
+
+Cluster:
+
+```
+version: emco/v2
+resourceContext:
+  anchor: cluster-providers/provider-anthos/clusters
+metadata:
+   name: acm-cluster
+spec:
+  gitOps:
+    gitOpsType: anthos
+    gitOpsReferenceObject: anthos-sync-object
+    gitOpsResourceObject: anthos-sync-object
+file:
+  values.yaml
+```
+
+With the EMCO resources above, here is how the Google Cloud Anthos cluster should be configured:
+
+Repository: Custom
+URL: https://github.com/myorg/mygitopsrepo.git
+Authentication Type: None
+Branch: main
+Configuration directory: /clusters/provider-anthos+acm-cluster
+Source format: unstructured
+
+![Screenshot](images/anthos-gui.png)
+
+Finally, regarding Standard and Privileged Logical Clouds, EMCO will automatically generate `RepoSync` Custom Resources and add them to the cluster subdirectories in the Git repository, associated with the Composite App representation of the respective Logical Cloud. This is equivalent to the manual step taken above to configure the cluster to read from a Git repository (which internally generates and Anthos `RootSync` Custom Resource), except here this step is automated by EMCO. When Anthos Config Management reads from the Logical Cloud's subdirectory, it will enforce the Logical Cloud's User Permissions defined by the EMCO user. Read more about Google Anthos `RootSync` and `RepoSync` at: https://cloud.google.com/anthos-config-management/docs/reference/rootsync-reposync-fields.
+
+
+## Local Gitea Server with EMCO
+
+EMCO by default now comes with a local Gitea Server. This Gitea server has a Postgresql Database and a memcached. Steps for installation and setup can be found here  https://gitlab.com/project-emco/core/emco-base/-/tree/main/examples/test-gitea/README.md

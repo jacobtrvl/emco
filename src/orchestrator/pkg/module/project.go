@@ -4,6 +4,7 @@
 package module
 
 import (
+	"context"
 	"encoding/json"
 
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
@@ -42,10 +43,10 @@ func (pk ProjectKey) String() string {
 
 // ProjectManager is an interface exposes the Project functionality
 type ProjectManager interface {
-	CreateProject(pr Project, exists bool) (Project, error)
-	GetProject(name string) (Project, error)
-	DeleteProject(name string) error
-	GetAllProjects() ([]Project, error)
+	CreateProject(ctx context.Context, pr Project, exists bool) (Project, error)
+	GetProject(ctx context.Context, name string) (Project, error)
+	DeleteProject(ctx context.Context, name string) error
+	GetAllProjects(ctx context.Context) ([]Project, error)
 }
 
 // ProjectClient implements the ProjectManager
@@ -65,7 +66,7 @@ func NewProjectClient() *ProjectClient {
 }
 
 // CreateProject a new collection based on the project
-func (v *ProjectClient) CreateProject(p Project, exists bool) (Project, error) {
+func (v *ProjectClient) CreateProject(ctx context.Context, p Project, exists bool) (Project, error) {
 
 	//Construct the composite key to select the entry
 	key := ProjectKey{
@@ -73,12 +74,12 @@ func (v *ProjectClient) CreateProject(p Project, exists bool) (Project, error) {
 	}
 
 	//Check if this Project already exists
-	_, err := v.GetProject(p.MetaData.Name)
+	_, err := v.GetProject(ctx, p.MetaData.Name)
 	if err == nil && !exists {
 		return Project{}, pkgerrors.New("Project already exists")
 	}
 
-	err = db.DBconn.Insert(v.storeName, key, nil, v.tagMeta, p)
+	err = db.DBconn.Insert(ctx, v.storeName, key, nil, v.tagMeta, p)
 	if err != nil {
 		return Project{}, pkgerrors.Wrap(err, "Create DB entry error")
 	}
@@ -87,13 +88,13 @@ func (v *ProjectClient) CreateProject(p Project, exists bool) (Project, error) {
 }
 
 // GetProject returns the Project for corresponding name
-func (v *ProjectClient) GetProject(name string) (Project, error) {
+func (v *ProjectClient) GetProject(ctx context.Context, name string) (Project, error) {
 
 	//Construct the composite key to select the entry
 	key := ProjectKey{
 		ProjectName: name,
 	}
-	value, err := db.DBconn.Find(v.storeName, key, v.tagMeta)
+	value, err := db.DBconn.Find(ctx, v.storeName, key, v.tagMeta)
 	if err != nil {
 		return Project{}, err
 	} else if len(value) == 0 {
@@ -114,13 +115,13 @@ func (v *ProjectClient) GetProject(name string) (Project, error) {
 }
 
 // GetAllProjects returns all the projects
-func (v *ProjectClient) GetAllProjects() ([]Project, error) {
+func (v *ProjectClient) GetAllProjects(ctx context.Context) ([]Project, error) {
 	key := ProjectKey{
 		ProjectName: "",
 	}
 
 	var res []Project
-	values, err := db.DBconn.Find(v.storeName, key, v.tagMeta)
+	values, err := db.DBconn.Find(ctx, v.storeName, key, v.tagMeta)
 	if err != nil {
 		return []Project{}, err
 	}
@@ -137,13 +138,13 @@ func (v *ProjectClient) GetAllProjects() ([]Project, error) {
 }
 
 // DeleteProject the  Project from database
-func (v *ProjectClient) DeleteProject(name string) error {
+func (v *ProjectClient) DeleteProject(ctx context.Context, name string) error {
 
 	//Construct the composite key to select the entry
 	key := ProjectKey{
 		ProjectName: name,
 	}
-	err := db.DBconn.Remove(v.storeName, key)
+	err := db.DBconn.Remove(ctx, v.storeName, key)
 	return err
 
 	//TODO: Delete the collection when the project is deleted

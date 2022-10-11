@@ -4,6 +4,7 @@
 package module
 
 import (
+	"context"
 	"reflect"
 	"strings"
 	"testing"
@@ -45,9 +46,10 @@ func TestCreateAppDependency(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.label, func(t *testing.T) {
+			ctx := context.Background()
 			db.DBconn = &testCase.mockdb
 			depIntentCli := NewAppDependencyClient()
-			got, err := depIntentCli.CreateAppDependency(testCase.appDependency, testCase.inputProject, testCase.inputCompositeApp, testCase.inputCompositeAppVersion, testCase.app, false)
+			got, err := depIntentCli.CreateAppDependency(ctx, testCase.appDependency, testCase.inputProject, testCase.inputCompositeApp, testCase.inputCompositeAppVersion, testCase.app, false)
 			if err != nil {
 				if testCase.expectedError == "" {
 					t.Fatalf("CreateDeploymentIntentGroup returned an unexpected error %s, ", err)
@@ -98,6 +100,7 @@ func TestAppDependency(t *testing.T) {
 	appDependency["app4"] = []AppDependency{}
 	for _, testCase := range testCases {
 		t.Run(testCase.label, func(t *testing.T) {
+			ctx := context.Background()
 			db.DBconn = &testCase.mockdb
 			depIntentCli := NewAppDependencyClient()
 			var allApps []App
@@ -107,7 +110,7 @@ func TestAppDependency(t *testing.T) {
 				}
 				allApps = append(allApps, a)
 				for _, dep := range dl {
-					_, err := depIntentCli.CreateAppDependency(dep, testCase.inputProject, testCase.inputCompositeApp, testCase.inputCompositeAppVersion, app, false)
+					_, err := depIntentCli.CreateAppDependency(ctx, dep, testCase.inputProject, testCase.inputCompositeApp, testCase.inputCompositeAppVersion, app, false)
 					if err != nil {
 						if testCase.expectedError == "" {
 							t.Fatalf("CreateDeploymentIntentGroup returned an unexpected error %s, ", err)
@@ -115,7 +118,7 @@ func TestAppDependency(t *testing.T) {
 					}
 				}
 			}
-			b := checkDependency(allApps, testCase.inputProject, testCase.inputCompositeApp, testCase.inputCompositeAppVersion)
+			b := checkDependency(ctx, allApps, testCase.inputProject, testCase.inputCompositeApp, testCase.inputCompositeAppVersion)
 			t.Log(b)
 		})
 	}

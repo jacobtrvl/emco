@@ -9,7 +9,7 @@ productcatalogservice:
     port: 3550
     image:
       repository: gcr.io/google-samples/microservices-demo/productcatalogservice
-      tag: "v0.3.0"
+      tag: "v0.3.9"
       pullPolicy: IfNotPresent
     resources:
       limits:

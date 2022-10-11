@@ -49,7 +49,8 @@ func (h controllerHandler) createHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	ret, err := h.client.CreateController(m, false)
+	ctx := r.Context()
+	ret, err := h.client.CreateController(ctx, m, false)
 	if err != nil {
 		log.Error(err.Error(), log.Fields{})
 		http.Error(w, err.Error(), http.StatusConflict)
@@ -69,6 +70,7 @@ func (h controllerHandler) createHandler(w http.ResponseWriter, r *http.Request)
 // Put handles creation or update of the controller entry in the database
 func (h controllerHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 	var m controller.Controller
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	name := vars["controller"]
 
@@ -98,7 +100,7 @@ func (h controllerHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ret, err := h.client.CreateController(m, true)
+	ret, err := h.client.CreateController(ctx, m, true)
 	if err != nil {
 		log.Error(err.Error(), log.Fields{})
 		http.Error(w, err.Error(), http.StatusConflict)
@@ -118,6 +120,7 @@ func (h controllerHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 // Get handles GET operations on a particular controller Name
 // Returns a controller
 func (h controllerHandler) getHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	name := vars["controller"]
 	var ret interface{}
@@ -125,9 +128,9 @@ func (h controllerHandler) getHandler(w http.ResponseWriter, r *http.Request) {
 
 	// handle the get all controllers case
 	if len(name) == 0 {
-		ret, err = h.client.GetControllers()
+		ret, err = h.client.GetControllers(ctx)
 	} else {
-		ret, err = h.client.GetController(name)
+		ret, err = h.client.GetController(ctx, name)
 	}
 
 	if err != nil {
@@ -148,10 +151,11 @@ func (h controllerHandler) getHandler(w http.ResponseWriter, r *http.Request) {
 
 // Delete handles DELETE operations on a particular controller Name
 func (h controllerHandler) deleteHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	name := vars["controller"]
 
-	err := h.client.DeleteController(name)
+	err := h.client.DeleteController(ctx, name)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)

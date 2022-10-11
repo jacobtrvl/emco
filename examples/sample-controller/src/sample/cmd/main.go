@@ -26,8 +26,10 @@ import (
 func main() {
 	rand.Seed(time.Now().UnixNano())
 
+	ctx := context.Background()
+
 	// Initialize the emco database(Mongo DB)
-	err := db.InitializeDatabaseConnection("emco")
+	err := db.InitializeDatabaseConnection(ctx, "emco")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -59,7 +61,7 @@ func main() {
 		c := make(chan os.Signal, 1)
 		signal.Notify(c, os.Interrupt)
 		<-c
-		server.Shutdown(context.Background())
+		server.Shutdown(ctx)
 		close(connection)
 	}()
 

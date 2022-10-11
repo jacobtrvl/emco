@@ -4,6 +4,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	"context"
 	dcm "gitlab.com/project-emco/core/emco-base/src/dcm/pkg/module"
 	common "gitlab.com/project-emco/core/emco-base/src/orchestrator/common"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
@@ -37,7 +38,7 @@ var _ = Describe("Quota", func() {
 					Name:        "project",
 					Description: "",
 				}
-				mdb.Insert("resources", okey, nil, "data", p)
+				mdb.Insert(context.Background(), "resources", okey, nil, "data", p)
 				// create logical cloud in mocked db
 				lkey := common.LogicalCloudKey{
 					Project:          "project",
@@ -52,43 +53,48 @@ var _ = Describe("Quota", func() {
 					NameSpace: "anything",
 					Level:     "1",
 				}
-				mdb.Insert("resources", lkey, nil, "data", lc)
+				mdb.Insert(context.Background(), "resources", lkey, nil, "data", lc)
 			})
 			It("creation should succeed and return the resource created", func() {
+				ctx := context.Background()
 				quota := _createTestQuota("testquota")
-				quota, err := client.CreateQuota("project", "logicalcloud", quota)
+				quota, err := client.CreateQuota(ctx, "project", "logicalcloud", quota)
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(quota.MetaData.QuotaName).To(Equal("testquota"))
 				Expect(quota.MetaData.Description).To(Equal(""))
 			})
 			It("get should fail and not return anything", func() {
-				quota, err := client.GetQuota("project", "logicalcloud", "testquota")
+				ctx := context.Background()
+				quota, err := client.GetQuota(ctx, "project", "logicalcloud", "testquota")
 				Expect(err).Should(HaveOccurred())
 				Expect(quota).To(Equal(dcm.Quota{}))
 			})
 			It("create followed by get should return what was created", func() {
+				ctx := context.Background()
 				quota := _createTestQuota("testquota")
-				_, _ = client.CreateQuota("project", "logicalcloud", quota)
-				quota, err := client.GetQuota("project", "logicalcloud", "testquota")
+				_, _ = client.CreateQuota(ctx, "project", "logicalcloud", quota)
+				quota, err := client.GetQuota(ctx, "project", "logicalcloud", "testquota")
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(quota).To(Equal(quota))
 			})
 			It("create followed by get-all should return only what was created", func() {
+				ctx := context.Background()
 				quota := _createTestQuota("testquota")
-				_, _ = client.CreateQuota("project", "logicalcloud", quota)
-				quotas, err := client.GetAllQuotas("project", "logicalcloud")
+				_, _ = client.CreateQuota(ctx, "project", "logicalcloud", quota)
+				quotas, err := client.GetAllQuotas(ctx, "project", "logicalcloud")
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(len(quotas)).To(Equal(1))
 				Expect(quotas[0]).To(Equal(quota))
 			})
 			It("three creates followed by get-all should return all that was created", func() {
+				ctx := context.Background()
 				quota1 := _createTestQuota("testquota1")
 				quota2 := _createTestQuota("testquota2")
 				quota3 := _createTestQuota("testquota3")
-				_, _ = client.CreateQuota("project", "logicalcloud", quota1)
-				_, _ = client.CreateQuota("project", "logicalcloud", quota2)
-				_, _ = client.CreateQuota("project", "logicalcloud", quota3)
-				quotas, err := client.GetAllQuotas("project", "logicalcloud")
+				_, _ = client.CreateQuota(ctx, "project", "logicalcloud", quota1)
+				_, _ = client.CreateQuota(ctx, "project", "logicalcloud", quota2)
+				_, _ = client.CreateQuota(ctx, "project", "logicalcloud", quota3)
+				quotas, err := client.GetAllQuotas(ctx, "project", "logicalcloud")
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(len(quotas)).To(Equal(3))
 				Expect(quotas[0]).To(Equal(quota1))
@@ -96,11 +102,12 @@ var _ = Describe("Quota", func() {
 				Expect(quotas[2]).To(Equal(quota3))
 			})
 			It("delete after creation should succeed and database remain empty", func() {
+				ctx := context.Background()
 				quota := _createTestQuota("testquota")
-				_, _ = client.CreateQuota("project", "logicalcloud", quota)
-				err := client.DeleteQuota("project", "logicalcloud", "testquota")
+				_, _ = client.CreateQuota(ctx, "project", "logicalcloud", quota)
+				err := client.DeleteQuota(ctx, "project", "logicalcloud", "testquota")
 				Expect(err).ShouldNot(HaveOccurred())
-				quotas, err := client.GetAllQuotas("project", "logicalcloud")
+				quotas, err := client.GetAllQuotas(ctx, "project", "logicalcloud")
 				Expect(len(quotas)).To(Equal(0))
 			})
 			// will uncomment after general mockdb issues resolved
@@ -109,19 +116,21 @@ var _ = Describe("Quota", func() {
 			// 	Expect(err).Should(HaveOccurred())
 			// })
 			It("update after creation should succeed and return updated resource", func() {
+				ctx := context.Background()
 				quota := _createTestQuota("testquota")
-				_, _ = client.CreateQuota("project", "logicalcloud", quota)
+				_, _ = client.CreateQuota(ctx, "project", "logicalcloud", quota)
 				quota.MetaData.Description = "new description"
-				quota, err := client.UpdateQuota("project", "logicalcloud", "testquota", quota)
+				quota, err := client.UpdateQuota(ctx, "project", "logicalcloud", "testquota", quota)
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(quota.MetaData.QuotaName).To(Equal("testquota"))
 				Expect(quota.MetaData.Description).To(Equal("new description"))
 			})
 			It("create followed by updating the name is disallowed and should fail", func() {
+				ctx := context.Background()
 				quota := _createTestQuota("testquota")
-				_, _ = client.CreateQuota("project", "logicalcloud", quota)
+				_, _ = client.CreateQuota(ctx, "project", "logicalcloud", quota)
 				quota.MetaData.QuotaName = "updated"
-				quota, err := client.UpdateQuota("project", "logicalcloud", "testquota", quota)
+				quota, err := client.UpdateQuota(ctx, "project", "logicalcloud", "testquota", quota)
 				Expect(err).Should(HaveOccurred())
 				Expect(quota).To(Equal(dcm.Quota{}))
 			})

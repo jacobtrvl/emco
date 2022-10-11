@@ -12,6 +12,8 @@ import (
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/state"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"context"
+
 	pkgerrors "github.com/pkg/errors"
 )
 
@@ -76,7 +78,7 @@ func NewProviderNetClient() *ProviderNetClient {
 func (v *ProviderNetClient) CreateProviderNet(p ProviderNet, clusterProvider, cluster string, exists bool) (ProviderNet, error) {
 
 	// verify cluster exists and in state to add provider networks
-	s, err := clusterPkg.NewClusterClient().GetClusterState(clusterProvider, cluster)
+	s, err := clusterPkg.NewClusterClient().GetClusterState(context.Background(), clusterProvider, cluster)
 	if err != nil {
 		return ProviderNet{}, err
 	}
@@ -112,7 +114,7 @@ func (v *ProviderNetClient) CreateProviderNet(p ProviderNet, clusterProvider, cl
 		return ProviderNet{}, pkgerrors.New("ProviderNet already exists")
 	}
 
-	err = db.DBconn.Insert(v.db.StoreName, key, nil, v.db.TagMeta, p)
+	err = db.DBconn.Insert(context.Background(), v.db.StoreName, key, nil, v.db.TagMeta, p)
 	if err != nil {
 		return ProviderNet{}, pkgerrors.Wrap(err, "Creating DB Entry")
 	}
@@ -130,7 +132,7 @@ func (v *ProviderNetClient) GetProviderNet(name, clusterProvider, cluster string
 		ProviderNetName:     name,
 	}
 
-	value, err := db.DBconn.Find(v.db.StoreName, key, v.db.TagMeta)
+	value, err := db.DBconn.Find(context.Background(), v.db.StoreName, key, v.db.TagMeta)
 	if err != nil {
 		return ProviderNet{}, err
 	}
@@ -163,7 +165,7 @@ func (v *ProviderNetClient) GetProviderNets(clusterProvider, cluster string) ([]
 	}
 
 	var resp []ProviderNet
-	values, err := db.DBconn.Find(v.db.StoreName, key, v.db.TagMeta)
+	values, err := db.DBconn.Find(context.Background(), v.db.StoreName, key, v.db.TagMeta)
 	if err != nil {
 		return []ProviderNet{}, err
 	}
@@ -183,7 +185,7 @@ func (v *ProviderNetClient) GetProviderNets(clusterProvider, cluster string) ([]
 // Delete the  ProviderNet from database
 func (v *ProviderNetClient) DeleteProviderNet(name, clusterProvider, cluster string) error {
 	// verify cluster is in a state where provider network intent can be deleted
-	s, err := clusterPkg.NewClusterClient().GetClusterState(clusterProvider, cluster)
+	s, err := clusterPkg.NewClusterClient().GetClusterState(context.Background(), clusterProvider, cluster)
 	if err != nil {
 		return err
 	}
@@ -217,6 +219,6 @@ func (v *ProviderNetClient) DeleteProviderNet(name, clusterProvider, cluster str
 		ProviderNetName:     name,
 	}
 
-	err = db.DBconn.Remove(v.db.StoreName, key)
+	err = db.DBconn.Remove(context.Background(), v.db.StoreName, key)
 	return err
 }

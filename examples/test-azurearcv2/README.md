@@ -10,6 +10,27 @@ This folder contains the collectd testcase to be run with EMCO deployed to Azure
 
 Setup environment variables as mentioned in https://gitlab.com/project-emco/core/emco-base/-/tree/main/docs/design/gitops_support.md.
 
+Set `LOGICAL_CLOUD_LEVEL` to "admin" to use admin(default) logical cloud and set it to "standard" to use standard logical cloud.
+
+## Selecting API type to interact with Git Server
+By default the example uses the core Git APIs for interacting with the Git Server. To switch to GitHub REST APIs uncomment the gitType line in templates/prerequisites-common.yaml
+
+```
+version: emco/v2
+resourceContext:
+anchor: cluster-providers/{{ $.ClusterProvider }}/cluster-sync-objects
+metadata:
+name: {{ $.GitObj}}
+spec:
+kv:
+#- gitType: github  # Uncomment to use GitHub Rest API
+- userName: {{ $.GitUser }}
+- gitToken:  {{ $.GitToken }}
+- repoName: {{ $.GitRepo }}
+- branch: {{ $.GitBranch }}
+- url: {{ $.GitUrl }}
+```
+
 ## Generating files
 
 Creates artifacts needed to run the testcase.
@@ -20,6 +41,7 @@ $ cd emco-base/examples/test-azurearcv2
 ```
 $ ./setup.sh create
 ```
+Output of this command are 1) values.yaml file and  2) emco_cfg.yaml 3) 00-prerequisites.yaml  4) Helm chart and profiles tar.gz files for all the usecases.
 
 ## Applying the prerequisites
 

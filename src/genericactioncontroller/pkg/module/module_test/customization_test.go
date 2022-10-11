@@ -8,6 +8,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 
+	"context"
 	"gitlab.com/project-emco/core/emco-base/src/genericactioncontroller/pkg/module"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/module/types"
 )
@@ -209,7 +210,7 @@ func populateCustomizationTestData() {
 		GenericK8sIntent:      v.Intent,
 		Resource:              v.Resource,
 	}
-	_ = mockdb.Insert("resources", key, nil, "data", c)
+	_ = mockdb.Insert(context.Background(), "resources", key, nil, "data", c)
 
 	// Customization 2
 	c = mockCustomization("test-customization-2")
@@ -222,7 +223,7 @@ func populateCustomizationTestData() {
 		GenericK8sIntent:      v.Intent,
 		Resource:              v.Resource,
 	}
-	_ = mockdb.Insert("resources", key, nil, "data", c)
+	_ = mockdb.Insert(context.Background(), "resources", key, nil, "data", c)
 
 	// Customization 3
 	c = mockCustomization("test-customization-3")
@@ -235,7 +236,7 @@ func populateCustomizationTestData() {
 		GenericK8sIntent:      v.Intent,
 		Resource:              v.Resource,
 	}
-	_ = mockdb.Insert("resources", key, nil, "data", c)
+	_ = mockdb.Insert(context.Background(), "resources", key, nil, "data", c)
 }
 
 // populateCustomizationContent
@@ -250,7 +251,7 @@ func populateCustomizationContent(customization string) {
 		Resource:              v.Resource,
 	}
 	content := mockCustomizationContent()
-	_ = mockdb.Insert("resources", key, nil, "customizationcontent", content)
+	_ = mockdb.Insert(context.Background(), "resources", key, nil, "customizationcontent", content)
 }
 
 // mockCustomizationContent

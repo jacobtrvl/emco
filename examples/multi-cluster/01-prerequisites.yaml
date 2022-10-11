@@ -60,10 +60,3 @@ spec:
   cluster: {{ $cluster.Name }}
   loadbalancerIp: "0.0.0.0"
 {{- end }}
-
----
-#instantiate logical cloud
-version: emco/v2
-resourceContext:
-  anchor: projects/{{ .ProjectName }}/logical-clouds/{{ .AdminCloud }}/instantiate
-

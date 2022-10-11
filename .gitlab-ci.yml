@@ -39,6 +39,6 @@ test:
   stage: all
   only:
     - merge_requests
-  image: golang:1.17
+  image: registry.gitlab.com/project-emco/core/emco-base/emco-build-base:1.3
   script:
     - make test

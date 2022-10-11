@@ -28,6 +28,7 @@ var SampleJSONFile string = "json-schemas/intent.json"
 // handleSampleIntentCreate handles the route for creating a new SampleIntent
 func (h intentHandler) handleSampleIntentCreate(w http.ResponseWriter, r *http.Request) {
 	var i model.SampleIntent
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	project := vars["project"]
 	app := vars["compositeApp"]
@@ -41,7 +42,7 @@ func (h intentHandler) handleSampleIntentCreate(w http.ResponseWriter, r *http.R
 	}
 
 	// Insert the new SampleIntent in the database.
-	intent, err := h.client.CreateSampleIntent(i, project, app, version, group, true) // true - fail if exists
+	intent, err := h.client.CreateSampleIntent(ctx, i, project, app, version, group, true) // true - fail if exists
 	if err != nil {
 		handleError(w, vars, err, i)
 		return
@@ -53,6 +54,7 @@ func (h intentHandler) handleSampleIntentCreate(w http.ResponseWriter, r *http.R
 
 // handleSampleIntentGet handles the route for retrieving an SampleIntent from the database
 func (h intentHandler) handleSampleIntentGet(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	name := vars["sampleIntent"]
 	project := vars["project"]
@@ -61,7 +63,7 @@ func (h intentHandler) handleSampleIntentGet(w http.ResponseWriter, r *http.Requ
 	group := vars["deploymentIntentGroup"]
 
 	// Retrieve the SampleIntent details from the database.
-	intent, err := h.client.GetSampleIntents(name, project, app, version, group)
+	intent, err := h.client.GetSampleIntents(ctx, name, project, app, version, group)
 	if err != nil {
 		handleError(w, vars, err, nil)
 		return

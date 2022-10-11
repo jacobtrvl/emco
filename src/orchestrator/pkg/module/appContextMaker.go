@@ -4,6 +4,7 @@
 package module
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 
@@ -23,53 +24,53 @@ type Instantiator struct {
 }
 
 // MakeAppContext shall make an app context and store the app context into etcd. This shall return contextForCompositeApp
-func (i *Instantiator) MakeAppContext() (contextForCompositeApp, error) {
+func (i *Instantiator) MakeAppContext(ctx context.Context) (contextForCompositeApp, error) {
 
-	dcmClusters, namespace, level, err := getLogicalCloudInfo(i.project, i.deploymentIntentGrp.Spec.LogicalCloud)
+	dcmClusters, namespace, level, err := getLogicalCloudInfo(ctx, i.project, i.deploymentIntentGrp.Spec.LogicalCloud)
 	if err != nil {
 		return contextForCompositeApp{}, err
 	}
 
-	cca, err := i.makeAppContextForCompositeApp(namespace, level, i.deploymentIntentGrp.Spec.LogicalCloud)
+	cca, err := i.makeAppContextForCompositeApp(ctx, namespace, level, i.deploymentIntentGrp.Spec.LogicalCloud)
 	if err != nil {
 		return contextForCompositeApp{}, err
 	}
 
-	err = i.storeAppContextIntoRunTimeDB(cca, dcmClusters, namespace)
+	err = i.storeAppContextIntoRunTimeDB(ctx, cca, dcmClusters, namespace)
 	if err != nil {
-		deleteAppContext(cca.context)
+		deleteAppContext(ctx, cca.context)
 		return contextForCompositeApp{}, pkgerrors.Wrap(err, "Error in storeAppContextIntoETCd")
 	}
 
 	return cca, nil
 }
 
-func (i *Instantiator) makeAppContextForCompositeApp(namespace, level, logicalCloud string) (contextForCompositeApp, error) {
+func (i *Instantiator) makeAppContextForCompositeApp(ctx context.Context, namespace, level, logicalCloud string) (contextForCompositeApp, error) {
 	context := appcontext.AppContext{}
 	ctxval, err := context.InitAppContext()
 	if err != nil {
 		return contextForCompositeApp{}, pkgerrors.Wrap(err, "Error creating AppContext CompositeApp")
 	}
-	compositeHandle, err := context.CreateCompositeApp()
+	compositeHandle, err := context.CreateCompositeApp(ctx)
 	if err != nil {
 		return contextForCompositeApp{}, pkgerrors.Wrap(err, "Error creating CompositeApp handle")
 	}
 	rName := i.deploymentIntentGrp.Spec.Version //rName is releaseName
-	err = context.AddCompositeAppMeta(appcontext.CompositeAppMeta{
+	err = context.AddCompositeAppMeta(ctx, appcontext.CompositeAppMeta{
 		Project:               i.project,
 		CompositeApp:          i.compositeApp,
 		Version:               i.compAppVersion,
 		Release:               rName,
 		DeploymentIntentGroup: i.deploymentIntent,
-		Namespace: namespace,
-		Level: level,
-		LogicalCloud: logicalCloud,
+		Namespace:             namespace,
+		Level:                 level,
+		LogicalCloud:          logicalCloud,
 	})
 	if err != nil {
 		return contextForCompositeApp{}, pkgerrors.Wrap(err, "Error Adding CompositeAppMeta")
 	}
 
-	m, _ := context.GetCompositeAppMeta()
+	m, _ := context.GetCompositeAppMeta(ctx)
 	log.Info(":: The meta data stored in the runtime context :: ", log.Fields{"Project": m.Project, "CompositeApp": m.CompositeApp, "Version": m.Version, "Release": m.Release, "DeploymentIntentGroup": m.DeploymentIntentGroup})
 
 	cca := contextForCompositeApp{context: context, ctxval: ctxval, compositeAppHandle: compositeHandle}
@@ -77,9 +78,9 @@ func (i *Instantiator) makeAppContextForCompositeApp(namespace, level, logicalCl
 
 }
 
-func (i *Instantiator) storeAppContextIntoRunTimeDB(cxtForCApp contextForCompositeApp, dcmClusters []common.Cluster, namespace string) error {
+func (i *Instantiator) storeAppContextIntoRunTimeDB(ctx context.Context, cxtForCApp contextForCompositeApp, dcmClusters []common.Cluster, namespace string) error {
 
-	ctx := cxtForCApp.context
+	cappCtx := cxtForCApp.context
 	// for recording the app order instruction
 	var appOrdInsStr appOrderInstr
 	// for recording the app dependency
@@ -89,19 +90,19 @@ func (i *Instantiator) storeAppContextIntoRunTimeDB(cxtForCApp contextForComposi
 	overrideValues := i.deploymentIntentGrp.Spec.OverrideValuesObj
 	rName := i.deploymentIntentGrp.Spec.Version //rName is releaseName
 	cp := i.deploymentIntentGrp.Spec.Profile
-	gIntent, err := findGenericPlacementIntent(i.project, i.compositeApp, i.compAppVersion, i.deploymentIntent)
+	gIntent, err := findGenericPlacementIntent(ctx, i.project, i.compositeApp, i.compAppVersion, i.deploymentIntent)
 	if err != nil {
 		return err
 	}
 	log.Info(":: The name of the GenPlacIntent ::", log.Fields{"GenPlmtIntent": gIntent})
 
-	allApps, err := NewAppClient().GetApps(i.project, i.compositeApp, i.compAppVersion)
+	allApps, err := NewAppClient().GetApps(ctx, i.project, i.compositeApp, i.compAppVersion)
 	if err != nil {
 		return pkgerrors.Wrap(err, "Not finding the apps")
 	}
 
 	// Check dependency between APPS and check for cyclic dependency
-	if !checkDependency(allApps, i.project, i.compositeApp, i.compAppVersion) {
+	if !checkDependency(ctx, allApps, i.project, i.compositeApp, i.compAppVersion) {
 		str := fmt.Sprint("Cyclic Dependency between apps found in composite app:", i.compositeApp)
 		log.Error(str, log.Fields{"composite app": i.compositeApp})
 		return pkgerrors.New(str)
@@ -110,7 +111,7 @@ func (i *Instantiator) storeAppContextIntoRunTimeDB(cxtForCApp contextForComposi
 		appOrdInsStr.Apporder = append(appOrdInsStr.Apporder, eachApp.Metadata.Name)
 		appDepStr.AppDepMap[eachApp.Metadata.Name] = "go"
 
-		sortedTemplates, hookList, err := GetSortedTemplateForApp(eachApp.Metadata.Name, i.project, i.compositeApp, i.compAppVersion, rName, cp, namespace, overrideValues)
+		sortedTemplates, hookList, err := GetSortedTemplateForApp(ctx, eachApp.Metadata.Name, i.project, i.compositeApp, i.compAppVersion, rName, cp, namespace, overrideValues)
 
 		if err != nil {
 			log.Error("Unable to get the sorted templates for app", log.Fields{"AppName": eachApp.Metadata.Name})
@@ -121,9 +122,9 @@ func (i *Instantiator) storeAppContextIntoRunTimeDB(cxtForCApp contextForComposi
 
 		defer cleanTmpfiles(sortedTemplates)
 		// Read app dependency, if err continue
-		appDep, _ := NewAppDependencyClient().GetAllSpecAppDependency(i.project, i.compositeApp, i.compAppVersion, eachApp.Metadata.Name)
+		appDep, _ := NewAppDependencyClient().GetAllSpecAppDependency(ctx, i.project, i.compositeApp, i.compAppVersion, eachApp.Metadata.Name)
 
-		specData, err := NewAppIntentClient().GetAllIntentsByApp(eachApp.Metadata.Name, i.project, i.compositeApp, i.compAppVersion, gIntent, i.deploymentIntent)
+		specData, err := NewAppIntentClient().GetAllIntentsByApp(ctx, eachApp.Metadata.Name, i.project, i.compositeApp, i.compAppVersion, gIntent, i.deploymentIntent)
 		if err != nil {
 			return pkgerrors.Wrap(err, "Unable to get the intents for app")
 		}
@@ -154,11 +155,11 @@ func (i *Instantiator) storeAppContextIntoRunTimeDB(cxtForCApp contextForComposi
 			hk:         hookList,
 			dependency: appDep,
 		}
-		err = ah.addAppToAppContext(cxtForCApp)
+		err = ah.addAppToAppContext(ctx, cxtForCApp)
 		if err != nil {
 			return pkgerrors.Wrap(err, "Error adding app to appContext: ")
 		}
-		err = ah.verifyResources(cxtForCApp)
+		err = ah.verifyResources(ctx, cxtForCApp)
 		if err != nil {
 			return pkgerrors.Wrap(err, "Error while verifying resources in app: ")
 		}
@@ -172,11 +173,11 @@ func (i *Instantiator) storeAppContextIntoRunTimeDB(cxtForCApp contextForComposi
 	if err != nil {
 		return pkgerrors.Wrap(err, "Error marshalling app dependency instruction")
 	}
-	_, err = ctx.AddInstruction(cxtForCApp.compositeAppHandle, "app", "order", string(jappOrderInstr))
+	_, err = cappCtx.AddInstruction(ctx, cxtForCApp.compositeAppHandle, "app", "order", string(jappOrderInstr))
 	if err != nil {
 		return pkgerrors.Wrap(err, "Error adding app dependency instruction")
 	}
-	_, err = ctx.AddInstruction(cxtForCApp.compositeAppHandle, "app", "dependency", string(jappDepInstr))
+	_, err = cappCtx.AddInstruction(ctx, cxtForCApp.compositeAppHandle, "app", "dependency", string(jappDepInstr))
 	if err != nil {
 		return pkgerrors.Wrap(err, "Error adding app dependency instruction")
 	}

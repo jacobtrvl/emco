@@ -70,7 +70,7 @@ func (v *WorkflowIntentClient) CreateWorkflowHookIntent(wfh model.WorkflowHookIn
 	}
 
 	// if it doesn't exist already insert it into the db
-	err = db.DBconn.Insert(v.db.StoreName, key, nil, v.db.TagMeta, wfh)
+	err = db.DBconn.Insert(context.Background(), v.db.StoreName, key, nil, v.db.TagMeta, wfh)
 	if err != nil {
 		return model.WorkflowHookIntent{}, err
 	}
@@ -91,7 +91,7 @@ func (v *WorkflowIntentClient) GetWorkflowHookIntent(name, project, cApp, cAppVe
 	}
 
 	// look for the workflow hook in the db
-	value, err := db.DBconn.Find(v.db.StoreName, key, v.db.TagMeta)
+	value, err := db.DBconn.Find(context.Background(), v.db.StoreName, key, v.db.TagMeta)
 	if err != nil {
 		// if there was an error return it to caller
 		return model.WorkflowHookIntent{}, err
@@ -128,7 +128,7 @@ func (v *WorkflowIntentClient) GetWorkflowHookIntents(project, cApp, cAppVer, di
 	}
 
 	var resp []model.WorkflowHookIntent
-	values, err := db.DBconn.Find(v.db.StoreName, key, v.db.TagMeta)
+	values, err := db.DBconn.Find(context.Background(), v.db.StoreName, key, v.db.TagMeta)
 	if err != nil {
 		return []model.WorkflowHookIntent{}, err
 	}
@@ -157,7 +157,7 @@ func (v *WorkflowIntentClient) DeleteWorkflowHookIntent(name, project, cApp, cAp
 		DigName:             dig,
 	}
 
-	err := db.DBconn.Remove(v.db.StoreName, key)
+	err := db.DBconn.Remove(context.Background(), v.db.StoreName, key)
 	return err
 }
 
@@ -315,7 +315,7 @@ func (v *WorkflowIntentClient) CancelWorkflowIntent(name, project, cApp, cAppVer
 		DigName:             dig,
 	}
 
-	value, err := db.DBconn.Find(v.db.StoreName, key, v.db.TagMeta)
+	value, err := db.DBconn.Find(context.Background(), v.db.StoreName, key, v.db.TagMeta)
 	if err != nil {
 		log.Error("CancelWorkflowHookIntent: Error getting intent",
 			log.Fields{"project": project, "composite app": cApp,

@@ -10,6 +10,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 
+	"context"
 	rb "gitlab.com/project-emco/core/emco-base/src/monitor/pkg/apis/k8splugin/v1alpha1"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/appcontext"
 	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
@@ -23,7 +24,7 @@ func CheckDeploymentStatus(appContextID string, serverApp string) (bool, error) 
 	deploymentState := false
 
 	var ac appcontext.AppContext
-	_, err := ac.LoadAppContext(appContextID)
+	_, err := ac.LoadAppContext(context.Background(), appContextID)
 	if err != nil {
 		log.Error("Error loading AppContext", log.Fields{
 			"error": err,
@@ -32,7 +33,7 @@ func CheckDeploymentStatus(appContextID string, serverApp string) (bool, error) 
 	}
 
 	// Get the clusters in the appcontext for this app
-	clusters, err := ac.GetClusterNames(serverApp)
+	clusters, err := ac.GetClusterNames(context.Background(), serverApp)
 	if err != nil {
 		log.Error("Unable to get the cluster names",
 			log.Fields{"AppName": serverApp, "Error": err})
@@ -50,7 +51,7 @@ func CheckDeploymentStatus(appContextID string, serverApp string) (bool, error) 
 		}
 
 		// Get the parent composite app meta
-		m, err := ac.GetCompositeAppMeta()
+		m, err := ac.GetCompositeAppMeta(context.Background())
 		if err != nil {
 			log.Error("Error getting CompositeAppMeta",
 				log.Fields{"Cluster": cluster, "AppName": serverApp, "Error": err})
@@ -77,7 +78,7 @@ func CheckDeploymentStatus(appContextID string, serverApp string) (bool, error) 
 func GetClusterResources(appContextID string, app string, cluster string) (*rb.ResourceBundleStateStatus, error) {
 
 	var ac appcontext.AppContext
-	_, err := ac.LoadAppContext(appContextID)
+	_, err := ac.LoadAppContext(context.Background(), appContextID)
 	if err != nil {
 		log.Error("Error loading AppContext", log.Fields{
 			"error": err,
@@ -85,13 +86,13 @@ func GetClusterResources(appContextID string, app string, cluster string) (*rb.R
 		return nil, err
 	}
 
-	csh, err := ac.GetClusterStatusHandle(app, cluster)
+	csh, err := ac.GetClusterStatusHandle(context.Background(), app, cluster)
 	if err != nil {
 		log.Error("No cluster status handle for cluster, app",
 			log.Fields{"Cluster": cluster, "AppName": app, "Error": err})
 		return nil, err
 	}
-	clusterRbValue, err := ac.GetValue(csh)
+	clusterRbValue, err := ac.GetValue(context.Background(), csh)
 	if err != nil {
 		log.Error("No cluster status value for cluster, app",
 			log.Fields{"Cluster": cluster, "AppName": app, "Error": err})
@@ -145,13 +146,13 @@ func CompareResource(r string, qResource string) bool {
 }
 
 // CleanupCompositeApp will delete the app context
-func CleanupCompositeApp(context appcontext.AppContext, err error, reason string, details []string) error {
+func CleanupCompositeApp(appCtx appcontext.AppContext, err error, reason string, details []string) error {
 	if err == nil {
 		// create an error object to avoid wrap failures
 		err = pkgerrors.New("Composite App cleanup.")
 	}
 
-	cleanuperr := context.DeleteCompositeApp()
+	cleanuperr := appCtx.DeleteCompositeApp(context.Background())
 	newerr := pkgerrors.Wrap(err, reason)
 	if cleanuperr != nil {
 		log.Warn("Error cleaning AppContext, ", log.Fields{
@@ -162,7 +163,7 @@ func CleanupCompositeApp(context appcontext.AppContext, err error, reason string
 	return newerr
 }
 
-// RemoveChildCtx removes the child context ID in the parent's meta
+// RemoveChildCtx removes the child appCtx ID in the parent's meta
 func RemoveChildCtx(childContexts []string, childContextID string) {
 	for i := range childContexts {
 		if childContexts[i] == childContextID {

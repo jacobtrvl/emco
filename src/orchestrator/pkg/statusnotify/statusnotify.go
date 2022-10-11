@@ -4,6 +4,8 @@
 package statusnotify
 
 import (
+	"context"
+
 	pkgerrors "github.com/pkg/errors"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/appcontext"
 	statusnotifypb "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/grpc/statusnotify"
@@ -31,7 +33,7 @@ func getDigKeyValues(reg *statusnotifypb.StatusRegistration) (string, string, st
 	return digKey.GetProject(), digKey.GetCompositeApp(), digKey.GetCompositeAppVersion(), digKey.GetDeploymentIntentGroup(), nil
 }
 
-func (d digHelpers) GetAppContextId(reg *statusnotifypb.StatusRegistration) (string, error) {
+func (d digHelpers) GetAppContextId(ctx context.Context, reg *statusnotifypb.StatusRegistration) (string, error) {
 	p, ca, v, di, err := getDigKeyValues(reg)
 	if err != nil {
 		return "", err
@@ -39,7 +41,7 @@ func (d digHelpers) GetAppContextId(reg *statusnotifypb.StatusRegistration) (str
 	log.Trace("[StatusNotify] Deployment Intent Group Key",
 		log.Fields{"project": p, "compositeApp": ca, "caVersion": v, "dig": di})
 
-	si, err := module.NewDeploymentIntentGroupClient().GetDeploymentIntentGroupState(di, p, ca, v)
+	si, err := module.NewDeploymentIntentGroupClient().GetDeploymentIntentGroupState(ctx, di, p, ca, v)
 	if err != nil {
 		log.Info("[StatusNotify] Deployment Intent Group Not Found",
 			log.Fields{"Error": err})
@@ -49,14 +51,14 @@ func (d digHelpers) GetAppContextId(reg *statusnotifypb.StatusRegistration) (str
 	return state.GetStatusContextIdFromStateInfo(si), nil
 }
 
-func (d digHelpers) StatusQuery(reg *statusnotifypb.StatusRegistration, qStatusInstance, qType, qOutput string, qApps, qClusters, qResources []string) status.StatusResult {
+func (d digHelpers) StatusQuery(ctx context.Context, reg *statusnotifypb.StatusRegistration, qStatusInstance, qType, qOutput string, qApps, qClusters, qResources []string) status.StatusResult {
 
 	p, ca, v, di, err := getDigKeyValues(reg)
 	if err != nil {
 		return status.StatusResult{}
 	}
 
-	statusResult, err := module.NewInstantiationClient().GenericStatus(p, ca, v, di, qStatusInstance, qType, qOutput, qApps, qClusters, qResources)
+	statusResult, err := module.NewInstantiationClient().GenericStatus(ctx, p, ca, v, di, qStatusInstance, qType, qOutput, qApps, qClusters, qResources)
 	if err != nil {
 		return status.StatusResult{}
 	}

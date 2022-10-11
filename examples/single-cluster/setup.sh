@@ -13,6 +13,7 @@ CONFIG_DNS=$(cat ./config | grep DNS | cut -d'=' -f2)
 CONFIG_HOST_IP=$(cat ./config | grep HOST_IP | cut -d'=' -f2)
 CONFIG_KUBE_PATH=$(cat ./config | grep KUBE_PATH | cut -d'=' -f2)
 CONFIG_LOGICAL_CLOUD_LEVEL=$(cat ./config | grep LOGICAL_CLOUD_LEVEL | cut -d'=' -f2)
+CONFIG_IMAGE_REPOSITORY=$(cat ./config | grep IMAGE_REPOSITORY | cut -d'=' -f2)
 CLM_SERVICE_PORT=$(cat ./config | grep CLM_SERVICE_PORT | cut -d'=' -f2)
 DCM_SERVICE_PORT=$(cat ./config | grep DCM_SERVICE_PORT | cut -d'=' -f2)
 DCM_STATUS_PORT=$(cat ./config | grep DCM_STATUS_PORT | cut -d'=' -f2)
@@ -38,6 +39,8 @@ KUBE_PATH=${KUBE_PATH:-$CONFIG_KUBE_PATH}
 KUBE_PATH=${KUBE_PATH:-"oops"}
 LOGICAL_CLOUD_LEVEL=${LOGICAL_CLOUD_LEVEL:-$CONFIG_LOGICAL_CLOUD_LEVEL}
 LOGICAL_CLOUD_LEVEL=${LOGICAL_CLOUD_LEVEL:-"admin"}
+IMAGE_REPOSITORY=${IMAGE_REPOSITORY:-$CONFIG_IMAGE_REPOSITORY}
+IMAGE_REPOSITORY=${IMAGE_REPOSITORY:-"myrepository.example.com"}
 
 firewall_folder=../helm_charts/composite-cnf-firewall
 http_client_folder=../helm_charts/http-client
@@ -85,6 +88,7 @@ cat << NET >> values.yaml
     NpsPort: $NPS_CONTROL_PORT
     KubeConfig: $KUBE_PATH
     HostIP: $HOST_IP
+    ImageRepository: $IMAGE_REPOSITORY
 NET
 
 echo "Generating emco-cfg.yaml"

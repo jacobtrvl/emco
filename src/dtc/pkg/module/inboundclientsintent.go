@@ -4,6 +4,7 @@
 package module
 
 import (
+	"context"
 	pkgerrors "github.com/pkg/errors"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
 )
@@ -71,7 +72,7 @@ func (v InboundClientsIntentDbClient) CreateClientsInboundIntent(ici InboundClie
 		return InboundClientsIntent{}, pkgerrors.New("InboundClientsIntent already exists")
 	}
 
-	err = db.DBconn.Insert(v.db.storeName, key, nil, v.db.tagMeta, ici)
+	err = db.DBconn.Insert(context.Background(), v.db.storeName, key, nil, v.db.tagMeta, ici)
 	if err != nil {
 		return InboundClientsIntent{}, pkgerrors.Wrap(err, "Creating DB Entry")
 	}
@@ -94,7 +95,7 @@ func (v *InboundClientsIntentDbClient) GetClientsInboundIntent(name, project, co
 		InboundClientsIntentName:  name,
 	}
 
-	value, err := db.DBconn.Find(v.db.storeName, key, v.db.tagMeta)
+	value, err := db.DBconn.Find(context.Background(), v.db.storeName, key, v.db.tagMeta)
 	if err != nil {
 		return InboundClientsIntent{}, err
 	} else if len(value) == 0 {
@@ -129,7 +130,7 @@ func (v *InboundClientsIntentDbClient) GetClientsInboundIntents(project, composi
 	}
 
 	var resp []InboundClientsIntent
-	values, err := db.DBconn.Find(v.db.storeName, key, v.db.tagMeta)
+	values, err := db.DBconn.Find(context.Background(), v.db.storeName, key, v.db.tagMeta)
 	if err != nil {
 		return []InboundClientsIntent{}, err
 	}
@@ -161,6 +162,6 @@ func (v *InboundClientsIntentDbClient) DeleteClientsInboundIntent(name, project,
 		InboundClientsIntentName:  name,
 	}
 
-	err := db.DBconn.Remove(v.db.storeName, key)
+	err := db.DBconn.Remove(context.Background(), v.db.storeName, key)
 	return err
 }

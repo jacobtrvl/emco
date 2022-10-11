@@ -11,6 +11,7 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	pkgerrors "github.com/pkg/errors"
+	"github.com/stretchr/testify/mock"
 	"gitlab.com/project-emco/core/emco-base/src/dcm/api/mocks"
 	module "gitlab.com/project-emco/core/emco-base/src/orchestrator/common"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/module/types"
@@ -39,7 +40,7 @@ var _ = Describe("ClusterHandler", func() {
 	DescribeTable("Create Cluster tests",
 		func(t testCase) {
 			// set up client mock responses
-			t.clClient.On("CreateCluster", "test-project", "test-lc", t.inStruct).Return(t.mockVal, t.mockError)
+			t.clClient.On("CreateCluster", mock.Anything, "test-project", "test-lc", t.inStruct).Return(t.mockVal, t.mockError)
 
 			// make HTTP request
 			request := httptest.NewRequest("POST", "/v2/projects/test-project/logical-clouds/test-lc/cluster-references", t.inputReader)
@@ -192,7 +193,7 @@ var _ = Describe("ClusterHandler", func() {
 	// DescribeTable("Put Cluster tests",
 	// 	func(t testCase) {
 	// 		// set up client mock responses
-	// 		t.clClient.On("UpdateCluster", "test-project", "test-lc", t.inputName, t.inStruct).Return(t.mockVal, t.mockError)
+	// 		t.clClient.On("UpdateCluster", mock.Anything, "test-project", "test-lc", t.inputName, t.inStruct).Return(t.mockVal, t.mockError)
 
 	// 		// make HTTP request
 	// 		request := httptest.NewRequest("PUT", "/v2/projects/test-project/logical-clouds/test-lc/cluster-references/"+t.inputName, t.inputReader)
@@ -362,7 +363,7 @@ var _ = Describe("ClusterHandler", func() {
 	DescribeTable("Get List Cluster tests",
 		func(t testCase) {
 			// set up client mock responses
-			t.clClient.On("GetAllClusters", "test-project", "test-lc").Return(t.mockVals, t.mockError)
+			t.clClient.On("GetAllClusters", mock.Anything, "test-project", "test-lc").Return(t.mockVals, t.mockError)
 
 			// make HTTP request
 			request := httptest.NewRequest("GET", "/v2/projects/test-project/logical-clouds/test-lc/cluster-references", nil)
@@ -413,7 +414,7 @@ var _ = Describe("ClusterHandler", func() {
 	DescribeTable("Get Cluster tests",
 		func(t testCase) {
 			// set up client mock responses
-			t.clClient.On("GetCluster", "test-project", "test-lc", t.inputName).Return(t.mockVal, t.mockError)
+			t.clClient.On("GetCluster", mock.Anything, "test-project", "test-lc", t.inputName).Return(t.mockVal, t.mockError)
 
 			// make HTTP request
 			request := httptest.NewRequest("GET", "/v2/projects/test-project/logical-clouds/test-lc/cluster-references/"+t.inputName, nil)
@@ -464,7 +465,7 @@ var _ = Describe("ClusterHandler", func() {
 	DescribeTable("Delete Cluster tests",
 		func(t testCase) {
 			// set up client mock responses
-			t.clClient.On("DeleteCluster", "test-project", "test-lc", t.inputName).Return(t.mockError)
+			t.clClient.On("DeleteCluster", mock.Anything, "test-project", "test-lc", t.inputName).Return(t.mockError)
 
 			// make HTTP request
 			request := httptest.NewRequest("DELETE", "/v2/projects/test-project/logical-clouds/test-lc/cluster-references/"+t.inputName, nil)

@@ -33,6 +33,8 @@ cat << EOF > config.json
     "etcd-cert": "",
     "etcd-key": "",
     "etcd-ca-file": "",
+    "zipkin-ip": "127.0.0.1",
+    "zipkin-port": "9411",
     "service-port": "9015"
 }
 EOF

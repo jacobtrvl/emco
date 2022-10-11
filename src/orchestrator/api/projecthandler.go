@@ -28,6 +28,7 @@ type projectHandler struct {
 // Create handles creation of the Project entry in the database
 func (h projectHandler) createHandler(w http.ResponseWriter, r *http.Request) {
 	var p moduleLib.Project
+	ctx := r.Context()
 	vars := mux.Vars(r)
 
 	err := json.NewDecoder(r.Body).Decode(&p)
@@ -50,7 +51,7 @@ func (h projectHandler) createHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ret, createErr := h.client.CreateProject(p, false)
+	ret, createErr := h.client.CreateProject(ctx, p, false)
 	if createErr != nil {
 		apiErr := apierror.HandleErrors(vars, createErr, p, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -69,6 +70,7 @@ func (h projectHandler) createHandler(w http.ResponseWriter, r *http.Request) {
 
 // Update handles updating the Project entry in the database
 func (h projectHandler) updateHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	name := vars["project"]
 
@@ -100,7 +102,7 @@ func (h projectHandler) updateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ret, err := h.client.CreateProject(p, true)
+	ret, err := h.client.CreateProject(ctx, p, true)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, p, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -120,6 +122,7 @@ func (h projectHandler) updateHandler(w http.ResponseWriter, r *http.Request) {
 // Get handles GET operations on a particular Project Name
 // Returns a Project
 func (h projectHandler) getHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	name := vars["project"]
 
@@ -127,7 +130,7 @@ func (h projectHandler) getHandler(w http.ResponseWriter, r *http.Request) {
 	if len(name) == 0 {
 		var pList []moduleLib.Project
 
-		projects, err := h.client.GetAllProjects()
+		projects, err := h.client.GetAllProjects(ctx)
 		if err != nil {
 			apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 			http.Error(w, apiErr.Message, apiErr.Status)
@@ -150,7 +153,7 @@ func (h projectHandler) getHandler(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-	ret, err := h.client.GetProject(name)
+	ret, err := h.client.GetProject(ctx, name)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -169,17 +172,18 @@ func (h projectHandler) getHandler(w http.ResponseWriter, r *http.Request) {
 
 // Delete handles DELETE operations on a particular Project Name
 func (h projectHandler) deleteHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	name := vars["project"]
 
-	_, err := h.client.GetProject(name)
+	_, err := h.client.GetProject(ctx, name)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
 		return
 	}
 
-	err = h.client.DeleteProject(name)
+	err = h.client.DeleteProject(ctx, name)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)

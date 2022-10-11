@@ -4,6 +4,7 @@
 package azurearcv2
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -28,11 +29,11 @@ type AzureArcV2Provider struct {
 	retryInterval    int
 }
 
-func NewAzureArcProvider(cid, app, cluster, level, namespace string) (*AzureArcV2Provider, error) {
+func NewAzureArcProvider(ctx context.Context, cid, app, cluster, level, namespace string) (*AzureArcV2Provider, error) {
 
 	result := strings.SplitN(cluster, "+", 2)
 
-	c, err := utils.GetGitOpsConfig(cluster, "0", "default")
+	c, err := utils.GetGitOpsConfig(ctx, cluster, "0", "default")
 
 	if err != nil {
 		return nil, err
@@ -45,13 +46,13 @@ func NewAzureArcProvider(cid, app, cluster, level, namespace string) (*AzureArcV
 	// Read from database
 	ccc := db.NewCloudConfigClient()
 
-	gitProvider, err := gitsupport.NewGitProvider(cid, app, cluster, level, namespace)
+	gitProvider, err := gitsupport.NewGitProvider(ctx, cid, app, cluster, level, namespace)
 	if err != nil {
 		log.Error("Error creating git provider", log.Fields{"err": err, "gitProvider": gitProvider})
 		return nil, err
 	}
 
-	resObject, err := ccc.GetClusterSyncObjects(result[0], c.Props.GitOpsResourceObject)
+	resObject, err := ccc.GetClusterSyncObjects(ctx, result[0], c.Props.GitOpsResourceObject)
 	if err != nil {
 		log.Error("Invalid resObject :", log.Fields{"resObj": c.Props.GitOpsResourceObject})
 		return nil, pkgerrors.Errorf("Invalid resObject: " + c.Props.GitOpsResourceObject)

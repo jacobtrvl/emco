@@ -70,6 +70,22 @@ spec:
                 secretKeyRef:
                   name: {{ .Release.Name }}-git-monitor
                   key: clustername
+            - name: GIT_TYPE
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-git-monitor
+                  key: gittype
+                  optional: true
+            - name: GIT_BRANCH
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-git-monitor
+                  key: gitbranch
+            - name: GIT_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-git-monitor
+                  key: giturl
               {{- end }}
       volumes:
       - name: config-volume

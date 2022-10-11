@@ -22,10 +22,10 @@ func (cs *installappServer) InstallApp(ctx context.Context, req *installapp.Inst
 
 	// Try instantiate the comp app
 	instca := con.CompositeAppContext{}
-	err := instca.InstantiateComApp(req.GetAppContext())
+	err := instca.InstantiateComApp(ctx, req.GetAppContext())
 	if err != nil {
 		log.Println("Instantiation failed: " + err.Error())
-		err := instca.TerminateComApp(req.GetAppContext())
+		err := instca.TerminateComApp(ctx, req.GetAppContext())
 		if err != nil {
 			log.Println("Termination failed: " + err.Error())
 		}
@@ -40,7 +40,7 @@ func (cs *installappServer) UninstallApp(ctx context.Context, req *installapp.Un
 
 	// Try terminating the comp app here
 	instca := con.CompositeAppContext{}
-	err := instca.TerminateComApp(req.GetAppContext())
+	err := instca.TerminateComApp(ctx, req.GetAppContext())
 	if err != nil {
 		log.Println("Termination failed: " + err.Error())
 		return &installapp.UninstallAppResponse{AppContextUninstalled: false}, err
@@ -55,7 +55,7 @@ func (cs *installappServer) ReadAppContext(ctx context.Context, req *installapp.
 
 	// Try instantiate the comp app
 	instca := con.CompositeAppContext{}
-	err := instca.ReadComApp(req.GetAppContext())
+	err := instca.ReadComApp(ctx, req.GetAppContext())
 	if err != nil {
 		log.Println("Termination failed: " + err.Error())
 		return &installapp.ReadAppContextResponse{AppContextReadSuccessful: false, AppContextReadMessage: "AppContext read failed"}, err

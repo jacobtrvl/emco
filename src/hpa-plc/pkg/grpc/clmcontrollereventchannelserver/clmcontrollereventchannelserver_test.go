@@ -9,7 +9,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 
-	"gitlab.com/project-emco/core/emco-base/src/rsync/pkg/connector"
+	connector "gitlab.com/project-emco/core/emco-base/src/rsync/pkg/utils"
 
 	clmcontrollerpb "gitlab.com/project-emco/core/emco-base/src/clm/pkg/grpc/controller-eventchannel"
 	clmControllerserver "gitlab.com/project-emco/core/emco-base/src/hpa-plc/pkg/grpc/clmcontrollereventchannelserver"

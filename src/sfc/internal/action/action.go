@@ -8,13 +8,15 @@ import (
 	"fmt"
 	"strings"
 
+	"context"
+
 	nodus "github.com/akraino-edge-stack/icn-nodus/pkg/apis/k8s/v1alpha1"
 	"github.com/ghodss/yaml"
 	pkgerrors "github.com/pkg/errors"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/appcontext"
 	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
-	cacontext "gitlab.com/project-emco/core/emco-base/src/rsync/pkg/context"
 	catypes "gitlab.com/project-emco/core/emco-base/src/rsync/pkg/types"
+	cacontext "gitlab.com/project-emco/core/emco-base/src/rsync/pkg/utils"
 	"gitlab.com/project-emco/core/emco-base/src/sfc/pkg/model"
 	sfc "gitlab.com/project-emco/core/emco-base/src/sfc/pkg/module"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -154,16 +156,16 @@ func handleSfcLinkIntents(pr, ca, caver, dig, sfcIntentName string) ([]model.Sfc
 func UpdateAppContext(intentName, appContextId string) error {
 
 	var ac appcontext.AppContext
-	_, err := ac.LoadAppContext(appContextId)
+	_, err := ac.LoadAppContext(context.Background(), appContextId)
 	if err != nil {
 		return pkgerrors.Wrapf(err, "Error loading AppContext with Id: %v", appContextId)
 	}
-	cahandle, err := ac.GetCompositeAppHandle()
+	cahandle, err := ac.GetCompositeAppHandle(context.Background())
 	if err != nil {
 		return err
 	}
 
-	appContext, err := cacontext.ReadAppContext(appContextId)
+	appContext, err := cacontext.ReadAppContext(context.Background(), appContextId)
 	if err != nil {
 		return pkgerrors.Wrapf(err, "Error reading AppContext with Id: %v", appContextId)
 	}
@@ -294,13 +296,13 @@ func UpdateAppContext(intentName, appContextId string) error {
 		// Add the network intents chaining app to the AppContext
 		var apphandle interface{}
 		if i == 0 {
-			apphandle, err = ac.AddApp(cahandle, model.ChainingApp)
+			apphandle, err = ac.AddApp(context.Background(), cahandle, model.ChainingApp)
 			if err != nil {
 				return pkgerrors.Wrapf(err, "Error adding ChainingApp to AppContext: %v", sfcInt.Metadata.Name)
 			}
 
 			// need to update the app order instruction
-			apporder, err := ac.GetAppInstruction(appcontext.OrderInstruction)
+			apporder, err := ac.GetAppInstruction(context.Background(), appcontext.OrderInstruction)
 			if err != nil {
 				return pkgerrors.Wrapf(err, "Error getting order instruction while adding ChainingApp to AppContext: %v", sfcInt.Metadata.Name)
 			}
@@ -309,12 +311,12 @@ func UpdateAppContext(intentName, appContextId string) error {
 			aov["apporder"] = append(aov["apporder"], model.ChainingApp)
 			jappord, _ := json.Marshal(aov)
 
-			_, err = ac.AddInstruction(cahandle, appcontext.AppLevel, appcontext.OrderInstruction, string(jappord))
+			_, err = ac.AddInstruction(context.Background(), cahandle, appcontext.AppLevel, appcontext.OrderInstruction, string(jappord))
 			if err != nil {
 				return pkgerrors.Wrapf(err, "Error adding ChainingApp to order instruction: %v", sfcInt.Metadata.Name)
 			}
 		} else {
-			apphandle, err = ac.GetAppHandle(model.ChainingApp)
+			apphandle, err = ac.GetAppHandle(context.Background(), model.ChainingApp)
 			if err != nil {
 				return pkgerrors.Wrapf(err, "Error getting ChainingApp handle from AppContext: %v", sfcInt.Metadata.Name)
 			}
@@ -322,20 +324,20 @@ func UpdateAppContext(intentName, appContextId string) error {
 
 		// Add each cluster to the chaining app and the chaining CR resource to each cluster
 		for cluster, _ := range clusters {
-			clusterhandle, err := ac.AddCluster(apphandle, cluster)
+			clusterhandle, err := ac.AddCluster(context.Background(), apphandle, cluster)
 			if err != nil {
 				return pkgerrors.Wrapf(err, "Error adding cluster to ChainingApp: %v", cluster)
 			}
 
 			resName := sfcInt.Metadata.Name + appcontext.Separator + model.ChainingKind
-			_, err = ac.AddResource(clusterhandle, resName, string(chainYaml))
+			_, err = ac.AddResource(context.Background(), clusterhandle, resName, string(chainYaml))
 			if err != nil {
 				return pkgerrors.Wrapf(err, "Error adding Network Chain resource: %v", sfcInt.Metadata.Name)
 			}
 
 			// add (first time) or update the resource order instruction
 			aov := make(map[string][]string)
-			resorder, err := ac.GetResourceInstruction(model.ChainingApp, cluster, appcontext.OrderInstruction)
+			resorder, err := ac.GetResourceInstruction(context.Background(), model.ChainingApp, cluster, appcontext.OrderInstruction)
 			if err != nil {
 				// instruction not found - create it
 				aov["resorder"] = []string{resName}
@@ -345,7 +347,7 @@ func UpdateAppContext(intentName, appContextId string) error {
 			}
 			jresord, _ := json.Marshal(aov)
 
-			_, err = ac.AddInstruction(clusterhandle, appcontext.ResourceLevel, appcontext.OrderInstruction, string(jresord))
+			_, err = ac.AddInstruction(context.Background(), clusterhandle, appcontext.ResourceLevel, appcontext.OrderInstruction, string(jresord))
 			if err != nil {
 				return pkgerrors.Wrapf(err, "Error adding Network Chain to resource order instruction: %v", sfcInt.Metadata.Name)
 			}
@@ -354,7 +356,7 @@ func UpdateAppContext(intentName, appContextId string) error {
 		for c, _ := range clusters {
 			for _, link := range sfcLinkIntents {
 
-				rh, err := ac.GetResourceHandle(link.Spec.AppName, c,
+				rh, err := ac.GetResourceHandle(context.Background(), link.Spec.AppName, c,
 					strings.Join([]string{link.Spec.WorkloadResource,
 						link.Spec.ResourceType}, "+"))
 				if err != nil {
@@ -374,7 +376,7 @@ func UpdateAppContext(intentName, appContextId string) error {
 							link.Spec.ResourceType}, "+"),
 						link.Metadata.Name, c)
 				}
-				r, err := ac.GetValue(rh)
+				r, err := ac.GetValue(context.Background(), rh)
 				if err != nil {
 					log.Error("Error retrieving resource from App Context", log.Fields{
 						"error":           err,
@@ -421,7 +423,7 @@ func UpdateAppContext(intentName, appContextId string) error {
 				}
 
 				// Update resource in AppContext
-				err = ac.UpdateResourceValue(rh, string(y))
+				err = ac.UpdateResourceValue(context.Background(), rh, string(y))
 				if err != nil {
 					log.Error("Network updating app context resource handle", log.Fields{
 						"error":           err,

@@ -91,11 +91,12 @@ func TestPut(t *testing.T) {
 	}
 	for _, testCase := range testCases {
 		t.Run(testCase.label, func(t *testing.T) {
+			ctx := context.Background()
 			cli, _ := NewEtcdClient(&clientv3.Client{}, EtcdConfig{})
 			getEtcd = func(e *EtcdClient) Etcd {
 				return testCase.mockEtcd
 			}
-			err := cli.Put(testCase.key, testCase.value)
+			err := cli.Put(ctx, testCase.key, testCase.value)
 			if err != nil {
 				if testCase.expectedError == "" {
 					t.Fatalf("Method returned an un-expected (%s)", err)
@@ -141,11 +142,12 @@ func TestGet(t *testing.T) {
 	}
 	for _, testCase := range testCases {
 		t.Run(testCase.label, func(t *testing.T) {
+			ctx := context.Background()
 			cli, _ := NewEtcdClient(&clientv3.Client{}, EtcdConfig{})
 			getEtcd = func(e *EtcdClient) Etcd {
 				return testCase.mockEtcd
 			}
-			err := cli.Get(testCase.key, testCase.value)
+			err := cli.Get(ctx, testCase.key, testCase.value)
 			if err != nil {
 				if testCase.expectedError == "" {
 					t.Fatalf("Method returned an un-expected (%s)", err)
@@ -173,16 +175,17 @@ func TestGetString(t *testing.T) {
 	}
 	for _, testCase := range testCases {
 		t.Run(testCase.label, func(t *testing.T) {
+			ctx := context.Background()
 			cli, _ := NewEtcdClient(&clientv3.Client{}, EtcdConfig{})
 			getEtcd = func(e *EtcdClient) Etcd {
 				return testCase.mockEtcd
 			}
-			err := cli.Put("test", "test1")
+			err := cli.Put(ctx, "test", "test1")
 			if err != nil {
 				t.Error("Test failed", err)
 			}
 			var s string
-			err = cli.Get("test", &s)
+			err = cli.Get(ctx, "test", &s)
 			if err != nil {
 				t.Error("Test failed", err)
 			}
@@ -211,11 +214,12 @@ func TestDelete(t *testing.T) {
 	}
 	for _, testCase := range testCases {
 		t.Run(testCase.label, func(t *testing.T) {
+			ctx := context.Background()
 			cli, _ := NewEtcdClient(&clientv3.Client{}, EtcdConfig{})
 			getEtcd = func(e *EtcdClient) Etcd {
 				return testCase.mockEtcd
 			}
-			err := cli.Delete("test")
+			err := cli.Delete(ctx, "test")
 			if err != nil {
 				if testCase.expectedError == "" {
 					t.Fatalf("Method returned an un-expected (%s)", err)
@@ -248,11 +252,12 @@ func TestGetAll(t *testing.T) {
 	}
 	for _, testCase := range testCases {
 		t.Run(testCase.label, func(t *testing.T) {
+			ctx := context.Background()
 			cli, _ := NewEtcdClient(&clientv3.Client{}, EtcdConfig{})
 			getEtcd = func(e *EtcdClient) Etcd {
 				return testCase.mockEtcd
 			}
-			_, err := cli.GetAllKeys("test")
+			_, err := cli.GetAllKeys(ctx, "test")
 			if err != nil {
 				if testCase.expectedError == "" {
 					t.Fatalf("Method returned an un-expected (%s)", err)

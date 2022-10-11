@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"reflect"
 
+	"context"
 	"github.com/pkg/errors"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/module/types"
@@ -85,7 +86,7 @@ func (g *GenericK8sIntentClient) CreateGenericK8sIntent(gki GenericK8sIntent,
 		return GenericK8sIntent{}, gkiExists, errors.New("GenericK8sIntent already exists")
 	}
 
-	if err = db.DBconn.Insert(g.db.storeName, key, nil, g.db.tagMeta, gki); err != nil {
+	if err = db.DBconn.Insert(context.Background(), g.db.storeName, key, nil, g.db.tagMeta, gki); err != nil {
 		return GenericK8sIntent{}, gkiExists, err
 	}
 
@@ -104,7 +105,7 @@ func (g *GenericK8sIntentClient) GetGenericK8sIntent(intent, project, compositeA
 		DeploymentIntentGroup: deploymentIntentGroup,
 	}
 
-	value, err := db.DBconn.Find(g.db.storeName, key, g.db.tagMeta)
+	value, err := db.DBconn.Find(context.Background(), g.db.storeName, key, g.db.tagMeta)
 	if err != nil {
 		return GenericK8sIntent{}, err
 	}
@@ -136,7 +137,7 @@ func (g *GenericK8sIntentClient) GetAllGenericK8sIntents(project, compositeApp, 
 		DeploymentIntentGroup: deploymentIntentGroup,
 	}
 
-	values, err := db.DBconn.Find(g.db.storeName, key, g.db.tagMeta)
+	values, err := db.DBconn.Find(context.Background(), g.db.storeName, key, g.db.tagMeta)
 	if err != nil {
 		return []GenericK8sIntent{}, err
 	}
@@ -165,5 +166,5 @@ func (g *GenericK8sIntentClient) DeleteGenericK8sIntent(intent, project, composi
 		DeploymentIntentGroup: deploymentIntentGroup,
 	}
 
-	return db.DBconn.Remove(g.db.storeName, key)
+	return db.DBconn.Remove(context.Background(), g.db.storeName, key)
 }

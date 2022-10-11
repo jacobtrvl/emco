@@ -7,6 +7,8 @@ import (
 	"encoding/json"
 	"strings"
 
+	"context"
+
 	pkgerrors "github.com/pkg/errors"
 	"gitlab.com/project-emco/core/emco-base/src/clm/pkg/cluster"
 	"gitlab.com/project-emco/core/emco-base/src/dtc/pkg/module"
@@ -17,7 +19,7 @@ import (
 // Action applies the supplied intent against the given AppContext ID
 func UpdateAppContext(intentName, appContextId string) error {
 	var ac appcontext.AppContext
-	_, err := ac.LoadAppContext(appContextId)
+	_, err := ac.LoadAppContext(context.Background(), appContextId)
 	if err != nil {
 		log.Error("Error loading AppContext", log.Fields{
 			"error": err,
@@ -25,7 +27,7 @@ func UpdateAppContext(intentName, appContextId string) error {
 		return pkgerrors.Wrapf(err, "Error loading AppContext with Id: %v", appContextId)
 	}
 
-	caMeta, err := ac.GetCompositeAppMeta()
+	caMeta, err := ac.GetCompositeAppMeta(context.Background())
 	if err != nil {
 		log.Error("Error getting metadata from AppContext", log.Fields{
 			"error": err,
@@ -149,7 +151,7 @@ func UpdateAppContext(intentName, appContextId string) error {
 
 		// create resource using is and ics
 		// Get all clusters for the current App from the AppContext
-		clusters, err := ac.GetClusterNames(is.Spec.AppName)
+		clusters, err := ac.GetClusterNames(context.Background(), is.Spec.AppName)
 		if err != nil {
 			log.Error("Error retrieving clusters from App Context", log.Fields{
 				"error":    err,
@@ -170,13 +172,13 @@ func UpdateAppContext(intentName, appContextId string) error {
 				})
 				return pkgerrors.New("Not a valid cluster name")
 			}
-			cl, err := client.GetClusterLabel(parts[0], parts[1], "networkpolicy-supported")
+			cl, err := client.GetClusterLabel(context.Background(), parts[0], parts[1], "networkpolicy-supported")
 			if err != nil || cl.LabelName != "networkpolicy-supported" {
 				continue
 			}
 
 			//put the resource in all the clusters
-			ch, err := ac.GetClusterHandle(is.Spec.AppName, c)
+			ch, err := ac.GetClusterHandle(context.Background(), is.Spec.AppName, c)
 			if err != nil {
 				log.Error("Error getting clusters handle App Context", log.Fields{
 					"error":        err,
@@ -188,7 +190,7 @@ func UpdateAppContext(intentName, appContextId string) error {
 			}
 			// Add resource to the cluster
 			resname := intentName + "-" + is.Metadata.Name
-			_, err = ac.AddResource(ch, resname, string(r))
+			_, err = ac.AddResource(context.Background(), ch, resname, string(r))
 			if err != nil {
 				log.Error("Error adding Resource to AppContext", log.Fields{
 					"error":        err,
@@ -197,7 +199,7 @@ func UpdateAppContext(intentName, appContextId string) error {
 				})
 				return pkgerrors.Wrap(err, "Error adding Resource to AppContext")
 			}
-			resorder, err := ac.GetResourceInstruction(is.Spec.AppName, c, "order")
+			resorder, err := ac.GetResourceInstruction(context.Background(), is.Spec.AppName, c, "order")
 			if err != nil {
 				log.Error("Error getting Resource order", log.Fields{
 					"error":        err,
@@ -211,7 +213,7 @@ func UpdateAppContext(intentName, appContextId string) error {
 			aov["resorder"] = append(aov["resorder"], resname)
 			jresord, _ := json.Marshal(aov)
 
-			_, err = ac.AddInstruction(ch, "resource", "order", string(jresord))
+			_, err = ac.AddInstruction(context.Background(), ch, "resource", "order", string(jresord))
 			if err != nil {
 				log.Error("Error updating Resource order", log.Fields{
 					"error":        err,

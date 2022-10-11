@@ -24,6 +24,7 @@ type quotaHandler struct {
 
 // CreateHandler handles creation of the quota entry in the database
 func (h quotaHandler) createHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	project := vars["project"]
 	logicalCloud := vars["logicalCloud"]
@@ -56,7 +57,7 @@ func (h quotaHandler) createHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ret, err := h.client.CreateQuota(project, logicalCloud, v)
+	ret, err := h.client.CreateQuota(ctx, project, logicalCloud, v)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, v, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -76,13 +77,14 @@ func (h quotaHandler) createHandler(w http.ResponseWriter, r *http.Request) {
 // getHandler handles GET operations over quotas
 // Returns a list of Quotas
 func (h quotaHandler) getAllHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	project := vars["project"]
 	logicalCloud := vars["logicalCloud"]
 	var ret interface{}
 	var err error
 
-	ret, err = h.client.GetAllQuotas(project, logicalCloud)
+	ret, err = h.client.GetAllQuotas(ctx, project, logicalCloud)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -102,6 +104,7 @@ func (h quotaHandler) getAllHandler(w http.ResponseWriter, r *http.Request) {
 // getHandler handle GET operations on a particular name
 // Returns a Quota
 func (h quotaHandler) getHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	project := vars["project"]
 	logicalCloud := vars["logicalCloud"]
@@ -109,7 +112,7 @@ func (h quotaHandler) getHandler(w http.ResponseWriter, r *http.Request) {
 	var ret interface{}
 	var err error
 
-	ret, err = h.client.GetQuota(project, logicalCloud, name)
+	ret, err = h.client.GetQuota(ctx, project, logicalCloud, name)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -128,6 +131,7 @@ func (h quotaHandler) getHandler(w http.ResponseWriter, r *http.Request) {
 
 // UpdateHandler handles Update operations on a particular quota
 func (h quotaHandler) updateHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	var v module.Quota
 	vars := mux.Vars(r)
 	project := vars["project"]
@@ -160,7 +164,7 @@ func (h quotaHandler) updateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ret, err := h.client.UpdateQuota(project, logicalCloud, name, v)
+	ret, err := h.client.UpdateQuota(ctx, project, logicalCloud, name, v)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, v, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -179,12 +183,13 @@ func (h quotaHandler) updateHandler(w http.ResponseWriter, r *http.Request) {
 
 //deleteHandler handles DELETE operations on a particular record
 func (h quotaHandler) deleteHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	project := vars["project"]
 	logicalCloud := vars["logicalCloud"]
 	name := vars["clusterQuota"]
 
-	err := h.client.DeleteQuota(project, logicalCloud, name)
+	err := h.client.DeleteQuota(ctx, project, logicalCloud, name)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)

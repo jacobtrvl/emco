@@ -4,9 +4,11 @@
 package module
 
 import (
+	"context"
+	"fmt"
 	"reflect"
 
-	"github.com/pkg/errors"
+	"gitlab.com/project-emco/core/emco-base/src/orchestrator/common/emcoerror"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/appcontext"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
@@ -48,10 +50,13 @@ func (c *CaCertClient) CreateCert(cert CaCert, failIfExists bool) (CaCert, bool,
 
 	if certExists &&
 		failIfExists {
-		return CaCert{}, certExists, errors.New("Certificate already exists")
+		return CaCert{}, certExists, emcoerror.NewEmcoError(
+			CaCertAlreadyExists,
+			emcoerror.Conflict,
+		)
 	}
 
-	if err := db.DBconn.Insert(c.dbInfo.StoreName, c.dbKey, nil, c.dbInfo.TagMeta, cert); err != nil {
+	if err := db.DBconn.Insert(context.Background(), c.dbInfo.StoreName, c.dbKey, nil, c.dbInfo.TagMeta, cert); err != nil {
 		return CaCert{}, certExists, err
 	}
 
@@ -60,12 +65,12 @@ func (c *CaCertClient) CreateCert(cert CaCert, failIfExists bool) (CaCert, bool,
 
 // DeleteCert deletes a caCert
 func (c *CaCertClient) DeleteCert() error {
-	return db.DBconn.Remove(c.dbInfo.StoreName, c.dbKey)
+	return db.DBconn.Remove(context.Background(), c.dbInfo.StoreName, c.dbKey)
 }
 
 // GetAllCert
 func (c *CaCertClient) GetAllCert() ([]CaCert, error) {
-	values, err := db.DBconn.Find(c.dbInfo.StoreName, c.dbKey, c.dbInfo.TagMeta)
+	values, err := db.DBconn.Find(context.Background(), c.dbInfo.StoreName, c.dbKey, c.dbInfo.TagMeta)
 	if err != nil {
 		return []CaCert{}, err
 	}
@@ -84,13 +89,16 @@ func (c *CaCertClient) GetAllCert() ([]CaCert, error) {
 
 // GetCert returns the caCert
 func (c *CaCertClient) GetCert() (CaCert, error) {
-	value, err := db.DBconn.Find(c.dbInfo.StoreName, c.dbKey, c.dbInfo.TagMeta)
+	value, err := db.DBconn.Find(context.Background(), c.dbInfo.StoreName, c.dbKey, c.dbInfo.TagMeta)
 	if err != nil {
 		return CaCert{}, err
 	}
 
 	if len(value) == 0 {
-		return CaCert{}, errors.New("Certificate not found")
+		return CaCert{}, emcoerror.NewEmcoError(
+			CaCertNotFound,
+			emcoerror.NotFound,
+		)
 	}
 
 	if value != nil {
@@ -101,12 +109,15 @@ func (c *CaCertClient) GetCert() (CaCert, error) {
 		return cert, nil
 	}
 
-	return CaCert{}, errors.New("Unknown Error")
+	return CaCert{}, emcoerror.NewEmcoError(
+		emcoerror.UnknownErrorMessage,
+		emcoerror.Unknown,
+	)
 }
 
 // UpdateCert update the caCert
 func (c *CaCertClient) UpdateCert(cert CaCert) error {
-	return db.DBconn.Insert(c.dbInfo.StoreName, c.dbKey, nil, c.dbInfo.TagMeta, cert)
+	return db.DBconn.Insert(context.Background(), c.dbInfo.StoreName, c.dbKey, nil, c.dbInfo.TagMeta, cert)
 }
 
 // VerifyStateBeforeDelete verifies a caCert can be deleted or not
@@ -124,7 +135,10 @@ func (c *CaCertClient) VerifyStateBeforeDelete(cert, lifecycle string) error {
 
 	if cState == state.StateEnum.Instantiated ||
 		cState == state.StateEnum.InstantiateStopped {
-		err := errors.Errorf("%s must be terminated for CaCert %s before it can be deleted", lifecycle, cert)
+		err := emcoerror.NewEmcoError(
+			fmt.Sprintf("%s must be terminated for CaCert %s before it can be deleted", lifecycle, cert),
+			emcoerror.Conflict,
+		)
 		logutils.Error("",
 			logutils.Fields{
 				"Error": err.Error()})
@@ -135,11 +149,14 @@ func (c *CaCertClient) VerifyStateBeforeDelete(cert, lifecycle string) error {
 		cState == state.StateEnum.TerminateStopped {
 		// verify that the appcontext has completed terminating
 		ctxID := state.GetLastContextIdFromStateInfo(stateInfo)
-		acStatus, err := state.GetAppContextStatus(ctxID)
+		acStatus, err := state.GetAppContextStatus(context.Background(), ctxID)
 		if err == nil &&
 			!(acStatus.Status == appcontext.AppContextStatusEnum.Terminated ||
 				acStatus.Status == appcontext.AppContextStatusEnum.TerminateFailed) {
-			err := errors.Errorf("%s termination has not completed for CaCert %s", lifecycle, cert)
+			err := emcoerror.NewEmcoError(
+				fmt.Sprintf("%s termination has not completed for CaCert %s", lifecycle, cert),
+				emcoerror.Conflict,
+			)
 			logutils.Error("",
 				logutils.Fields{
 					"Error": err.Error()})
@@ -147,7 +164,7 @@ func (c *CaCertClient) VerifyStateBeforeDelete(cert, lifecycle string) error {
 		}
 
 		for _, id := range state.GetContextIdsFromStateInfo(stateInfo) {
-			context, err := state.GetAppContextFromId(id)
+			appCtx, err := state.GetAppContextFromId(context.Background(), id)
 			if err != nil {
 				logutils.Error("Failed to get appContext from id",
 					logutils.Fields{
@@ -155,7 +172,7 @@ func (c *CaCertClient) VerifyStateBeforeDelete(cert, lifecycle string) error {
 						"Error": err.Error()})
 				return err
 			}
-			err = context.DeleteCompositeApp()
+			err = appCtx.DeleteCompositeApp(context.Background())
 			if err != nil {
 				logutils.Error("Failed to delete the appContext",
 					logutils.Fields{
@@ -182,7 +199,10 @@ func (c *CaCertClient) VerifyStateBeforeUpdate(cert, lifecycle string) error {
 	}
 
 	if cState != state.StateEnum.Created {
-		err := errors.Errorf("Failed to update the CaCert. %s for the CaCert %s is in %s state", lifecycle, cert, cState)
+		err := emcoerror.NewEmcoError(
+			fmt.Sprintf("Failed to update the CaCert. %s for the CaCert %s is in %s state", lifecycle, cert, cState),
+			emcoerror.Conflict,
+		)
 		logutils.Error("",
 			logutils.Fields{
 				"Error": err.Error()})

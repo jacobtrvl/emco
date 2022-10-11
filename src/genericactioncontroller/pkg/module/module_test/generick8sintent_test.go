@@ -8,6 +8,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 
+	"context"
 	"gitlab.com/project-emco/core/emco-base/src/genericactioncontroller/pkg/module"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/module/types"
 )
@@ -156,7 +157,7 @@ func populateGenericK8sIntentTestData() {
 		CompositeAppVersion:   v.Version,
 		DeploymentIntentGroup: v.DeploymentIntentGroup,
 	}
-	_ = mockdb.Insert("resources", key, nil, "data", gki)
+	_ = mockdb.Insert(context.Background(), "resources", key, nil, "data", gki)
 
 	// Intent 2
 	gki = mockGenericK8sIntent("test-gki-2")
@@ -167,7 +168,7 @@ func populateGenericK8sIntentTestData() {
 		CompositeAppVersion:   v.Version,
 		DeploymentIntentGroup: v.DeploymentIntentGroup,
 	}
-	_ = mockdb.Insert("resources", key, nil, "data", gki)
+	_ = mockdb.Insert(context.Background(), "resources", key, nil, "data", gki)
 
 	// Intent 3
 	gki = mockGenericK8sIntent("test-gki-3")
@@ -178,5 +179,5 @@ func populateGenericK8sIntentTestData() {
 		CompositeAppVersion:   v.Version,
 		DeploymentIntentGroup: v.DeploymentIntentGroup,
 	}
-	_ = mockdb.Insert("resources", key, nil, "data", gki)
+	_ = mockdb.Insert(context.Background(), "resources", key, nil, "data", gki)
 }

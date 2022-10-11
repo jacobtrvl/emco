@@ -4,6 +4,7 @@
 package context
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 
@@ -18,9 +19,8 @@ type AppContextQueueUtils struct {
 }
 
 // GetAppContextQueue shall return the AppContextQueue
-func (aq *AppContextQueueUtils) GetAppContextQueue() (types.AppContextQueue, error) {
-
-	h, err := aq.ac.GetCompositeAppHandle()
+func (aq *AppContextQueueUtils) GetAppContextQueue(ctx context.Context) (types.AppContextQueue, error) {
+	h, err := aq.ac.GetCompositeAppHandle(ctx)
 	if err != nil {
 		log.Error("Error getting CompAppHandle", log.Fields{"err": err})
 		return types.AppContextQueue{}, err
@@ -28,13 +28,13 @@ func (aq *AppContextQueueUtils) GetAppContextQueue() (types.AppContextQueue, err
 
 	qKey := types.AppContextEventQueueKey
 
-	qh, err := aq.ac.GetLevelHandle(h, qKey)
+	qh, err := aq.ac.GetLevelHandle(ctx, h, qKey)
 	if err != nil {
 		log.Info("Error in getting the AppContextQueue Level handle", log.Fields{"err": err})
 		return types.AppContextQueue{}, err
 	}
 	if qh != nil {
-		v, err := aq.ac.GetValue(qh)
+		v, err := aq.ac.GetValue(ctx, qh)
 		if err != nil {
 			log.Error("Error getting vale for the AppQ handle", log.Fields{"err": err})
 		}
@@ -58,8 +58,8 @@ func (aq *AppContextQueueUtils) GetAppContextQueue() (types.AppContextQueue, err
 }
 
 // GetAppContextQueuePeek shall return the String value at the peak of the AppContextQueue
-func (aq *AppContextQueueUtils) GetAppContextQueuePeek() (types.AppContextQueueElement, error) {
-	acQ, err := aq.GetAppContextQueue()
+func (aq *AppContextQueueUtils) GetAppContextQueuePeek(ctx context.Context) (types.AppContextQueueElement, error) {
+	acQ, err := aq.GetAppContextQueue(ctx)
 	if err != nil {
 		log.Error("Error in getting AppContextQueue", log.Fields{"err": err})
 		return types.AppContextQueueElement{}, err
@@ -73,8 +73,8 @@ func (aq *AppContextQueueUtils) GetAppContextQueuePeek() (types.AppContextQueueE
 }
 
 // GetAppContextQueueLength shall return the length of the AppContextQueue
-func (aq *AppContextQueueUtils) GetAppContextQueueLength() (int, error) {
-	acQ, err := aq.GetAppContextQueue()
+func (aq *AppContextQueueUtils) GetAppContextQueueLength(ctx context.Context) (int, error) {
+	acQ, err := aq.GetAppContextQueue(ctx)
 	if err != nil {
 		log.Error("Error in getting AppContextQueue", log.Fields{"err": err})
 		return 0, err
@@ -88,23 +88,22 @@ func (aq *AppContextQueueUtils) GetAppContextQueueLength() (int, error) {
 }
 
 // Enqueue shall append new Q-Elemenet in the string format
-func (aq *AppContextQueueUtils) Enqueue(qElement types.AppContextQueueElement) (bool, error) {
-
-	acQ, err := aq.GetAppContextQueue()
+func (aq *AppContextQueueUtils) Enqueue(ctx context.Context, qElement types.AppContextQueueElement) (bool, error) {
+	acQ, err := aq.GetAppContextQueue(ctx)
 	if err != nil {
 		log.Info("No existing AppContextQueue, Creating AppContextQueue", log.Fields{"err": err})
-		return aq.CreateQueue(qElement)
+		return aq.CreateQueue(ctx, qElement)
 	}
 	if len(acQ.AcQueue) >= 1 {
 		q := acQ.AcQueue
 		q = append(q, qElement)
-		return aq.UpdateQueue(q)
+		return aq.UpdateQueue(ctx, q)
 	}
 	return false, nil
 }
 
-func (aq *AppContextQueueUtils) UpdateQueue(q []types.AppContextQueueElement) (bool, error) {
-	h, err := aq.ac.GetCompositeAppHandle()
+func (aq *AppContextQueueUtils) UpdateQueue(ctx context.Context, q []types.AppContextQueueElement) (bool, error) {
+	h, err := aq.ac.GetCompositeAppHandle(ctx)
 	if err != nil {
 		log.Error("Error in getting CompApp handle in UpdateQueue", log.Fields{"err": err})
 		return false, err
@@ -112,13 +111,13 @@ func (aq *AppContextQueueUtils) UpdateQueue(q []types.AppContextQueueElement) (b
 
 	qKey := types.AppContextEventQueueKey
 
-	qHandle, err := aq.ac.GetLevelHandle(h, qKey)
+	qHandle, err := aq.ac.GetLevelHandle(ctx, h, qKey)
 	if err != nil {
 		log.Error("Error in getting Qhandle", log.Fields{"err": err})
 		return false, err
 	}
 	acQ := types.AppContextQueue{AcQueue: q}
-	err = aq.ac.UpdateValue(qHandle, acQ)
+	err = aq.ac.UpdateValue(ctx, qHandle, acQ)
 	if err != nil {
 		log.Error("Error in updating Qhandle", log.Fields{"err": err})
 		return false, err
@@ -127,8 +126,8 @@ func (aq *AppContextQueueUtils) UpdateQueue(q []types.AppContextQueueElement) (b
 	return true, nil
 }
 
-func (aq *AppContextQueueUtils) CreateQueue(qElement types.AppContextQueueElement) (bool, error) {
-	h, err := aq.ac.GetCompositeAppHandle()
+func (aq *AppContextQueueUtils) CreateQueue(ctx context.Context, qElement types.AppContextQueueElement) (bool, error) {
+	h, err := aq.ac.GetCompositeAppHandle(ctx)
 	if err != nil {
 		log.Error("Error in getting CompApp handle in CreateQueue", log.Fields{"err": err})
 		return false, err
@@ -138,7 +137,7 @@ func (aq *AppContextQueueUtils) CreateQueue(qElement types.AppContextQueueElemen
 	acQ := types.AppContextQueue{AcQueue: q}
 
 	qKey := types.AppContextEventQueueKey
-	qHandle, err := aq.ac.AddLevelValue(h, qKey, acQ)
+	qHandle, err := aq.ac.AddLevelValue(ctx, h, qKey, acQ)
 	if err != nil {
 		log.Error("Error in Adding AppContextQueue Level", log.Fields{"err": err})
 		return false, err
@@ -147,9 +146,9 @@ func (aq *AppContextQueueUtils) CreateQueue(qElement types.AppContextQueueElemen
 	log.Info("AppContextQueue created :: Qhandle :: ", log.Fields{"qhandle": qhandle})
 	return true, nil
 }
-func (aq *AppContextQueueUtils) FindFirstPending() (int, types.AppContextQueueElement) {
 
-	q, err := aq.GetAppContextQueue()
+func (aq *AppContextQueueUtils) FindFirstPending(ctx context.Context) (int, types.AppContextQueueElement) {
+	q, err := aq.GetAppContextQueue(ctx)
 	if err != nil {
 		return -1, types.AppContextQueueElement{}
 	}
@@ -160,8 +159,9 @@ func (aq *AppContextQueueUtils) FindFirstPending() (int, types.AppContextQueueEl
 	}
 	return -1, types.AppContextQueueElement{}
 }
-func (aq *AppContextQueueUtils) UpdateStatus(index int, status string) error {
-	acQ, err := aq.GetAppContextQueue()
+
+func (aq *AppContextQueueUtils) UpdateStatus(ctx context.Context, index int, status string) error {
+	acQ, err := aq.GetAppContextQueue(ctx)
 	if err != nil {
 		log.Error("Error in getting AppContextQueue", log.Fields{"err": err})
 		return err
@@ -171,6 +171,6 @@ func (aq *AppContextQueueUtils) UpdateStatus(index int, status string) error {
 		return pkgerrors.Errorf("Invalid index AppContextQueue")
 	}
 	q[index].Status = status
-	_, err = aq.UpdateQueue(q)
+	_, err = aq.UpdateQueue(ctx, q)
 	return err
 }

@@ -42,7 +42,7 @@
 
 (2) Tag the images with docker registry
 ```
-    docker tag httpbin-:latest <docker-registry-url>/httpbin-client:1.0
+    docker tag httpbin-client:latest <docker-registry-url>/httpbin-client:1.0
 ```
 
 (3) Push these images to docker registry

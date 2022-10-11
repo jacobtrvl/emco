@@ -7,14 +7,16 @@ import (
 	"encoding/json"
 	"strings"
 
+	"context"
+
 	jyaml "github.com/ghodss/yaml"
 	pkgerrors "github.com/pkg/errors"
 	dcm "gitlab.com/project-emco/core/emco-base/src/dcm/pkg/module"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/appcontext"
 	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 	orch "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/module"
-	cacontext "gitlab.com/project-emco/core/emco-base/src/rsync/pkg/context"
 	catypes "gitlab.com/project-emco/core/emco-base/src/rsync/pkg/types"
+	cacontext "gitlab.com/project-emco/core/emco-base/src/rsync/pkg/utils"
 	sfc "gitlab.com/project-emco/core/emco-base/src/sfc/pkg/module"
 	sfcclient "gitlab.com/project-emco/core/emco-base/src/sfcclient/pkg/module"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -70,13 +72,13 @@ func chainClusters(apps []string, ac catypes.CompositeApp) map[string]struct{} {
 func getDigLabels(pr, ca, caver, dig string) (map[string]string, error) {
 	labels := make(map[string]string)
 
-	d, err := orch.NewDeploymentIntentGroupClient().GetDeploymentIntentGroup(dig, pr, ca, caver)
+	d, err := orch.NewDeploymentIntentGroupClient().GetDeploymentIntentGroup(context.Background(), dig, pr, ca, caver)
 	if err != nil {
 		log.Error("Error find DeploymentIntentGroup ", log.Fields{"DeploymentIntentGroup: ": dig})
 		return labels, err
 	}
 
-	lc, err := dcm.NewLogicalCloudClient().Get(pr, d.Spec.LogicalCloud)
+	lc, err := dcm.NewLogicalCloudClient().Get(context.Background(), pr, d.Spec.LogicalCloud)
 	if err != nil {
 		log.Error("Error find Logical Cloud for DeploymentIntentGroup ", log.Fields{"DeploymentIntentGroup: ": dig, "Logicalcloud": d.Spec.LogicalCloud})
 		return labels, err
@@ -107,17 +109,17 @@ func matchesDigLabels(intentLabels, digLabels map[string]string) bool {
 func UpdateAppContext(intentName, appContextId string) error {
 
 	var ac appcontext.AppContext
-	_, err := ac.LoadAppContext(appContextId)
+	_, err := ac.LoadAppContext(context.Background(), appContextId)
 	if err != nil {
 		return pkgerrors.Wrapf(err, "Error loading AppContext with Id: %v", appContextId)
 	}
-	//cahandle, err := ac.GetCompositeAppHandle()
-	_, err = ac.GetCompositeAppHandle()
+	//cahandle, err := ac.GetCompositeAppHandle(context.Background())
+	_, err = ac.GetCompositeAppHandle(context.Background())
 	if err != nil {
 		return err
 	}
 
-	appContext, err := cacontext.ReadAppContext(appContextId)
+	appContext, err := cacontext.ReadAppContext(context.Background(), appContextId)
 	if err != nil {
 		return pkgerrors.Wrapf(err, "Error reading AppContext with Id: %v", appContextId)
 	}
@@ -180,12 +182,12 @@ func UpdateAppContext(intentName, appContextId string) error {
 		}
 
 		// Get all clusters for the current App from the AppContext
-		clusters, err := ac.GetClusterNames(sfcClientInt.Spec.AppName)
+		clusters, err := ac.GetClusterNames(context.Background(), sfcClientInt.Spec.AppName)
 		if err != nil {
 			return pkgerrors.Wrapf(err, "Error getting clusters for app: %v", sfcClientInt.Spec.AppName)
 		}
 		for _, c := range clusters {
-			rh, err := ac.GetResourceHandle(sfcClientInt.Spec.AppName, c,
+			rh, err := ac.GetResourceHandle(context.Background(), sfcClientInt.Spec.AppName, c,
 				strings.Join([]string{sfcClientInt.Spec.WorkloadResource,
 					sfcClientInt.Spec.ResourceType}, "+"))
 			if err != nil {
@@ -204,7 +206,7 @@ func UpdateAppContext(intentName, appContextId string) error {
 						sfcClientInt.Spec.ResourceType}, "+"),
 					sfcClientInt.Metadata.Name, c)
 			}
-			r, err := ac.GetValue(rh)
+			r, err := ac.GetValue(context.Background(), rh)
 			if err != nil {
 				log.Error("Error retrieving resource from App Context", log.Fields{
 					"error":           err,
@@ -251,7 +253,7 @@ func UpdateAppContext(intentName, appContextId string) error {
 			}
 
 			// Update resource in AppContext
-			err = ac.UpdateResourceValue(rh, string(y))
+			err = ac.UpdateResourceValue(context.Background(), rh, string(y))
 			if err != nil {
 				log.Error("Network updating app context resource handle", log.Fields{
 					"error":           err,

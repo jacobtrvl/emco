@@ -11,6 +11,7 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	pkgerrors "github.com/pkg/errors"
+	"github.com/stretchr/testify/mock"
 	"gitlab.com/project-emco/core/emco-base/src/dcm/api/mocks"
 	"gitlab.com/project-emco/core/emco-base/src/dcm/pkg/module"
 )
@@ -38,7 +39,7 @@ var _ = Describe("KeyValueHandler", func() {
 	DescribeTable("Create KeyValue tests",
 		func(t testCase) {
 			// set up client mock responses
-			t.kvClient.On("CreateKVPair", "test-project", "test-lc", t.inStruct).Return(t.mockVal, t.mockError)
+			t.kvClient.On("CreateKVPair", mock.Anything, "test-project", "test-lc", t.inStruct).Return(t.mockVal, t.mockError)
 
 			// make HTTP request
 			request := httptest.NewRequest("POST", "/v2/projects/test-project/logical-clouds/test-lc/kv-pairs", t.inputReader)
@@ -190,7 +191,7 @@ var _ = Describe("KeyValueHandler", func() {
 	// DescribeTable("Put KeyValue tests",
 	// 	func(t testCase) {
 	// 		// set up client mock responses
-	// 		t.kvClient.On("UpdateKVPair", "test-project", "test-lc", t.inputName, t.inStruct).Return(t.mockVal, t.mockError)
+	// 		t.kvClient.On("UpdateKVPair", mock.Anything, "test-project", "test-lc", t.inputName, t.inStruct).Return(t.mockVal, t.mockError)
 
 	// 		// make HTTP request
 	// 		request := httptest.NewRequest("PUT", "/v2/projects/test-project/logical-clouds/test-lc/kv-pairs/"+t.inputName, t.inputReader)
@@ -360,7 +361,7 @@ var _ = Describe("KeyValueHandler", func() {
 	DescribeTable("Get List KeyValue tests",
 		func(t testCase) {
 			// set up client mock responses
-			t.kvClient.On("GetAllKVPairs", "test-project", "test-lc").Return(t.mockVals, t.mockError)
+			t.kvClient.On("GetAllKVPairs", mock.Anything, "test-project", "test-lc").Return(t.mockVals, t.mockError)
 
 			// make HTTP request
 			request := httptest.NewRequest("GET", "/v2/projects/test-project/logical-clouds/test-lc/kv-pairs", nil)
@@ -410,7 +411,7 @@ var _ = Describe("KeyValueHandler", func() {
 	DescribeTable("Get KeyValue tests",
 		func(t testCase) {
 			// set up client mock responses
-			t.kvClient.On("GetKVPair", "test-project", "test-lc", t.inputName).Return(t.mockVal, t.mockError)
+			t.kvClient.On("GetKVPair", mock.Anything, "test-project", "test-lc", t.inputName).Return(t.mockVal, t.mockError)
 
 			// make HTTP request
 			request := httptest.NewRequest("GET", "/v2/projects/test-project/logical-clouds/test-lc/kv-pairs/"+t.inputName, nil)
@@ -460,7 +461,7 @@ var _ = Describe("KeyValueHandler", func() {
 	DescribeTable("Delete KeyValue tests",
 		func(t testCase) {
 			// set up client mock responses
-			t.kvClient.On("DeleteKVPair", "test-project", "test-lc", t.inputName).Return(t.mockError)
+			t.kvClient.On("DeleteKVPair", mock.Anything, "test-project", "test-lc", t.inputName).Return(t.mockError)
 
 			// make HTTP request
 			request := httptest.NewRequest("DELETE", "/v2/projects/test-project/logical-clouds/test-lc/kv-pairs/"+t.inputName, nil)

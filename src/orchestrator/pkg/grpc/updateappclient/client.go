@@ -5,27 +5,29 @@ package updateappclient
 
 import (
 	"context"
+	"time"
+
 	pkgerrors "github.com/pkg/errors"
 	inc "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/grpc/installappclient"
 	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/rpc"
 	updatepb "gitlab.com/project-emco/core/emco-base/src/rsync/pkg/grpc/updateapp"
-	"time"
 )
 
 const rsyncName = "rsync"
 
-func InvokeUpdateApp(FromAppContextID, ToAppContextID string) error {
+func InvokeUpdateApp(ctx context.Context, FromAppContextID, ToAppContextID string) error {
 	var err error
 	var rpcClient updatepb.UpdateappClient
 	var updateAppRes *updatepb.UpdateAppResponse
-	ctx, cancel := context.WithTimeout(context.Background(), 600*time.Second)
+
+	ctx, cancel := context.WithTimeout(ctx, 600*time.Second)
 	defer cancel()
 
-	conn := rpc.GetRpcConn(rsyncName)
+	conn := rpc.GetRpcConn(ctx, rsyncName)
 	if conn == nil {
 		inc.InitRsyncClient()
-		conn = rpc.GetRpcConn(rsyncName)
+		conn = rpc.GetRpcConn(ctx, rsyncName)
 	}
 
 	if conn != nil {

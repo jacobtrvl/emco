@@ -5,6 +5,7 @@ package api
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -29,7 +30,7 @@ type mockAppIntentManager struct {
 	SpecData moduleLib.SpecData
 }
 
-func (aim *mockAppIntentManager) CreateAppIntent(ai moduleLib.AppIntent, project, compositeApp, version, genericPlacementIntent, deploymentIntentGroup string, failIfExists bool) (moduleLib.AppIntent, bool, error) {
+func (aim *mockAppIntentManager) CreateAppIntent(ctx context.Context, ai moduleLib.AppIntent, project, compositeApp, version, genericPlacementIntent, deploymentIntentGroup string, failIfExists bool) (moduleLib.AppIntent, bool, error) {
 	iExists := false
 	index := 0
 
@@ -59,7 +60,7 @@ func (aim *mockAppIntentManager) CreateAppIntent(ai moduleLib.AppIntent, project
 	return aim.Items[len(aim.Items)-1], iExists, nil
 }
 
-func (aim *mockAppIntentManager) GetAppIntent(appIntent, project, compositeApp, version, genericPlacementIntent, deploymentIntentGroup string) (moduleLib.AppIntent, error) {
+func (aim *mockAppIntentManager) GetAppIntent(ctx context.Context, appIntent, project, compositeApp, version, genericPlacementIntent, deploymentIntentGroup string) (moduleLib.AppIntent, error) {
 	if aim.Err != nil {
 		return moduleLib.AppIntent{}, aim.Err
 	}
@@ -73,7 +74,7 @@ func (aim *mockAppIntentManager) GetAppIntent(appIntent, project, compositeApp, 
 	return moduleLib.AppIntent{}, pkgerrors.New("Intent not found")
 }
 
-func (aim *mockAppIntentManager) GetAllIntentsByApp(app, project, compositeApp, version, genericPlacementIntent, deploymentIntentGroup string) (moduleLib.SpecData, error) {
+func (aim *mockAppIntentManager) GetAllIntentsByApp(ctx context.Context, app, project, compositeApp, version, genericPlacementIntent, deploymentIntentGroup string) (moduleLib.SpecData, error) {
 	if aim.Err != nil {
 		return moduleLib.SpecData{}, aim.Err
 	}
@@ -87,7 +88,7 @@ func (aim *mockAppIntentManager) GetAllIntentsByApp(app, project, compositeApp, 
 	return moduleLib.SpecData{}, nil
 }
 
-func (aim *mockAppIntentManager) DeleteAppIntent(appIntent, project, compositeApp, version, genericPlacementIntent, deploymentIntentGroup string) error {
+func (aim *mockAppIntentManager) DeleteAppIntent(ctx context.Context, appIntent, project, compositeApp, version, genericPlacementIntent, deploymentIntentGroup string) error {
 	if aim.Err != nil {
 		return aim.Err
 	}
@@ -104,7 +105,7 @@ func (aim *mockAppIntentManager) DeleteAppIntent(appIntent, project, compositeAp
 	return pkgerrors.New("db Remove resource not found") // resource does not exist
 }
 
-func (aim *mockAppIntentManager) GetAllAppIntents(project, compositeApp, version, genericPlacementIntent, deploymentIntentGroup string) ([]moduleLib.AppIntent, error) {
+func (aim *mockAppIntentManager) GetAllAppIntents(ctx context.Context, project, compositeApp, version, genericPlacementIntent, deploymentIntentGroup string) ([]moduleLib.AppIntent, error) {
 	if aim.Err != nil {
 		return []moduleLib.AppIntent{}, aim.Err
 	}

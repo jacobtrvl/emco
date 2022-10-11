@@ -4,6 +4,7 @@
 package module
 
 import (
+	"context"
 	pkgerrors "github.com/pkg/errors"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
 )
@@ -14,9 +15,9 @@ type InboundClientsAccessIntent struct {
 }
 
 type InboundClientsAccessIntentSpec struct {
-	Action  string   `json:"action"`
-	Url     []string `json:"url"`
-	Access  []string `json:"access"`
+	Action string   `json:"action"`
+	Url    []string `json:"url"`
+	Access []string `json:"access"`
 }
 
 type InboundClientsAccessIntentManager interface {
@@ -32,14 +33,14 @@ type InboundClientsAccessIntentDbClient struct {
 
 // ClientsAccessInboundIntentKey is the key structure that is used in the database
 type InboundClientsAccessIntentKey struct {
-	Project                         string `json:"project"`
-	CompositeApp                    string `json:"compositeApp"`
-	CompositeAppVersion             string `json:"compositeAppVersion"`
-	DeploymentIntentGroupName       string `json:"deploymentIntentGroup"`
-	TrafficGroupIntentName          string `json:"trafficGroupIntent"`
-	InboundServerIntentName         string `json:"inboundServerIntent"`
-	InboundClientsIntentName        string `json:"inboundClientsIntent"`
-	InboundClientsAccessIntentName  string `json:"inboundClientsAccessIntent"`
+	Project                        string `json:"project"`
+	CompositeApp                   string `json:"compositeApp"`
+	CompositeAppVersion            string `json:"compositeAppVersion"`
+	DeploymentIntentGroupName      string `json:"deploymentIntentGroup"`
+	TrafficGroupIntentName         string `json:"trafficGroupIntent"`
+	InboundServerIntentName        string `json:"inboundServerIntent"`
+	InboundClientsIntentName       string `json:"inboundClientsIntent"`
+	InboundClientsAccessIntentName string `json:"inboundClientsAccessIntent"`
 }
 
 func NewClientsAccessInboundIntentClient() *InboundClientsAccessIntentDbClient {
@@ -71,7 +72,7 @@ func (v InboundClientsAccessIntentDbClient) CreateClientsAccessInboundIntent(ica
 		return InboundClientsAccessIntent{}, pkgerrors.New("InboundClientsAccessIntent already exists")
 	}
 
-	err = db.DBconn.Insert(v.db.storeName, key, nil, v.db.tagMeta, icai)
+	err = db.DBconn.Insert(context.Background(), v.db.storeName, key, nil, v.db.tagMeta, icai)
 	if err != nil {
 		return InboundClientsAccessIntent{}, pkgerrors.Wrap(err, "Creating DB Entry")
 	}
@@ -85,17 +86,17 @@ func (v *InboundClientsAccessIntentDbClient) GetClientsAccessInboundIntent(name,
 
 	//Construct key and tag to select the entry
 	key := InboundClientsAccessIntentKey{
-		Project:                   project,
-		CompositeApp:              compositeapp,
-		CompositeAppVersion:       compositeappversion,
-		DeploymentIntentGroupName: deploymentintentgroupname,
-		TrafficGroupIntentName:    trafficintentgroupname,
-		InboundServerIntentName:   inboundserverintentname,
-		InboundClientsIntentName:  inboundclientsintentname,
-		InboundClientsAccessIntentName:  name,
+		Project:                        project,
+		CompositeApp:                   compositeapp,
+		CompositeAppVersion:            compositeappversion,
+		DeploymentIntentGroupName:      deploymentintentgroupname,
+		TrafficGroupIntentName:         trafficintentgroupname,
+		InboundServerIntentName:        inboundserverintentname,
+		InboundClientsIntentName:       inboundclientsintentname,
+		InboundClientsAccessIntentName: name,
 	}
 
-	value, err := db.DBconn.Find(v.db.storeName, key, v.db.tagMeta)
+	value, err := db.DBconn.Find(context.Background(), v.db.storeName, key, v.db.tagMeta)
 	if err != nil {
 		return InboundClientsAccessIntent{}, err
 	} else if len(value) == 0 {
@@ -131,7 +132,7 @@ func (v *InboundClientsAccessIntentDbClient) GetClientsAccessInboundIntents(proj
 	}
 
 	var resp []InboundClientsAccessIntent
-	values, err := db.DBconn.Find(v.db.storeName, key, v.db.tagMeta)
+	values, err := db.DBconn.Find(context.Background(), v.db.storeName, key, v.db.tagMeta)
 	if err != nil {
 		return []InboundClientsAccessIntent{}, err
 	}
@@ -164,6 +165,6 @@ func (v *InboundClientsAccessIntentDbClient) DeleteClientsAccessInboundIntent(na
 		InboundClientsAccessIntentName: name,
 	}
 
-	err := db.DBconn.Remove(v.db.storeName, key)
+	err := db.DBconn.Remove(context.Background(), v.db.storeName, key)
 	return err
 }

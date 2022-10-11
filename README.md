@@ -134,7 +134,7 @@ The EMCO Monitor service needs to be deployed in each of the clusters that will 
 Set your `KUBECONFIG` (or take equivalent actions) according to each of the clusters you want to use as an EMCO target edge cluster, and install Monitor:
 ```
 kubectl create namespace emco
-helm install emco -n emco emco/monitor \
+helm install monitor -n emco emco/monitor \
   --set emcoTag=latest
 ```
 

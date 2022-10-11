@@ -56,7 +56,7 @@ metadata :
 spec:
   compositeProfile: {{ .CompositeProfile }}
   version: r1
-  logicalCloud: {{ .AdminCloud }}
+  logicalCloud: {{ .LogicalCloud}}
   overrideValues: []
 
 ---
@@ -78,7 +78,7 @@ resourceContext:
 metadata :
   name: {{ .GenericPlacementIntent }}
 spec:
-  logicalCloud: {{ .AdminCloud }}
+  logicalCloud: {{ .LogicalCloud }}
 
 {{- range $index, $app := .Applist }}
 ---

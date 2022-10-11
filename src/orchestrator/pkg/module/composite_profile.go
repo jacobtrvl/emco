@@ -4,6 +4,7 @@
 package module
 
 import (
+	"context"
 	"encoding/json"
 
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
@@ -46,13 +47,13 @@ func (cpk CompositeProfileKey) String() string {
 
 // CompositeProfileManager exposes the CompositeProfile functionality
 type CompositeProfileManager interface {
-	CreateCompositeProfile(cpf CompositeProfile, p string, ca string,
+	CreateCompositeProfile(ctx context.Context, cpf CompositeProfile, p string, ca string,
 		v string, exists bool) (CompositeProfile, error)
-	GetCompositeProfile(compositeProfileName string, projectName string,
+	GetCompositeProfile(ctx context.Context, compositeProfileName string, projectName string,
 		compositeAppName string, version string) (CompositeProfile, error)
-	GetCompositeProfiles(projectName string, compositeAppName string,
+	GetCompositeProfiles(ctx context.Context, projectName string, compositeAppName string,
 		version string) ([]CompositeProfile, error)
-	DeleteCompositeProfile(compositeProfileName string, projectName string,
+	DeleteCompositeProfile(ctx context.Context, compositeProfileName string, projectName string,
 		compositeAppName string, version string) error
 }
 
@@ -73,10 +74,10 @@ func NewCompositeProfileClient() *CompositeProfileClient {
 }
 
 // CreateCompositeProfile creates an entry for CompositeProfile in the database. Other Input parameters for it - projectName, compositeAppName, version
-func (c *CompositeProfileClient) CreateCompositeProfile(cpf CompositeProfile, p string, ca string,
+func (c *CompositeProfileClient) CreateCompositeProfile(ctx context.Context, cpf CompositeProfile, p string, ca string,
 	v string, exists bool) (CompositeProfile, error) {
 
-	res, err := c.GetCompositeProfile(cpf.Metadata.Name, p, ca, v)
+	res, err := c.GetCompositeProfile(ctx, cpf.Metadata.Name, p, ca, v)
 	if res != (CompositeProfile{}) && !exists {
 		return CompositeProfile{}, pkgerrors.New("CompositeProfile already exists")
 	}
@@ -88,7 +89,7 @@ func (c *CompositeProfileClient) CreateCompositeProfile(cpf CompositeProfile, p 
 		Version:      v,
 	}
 
-	err = db.DBconn.Insert(c.storeName, cProfkey, nil, c.tagMeta, cpf)
+	err = db.DBconn.Insert(ctx, c.storeName, cProfkey, nil, c.tagMeta, cpf)
 	if err != nil {
 		return CompositeProfile{}, pkgerrors.Wrap(err, "Create DB entry error")
 	}
@@ -97,7 +98,7 @@ func (c *CompositeProfileClient) CreateCompositeProfile(cpf CompositeProfile, p 
 }
 
 // GetCompositeProfile shall take arguments - name of the composite profile, name of the project, name of the composite app and version of the composite app. It shall return the CompositeProfile if its present.
-func (c *CompositeProfileClient) GetCompositeProfile(cpf string, p string, ca string, v string) (CompositeProfile, error) {
+func (c *CompositeProfileClient) GetCompositeProfile(ctx context.Context, cpf string, p string, ca string, v string) (CompositeProfile, error) {
 	key := CompositeProfileKey{
 		Name:         cpf,
 		Project:      p,
@@ -105,7 +106,7 @@ func (c *CompositeProfileClient) GetCompositeProfile(cpf string, p string, ca st
 		Version:      v,
 	}
 
-	result, err := db.DBconn.Find(c.storeName, key, c.tagMeta)
+	result, err := db.DBconn.Find(ctx, c.storeName, key, c.tagMeta)
 	if err != nil {
 		return CompositeProfile{}, err
 	} else if len(result) == 0 {
@@ -125,7 +126,7 @@ func (c *CompositeProfileClient) GetCompositeProfile(cpf string, p string, ca st
 }
 
 // GetCompositeProfiles shall take arguments - name of the project, name of the composite profile and version of the composite app. It shall return an array of CompositeProfile.
-func (c *CompositeProfileClient) GetCompositeProfiles(p string, ca string, v string) ([]CompositeProfile, error) {
+func (c *CompositeProfileClient) GetCompositeProfiles(ctx context.Context, p string, ca string, v string) ([]CompositeProfile, error) {
 	key := CompositeProfileKey{
 		Name:         "",
 		Project:      p,
@@ -133,7 +134,7 @@ func (c *CompositeProfileClient) GetCompositeProfiles(p string, ca string, v str
 		Version:      v,
 	}
 
-	values, err := db.DBconn.Find(c.storeName, key, c.tagMeta)
+	values, err := db.DBconn.Find(ctx, c.storeName, key, c.tagMeta)
 	if err != nil {
 		return []CompositeProfile{}, err
 	}
@@ -153,7 +154,7 @@ func (c *CompositeProfileClient) GetCompositeProfiles(p string, ca string, v str
 }
 
 // DeleteCompositeProfile deletes the compsiteApp profile from the database
-func (c *CompositeProfileClient) DeleteCompositeProfile(cpf string, p string, ca string, v string) error {
+func (c *CompositeProfileClient) DeleteCompositeProfile(ctx context.Context, cpf string, p string, ca string, v string) error {
 	key := CompositeProfileKey{
 		Name:         cpf,
 		Project:      p,
@@ -161,6 +162,6 @@ func (c *CompositeProfileClient) DeleteCompositeProfile(cpf string, p string, ca
 		Version:      v,
 	}
 
-	err := db.DBconn.Remove(c.storeName, key)
+	err := db.DBconn.Remove(ctx, c.storeName, key)
 	return err
 }

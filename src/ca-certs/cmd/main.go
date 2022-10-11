@@ -50,7 +50,7 @@ func run() error {
 // initDataBases initializes the emco databases
 func initDataBases() error {
 	// initialize the emco database(Mongo DB)
-	err := db.InitializeDatabaseConnection("emco")
+	err := db.InitializeDatabaseConnection(context.Background(), "emco")
 	if err != nil {
 		logutils.Error("Failed to initialize mongo database connection.",
 			logutils.Fields{

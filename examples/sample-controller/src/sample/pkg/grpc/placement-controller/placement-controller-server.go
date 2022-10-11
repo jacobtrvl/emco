@@ -30,7 +30,7 @@ type placementControllerServer struct {
 
 func (ac *placementControllerServer) FilterClusters(ctx context.Context, req *placementcontroller.ResourceRequest) (*placementcontroller.ResourceResponse, error) {
 	if (req != nil) && (len(req.AppContext) > 0) {
-		err := action.FilterClusters(req.AppContext)
+		err := action.FilterClusters(ctx, req.AppContext)
 		if err != nil {
 			return &placementcontroller.ResourceResponse{AppContext: req.AppContext, Status: false, Message: "Failed to filter clusters."}, err
 		}

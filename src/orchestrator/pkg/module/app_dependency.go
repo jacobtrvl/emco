@@ -4,9 +4,11 @@
 package module
 
 import (
+	"context"
 	"encoding/json"
-	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
+
 	pkgerrors "github.com/pkg/errors"
+	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
 )
 
 // AppDependency contains the metaData for AppDependency
@@ -25,12 +27,11 @@ type AdMetaData struct {
 
 // SpecData consists of appName dependent
 type AdSpecData struct {
-	AppName string           `json:"app,omitempty"`
+	AppName string `json:"app,omitempty"`
 	// Ready/Deployed
-	OpStatus string 		`json:"opStatus,omitempty"`
+	OpStatus string `json:"opStatus,omitempty"`
 	// Wait time in seconds
 	Wait int `json:"wait,omitempty"`
-
 }
 
 // AppDependencyKey is the key structure that is used in the database
@@ -55,17 +56,17 @@ func (pk AppDependency) String() string {
 
 // AppDependencyManager is an interface exposes the AppDependency functionality
 type AppDependencyManager interface {
-	CreateAppDependency(dep AppDependency, p string, ca string, v string, app string, exists bool) (AppDependency, error)
-	GetAppDependency(dep string, p string, ca string, v string, app string) (AppDependency, error)
-	DeleteAppDependency(dep string, p string, ca string, v string, app string) error
-	GetAllAppDependency(p string, ca string, v string, app string) ([]AppDependency, error)
+	CreateAppDependency(ctx context.Context, dep AppDependency, p string, ca string, v string, app string, exists bool) (AppDependency, error)
+	GetAppDependency(ctx context.Context, dep string, p string, ca string, v string, app string) (AppDependency, error)
+	DeleteAppDependency(ctx context.Context, dep string, p string, ca string, v string, app string) error
+	GetAllAppDependency(ctx context.Context, p string, ca string, v string, app string) ([]AppDependency, error)
 }
 
 // AppDependencyClient implements the AppDependencyManager
 // It will also be used to maintain some localized state
 type AppDependencyClient struct {
-	storeName           string
-	tagMeta             string
+	storeName string
+	tagMeta   string
 }
 
 // NewAppDependencyClient returns an instance of the AppDependencyClient
@@ -78,24 +79,24 @@ func NewAppDependencyClient() *AppDependencyClient {
 }
 
 // CreateAppDependency a new collection based on the AppDependency
-func (d *AppDependencyClient) CreateAppDependency(dep AppDependency, p string, ca string, v string, app string, exists bool) (AppDependency, error) {
+func (d *AppDependencyClient) CreateAppDependency(ctx context.Context, dep AppDependency, p string, ca string, v string, app string, exists bool) (AppDependency, error) {
 
 	//Construct the key to select the entry
 	key := AppDependencyKey{
-		Project: p,
+		Project:      p,
 		CompositeApp: ca,
-		Version: v,
-		AppName: app,
-		Name: dep.MetaData.Name,
+		Version:      v,
+		AppName:      app,
+		Name:         dep.MetaData.Name,
 	}
 
 	//Check if this AppDependency already exists
-	_, err := d.GetAppDependency(dep.MetaData.Name, p, ca, v, app)
+	_, err := d.GetAppDependency(ctx, dep.MetaData.Name, p, ca, v, app)
 	if err == nil && !exists {
 		return AppDependency{}, pkgerrors.New("AppDependency already exists")
 	}
 
-	err = db.DBconn.Insert(d.storeName, key, nil, d.tagMeta, dep)
+	err = db.DBconn.Insert(ctx, d.storeName, key, nil, d.tagMeta, dep)
 	if err != nil {
 		return AppDependency{}, pkgerrors.Wrap(err, "Create DB entry error")
 	}
@@ -104,17 +105,17 @@ func (d *AppDependencyClient) CreateAppDependency(dep AppDependency, p string, c
 }
 
 // GetAppDependency returns the AppDependency for corresponding name
-func (d *AppDependencyClient) GetAppDependency(dep string, p string, ca string, v string, app string) (AppDependency, error) {
+func (d *AppDependencyClient) GetAppDependency(ctx context.Context, dep string, p string, ca string, v string, app string) (AppDependency, error) {
 
 	//Construct the composite key to select the entry
 	key := AppDependencyKey{
-		Project: p,
+		Project:      p,
 		CompositeApp: ca,
-		Version: v,
-		AppName: app,
-		Name: dep,
+		Version:      v,
+		AppName:      app,
+		Name:         dep,
 	}
-	value, err := db.DBconn.Find(d.storeName, key, d.tagMeta)
+	value, err := db.DBconn.Find(ctx, d.storeName, key, d.tagMeta)
 	if err != nil {
 		return AppDependency{}, err
 	} else if len(value) == 0 {
@@ -135,17 +136,17 @@ func (d *AppDependencyClient) GetAppDependency(dep string, p string, ca string, 
 }
 
 // GetAllAppDependency returns all the AppDependencys
-func (d *AppDependencyClient) GetAllAppDependency(p string, ca string, v string, app string) ([]AppDependency, error) {
+func (d *AppDependencyClient) GetAllAppDependency(ctx context.Context, p string, ca string, v string, app string) ([]AppDependency, error) {
 	key := AppDependencyKey{
-		Project: p,
+		Project:      p,
 		CompositeApp: ca,
-		Version: v,
-		AppName: app,
-		Name: "",
+		Version:      v,
+		AppName:      app,
+		Name:         "",
 	}
 
 	res := make([]AppDependency, 0)
-	values, err := db.DBconn.Find(d.storeName, key, d.tagMeta)
+	values, err := db.DBconn.Find(ctx, d.storeName, key, d.tagMeta)
 	if err != nil {
 		return []AppDependency{}, err
 	}
@@ -162,32 +163,32 @@ func (d *AppDependencyClient) GetAllAppDependency(p string, ca string, v string,
 }
 
 // DeleteAppDependency the  AppDependency from database
-func (d *AppDependencyClient) DeleteAppDependency(name string, p string, ca string, v string, app string) error {
+func (d *AppDependencyClient) DeleteAppDependency(ctx context.Context, name string, p string, ca string, v string, app string) error {
 
 	//Construct the composite key to select the entry
 	key := AppDependencyKey{
-		Project: p,
+		Project:      p,
 		CompositeApp: ca,
-		Version: v,
-		AppName: app,
-		Name: name,
+		Version:      v,
+		AppName:      app,
+		Name:         name,
 	}
-	err := db.DBconn.Remove(d.storeName, key)
+	err := db.DBconn.Remove(ctx, d.storeName, key)
 	return err
 }
 
 // GetAllAppDependency returns all the AppDependencys
-func (d *AppDependencyClient) GetAllSpecAppDependency(p string, ca string, v string, app string) ([]AdSpecData, error) {
+func (d *AppDependencyClient) GetAllSpecAppDependency(ctx context.Context, p string, ca string, v string, app string) ([]AdSpecData, error) {
 	key := AppDependencyKey{
-		Project: p,
+		Project:      p,
 		CompositeApp: ca,
-		Version: v,
-		AppName: app,
-		Name: "",
+		Version:      v,
+		AppName:      app,
+		Name:         "",
 	}
 
 	var res []AdSpecData
-	values, err := db.DBconn.Find(d.storeName, key, d.tagMeta)
+	values, err := db.DBconn.Find(ctx, d.storeName, key, d.tagMeta)
 	if err != nil {
 		return []AdSpecData{}, err
 	}

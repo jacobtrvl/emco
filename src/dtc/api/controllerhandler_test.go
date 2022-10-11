@@ -10,10 +10,11 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
+	pkgerrors "github.com/pkg/errors"
+	"github.com/stretchr/testify/mock"
 	"gitlab.com/project-emco/core/emco-base/src/dtc/api/mocks"
 	controller "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/module/controller"
 	mtypes "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/module/types"
-	pkgerrors "github.com/pkg/errors"
 )
 
 func init() {
@@ -37,7 +38,7 @@ var _ = Describe("Controllerhandler", func() {
 		func(t testCase) {
 			// set up client mock responses
 
-			t.client.On("CreateController", t.inStruct, false).Return(t.mockVal, t.mockError)
+			t.client.On("CreateController", mock.Anything, t.inStruct, false).Return(t.mockVal, t.mockError)
 
 			// make HTTP request
 			request := httptest.NewRequest("POST", "/v2/dtc-controllers", t.inputReader)
@@ -251,7 +252,7 @@ var _ = Describe("Controllerhandler", func() {
 		func(t testCase) {
 			// set up client mock responses
 
-			t.client.On("CreateController", t.inStruct, true).Return(t.mockVal, t.mockError)
+			t.client.On("CreateController", mock.Anything, t.inStruct, true).Return(t.mockVal, t.mockError)
 
 			// make HTTP request
 			request := httptest.NewRequest("PUT", "/v2/dtc-controllers/"+t.inputName, t.inputReader)
@@ -462,7 +463,7 @@ var _ = Describe("Controllerhandler", func() {
 		func(t testCase) {
 			// set up client mock responses
 
-			t.client.On("GetControllers").Return(t.mockVals, t.mockError)
+			t.client.On("GetControllers", mock.Anything).Return(t.mockVals, t.mockError)
 
 			// make HTTP request
 			request := httptest.NewRequest("GET", "/v2/dtc-controllers", nil)
@@ -529,7 +530,7 @@ var _ = Describe("Controllerhandler", func() {
 		func(t testCase) {
 			// set up client mock responses
 
-			t.client.On("GetController", "dtccontroller").Return(t.mockVal, t.mockError)
+			t.client.On("GetController", mock.Anything, "dtccontroller").Return(t.mockVal, t.mockError)
 
 			// make HTTP request
 			request := httptest.NewRequest("GET", "/v2/dtc-controllers/"+t.inputName, nil)
@@ -583,7 +584,7 @@ var _ = Describe("Controllerhandler", func() {
 		func(t testCase) {
 			// set up client mock responses
 
-			t.client.On("DeleteController", t.inputName).Return(t.mockError)
+			t.client.On("DeleteController", mock.Anything, t.inputName).Return(t.mockError)
 
 			// make HTTP request
 			request := httptest.NewRequest("DELETE", "/v2/dtc-controllers/"+t.inputName, nil)

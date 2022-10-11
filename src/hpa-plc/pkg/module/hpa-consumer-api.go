@@ -6,6 +6,7 @@ package module
 import (
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
 
+	"context"
 	pkgerrors "github.com/pkg/errors"
 	hpaModel "gitlab.com/project-emco/core/emco-base/src/hpa-plc/pkg/model"
 	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
@@ -35,7 +36,7 @@ func (c *HpaPlacementClient) AddConsumer(a hpaModel.HpaResourceConsumer, p strin
 	}
 
 	log.Info("AddConsumer ... Creating DB entry entry", log.Fields{"StoreName": c.db.StoreName, "key": dbKey, "project": p, "compositeApp": ca, "compositeAppVersion": v, "deploymentIntentGroup": di, "hpaIntent": i, "hpaConsumer": a.MetaData.Name})
-	err = db.DBconn.Insert(c.db.StoreName, dbKey, nil, c.db.TagMetaData, a)
+	err = db.DBconn.Insert(context.Background(), c.db.StoreName, dbKey, nil, c.db.TagMetaData, a)
 	if err != nil {
 		log.Error("AddConsumer ...  DB Error .. Creating DB entry error", log.Fields{"hpaConsumer": a.MetaData.Name, "err": err})
 		return hpaModel.HpaResourceConsumer{}, pkgerrors.Wrap(err, "Creating DB Entry")
@@ -58,7 +59,7 @@ func (c *HpaPlacementClient) GetConsumer(cn string, p string, ca string, v strin
 		DeploymentIntentGroup: di,
 	}
 
-	result, err := db.DBconn.Find(c.db.StoreName, dbKey, c.db.TagMetaData)
+	result, err := db.DBconn.Find(context.Background(), c.db.StoreName, dbKey, c.db.TagMetaData)
 	if err != nil {
 		log.Error("GetConsumer ... DB Error .. Get Consumer error", log.Fields{"hpaConsumer": cn})
 		return hpaModel.HpaResourceConsumer{}, false, err
@@ -95,7 +96,7 @@ func (c HpaPlacementClient) GetAllConsumers(p, ca, v, di, i string) ([]hpaModel.
 		DeploymentIntentGroup: di,
 	}
 
-	result, err := db.DBconn.Find(c.db.StoreName, dbKey, c.db.TagMetaData)
+	result, err := db.DBconn.Find(context.Background(), c.db.StoreName, dbKey, c.db.TagMetaData)
 	if err != nil {
 		log.Error("GetAllConsumers ... DB Error .. Get HpaConsumers db error", log.Fields{"hpaIntent": i})
 		return []hpaModel.HpaResourceConsumer{}, err
@@ -133,7 +134,7 @@ func (c HpaPlacementClient) GetConsumerByName(cn, p, ca, v, di, i string) (hpaMo
 		DeploymentIntentGroup: di,
 	}
 
-	result, err := db.DBconn.Find(c.db.StoreName, dbKey, c.db.TagMetaData)
+	result, err := db.DBconn.Find(context.Background(), c.db.StoreName, dbKey, c.db.TagMetaData)
 	if err != nil {
 		log.Error("GetConsumerByName ... DB Error .. Get HpaConsumer error", log.Fields{"hpaConsumer": cn})
 		return hpaModel.HpaResourceConsumer{}, err
@@ -171,7 +172,7 @@ func (c HpaPlacementClient) DeleteConsumer(cn, p string, ca string, v string, di
 	}
 
 	log.Info("DeleteConsumer ... Delete Hpa Consumer entry", log.Fields{"StoreName": c.db.StoreName, "key": dbKey, "project": p, "composite-app": ca, "composite-app-ver": v, "dep-group": di, "intent-name": i, "consumer-name": cn})
-	err = db.DBconn.Remove(c.db.StoreName, dbKey)
+	err = db.DBconn.Remove(context.Background(), c.db.StoreName, dbKey)
 	if err != nil {
 		log.Error("DeleteConsumer ... DB Error .. Delete Hpa Consumer entry error", log.Fields{"err": err, "StoreName": c.db.StoreName, "key": dbKey, "project": p, "composite-app": ca, "composite-app-ver": v, "dep-group": di, "intent-name": i, "consumer-name": cn})
 		return pkgerrors.Wrap(err, "DB Error .. Delete Hpa Consumer entry error")

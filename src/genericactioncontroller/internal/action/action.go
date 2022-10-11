@@ -6,6 +6,8 @@ package action
 import (
 	"strings"
 
+	"context"
+
 	"github.com/pkg/errors"
 	"gitlab.com/project-emco/core/emco-base/src/genericactioncontroller/pkg/module"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/appcontext"
@@ -36,12 +38,12 @@ func UpdateAppContext(intent, appContextID string) error {
 			"Intent":     intent})
 
 	var appContext appcontext.AppContext
-	if _, err := appContext.LoadAppContext(appContextID); err != nil {
+	if _, err := appContext.LoadAppContext(context.Background(), appContextID); err != nil {
 		logError("failed to load appContext", appContextID, intent, appcontext.CompositeAppMeta{}, err)
 		return err
 	}
 
-	appMeta, err := appContext.GetCompositeAppMeta()
+	appMeta, err := appContext.GetCompositeAppMeta(context.Background())
 	if err != nil {
 		logError("failed to get compositeApp meta", appContextID, intent, appcontext.CompositeAppMeta{}, err)
 		return err

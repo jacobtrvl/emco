@@ -4,9 +4,8 @@
 export GO111MODULE=on
 
 all: clean
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
-        go build -a -ldflags '-extldflags "-static"' \
-        -o ../../bin/monitor/monitor main.go
+	GOOS=linux GOARCH=amd64 \
+    go build -tags static,system_libgit2,monitor -o ../../bin/monitor/monitor main.go
 
 build: clean test cover
 deploy: build

@@ -4,6 +4,7 @@
 package module
 
 import (
+	"context"
 	"reflect"
 	"strings"
 	"testing"
@@ -75,9 +76,10 @@ func TestCreateCompositeProfile(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.label, func(t *testing.T) {
+			ctx := context.Background()
 			db.DBconn = testCase.mockdb
 			cprofCli := NewCompositeProfileClient()
-			got, err := cprofCli.CreateCompositeProfile(testCase.compositeProfile, testCase.projectName, testCase.compositeApp, testCase.compositeAppVersion, false)
+			got, err := cprofCli.CreateCompositeProfile(ctx, testCase.compositeProfile, testCase.projectName, testCase.compositeApp, testCase.compositeAppVersion, false)
 			if err != nil {
 				if testCase.expectedError == "" {
 					t.Fatalf("CreateCompositeProfile returned an unexpected error %s", err)
@@ -143,9 +145,10 @@ func TestGetCompositeProfile(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.label, func(t *testing.T) {
+			ctx := context.Background()
 			db.DBconn = testCase.mockdb
 			cprofCli := NewCompositeProfileClient()
-			got, err := cprofCli.GetCompositeProfile(testCase.compositeProfileName, testCase.projectName, testCase.compositeAppName, testCase.compositeAppVersion)
+			got, err := cprofCli.GetCompositeProfile(ctx, testCase.compositeProfileName, testCase.projectName, testCase.compositeAppName, testCase.compositeAppVersion)
 			if err != nil {
 				if testCase.expectedError == "" {
 					t.Fatalf("GetCompositeProfile returned an unexpected error: %s", err)

@@ -4,6 +4,7 @@
 package module
 
 import (
+	"context"
 	"reflect"
 	"strings"
 	"testing"
@@ -81,9 +82,10 @@ func TestCreateProject(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.label, func(t *testing.T) {
+			ctx := context.Background()
 			db.DBconn = testCase.mockdb
 			impl := NewProjectClient()
-			got, err := impl.CreateProject(testCase.inp, false)
+			got, err := impl.CreateProject(ctx, testCase.inp, false)
 			if err != nil {
 				if testCase.expectedError == "" {
 					t.Fatalf("Create returned an unexpected error %s", err)
@@ -162,9 +164,10 @@ func TestUpdateProject(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.label, func(t *testing.T) {
+			ctx := context.Background()
 			db.DBconn = testCase.mockdb
 			impl := NewProjectClient()
-			got, err := impl.CreateProject(testCase.inp, true)
+			got, err := impl.CreateProject(ctx, testCase.inp, true)
 			if err != nil {
 				if testCase.expectedError == "" {
 					t.Fatalf("Update returned an unexpected error %s", err)
@@ -232,9 +235,10 @@ func TestGetProject(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.label, func(t *testing.T) {
+			ctx := context.Background()
 			db.DBconn = testCase.mockdb
 			impl := NewProjectClient()
-			got, err := impl.GetProject(testCase.name)
+			got, err := impl.GetProject(ctx, testCase.name)
 			if err != nil {
 				if testCase.expectedError == "" {
 					t.Fatalf("Get returned an unexpected error: %s", err)
@@ -291,9 +295,10 @@ func TestDeleteProject(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.label, func(t *testing.T) {
+			ctx := context.Background()
 			db.DBconn = testCase.mockdb
 			impl := NewProjectClient()
-			err := impl.DeleteProject(testCase.name)
+			err := impl.DeleteProject(ctx, testCase.name)
 			if err != nil {
 				if testCase.expectedError == "" {
 					t.Fatalf("Delete returned an unexpected error %s", err)

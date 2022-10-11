@@ -11,6 +11,7 @@ import (
 	"gitlab.com/project-emco/core/emco-base/src/ca-certs/pkg/client/logicalcloud"
 	"gitlab.com/project-emco/core/emco-base/src/ca-certs/pkg/module"
 
+	"context"
 	"gitlab.com/project-emco/core/emco-base/src/ca-certs/pkg/client/clusterprovider"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/module/types"
 )
@@ -44,7 +45,7 @@ var _ = Describe("Create Cert",
 					ClusterProvider: "provider1"}
 				client := module.NewCaCertClient(key)
 				c, cExists, err := client.CreateCert(mCert, true)
-				validateError(err, "Certificate already exists")
+				validateError(err, module.CaCertAlreadyExists)
 				Expect(cExists).To(Equal(true))
 				Expect(c).To(Equal(module.CaCert{}))
 				Expect(len(mockdb.Items)).To(Equal(l))
@@ -74,7 +75,7 @@ var _ = Describe("Create Cert",
 					Project: "proj1"}
 				client := module.NewCaCertClient(key)
 				c, cExists, err := client.CreateCert(mCert, true)
-				validateError(err, "Certificate already exists")
+				validateError(err, module.CaCertAlreadyExists)
 				Expect(c).To(Equal(module.CaCert{}))
 				Expect(cExists).To(Equal(true))
 				Expect(len(mockdb.Items)).To(Equal(l))
@@ -215,7 +216,7 @@ var _ = Describe("Get Cert",
 					ClusterProvider: "provider1"}
 				client := module.NewCaCertClient(key)
 				cert, err := client.GetCert()
-				validateError(err, "Certificate not found")
+				validateError(err, module.CaCertNotFound)
 				validateCert(cert, module.CaCert{})
 			})
 		})
@@ -250,42 +251,42 @@ func populateCertTestData() {
 	cpKey := clusterprovider.CaCertKey{
 		Cert:            cert.MetaData.Name,
 		ClusterProvider: "provider1"}
-	_ = mockdb.Insert("resources", cpKey, nil, "data", cert)
+	_ = mockdb.Insert(context.Background(), "resources", cpKey, nil, "data", cert)
 
 	// cert 2
 	cert = mockCert("test-cert-2")
 	cpKey = clusterprovider.CaCertKey{
 		Cert:            cert.MetaData.Name,
 		ClusterProvider: "provider1"}
-	_ = mockdb.Insert("resources", cpKey, nil, "data", cert)
+	_ = mockdb.Insert(context.Background(), "resources", cpKey, nil, "data", cert)
 
 	// cert 3
 	cert = mockCert("test-cert-3")
 	cpKey = clusterprovider.CaCertKey{
 		Cert:            cert.MetaData.Name,
 		ClusterProvider: "provider1"}
-	_ = mockdb.Insert("resources", cpKey, nil, "data", cert)
+	_ = mockdb.Insert(context.Background(), "resources", cpKey, nil, "data", cert)
 
 	// cert 4
 	cert = mockCert("test-cert-4")
 	lcKey := logicalcloud.CaCertKey{
 		Cert:    cert.MetaData.Name,
 		Project: "proj1"}
-	_ = mockdb.Insert("resources", lcKey, nil, "data", cert)
+	_ = mockdb.Insert(context.Background(), "resources", lcKey, nil, "data", cert)
 
 	// cert 5
 	cert = mockCert("test-cert-5")
 	lcKey = logicalcloud.CaCertKey{
 		Cert:    cert.MetaData.Name,
 		Project: "proj1"}
-	_ = mockdb.Insert("resources", lcKey, nil, "data", cert)
+	_ = mockdb.Insert(context.Background(), "resources", lcKey, nil, "data", cert)
 
 	// cert 6
 	cert = mockCert("test-cert-6")
 	lcKey = logicalcloud.CaCertKey{
 		Cert:    cert.MetaData.Name,
 		Project: "proj1"}
-	_ = mockdb.Insert("resources", lcKey, nil, "data", cert)
+	_ = mockdb.Insert(context.Background(), "resources", lcKey, nil, "data", cert)
 
 }
 

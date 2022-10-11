@@ -1,0 +1,81 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2020-2021 Intel Corporation
+
+#creating collection composite app entry
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps
+metadata :
+  name: {{.CompositeApp}}
+  description: test
+  userData1: test1
+  userData2: test2
+spec:
+  compositeAppVersion: v1
+
+---
+#adding http-client app to the composite app
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.CompositeApp}}/v1/apps
+metadata :
+  name: http-client
+  description: "description for app"
+  userData1: test1
+  userData2: test2
+file:
+  output/http-client.tgz
+
+---
+#adding http-server app to the composite app
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.CompositeApp}}/v1/apps
+metadata :
+  name: http-server
+  description: "description for app"
+  userData1: test1
+  userData2: test2
+file:
+  output/http-server.tgz
+
+---
+#creating collection composite profile entry
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.CompositeApp}}/v1/composite-profiles
+metadata :
+  name: collection-composite-profile
+  description: test
+  userData1: test1
+  userData2: test2
+
+---
+#adding http-client app profiles to the composite profile
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.CompositeApp}}/v1/composite-profiles/collection-composite-profile/profiles
+metadata :
+  name: http-client-profile
+  description: test
+  userData1: test1
+  userData2: test2
+spec:
+  app: http-client
+file:
+  output/http-server-profile.tar.gz
+
+---
+#adding http-server app profiles to the composite profile
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.CompositeApp}}/v1/composite-profiles/collection-composite-profile/profiles
+metadata :
+  name: http-server-profile
+  description: test
+  userData1: test1
+  userData2: test2
+spec:
+  app: http-server
+file:
+  output/http-server-profile.tar.gz

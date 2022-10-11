@@ -26,6 +26,7 @@ type updateHandler struct {
 func (h updateHandler) migrateHandler(w http.ResponseWriter, r *http.Request) {
 	var migrate moduleLib.MigrateJson
 
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	p := vars["project"]
 	ca := vars["compositeApp"]
@@ -60,7 +61,7 @@ func (h updateHandler) migrateHandler(w http.ResponseWriter, r *http.Request) {
 	tDig := migrate.Spec.TargetDigName
 
 	log.Info("targetDeploymentName and targetCompositeAppVersion", log.Fields{"targetDeploymentName": tDig, "targetCompositeAppVersion": tCav})
-	iErr := h.client.Migrate(p, ca, v, tCav, di, tDig)
+	iErr := h.client.Migrate(ctx, p, ca, v, tCav, di, tDig)
 	if iErr != nil {
 		log.Error(":: Error migrate handler ::", log.Fields{"Error": iErr.Error(), "project": p, "compositeApp": ca, "compositeAppVer": v,
 			"targetCompositeAppVersion": tCav, "depGroup": di, "targetDigName": tDig})
@@ -83,13 +84,14 @@ func (h updateHandler) migrateHandler(w http.ResponseWriter, r *http.Request) {
 
 func (h updateHandler) updateHandler(w http.ResponseWriter, r *http.Request) {
 
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	p := vars["project"]
 	ca := vars["compositeApp"]
 	v := vars["compositeAppVersion"]
 	di := vars["deploymentIntentGroup"]
 
-	revisionID, iErr := h.client.Update(p, ca, v, di)
+	revisionID, iErr := h.client.Update(ctx, p, ca, v, di)
 	if iErr != nil {
 		log.Error(":: Error update handler ::", log.Fields{"Error": iErr.Error(), "project": p, "compositeApp": ca, "compositeAppVer": v,
 			"depGroup": di})
@@ -120,6 +122,7 @@ func (h updateHandler) updateHandler(w http.ResponseWriter, r *http.Request) {
 func (h updateHandler) rollbackHandler(w http.ResponseWriter, r *http.Request) {
 	var rollback moduleLib.RollbackJson
 
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	p := vars["project"]
 	ca := vars["compositeApp"]
@@ -149,7 +152,7 @@ func (h updateHandler) rollbackHandler(w http.ResponseWriter, r *http.Request) {
 
 	rbRev := rollback.Spec.Revison
 
-	iErr := h.client.Rollback(p, ca, v, di, rbRev)
+	iErr := h.client.Rollback(ctx, p, ca, v, di, rbRev)
 	if iErr != nil {
 		log.Error(":: Error rollback handler ::", log.Fields{"Error": iErr.Error(), "project": p, "compositeApp": ca, "compositeAppVer": v,
 			"depGroup": di, "revision": rbRev})

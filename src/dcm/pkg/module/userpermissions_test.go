@@ -4,6 +4,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	"context"
 	dcm "gitlab.com/project-emco/core/emco-base/src/dcm/pkg/module"
 	common "gitlab.com/project-emco/core/emco-base/src/orchestrator/common"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
@@ -39,7 +40,7 @@ var _ = Describe("Userpermissions", func() {
 					UserData1:   "",
 					UserData2:   "",
 				}
-				mdb.Insert("resources", okey, nil, "data", p)
+				mdb.Insert(context.Background(), "resources", okey, nil, "data", p)
 				// create logical cloud in mocked db
 				lkey := common.LogicalCloudKey{
 					Project:          "project",
@@ -56,11 +57,12 @@ var _ = Describe("Userpermissions", func() {
 					NameSpace: "testns",
 					Level:     "1",
 				}
-				mdb.Insert("resources", lkey, nil, "data", lc)
+				mdb.Insert(context.Background(), "resources", lkey, nil, "data", lc)
 			})
 			It("creation should succeed and return the resource created", func() {
+				ctx := context.Background()
 				up := _createTestUserPermission("testup", "testns")
-				userPermission, err := client.CreateUserPerm("project", "logicalcloud", up)
+				userPermission, err := client.CreateUserPerm(ctx, "project", "logicalcloud", up)
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(userPermission.MetaData.UserPermissionName).To(Equal("testup"))
 				Expect(userPermission.Specification.Namespace).To(Equal("testns"))
@@ -69,8 +71,9 @@ var _ = Describe("Userpermissions", func() {
 				Expect(userPermission.Specification.Verbs).To(Equal([]string{"get", "list"}))
 			})
 			It("creation should succeed and return the resource created (cluster-wide)", func() {
+				ctx := context.Background()
 				up := _createTestUserPermission("testup", "")
-				userPermission, err := client.CreateUserPerm("project", "logicalcloud", up)
+				userPermission, err := client.CreateUserPerm(ctx, "project", "logicalcloud", up)
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(userPermission.MetaData.UserPermissionName).To(Equal("testup"))
 				Expect(userPermission.Specification.Namespace).To(Equal(""))
@@ -79,33 +82,37 @@ var _ = Describe("Userpermissions", func() {
 				Expect(userPermission.Specification.Verbs).To(Equal([]string{"get", "list"}))
 			})
 			It("get should fail and not return anything", func() {
-				userPermission, err := client.GetUserPerm("project", "logicalcloud", "testup")
+				ctx := context.Background()
+				userPermission, err := client.GetUserPerm(ctx, "project", "logicalcloud", "testup")
 				Expect(err).Should(HaveOccurred())
 				Expect(userPermission).To(Equal(dcm.UserPermission{}))
 			})
 			It("create followed by get should return what was created", func() {
+				ctx := context.Background()
 				up := _createTestUserPermission("testup", "testns")
-				_, _ = client.CreateUserPerm("project", "logicalcloud", up)
-				userPermission, err := client.GetUserPerm("project", "logicalcloud", "testup")
+				_, _ = client.CreateUserPerm(ctx, "project", "logicalcloud", up)
+				userPermission, err := client.GetUserPerm(ctx, "project", "logicalcloud", "testup")
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(userPermission).To(Equal(up))
 			})
 			It("create followed by get-all should return only what was created", func() {
+				ctx := context.Background()
 				up := _createTestUserPermission("testup", "testns")
-				_, _ = client.CreateUserPerm("project", "logicalcloud", up)
-				userPermissions, err := client.GetAllUserPerms("project", "logicalcloud")
+				_, _ = client.CreateUserPerm(ctx, "project", "logicalcloud", up)
+				userPermissions, err := client.GetAllUserPerms(ctx, "project", "logicalcloud")
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(len(userPermissions)).To(Equal(1))
 				Expect(userPermissions[0]).To(Equal(up))
 			})
 			It("three creates followed by get-all should return all that was created", func() {
+				ctx := context.Background()
 				up1 := _createTestUserPermission("testup1", "testns")
 				up2 := _createTestUserPermission("testup2", "testns")
 				up3 := _createTestUserPermission("testup3", "testns")
-				_, _ = client.CreateUserPerm("project", "logicalcloud", up1)
-				_, _ = client.CreateUserPerm("project", "logicalcloud", up2)
-				_, _ = client.CreateUserPerm("project", "logicalcloud", up3)
-				userPermissions, err := client.GetAllUserPerms("project", "logicalcloud")
+				_, _ = client.CreateUserPerm(ctx, "project", "logicalcloud", up1)
+				_, _ = client.CreateUserPerm(ctx, "project", "logicalcloud", up2)
+				_, _ = client.CreateUserPerm(ctx, "project", "logicalcloud", up3)
+				userPermissions, err := client.GetAllUserPerms(ctx, "project", "logicalcloud")
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(len(userPermissions)).To(Equal(3))
 				Expect(userPermissions[0]).To(Equal(up1))
@@ -113,11 +120,12 @@ var _ = Describe("Userpermissions", func() {
 				Expect(userPermissions[2]).To(Equal(up3))
 			})
 			It("delete after creation should succeed and database remain empty", func() {
+				ctx := context.Background()
 				up := _createTestUserPermission("testup", "testns")
-				_, _ = client.CreateUserPerm("project", "logicalcloud", up)
-				err := client.DeleteUserPerm("project", "logicalcloud", "testup")
+				_, _ = client.CreateUserPerm(ctx, "project", "logicalcloud", up)
+				err := client.DeleteUserPerm(ctx, "project", "logicalcloud", "testup")
 				Expect(err).ShouldNot(HaveOccurred())
-				userPermissions, err := client.GetAllUserPerms("project", "logicalcloud")
+				userPermissions, err := client.GetAllUserPerms(ctx, "project", "logicalcloud")
 				Expect(len(userPermissions)).To(Equal(0))
 			})
 			// will uncomment after general mockdb issues resolved
@@ -126,10 +134,11 @@ var _ = Describe("Userpermissions", func() {
 			// 	Expect(err).Should(HaveOccurred())
 			// })
 			It("update after creation should succeed and return updated resource", func() {
+				ctx := context.Background()
 				up := _createTestUserPermission("testup", "testns")
-				_, _ = client.CreateUserPerm("project", "logicalcloud", up)
+				_, _ = client.CreateUserPerm(ctx, "project", "logicalcloud", up)
 				up.Specification.APIGroups = []string{"", "apps", "k8splugin.io"}
-				userPermission, err := client.UpdateUserPerm("project", "logicalcloud", "testup", up)
+				userPermission, err := client.UpdateUserPerm(ctx, "project", "logicalcloud", "testup", up)
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(userPermission.MetaData.UserPermissionName).To(Equal("testup"))
 				Expect(userPermission.Specification.APIGroups).To(Equal([]string{"", "apps", "k8splugin.io"}))
@@ -137,10 +146,11 @@ var _ = Describe("Userpermissions", func() {
 				Expect(userPermission.Specification.Verbs).To(Equal([]string{"get", "list"}))
 			})
 			It("create followed by updating the name is disallowed and should fail", func() {
+				ctx := context.Background()
 				up := _createTestUserPermission("testup", "testns")
-				_, _ = client.CreateUserPerm("project", "logicalcloud", up)
+				_, _ = client.CreateUserPerm(ctx, "project", "logicalcloud", up)
 				up.MetaData.UserPermissionName = "updated"
-				userPermission, err := client.UpdateUserPerm("project", "logicalcloud", "testup", up)
+				userPermission, err := client.UpdateUserPerm(ctx, "project", "logicalcloud", "testup", up)
 				Expect(err).Should(HaveOccurred())
 				Expect(userPermission).To(Equal(dcm.UserPermission{}))
 			})

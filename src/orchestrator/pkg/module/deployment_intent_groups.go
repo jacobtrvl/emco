@@ -4,6 +4,7 @@
 package module
 
 import (
+	"context"
 	"encoding/json"
 	"reflect"
 	"time"
@@ -50,11 +51,11 @@ type OverrideValues struct {
 
 // DeploymentIntentGroupManager is an interface which exposes the DeploymentIntentGroupManager functionality
 type DeploymentIntentGroupManager interface {
-	CreateDeploymentIntentGroup(d DeploymentIntentGroup, p string, ca string, v string, failIfExists bool) (DeploymentIntentGroup, bool, error)
-	GetDeploymentIntentGroup(di string, p string, ca string, v string) (DeploymentIntentGroup, error)
-	GetDeploymentIntentGroupState(di string, p string, ca string, v string) (state.StateInfo, error)
-	DeleteDeploymentIntentGroup(di string, p string, ca string, v string) error
-	GetAllDeploymentIntentGroups(p string, ca string, v string) ([]DeploymentIntentGroup, error)
+	CreateDeploymentIntentGroup(ctx context.Context, d DeploymentIntentGroup, p string, ca string, v string, failIfExists bool) (DeploymentIntentGroup, bool, error)
+	GetDeploymentIntentGroup(ctx context.Context, di string, p string, ca string, v string) (DeploymentIntentGroup, error)
+	GetDeploymentIntentGroupState(ctx context.Context, di string, p string, ca string, v string) (state.StateInfo, error)
+	DeleteDeploymentIntentGroup(ctx context.Context, di string, p string, ca string, v string) error
+	GetAllDeploymentIntentGroups(ctx context.Context, p string, ca string, v string) ([]DeploymentIntentGroup, error)
 }
 
 // DeploymentIntentGroupKey consists of Name of the deployment group, project name, CompositeApp name, CompositeApp version
@@ -92,11 +93,11 @@ func NewDeploymentIntentGroupClient() *DeploymentIntentGroupClient {
 }
 
 // CreateDeploymentIntentGroup creates an entry for a given  DeploymentIntentGroup in the database. Other Input parameters for it - projectName, compositeAppName, version
-func (c *DeploymentIntentGroupClient) CreateDeploymentIntentGroup(d DeploymentIntentGroup, p string, ca string, v string, failIfExists bool) (DeploymentIntentGroup, bool, error) {
+func (c *DeploymentIntentGroupClient) CreateDeploymentIntentGroup(ctx context.Context, d DeploymentIntentGroup, p string, ca string, v string, failIfExists bool) (DeploymentIntentGroup, bool, error) {
 	digExists := false
 
 	// check if the DeploymentIntentGroup already exists.
-	res, err := c.GetDeploymentIntentGroup(d.MetaData.Name, p, ca, v)
+	res, err := c.GetDeploymentIntentGroup(ctx, d.MetaData.Name, p, ca, v)
 	if err == nil && !reflect.DeepEqual(res, DeploymentIntentGroup{}) {
 		digExists = true
 	}
@@ -115,7 +116,7 @@ func (c *DeploymentIntentGroupClient) CreateDeploymentIntentGroup(d DeploymentIn
 	if digExists {
 		// The DeploymentIntentGroup exists. Check the state of the DeploymentIntentGroup
 		// Update the DeploymentIntentGroup if the state is "Created"
-		stateInfo, err := c.GetDeploymentIntentGroupState(d.MetaData.Name, p, ca, v)
+		stateInfo, err := c.GetDeploymentIntentGroupState(ctx, d.MetaData.Name, p, ca, v)
 		if err != nil {
 			return DeploymentIntentGroup{}, digExists, err
 		}
@@ -126,7 +127,7 @@ func (c *DeploymentIntentGroupClient) CreateDeploymentIntentGroup(d DeploymentIn
 		}
 
 		if currentState == state.StateEnum.Created {
-			err := db.DBconn.Insert(c.storeName, gkey, nil, c.tagMetaData, d)
+			err := db.DBconn.Insert(ctx, c.storeName, gkey, nil, c.tagMetaData, d)
 			if err != nil {
 				return DeploymentIntentGroup{}, digExists, err
 			}
@@ -141,7 +142,7 @@ func (c *DeploymentIntentGroupClient) CreateDeploymentIntentGroup(d DeploymentIn
 	}
 
 	// The DeploymentIntentGroup does not exists. Create the DeploymentIntentGroup and add the StateInfo details
-	err = db.DBconn.Insert(c.storeName, gkey, nil, c.tagMetaData, d)
+	err = db.DBconn.Insert(ctx, c.storeName, gkey, nil, c.tagMetaData, d)
 	if err != nil {
 		return DeploymentIntentGroup{}, digExists, err
 	}
@@ -155,7 +156,7 @@ func (c *DeploymentIntentGroupClient) CreateDeploymentIntentGroup(d DeploymentIn
 	}
 	s.Actions = append(s.Actions, a)
 
-	err = db.DBconn.Insert(c.storeName, gkey, nil, c.tagState, s)
+	err = db.DBconn.Insert(ctx, c.storeName, gkey, nil, c.tagState, s)
 	if err != nil {
 		return DeploymentIntentGroup{}, digExists, pkgerrors.Wrapf(err, "Error updating the stateInfo of the DeploymentIntentGroup: %s", d.MetaData.Name)
 	}
@@ -164,7 +165,7 @@ func (c *DeploymentIntentGroupClient) CreateDeploymentIntentGroup(d DeploymentIn
 }
 
 // GetDeploymentIntentGroup returns the DeploymentIntentGroup with a given name, project, compositeApp and version of compositeApp
-func (c *DeploymentIntentGroupClient) GetDeploymentIntentGroup(di string, p string, ca string, v string) (DeploymentIntentGroup, error) {
+func (c *DeploymentIntentGroupClient) GetDeploymentIntentGroup(ctx context.Context, di string, p string, ca string, v string) (DeploymentIntentGroup, error) {
 
 	key := DeploymentIntentGroupKey{
 		Name:         di,
@@ -173,7 +174,7 @@ func (c *DeploymentIntentGroupClient) GetDeploymentIntentGroup(di string, p stri
 		Version:      v,
 	}
 
-	result, err := db.DBconn.Find(c.storeName, key, c.tagMetaData)
+	result, err := db.DBconn.Find(ctx, c.storeName, key, c.tagMetaData)
 	if err != nil {
 		return DeploymentIntentGroup{}, err
 	} else if len(result) == 0 {
@@ -194,7 +195,7 @@ func (c *DeploymentIntentGroupClient) GetDeploymentIntentGroup(di string, p stri
 }
 
 // GetAllDeploymentIntentGroups returns all the deploymentIntentGroups under a specific project, compositeApp and version
-func (c *DeploymentIntentGroupClient) GetAllDeploymentIntentGroups(p string, ca string, v string) ([]DeploymentIntentGroup, error) {
+func (c *DeploymentIntentGroupClient) GetAllDeploymentIntentGroups(ctx context.Context, p string, ca string, v string) ([]DeploymentIntentGroup, error) {
 
 	key := DeploymentIntentGroupKey{
 		Name:         "",
@@ -204,18 +205,18 @@ func (c *DeploymentIntentGroupClient) GetAllDeploymentIntentGroups(p string, ca 
 	}
 
 	//Check if project exists
-	_, err := NewProjectClient().GetProject(p)
+	_, err := NewProjectClient().GetProject(ctx, p)
 	if err != nil {
 		return []DeploymentIntentGroup{}, pkgerrors.Wrap(err, "Project not found")
 	}
 
 	//check if compositeApp exists
-	_, err = NewCompositeAppClient().GetCompositeApp(ca, v, p)
+	_, err = NewCompositeAppClient().GetCompositeApp(ctx, ca, v, p)
 	if err != nil {
 		return []DeploymentIntentGroup{}, err
 	}
 	var diList []DeploymentIntentGroup
-	result, err := db.DBconn.Find(c.storeName, key, c.tagMetaData)
+	result, err := db.DBconn.Find(ctx, c.storeName, key, c.tagMetaData)
 	if err != nil {
 		return []DeploymentIntentGroup{}, err
 	}
@@ -234,7 +235,7 @@ func (c *DeploymentIntentGroupClient) GetAllDeploymentIntentGroups(p string, ca 
 }
 
 // GetDeploymentIntentGroupState returns the DIG-StateInfo with a given DeploymentIntentname, project, compositeAppName and version of compositeApp
-func (c *DeploymentIntentGroupClient) GetDeploymentIntentGroupState(di string, p string, ca string, v string) (state.StateInfo, error) {
+func (c *DeploymentIntentGroupClient) GetDeploymentIntentGroupState(ctx context.Context, di string, p string, ca string, v string) (state.StateInfo, error) {
 
 	key := DeploymentIntentGroupKey{
 		Name:         di,
@@ -243,7 +244,7 @@ func (c *DeploymentIntentGroupClient) GetDeploymentIntentGroupState(di string, p
 		Version:      v,
 	}
 
-	result, err := db.DBconn.Find(c.storeName, key, c.tagState)
+	result, err := db.DBconn.Find(ctx, c.storeName, key, c.tagState)
 	if err != nil {
 		return state.StateInfo{}, err
 	}
@@ -265,18 +266,18 @@ func (c *DeploymentIntentGroupClient) GetDeploymentIntentGroupState(di string, p
 }
 
 // DeleteDeploymentIntentGroup deletes a DeploymentIntentGroup
-func (c *DeploymentIntentGroupClient) DeleteDeploymentIntentGroup(di string, p string, ca string, v string) error {
+func (c *DeploymentIntentGroupClient) DeleteDeploymentIntentGroup(ctx context.Context, di string, p string, ca string, v string) error {
 	k := DeploymentIntentGroupKey{
 		Name:         di,
 		Project:      p,
 		CompositeApp: ca,
 		Version:      v,
 	}
-	s, err := c.GetDeploymentIntentGroupState(di, p, ca, v)
+	s, err := c.GetDeploymentIntentGroupState(ctx, di, p, ca, v)
 	if err != nil {
 		// If the StateInfo cannot be found, then a proper deployment intent group record is not present.
 		// Call the DB delete to clean up any errant record without a StateInfo element that may exist.
-		err = db.DBconn.Remove(c.storeName, k)
+		err = db.DBconn.Remove(ctx, c.storeName, k)
 		if err != nil {
 			return pkgerrors.Wrap(err, "Error deleting DeploymentIntentGroup entry")
 		}
@@ -296,24 +297,24 @@ func (c *DeploymentIntentGroupClient) DeleteDeploymentIntentGroup(di string, p s
 	if stateVal == state.StateEnum.Terminated || stateVal == state.StateEnum.TerminateStopped {
 		// Verify that the appcontext has completed terminating
 		ctxid := state.GetLastContextIdFromStateInfo(s)
-		acStatus, err := state.GetAppContextStatus(ctxid)
+		acStatus, err := state.GetAppContextStatus(ctx, ctxid)
 		if err == nil &&
 			!(acStatus.Status == appcontext.AppContextStatusEnum.Terminated || acStatus.Status == appcontext.AppContextStatusEnum.TerminateFailed) {
 			return pkgerrors.New("DeploymentIntentGroup has not completed terminating: " + di)
 		}
 
 		for _, id := range state.GetContextIdsFromStateInfo(s) {
-			context, err := state.GetAppContextFromId(id)
+			context, err := state.GetAppContextFromId(ctx, id)
 			if err != nil {
 				return pkgerrors.Wrap(err, "Error getting appcontext from DeploymentIntentGroup StateInfo")
 			}
-			err = context.DeleteCompositeApp()
+			err = context.DeleteCompositeApp(ctx)
 			if err != nil {
 				return pkgerrors.Wrap(err, "Error deleting appcontext for DeploymentIntentGroup")
 			}
 		}
 	}
 
-	err = db.DBconn.Remove(c.storeName, k)
+	err = db.DBconn.Remove(ctx, c.storeName, k)
 	return err
 }

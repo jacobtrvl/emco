@@ -7,12 +7,10 @@ import (
 	"context"
 	"time"
 
-	"github.com/fluxcd/go-git-providers/gitprovider"
 	kustomize "github.com/fluxcd/kustomize-controller/api/v1beta2"
 	fluxsc "github.com/fluxcd/source-controller/api/v1beta1"
 	yaml "github.com/ghodss/yaml"
 	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
-	emcogit "gitlab.com/project-emco/core/emco-base/src/rsync/pkg/gitops/emcogit"
 	"gitlab.com/project-emco/core/emco-base/src/rsync/pkg/internal/utils"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -21,21 +19,23 @@ import (
 func (p *Fluxv2Provider) ApplyConfig(ctx context.Context, config interface{}) error {
 
 	var sa string
-	acUtils, err := utils.NewAppContextReference(p.gitProvider.Cid)
+	var files interface{}
+
+	acUtils, err := utils.NewAppContextReference(ctx, p.gitProvider.Cid)
 	if err != nil {
 		return nil
 	}
-	_, level := acUtils.GetNamespace()
-	_, _, lcn, err := acUtils.GetLogicalCloudInfo()
+	_, level := acUtils.GetNamespace(ctx)
+	_, _, _, lcn, _, err := acUtils.GetLogicalCloudInfo(ctx)
 	if err != nil {
 		return err
 	}
+	// INFO: the below is always false since level is always 0, as it stands
 	if level == "1" {
 		sa = lcn + "-sa"
 	}
 	var namespace, kName string
 	var skip bool
-	var gp interface{}
 
 	// Special case creating a logical cloud
 	if level == "0" && lcn != "" {
@@ -69,8 +69,8 @@ func (p *Fluxv2Provider) ApplyConfig(ctx context.Context, config interface{}) er
 			return err
 		}
 		path := "clusters/" + p.gitProvider.Cluster + "/" + gr.Name + ".yaml"
-		// Add to the commit
-		gp = emcogit.Add(path, string(x), []gitprovider.CommitFile{}, p.gitProvider.GitType)
+		files, err = p.gitProvider.Apply(path, files, x)
+
 		kName = gr.Name
 	}
 	kc := kustomize.Kustomization{
@@ -83,11 +83,11 @@ func (p *Fluxv2Provider) ApplyConfig(ctx context.Context, config interface{}) er
 			Namespace: namespace,
 		},
 		Spec: kustomize.KustomizationSpec{
-			Interval: metav1.Duration{Duration: time.Second * time.Duration(p.syncInterval)},
+			Interval:      metav1.Duration{Duration: time.Second * time.Duration(p.syncInterval)},
 			RetryInterval: &metav1.Duration{Duration: time.Second * time.Duration(p.retryInterval)},
-			Timeout: &metav1.Duration{Duration: time.Second * time.Duration(p.timeOut)},
-			Path:     "clusters/" + p.gitProvider.Cluster + "/context/" + p.gitProvider.Cid,
-			Prune:    true,
+			Timeout:       &metav1.Duration{Duration: time.Second * time.Duration(p.timeOut)},
+			Path:          "clusters/" + p.gitProvider.Cluster + "/context/" + p.gitProvider.Cid,
+			Prune:         true,
 			SourceRef: kustomize.CrossNamespaceSourceReference{
 				Kind: "GitRepository",
 				Name: kName,
@@ -101,26 +101,36 @@ func (p *Fluxv2Provider) ApplyConfig(ctx context.Context, config interface{}) er
 		return err
 	}
 	path := "clusters/" + p.gitProvider.Cluster + "/" + kc.Name + ".yaml"
-	gp = emcogit.Add(path, string(y), gp, p.gitProvider.GitType)
+
+	p.gitProvider.GetPath("s")
+	files, err = p.gitProvider.Apply(path, files, y)
+
 	// Commit
-	appName := p.gitProvider.Cid + "-" + p.gitProvider.App + "-config"
-	err = emcogit.CommitFiles(ctx, p.gitProvider.Client, p.gitProvider.UserName, p.gitProvider.RepoName, p.gitProvider.Branch, "Commit for "+p.gitProvider.GetPath("context"), appName, gp, p.gitProvider.GitType)
+	err = p.gitProvider.Commit(context.Background(), files)
+
 	if err != nil {
-		log.Error("ApplyConfig:: Commit files err", log.Fields{"err": err, "gp": gp})
+		log.Error("ApplyConfig:: Commit files err", log.Fields{"err": err, "files": files})
 	}
 	return err
+	//}
+
+	return nil
 }
 
 // Delete GitRepository and Kustomization CR's for Flux
 func (p *Fluxv2Provider) DeleteConfig(ctx context.Context, config interface{}) error {
+
+	var files interface{}
+
 	path := "clusters/" + p.gitProvider.Cluster + "/" + p.gitProvider.Cid + ".yaml"
-	gp := emcogit.Delete(path, []gitprovider.CommitFile{}, p.gitProvider.GitType)
+	files, err := p.gitProvider.Delete(path, files, nil)
+
 	path = "clusters/" + p.gitProvider.Cluster + "/" + "kust" + p.gitProvider.Cid + ".yaml"
-	gp = emcogit.Delete(path, gp, p.gitProvider.GitType)
-	appName := p.gitProvider.Cid + "-" + p.gitProvider.App + "-config"
-	err := emcogit.CommitFiles(ctx, p.gitProvider.Client, p.gitProvider.UserName, p.gitProvider.RepoName, p.gitProvider.Branch, "Commit for "+p.gitProvider.GetPath("context"), appName, gp, p.gitProvider.GitType)
+	files, err = p.gitProvider.Delete(path, files, nil)
+
+	err = p.gitProvider.Commit(context.Background(), files)
 	if err != nil {
-		log.Error("ApplyConfig:: Commit files err", log.Fields{"err": err, "gp": gp})
+		log.Error("DeleteConfig:: Commit files err", log.Fields{"err": err, "files": files})
 	}
 	return err
 }

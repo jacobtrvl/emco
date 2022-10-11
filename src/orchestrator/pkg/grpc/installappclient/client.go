@@ -64,11 +64,12 @@ func NewRsyncInfo(rName, h string, pN int) RsyncInfo {
 // or rsync controller.
 // rsync will deploy the resources in the app context to the clusters as
 // prepared in the app context.
-func InvokeInstallApp(appContextId string) error {
+func InvokeInstallApp(ctx context.Context, appContextId string) error {
 	var err error
 	var rpcClient installpb.InstallappClient
 	var installRes *installpb.InstallAppResponse
-	ctx, cancel := context.WithTimeout(context.Background(), 600*time.Second)
+
+	ctx, cancel := context.WithTimeout(ctx, 600*time.Second)
 	defer cancel()
 
 	// Unit test helper code
@@ -86,10 +87,10 @@ func InvokeInstallApp(appContextId string) error {
 		return nil
 	}
 
-	conn := rpc.GetRpcConn(rsyncName)
+	conn := rpc.GetRpcConn(ctx, rsyncName)
 	if conn == nil {
 		InitRsyncClient()
-		conn = rpc.GetRpcConn(rsyncName)
+		conn = rpc.GetRpcConn(ctx, rsyncName)
 	}
 
 	if conn != nil {
@@ -121,17 +122,18 @@ func InvokeInstallApp(appContextId string) error {
 	return err
 }
 
-func InvokeUninstallApp(appContextId string) error {
+func InvokeUninstallApp(ctx context.Context, appContextId string) error {
 	var err error
 	var rpcClient installpb.InstallappClient
 	var uninstallRes *installpb.UninstallAppResponse
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
-	conn := rpc.GetRpcConn(rsyncName)
+	conn := rpc.GetRpcConn(ctx, rsyncName)
 	if conn == nil {
 		InitRsyncClient()
-		conn = rpc.GetRpcConn(rsyncName)
+		conn = rpc.GetRpcConn(ctx, rsyncName)
 	}
 
 	if conn != nil {

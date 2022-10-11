@@ -4,6 +4,7 @@
 package appcontext
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"testing"
@@ -24,7 +25,7 @@ type MockCompositeAppMeta struct {
 	Release      string
 }
 
-func (c *MockRunTimeContext) RtcCreate() (interface{}, error) {
+func (c *MockRunTimeContext) RtcCreate(ctx context.Context) (interface{}, error) {
 	var key string = "/context/9345674458787728/"
 
 	if c.Items == nil {
@@ -35,7 +36,7 @@ func (c *MockRunTimeContext) RtcCreate() (interface{}, error) {
 
 }
 
-func (c *MockRunTimeContext) RtcAddMeta(meta interface{}) error {
+func (c *MockRunTimeContext) RtcAddMeta(ctx context.Context, meta interface{}) error {
 	var cid string = "/context/9345674458787728/"
 	key := cid + "meta" + "/"
 	if c.Items == nil {
@@ -55,62 +56,62 @@ func (c *MockRunTimeContext) RtcInitWithValue(i interface{}) (interface{}, error
 	return id, c.Err
 }
 
-func (c *MockRunTimeContext) RtcLoad(id interface{}) (interface{}, error) {
+func (c *MockRunTimeContext) RtcLoad(ctx context.Context, id interface{}) (interface{}, error) {
 	str := "/context/" + fmt.Sprintf("%v", id) + "/"
 	return interface{}(str), c.Err
 }
 
-func (c *MockRunTimeContext) RtcGet() (interface{}, error) {
+func (c *MockRunTimeContext) RtcGet(ctx context.Context) (interface{}, error) {
 	var key string = "/context/9345674458787728/"
 	return key, c.Err
 }
 
-func (c *MockRunTimeContext) RtcGetMeta() (interface{}, error) {
+func (c *MockRunTimeContext) RtcGetMeta(ctx context.Context) (interface{}, error) {
 	meta := CompositeAppMeta{Project: "pn", CompositeApp: "ca", Version: "v", Release: "rName"}
 	return meta, nil
 }
 
-func (c *MockRunTimeContext) RtcAddLevel(handle interface{}, level string, value string) (interface{}, error) {
+func (c *MockRunTimeContext) RtcAddLevel(ctx context.Context, handle interface{}, level string, value string) (interface{}, error) {
 	str := fmt.Sprintf("%v", handle) + level + "/" + value + "/"
 	c.Items[str] = value
 	return nil, c.Err
 
 }
 
-func (c *MockRunTimeContext) RtcAddOneLevel(handle interface{}, level string, value interface{}) (interface{}, error) {
+func (c *MockRunTimeContext) RtcAddOneLevel(ctx context.Context, handle interface{}, level string, value interface{}) (interface{}, error) {
 	str := fmt.Sprintf("%v", handle) + level + "/"
 	c.Items[str] = value
 	return nil, c.Err
 
 }
 
-func (c *MockRunTimeContext) RtcAddResource(handle interface{}, resname string, value interface{}) (interface{}, error) {
+func (c *MockRunTimeContext) RtcAddResource(ctx context.Context, handle interface{}, resname string, value interface{}) (interface{}, error) {
 	str := fmt.Sprintf("%v", handle) + "resource" + "/" + resname + "/"
 	c.Items[str] = value
 	return nil, c.Err
 
 }
 
-func (c *MockRunTimeContext) RtcAddInstruction(handle interface{}, level string, insttype string, value interface{}) (interface{}, error) {
+func (c *MockRunTimeContext) RtcAddInstruction(ctx context.Context, handle interface{}, level string, insttype string, value interface{}) (interface{}, error) {
 	str := fmt.Sprintf("%v", handle) + level + "/" + insttype + "/"
 	c.Items[str] = value
 	return nil, c.Err
 }
 
-func (c *MockRunTimeContext) RtcDeletePair(handle interface{}) error {
+func (c *MockRunTimeContext) RtcDeletePair(ctx context.Context, handle interface{}) error {
 	str := fmt.Sprintf("%v", handle)
 	delete(c.Items, str)
 	return c.Err
 }
 
-func (c *MockRunTimeContext) RtcDeletePrefix(handle interface{}) error {
+func (c *MockRunTimeContext) RtcDeletePrefix(ctx context.Context, handle interface{}) error {
 	for k := range c.Items {
 		delete(c.Items, k)
 	}
 	return c.Err
 }
 
-func (c *MockRunTimeContext) RtcGetHandles(handle interface{}) ([]interface{}, error) {
+func (c *MockRunTimeContext) RtcGetHandles(ctx context.Context, handle interface{}) ([]interface{}, error) {
 	var keys []interface{}
 
 	for k := range c.Items {
@@ -119,7 +120,7 @@ func (c *MockRunTimeContext) RtcGetHandles(handle interface{}) ([]interface{}, e
 	return keys, c.Err
 }
 
-func (c *MockRunTimeContext) RtcGetValue(handle interface{}, value interface{}) error {
+func (c *MockRunTimeContext) RtcGetValue(ctx context.Context, handle interface{}, value interface{}) error {
 	key := fmt.Sprintf("%v", handle)
 	var s *string
 	s = value.(*string)
@@ -132,7 +133,7 @@ func (c *MockRunTimeContext) RtcGetValue(handle interface{}, value interface{}) 
 	return c.Err
 }
 
-func (c *MockRunTimeContext) RtcUpdateValue(handle interface{}, value interface{}) error {
+func (c *MockRunTimeContext) RtcUpdateValue(ctx context.Context, handle interface{}, value interface{}) error {
 	key := fmt.Sprintf("%v", handle)
 	c.Items[key] = value
 	return c.Err
@@ -161,8 +162,9 @@ func TestCreateCompositeApp(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.label, func(t *testing.T) {
+			ctx := context.Background()
 			ac.rtc = testCase.mockRtcontext
-			_, err := ac.CreateCompositeApp()
+			_, err := ac.CreateCompositeApp(ctx)
 			if err != nil {
 				if !strings.Contains(string(err.Error()), testCase.expectedError) {
 					t.Fatalf("Method returned an error (%s)", err)
@@ -193,8 +195,9 @@ func TestGetCompositeApp(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.label, func(t *testing.T) {
+			ctx := context.Background()
 			ac.rtc = testCase.mockRtcontext
-			_, err := ac.GetCompositeAppHandle()
+			_, err := ac.GetCompositeAppHandle(ctx)
 			if err != nil {
 				if !strings.Contains(string(err.Error()), testCase.expectedError) {
 					t.Fatalf("Method returned an error (%s)", err)
@@ -225,8 +228,9 @@ func TestDeleteCompositeApp(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.label, func(t *testing.T) {
+			ctx := context.Background()
 			ac.rtc = testCase.mockRtcontext
-			err := ac.DeleteCompositeApp()
+			err := ac.DeleteCompositeApp(ctx)
 			if err != nil {
 				if !strings.Contains(string(err.Error()), testCase.expectedError) {
 					t.Fatalf("Method returned an error (%s)", err)
@@ -263,9 +267,10 @@ func TestAddApp(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.label, func(t *testing.T) {
+			ctx := context.Background()
 			ac.rtc = testCase.mockRtcontext
-			_, err := ac.CreateCompositeApp()
-			_, err = ac.AddApp(testCase.key, "testapp1")
+			_, err := ac.CreateCompositeApp(ctx)
+			_, err = ac.AddApp(ctx, testCase.key, "testapp1")
 			if err != nil {
 				if !strings.Contains(string(err.Error()), testCase.expectedError) {
 					t.Fatalf("Method returned an error (%s)", err)
@@ -308,8 +313,9 @@ func TestGetAppHandle(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.label, func(t *testing.T) {
+			ctx := context.Background()
 			ac.rtc = testCase.mockRtcontext
-			_, err := ac.GetAppHandle(testCase.appname)
+			_, err := ac.GetAppHandle(ctx, testCase.appname)
 			if err != nil {
 				if !strings.Contains(string(err.Error()), testCase.expectedError) {
 					t.Fatalf("Method returned an error (%s)", err)

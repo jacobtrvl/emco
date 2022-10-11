@@ -7,9 +7,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
-	clusterPkg "gitlab.com/project-emco/core/emco-base/src/clm/pkg/cluster"
+
 	otheryaml "github.com/ghodss/yaml"
 	nad "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/apis/k8s.cni.cncf.io/v1"
+	clusterPkg "gitlab.com/project-emco/core/emco-base/src/clm/pkg/cluster"
 	netintents "gitlab.com/project-emco/core/emco-base/src/ncm/pkg/networkintents"
 	nettypes "gitlab.com/project-emco/core/emco-base/src/ncm/pkg/networkintents/types"
 	appcontext "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/appcontext"
@@ -17,11 +18,14 @@ import (
 	"gopkg.in/yaml.v2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"context"
+
 	pkgerrors "github.com/pkg/errors"
 )
 
-var CNINetworkingMultiVMCNIWrapper   string = "CNI-Networking-Multi-VM-CNI-Wrapper"
+var CNINetworkingMultiVMCNIWrapper string = "CNI-Networking-Multi-VM-CNI-Wrapper"
 var MultusCNINetworking string = "multus"
+
 // makeNetworkAttachmentDefinition makes a network attachment definition and
 // returns it as a string ready to be added to the resources list for the
 // appcontext
@@ -64,11 +68,11 @@ func Apply(ctxVal interface{}, clusterProvider, cluster string) error {
 	var resources []resource
 
 	var ac appcontext.AppContext
-	_, err := ac.LoadAppContext(ctxVal)
+	_, err := ac.LoadAppContext(context.Background(), ctxVal)
 	if err != nil {
 		return pkgerrors.Wrapf(err, "Error getting AppContext with Id: %v for %v/%v", ctxVal, clusterProvider, cluster)
 	}
-	ckv, err := clusterPkg.NewClusterClient().GetAllClusterKvPairs(clusterProvider, cluster)
+	ckv, err := clusterPkg.NewClusterClient().GetAllClusterKvPairs(context.Background(), clusterProvider, cluster)
 	var val string
 	if err == nil {
 		for _, kvp := range ckv {
@@ -171,7 +175,7 @@ func Apply(ctxVal interface{}, clusterProvider, cluster string) error {
 	}
 
 	acCluster := clusterProvider + nettypes.SEPARATOR + cluster
-	clusterhandle, err := ac.GetClusterHandle(nettypes.CONTEXT_CLUSTER_APP, acCluster)
+	clusterhandle, err := ac.GetClusterHandle(context.Background(), nettypes.CONTEXT_CLUSTER_APP, acCluster)
 	if err != nil {
 		return pkgerrors.Wrap(err, "Error getting cluster handle")
 	}
@@ -186,7 +190,7 @@ func Apply(ctxVal interface{}, clusterProvider, cluster string) error {
 	for _, resource := range resources {
 		orderinstr.Resorder = append(orderinstr.Resorder, resource.name)
 		resdep[resource.name] = "go"
-		_, err := ac.AddResource(clusterhandle, resource.name, resource.value)
+		_, err := ac.AddResource(context.Background(), clusterhandle, resource.name, resource.value)
 		if err != nil {
 			return pkgerrors.Wrap(err, "Error adding Resource to AppContext")
 		}
@@ -200,11 +204,11 @@ func Apply(ctxVal interface{}, clusterProvider, cluster string) error {
 	if err != nil {
 		return pkgerrors.Wrap(err, "Error marshalling resource dependency instruction")
 	}
-	_, err = ac.AddInstruction(clusterhandle, "resource", "order", string(jresord))
+	_, err = ac.AddInstruction(context.Background(), clusterhandle, "resource", "order", string(jresord))
 	if err != nil {
 		return pkgerrors.Wrap(err, "Error adding resource order instruction")
 	}
-	_, err = ac.AddInstruction(clusterhandle, "resource", "dependency", string(jresdep))
+	_, err = ac.AddInstruction(context.Background(), clusterhandle, "resource", "dependency", string(jresdep))
 	if err != nil {
 		return pkgerrors.Wrap(err, "Error adding resource dependency instruction")
 	}

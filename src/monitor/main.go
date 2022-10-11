@@ -6,6 +6,7 @@ package main
 import (
 	"flag"
 	"os"
+
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
@@ -61,9 +62,9 @@ func main() {
 		setupLog.Error(err, "unable to start manager")
 		os.Exit(1)
 	}
-	// Setup Github client, ignore errors. On error Monitor continues to
-	// work normally without updating CR in Github
-	controllers.SetupGitHubClient()
+	// Setup Git client, ignore errors. On error Monitor continues to
+	// work normally without updating CR in Git
+	controllers.SetupGitClient()
 	if err = (&controllers.ResourceBundleStateReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),

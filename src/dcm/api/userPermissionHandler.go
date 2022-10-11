@@ -24,6 +24,7 @@ type userPermissionHandler struct {
 
 // CreateHandler handles creation of the user permission entry in the database
 func (h userPermissionHandler) createHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 
 	vars := mux.Vars(r)
 	project := vars["project"]
@@ -57,7 +58,7 @@ func (h userPermissionHandler) createHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	ret, err := h.client.CreateUserPerm(project, logicalCloud, v)
+	ret, err := h.client.CreateUserPerm(ctx, project, logicalCloud, v)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, v, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -77,13 +78,14 @@ func (h userPermissionHandler) createHandler(w http.ResponseWriter, r *http.Requ
 // getAllHandler handles GET operations over user permissions
 // Returns a list of User Permissions
 func (h userPermissionHandler) getAllHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	project := vars["project"]
 	logicalCloud := vars["logicalCloud"]
 	var ret interface{}
 	var err error
 
-	ret, err = h.client.GetAllUserPerms(project, logicalCloud)
+	ret, err = h.client.GetAllUserPerms(ctx, project, logicalCloud)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -103,6 +105,7 @@ func (h userPermissionHandler) getAllHandler(w http.ResponseWriter, r *http.Requ
 // getHandler handles GET operations on a particular name
 // Returns a User Permission
 func (h userPermissionHandler) getHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	project := vars["project"]
 	logicalCloud := vars["logicalCloud"]
@@ -110,7 +113,7 @@ func (h userPermissionHandler) getHandler(w http.ResponseWriter, r *http.Request
 	var ret interface{}
 	var err error
 
-	ret, err = h.client.GetUserPerm(project, logicalCloud, name)
+	ret, err = h.client.GetUserPerm(ctx, project, logicalCloud, name)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -129,6 +132,7 @@ func (h userPermissionHandler) getHandler(w http.ResponseWriter, r *http.Request
 
 // UpdateHandler handles Update operations on a particular user permission
 func (h userPermissionHandler) updateHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	var v module.UserPermission
 	vars := mux.Vars(r)
 	project := vars["project"]
@@ -161,7 +165,7 @@ func (h userPermissionHandler) updateHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	ret, err := h.client.UpdateUserPerm(project, logicalCloud, name, v)
+	ret, err := h.client.UpdateUserPerm(ctx, project, logicalCloud, name, v)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, v, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -180,12 +184,13 @@ func (h userPermissionHandler) updateHandler(w http.ResponseWriter, r *http.Requ
 
 //deleteHandler handles DELETE operations on a particular record
 func (h userPermissionHandler) deleteHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	project := vars["project"]
 	logicalCloud := vars["logicalCloud"]
 	name := vars["userPermission"]
 
-	err := h.client.DeleteUserPerm(project, logicalCloud, name)
+	err := h.client.DeleteUserPerm(ctx, project, logicalCloud, name)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)

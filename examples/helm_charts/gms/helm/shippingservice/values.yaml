@@ -9,7 +9,7 @@ shippingservice:
     port: 50051
     image:
       repository: gcr.io/google-samples/microservices-demo/shippingservice
-      tag: v0.3.0
+      tag: v0.3.9
       pullPolicy: IfNotPresent
     resources:
       limits:

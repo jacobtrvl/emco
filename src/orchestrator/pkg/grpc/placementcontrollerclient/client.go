@@ -16,7 +16,7 @@ import (
 )
 
 // InvokeFilterClusters ..  will make the grpc call to the specified controller
-func InvokeFilterClusters(plsCtrl controller.Controller, appContextId string) error {
+func InvokeFilterClusters(ctx context.Context, plsCtrl controller.Controller, appContextId string) error {
 	controllerName := plsCtrl.Metadata.Name
 	log.Info("FilterClusters .. start", log.Fields{"controllerName": controllerName, "Host": plsCtrl.Spec.Host, "Port": plsCtrl.Spec.Port, "appContextId": appContextId})
 	var err error
@@ -24,11 +24,11 @@ func InvokeFilterClusters(plsCtrl controller.Controller, appContextId string) er
 	var ctrlRes *plsctrlclientpb.ResourceResponse
 
 	timeout := time.Duration(config.GetConfiguration().GrpcCallTimeout)
-	ctx, cancel := context.WithTimeout(context.Background(), timeout*time.Millisecond)
+	ctx, cancel := context.WithTimeout(ctx, timeout*time.Millisecond)
 	defer cancel()
 
 	// Fetch Grpc Connection handle
-	conn := rpc.GetRpcConn(plsCtrl.Metadata.Name)
+	conn := rpc.GetRpcConn(ctx, plsCtrl.Metadata.Name)
 	if conn != nil {
 		rpcClient = plsctrlclientpb.NewPlacementControllerClient(conn)
 		ctrlReq := new(plsctrlclientpb.ResourceRequest)

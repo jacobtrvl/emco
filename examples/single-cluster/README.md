@@ -14,8 +14,7 @@ This folder contains the following test cases to run with EMCO. These tests assu
 * In the ``config`` file, set the following variables (which are not set by default):
   1. ``KUBE_PATH``: points to where the kubeconfig for the edge cluster is located
   2. ``HOST_IP``: IP address of the cluster (or machine) where EMCO is installed
-
-* In a typical installation of EMCO where each service is running in K8s using the default hostnames, you'll want to set the `DNS` variable to ``true`` in the ``config`` file, so that EMCO services can talk to the controller services internally.
+  3. ``DNS=true``: EMCO services running on kubernetes in default namespace can talk to the controller services internally when value is true.
 
 ---
 * Additionally, you can optionally modify other variables:

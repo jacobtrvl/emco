@@ -1,6 +1,7 @@
 package metrics
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -16,7 +17,7 @@ func start() {
 				fmt.Println(err)
 			}
 
-			projects, err := module.NewProjectClient().GetAllProjects()
+			projects, err := module.NewProjectClient().GetAllProjects(context.Background())
 			if err != nil {
 				fmt.Println(err)
 				continue
@@ -24,7 +25,7 @@ func start() {
 
 			for _, proj := range projects {
 				ProjectGauge.WithLabelValues(proj.MetaData.Name).Set(1)
-				apps, err := client.CompositeApp.GetAllCompositeApps(proj.MetaData.Name)
+				apps, err := client.CompositeApp.GetAllCompositeApps(context.Background(), proj.MetaData.Name)
 				if err != nil {
 					fmt.Println(err)
 					continue
@@ -32,7 +33,7 @@ func start() {
 				for _, app := range apps {
 					ComAppGauge.WithLabelValues(app.Spec.Version, app.Metadata.Name, proj.MetaData.Name).Set(1)
 
-					applications, err := client.App.GetApps(proj.MetaData.Name, app.Metadata.Name, app.Spec.Version)
+					applications, err := client.App.GetApps(context.Background(), proj.MetaData.Name, app.Metadata.Name, app.Spec.Version)
 					if err != nil {
 						fmt.Println(err)
 						continue
@@ -40,7 +41,7 @@ func start() {
 					for _, application := range applications {
 						AppGauge.WithLabelValues(application.Metadata.Name, proj.MetaData.Name, app.Metadata.Name, app.Spec.Version).Set(1)
 
-						dependencies, err := client.AppDependency.GetAllAppDependency(proj.MetaData.Name, app.Metadata.Name, app.Spec.Version, application.Metadata.Name)
+						dependencies, err := client.AppDependency.GetAllAppDependency(context.Background(), proj.MetaData.Name, app.Metadata.Name, app.Spec.Version, application.Metadata.Name)
 						if err != nil {
 							fmt.Println(err)
 							continue
@@ -51,21 +52,21 @@ func start() {
 						}
 					}
 
-					digs, err := client.DeploymentIntentGroup.GetAllDeploymentIntentGroups(proj.MetaData.Name, app.Metadata.Name, app.Spec.Version)
+					digs, err := client.DeploymentIntentGroup.GetAllDeploymentIntentGroups(context.Background(), proj.MetaData.Name, app.Metadata.Name, app.Spec.Version)
 					if err != nil {
 						fmt.Println(err)
 						continue
 					}
 					for _, dig := range digs {
 						DIGGauge.WithLabelValues(dig.MetaData.Name, proj.MetaData.Name, app.Metadata.Name, app.Spec.Version).Set(1)
-						gpIntents, err := client.GenericPlacementIntent.GetAllGenericPlacementIntents(proj.MetaData.Name, app.Metadata.Name, app.Spec.Version, dig.MetaData.Name)
+						gpIntents, err := client.GenericPlacementIntent.GetAllGenericPlacementIntents(context.Background(), proj.MetaData.Name, app.Metadata.Name, app.Spec.Version, dig.MetaData.Name)
 						if err != nil {
 							fmt.Println(err)
 							continue
 						}
 						for _, gpi := range gpIntents {
 							GenericPlacementIntentGauge.WithLabelValues(gpi.MetaData.Name, dig.MetaData.Name, proj.MetaData.Name, app.Metadata.Name, app.Spec.Version).Set(1)
-							appIntents, err := client.AppIntent.GetAllAppIntents(proj.MetaData.Name, app.Metadata.Name, app.Spec.Version, gpi.MetaData.Name, dig.MetaData.Name)
+							appIntents, err := client.AppIntent.GetAllAppIntents(context.Background(), proj.MetaData.Name, app.Metadata.Name, app.Spec.Version, gpi.MetaData.Name, dig.MetaData.Name)
 							if err != nil {
 								fmt.Println(err)
 								continue
@@ -75,7 +76,7 @@ func start() {
 							}
 						}
 
-						groupIntents, err := client.Intent.GetAllIntents(proj.MetaData.Name, app.Metadata.Name, app.Spec.Version, dig.MetaData.Name)
+						groupIntents, err := client.Intent.GetAllIntents(context.Background(), proj.MetaData.Name, app.Metadata.Name, app.Spec.Version, dig.MetaData.Name)
 						if err != nil {
 							fmt.Println(err)
 							continue
@@ -87,14 +88,14 @@ func start() {
 						}
 					}
 
-					comProfiles, err := client.CompositeProfile.GetCompositeProfiles(proj.MetaData.Name, app.Metadata.Name, app.Spec.Version)
+					comProfiles, err := client.CompositeProfile.GetCompositeProfiles(context.Background(), proj.MetaData.Name, app.Metadata.Name, app.Spec.Version)
 					if err != nil {
 						fmt.Println(err)
 						continue
 					}
 					for _, comProfile := range comProfiles {
 						CompositeProfileGauge.WithLabelValues(comProfile.Metadata.Name, proj.MetaData.Name, app.Metadata.Name, app.Spec.Version).Set(1)
-						appProfiles, err := client.AppProfile.GetAppProfiles(proj.MetaData.Name, app.Metadata.Name, app.Spec.Version, comProfile.Metadata.Name)
+						appProfiles, err := client.AppProfile.GetAppProfiles(context.Background(), proj.MetaData.Name, app.Metadata.Name, app.Spec.Version, comProfile.Metadata.Name)
 						if err != nil {
 							fmt.Println(err)
 							continue
@@ -111,7 +112,7 @@ func start() {
 }
 
 func handleControllers(p *prometheus.GaugeVec, client *module.Client) error {
-	controllers, err := client.Controller.GetControllers()
+	controllers, err := client.Controller.GetControllers(context.Background())
 	if err != nil {
 		return err
 	}

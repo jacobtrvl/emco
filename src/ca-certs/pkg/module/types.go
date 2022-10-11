@@ -38,6 +38,7 @@ type CaCert struct {
 
 // CertSpec holds the caCert signing details
 type CaCertSpec struct {
+	Certificate            Certificate            `json:"certificate" yaml:"certificate"`       // represent the certificate info
 	CertificateSigningInfo CertificateSigningInfo `json:"csrInfo" yaml:"csrInfo"`               // represent the certificate signining request(CSR) info
 	Duration               string                 `json:"duration,omitempty"`                   // duration of the certificate
 	IsCA                   bool                   `json:"isCA,omitempty" yaml:"isCA,omitempty"` // specifies the cert is a CA or not
@@ -100,4 +101,9 @@ type IssuingClusterInfo struct {
 type Key struct {
 	Name string
 	Val  string `encrypted:""`
+}
+
+// Certificate holds the certificate details
+type Certificate struct {
+	CommonName string `json:"commonName,omitempty"` // common name to be used on the certificate
 }

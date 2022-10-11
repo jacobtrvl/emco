@@ -4,6 +4,8 @@
 package module
 
 import (
+	"context"
+
 	"gitlab.com/project-emco/core/emco-base/examples/sample-controller/pkg/model"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
 
@@ -29,12 +31,12 @@ func NewIntentClient() *SampleIntentClient {
 // You can have multiple managers based on the requirement and its implementation.
 // In this example, SampleIntentManager exposes the SampleIntentClient functionalities.
 type SampleIntentManager interface {
-	CreateSampleIntent(intent model.SampleIntent, project, app, version, deploymentIntentGroup string, failIfExists bool) (model.SampleIntent, error)
-	GetSampleIntents(name, project, app, version, deploymentIntentGroup string) ([]model.SampleIntent, error)
+	CreateSampleIntent(ctx context.Context, intent model.SampleIntent, project, app, version, deploymentIntentGroup string, failIfExists bool) (model.SampleIntent, error)
+	GetSampleIntents(ctx context.Context, name, project, app, version, deploymentIntentGroup string) ([]model.SampleIntent, error)
 }
 
 // CreateSampleIntent insert a new SampleIntent in the database
-func (i *SampleIntentClient) CreateSampleIntent(intent model.SampleIntent, project, app, version, deploymentIntentGroup string, failIfExists bool) (model.SampleIntent, error) {
+func (i *SampleIntentClient) CreateSampleIntent(ctx context.Context, intent model.SampleIntent, project, app, version, deploymentIntentGroup string, failIfExists bool) (model.SampleIntent, error) {
 	// Construct key and tag to select the entry.
 	key := model.SampleIntentKey{
 		Project:               project,
@@ -45,7 +47,7 @@ func (i *SampleIntentClient) CreateSampleIntent(intent model.SampleIntent, proje
 	}
 
 	// Check if this SampleIntent already exists.
-	intents, err := i.GetSampleIntents(intent.Metadata.Name, project, app, version, deploymentIntentGroup)
+	intents, err := i.GetSampleIntents(ctx, intent.Metadata.Name, project, app, version, deploymentIntentGroup)
 	if err == nil &&
 		len(intents) > 0 &&
 		intents[0].Metadata.Name == intent.Metadata.Name &&
@@ -53,7 +55,7 @@ func (i *SampleIntentClient) CreateSampleIntent(intent model.SampleIntent, proje
 		return model.SampleIntent{}, errors.New("SampleIntent already exists")
 	}
 
-	err = db.DBconn.Insert(i.dbInfo.collection, key, nil, i.dbInfo.tag, intent)
+	err = db.DBconn.Insert(ctx, i.dbInfo.collection, key, nil, i.dbInfo.tag, intent)
 	if err != nil {
 		return model.SampleIntent{}, err
 	}
@@ -62,7 +64,7 @@ func (i *SampleIntentClient) CreateSampleIntent(intent model.SampleIntent, proje
 }
 
 // GetSampleIntents returns the SampleIntent for the corresponding name
-func (i *SampleIntentClient) GetSampleIntents(name, project, app, version, deploymentIntentGroup string) ([]model.SampleIntent, error) {
+func (i *SampleIntentClient) GetSampleIntents(ctx context.Context, name, project, app, version, deploymentIntentGroup string) ([]model.SampleIntent, error) {
 	// Construct key and tag to select the entry.
 	key := model.SampleIntentKey{
 		Project:               project,
@@ -72,7 +74,7 @@ func (i *SampleIntentClient) GetSampleIntents(name, project, app, version, deplo
 		SampleIntent:          name,
 	}
 
-	values, err := db.DBconn.Find(i.dbInfo.collection, key, i.dbInfo.tag)
+	values, err := db.DBconn.Find(ctx, i.dbInfo.collection, key, i.dbInfo.tag)
 	if err != nil {
 		return []model.SampleIntent{}, err
 	}

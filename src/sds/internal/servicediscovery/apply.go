@@ -7,12 +7,14 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"gitlab.com/project-emco/core/emco-base/src/sds/internal/utils"
+	"context"
+
+	pkgerrors "github.com/pkg/errors"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/appcontext"
 	rsyncclient "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/grpc/notifyclient"
 	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/state"
-	pkgerrors "github.com/pkg/errors"
+	"gitlab.com/project-emco/core/emco-base/src/sds/internal/utils"
 )
 
 // DeployServiceEntry deploys service entry related resources on clusters
@@ -23,7 +25,7 @@ func DeployServiceEntry(ac appcontext.AppContext, appContextID string, serverNam
 	errors = nil
 
 	// Get the clusters in the appcontext for this app
-	clusters, errors := ac.GetClusterNames(serverName)
+	clusters, errors := ac.GetClusterNames(context.Background(), serverName)
 	if errors != nil {
 		log.Error("Unable to get the cluster names",
 			log.Fields{"AppName": serverName, "Error": errors})
@@ -65,7 +67,7 @@ func DeployServiceEntry(ac appcontext.AppContext, appContextID string, serverNam
 		// Create child app context
 
 		// Get the appcontext status value
-		acStatus, err := state.GetAppContextStatus(appContextID)
+		acStatus, err := state.GetAppContextStatus(context.Background(), appContextID)
 		if err != nil {
 			log.Error("Unable to get the status of the app context",
 				log.Fields{"appContextID": appContextID, "Error": err})
@@ -75,14 +77,14 @@ func DeployServiceEntry(ac appcontext.AppContext, appContextID string, serverNam
 		if acStatus.Status == appcontext.AppContextStatusEnum.Instantiated {
 
 			// Get the clusters in the appcontext for this app
-			cs, err := ac.GetClusterNames(clientName)
+			cs, err := ac.GetClusterNames(context.Background(), clientName)
 			if err != nil {
 				log.Error("Unable to get the cluster names",
 					log.Fields{"AppName": clientName, "Error": err})
 				return pkgerrors.Wrap(err, "Unable to get the cluster names")
 			}
 
-			// From this point on, we are dealing with a new context (not "ac" from above)
+			// From this point on, we are dealing with a new app context (not "ac" from above)
 			childContext := appcontext.AppContext{}
 			childCtxVal, err := childContext.InitAppContext()
 			if err != nil {
@@ -91,14 +93,14 @@ func DeployServiceEntry(ac appcontext.AppContext, appContextID string, serverNam
 				return pkgerrors.Wrap(err, "Error creating Child AppContext")
 			}
 
-			handle, err := childContext.CreateCompositeApp()
+			handle, err := childContext.CreateCompositeApp(context.Background())
 			if err != nil {
 				log.Error("Error creating Child AppContext CompositeApp",
 					log.Fields{"childContext": childContext, "Error": err})
 				return pkgerrors.Wrap(err, "Error creating child AppContext CompositeApp")
 			}
 
-			appHandle, err := childContext.AddApp(handle, compositeApp)
+			appHandle, err := childContext.AddApp(context.Background(), handle, compositeApp)
 			if err != nil {
 				return utils.CleanupCompositeApp(childContext, err, "Error adding App to AppContext", []string{serviceName, childCtxVal.(string)})
 			}
@@ -112,7 +114,7 @@ func DeployServiceEntry(ac appcontext.AppContext, appContextID string, serverNam
 					continue
 				}
 
-				clusterHandle, err := childContext.AddCluster(appHandle, c)
+				clusterHandle, err := childContext.AddCluster(context.Background(), appHandle, c)
 				// pre-build array to pass to utils.CleanupCompositeApp() [for performance]
 				details := []string{serviceName, c, childCtxVal.(string)}
 				if err != nil {
@@ -121,14 +123,14 @@ func DeployServiceEntry(ac appcontext.AppContext, appContextID string, serverNam
 
 				// Add service k8s resource to each cluster
 				appendedServiceName := serviceName + "+Service"
-				_, err = childContext.AddResource(clusterHandle, appendedServiceName, serviceData)
+				_, err = childContext.AddResource(context.Background(), clusterHandle, appendedServiceName, serviceData)
 				if err != nil {
 					return utils.CleanupCompositeApp(childContext, err, "Error adding Namespace Resource to AppContext", details)
 				}
 
 				// Add endpoint k8s resource to each cluster
 				appendedEndpointName := serviceName + "+Endpoint"
-				_, err = childContext.AddResource(clusterHandle, appendedEndpointName, endpointData)
+				_, err = childContext.AddResource(context.Background(), clusterHandle, appendedEndpointName, endpointData)
 				if err != nil {
 					return utils.CleanupCompositeApp(childContext, err, "Error adding Namespace Resource to AppContext", details)
 				}
@@ -154,22 +156,22 @@ func DeployServiceEntry(ac appcontext.AppContext, appContextID string, serverNam
 				}
 
 				// Add Resource-level Order and Dependency
-				_, err = childContext.AddInstruction(clusterHandle, "resource", "order", string(resOrder))
+				_, err = childContext.AddInstruction(context.Background(), clusterHandle, "resource", "order", string(resOrder))
 				if err != nil {
 					return utils.CleanupCompositeApp(childContext, err, "Error adding instruction order to AppContext", details)
 				}
 
-				_, err = childContext.AddInstruction(clusterHandle, "resource", "dependency", string(resDependency))
+				_, err = childContext.AddInstruction(context.Background(), clusterHandle, "resource", "dependency", string(resDependency))
 				if err != nil {
 					return utils.CleanupCompositeApp(childContext, err, "Error adding instruction dependency to AppContext", details)
 				}
 
 				// Add App-level Order and Dependency
-				_, err = childContext.AddInstruction(handle, "app", "order", string(appOrder))
+				_, err = childContext.AddInstruction(context.Background(), handle, "app", "order", string(appOrder))
 				if err != nil {
 					return utils.CleanupCompositeApp(childContext, err, "Error adding app-level order to AppContext", details)
 				}
-				_, err = childContext.AddInstruction(handle, "app", "dependency", string(appDependency))
+				_, err = childContext.AddInstruction(context.Background(), handle, "app", "dependency", string(appDependency))
 				if err != nil {
 					return utils.CleanupCompositeApp(childContext, err, "Error adding app-level dependency to AppContext", details)
 				}
@@ -177,12 +179,12 @@ func DeployServiceEntry(ac appcontext.AppContext, appContextID string, serverNam
 			}
 
 			// Get the parent composite app meta
-			m, err := ac.GetCompositeAppMeta()
+			m, err := ac.GetCompositeAppMeta(context.Background())
 			if err != nil {
 				return utils.CleanupCompositeApp(childContext, err, "Error getting CompositeAppMeta", []string{serviceName, childCtxVal.(string)})
 			}
 
-			err = childContext.AddCompositeAppMeta(appcontext.CompositeAppMeta{Project: m.Project, CompositeApp: compositeApp, Version: m.Version, Release: m.Release,
+			err = childContext.AddCompositeAppMeta(context.Background(), appcontext.CompositeAppMeta{Project: m.Project, CompositeApp: compositeApp, Version: m.Version, Release: m.Release,
 				DeploymentIntentGroup: m.DeploymentIntentGroup, Namespace: m.Namespace, Level: m.Level})
 			if err != nil {
 				return utils.CleanupCompositeApp(childContext, err, "Error adding CompositeAppMeta for child", []string{serviceName, childCtxVal.(string)})
@@ -191,7 +193,7 @@ func DeployServiceEntry(ac appcontext.AppContext, appContextID string, serverNam
 			childContextID := fmt.Sprintf("%v", childCtxVal)
 			m.ChildContextIDs = append(m.ChildContextIDs, childContextID)
 			// Add this child app context to Parent meta data
-			err = ac.AddCompositeAppMeta(appcontext.CompositeAppMeta{
+			err = ac.AddCompositeAppMeta(context.Background(), appcontext.CompositeAppMeta{
 				Project:               m.Project,
 				CompositeApp:          m.CompositeApp,
 				Version:               m.Version,
@@ -206,7 +208,7 @@ func DeployServiceEntry(ac appcontext.AppContext, appContextID string, serverNam
 
 			// Check for parent app context status
 			// Get the appcontext status value
-			acStatus, err := state.GetAppContextStatus(appContextID)
+			acStatus, err := state.GetAppContextStatus(context.Background(), appContextID)
 			if err != nil {
 				// Remove the child entry from the parent's meta
 				utils.RemoveChildCtx(m.ChildContextIDs, childContextID)
@@ -218,7 +220,7 @@ func DeployServiceEntry(ac appcontext.AppContext, appContextID string, serverNam
 
 				// To-Do: race condition can be observed here. Will address this issue by mmodifying the rsync code to handle race condition issues.
 				// Deploy the child app context
-				err = rsyncclient.CallRsyncInstall(childCtxVal)
+				err = rsyncclient.CallRsyncInstall(context.Background(), childCtxVal)
 				if err != nil {
 					// Remove the child entry from the parent's meta
 					utils.RemoveChildCtx(m.ChildContextIDs, childContextID)

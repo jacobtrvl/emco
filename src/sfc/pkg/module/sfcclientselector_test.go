@@ -10,6 +10,7 @@ import (
 	. "github.com/onsi/gomega"
 	pkgerrors "github.com/pkg/errors"
 
+	"context"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
 	orch "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/module"
 	"gitlab.com/project-emco/core/emco-base/src/sfc/pkg/model"
@@ -87,11 +88,11 @@ var _ = Describe("SFCClientSelectorIntent", func() {
 	Describe("Create SFC client selector intent", func() {
 		It("successful creation of sfc client selector intent", func() {
 			// set up prerequisites
-			_, err := (*projClient).CreateProject(proj, false)
+			_, err := (*projClient).CreateProject(context.Background(), proj, false)
 			Expect(err).To(BeNil())
-			_, err = (*caClient).CreateCompositeApp(ca, "testproject", false)
+			_, err = (*caClient).CreateCompositeApp(context.Background(), ca, "testproject", false)
 			Expect(err).To(BeNil())
-			_, _, err = (*digClient).CreateDeploymentIntentGroup(dig, "testproject", "ca", "v1", true)
+			_, _, err = (*digClient).CreateDeploymentIntentGroup(context.Background(), dig, "testproject", "ca", "v1", true)
 			Expect(err).To(BeNil())
 			_, err = (*sfcIntentClient).CreateSfcIntent(sfcIntent, "testproject", "ca", "v1", "dig", false)
 			Expect(err).To(BeNil())
@@ -102,11 +103,11 @@ var _ = Describe("SFCClientSelectorIntent", func() {
 		})
 		It("followed by create again should return error", func() {
 			// set up prerequisites
-			_, err := (*projClient).CreateProject(proj, false)
+			_, err := (*projClient).CreateProject(context.Background(), proj, false)
 			Expect(err).To(BeNil())
-			_, err = (*caClient).CreateCompositeApp(ca, "testproject", false)
+			_, err = (*caClient).CreateCompositeApp(context.Background(), ca, "testproject", false)
 			Expect(err).To(BeNil())
-			_, _, err = (*digClient).CreateDeploymentIntentGroup(dig, "testproject", "ca", "v1", true)
+			_, _, err = (*digClient).CreateDeploymentIntentGroup(context.Background(), dig, "testproject", "ca", "v1", true)
 			Expect(err).To(BeNil())
 			_, err = (*sfcIntentClient).CreateSfcIntent(sfcIntent, "testproject", "ca", "v1", "dig", false)
 			Expect(err).To(BeNil())
@@ -120,11 +121,11 @@ var _ = Describe("SFCClientSelectorIntent", func() {
 		})
 		It("successful creation of sfc client selector intent with update version of call", func() {
 			// set up prerequisites
-			_, err := (*projClient).CreateProject(proj, false)
+			_, err := (*projClient).CreateProject(context.Background(), proj, false)
 			Expect(err).To(BeNil())
-			_, err = (*caClient).CreateCompositeApp(ca, "testproject", false)
+			_, err = (*caClient).CreateCompositeApp(context.Background(), ca, "testproject", false)
 			Expect(err).To(BeNil())
-			_, _, err = (*digClient).CreateDeploymentIntentGroup(dig, "testproject", "ca", "v1", true)
+			_, _, err = (*digClient).CreateDeploymentIntentGroup(context.Background(), dig, "testproject", "ca", "v1", true)
 			Expect(err).To(BeNil())
 			_, err = (*sfcIntentClient).CreateSfcIntent(sfcIntent, "testproject", "ca", "v1", "dig", false)
 			Expect(err).To(BeNil())
@@ -135,11 +136,11 @@ var _ = Describe("SFCClientSelectorIntent", func() {
 		})
 		It("successful creation of sfc client selector intent with update version of call", func() {
 			// set up prerequisites
-			_, err := (*projClient).CreateProject(proj, false)
+			_, err := (*projClient).CreateProject(context.Background(), proj, false)
 			Expect(err).To(BeNil())
-			_, err = (*caClient).CreateCompositeApp(ca, "testproject", false)
+			_, err = (*caClient).CreateCompositeApp(context.Background(), ca, "testproject", false)
 			Expect(err).To(BeNil())
-			_, _, err = (*digClient).CreateDeploymentIntentGroup(dig, "testproject", "ca", "v1", true)
+			_, _, err = (*digClient).CreateDeploymentIntentGroup(context.Background(), dig, "testproject", "ca", "v1", true)
 			Expect(err).To(BeNil())
 			_, err = (*sfcIntentClient).CreateSfcIntent(sfcIntent, "testproject", "ca", "v1", "dig", false)
 			Expect(err).To(BeNil())
@@ -159,11 +160,11 @@ var _ = Describe("SFCClientSelectorIntent", func() {
 		})
 		It("Parent SFC Intent does exist - No SFC Client Selector Intents - should return empty list", func() {
 			// set up prerequisites
-			_, err := (*projClient).CreateProject(proj, false)
+			_, err := (*projClient).CreateProject(context.Background(), proj, false)
 			Expect(err).To(BeNil())
-			_, err = (*caClient).CreateCompositeApp(ca, "testproject", false)
+			_, err = (*caClient).CreateCompositeApp(context.Background(), ca, "testproject", false)
 			Expect(err).To(BeNil())
-			_, _, err = (*digClient).CreateDeploymentIntentGroup(dig, "testproject", "ca", "v1", true)
+			_, _, err = (*digClient).CreateDeploymentIntentGroup(context.Background(), dig, "testproject", "ca", "v1", true)
 			Expect(err).To(BeNil())
 			_, err = (*sfcIntentClient).CreateSfcIntent(sfcIntent, "testproject", "ca", "v1", "dig", false)
 			Expect(err).To(BeNil())
@@ -174,11 +175,11 @@ var _ = Describe("SFCClientSelectorIntent", func() {
 		})
 		It("Parent SFC Intent does exist - 2 SFC Intents created - should return list of len 2", func() {
 			// set up prerequisites
-			_, err := (*projClient).CreateProject(proj, false)
+			_, err := (*projClient).CreateProject(context.Background(), proj, false)
 			Expect(err).To(BeNil())
-			_, err = (*caClient).CreateCompositeApp(ca, "testproject", false)
+			_, err = (*caClient).CreateCompositeApp(context.Background(), ca, "testproject", false)
 			Expect(err).To(BeNil())
-			_, _, err = (*digClient).CreateDeploymentIntentGroup(dig, "testproject", "ca", "v1", true)
+			_, _, err = (*digClient).CreateDeploymentIntentGroup(context.Background(), dig, "testproject", "ca", "v1", true)
 			Expect(err).To(BeNil())
 			_, err = (*sfcIntentClient).CreateSfcIntent(sfcIntent, "testproject", "ca", "v1", "dig", false)
 			Expect(err).To(BeNil())
@@ -201,11 +202,11 @@ var _ = Describe("SFCClientSelectorIntent", func() {
 		})
 		It("should return error for unmarshalling db error", func() {
 			// set up prerequisites
-			_, err := (*projClient).CreateProject(proj, false)
+			_, err := (*projClient).CreateProject(context.Background(), proj, false)
 			Expect(err).To(BeNil())
-			_, err = (*caClient).CreateCompositeApp(ca, "testproject", false)
+			_, err = (*caClient).CreateCompositeApp(context.Background(), ca, "testproject", false)
 			Expect(err).To(BeNil())
-			_, _, err = (*digClient).CreateDeploymentIntentGroup(dig, "testproject", "ca", "v1", true)
+			_, _, err = (*digClient).CreateDeploymentIntentGroup(context.Background(), dig, "testproject", "ca", "v1", true)
 			Expect(err).To(BeNil())
 			_, err = (*sfcIntentClient).CreateSfcIntent(sfcIntent, "testproject", "ca", "v1", "dig", false)
 			Expect(err).To(BeNil())
@@ -223,11 +224,11 @@ var _ = Describe("SFCClientSelectorIntent", func() {
 		})
 		It("Successful get of sfcClientSelectorIntent", func() {
 			// set up prerequisites
-			_, err := (*projClient).CreateProject(proj, false)
+			_, err := (*projClient).CreateProject(context.Background(), proj, false)
 			Expect(err).To(BeNil())
-			_, err = (*caClient).CreateCompositeApp(ca, "testproject", false)
+			_, err = (*caClient).CreateCompositeApp(context.Background(), ca, "testproject", false)
 			Expect(err).To(BeNil())
-			_, _, err = (*digClient).CreateDeploymentIntentGroup(dig, "testproject", "ca", "v1", true)
+			_, _, err = (*digClient).CreateDeploymentIntentGroup(context.Background(), dig, "testproject", "ca", "v1", true)
 			Expect(err).To(BeNil())
 			_, err = (*sfcIntentClient).CreateSfcIntent(sfcIntent, "testproject", "ca", "v1", "dig", false)
 			Expect(err).To(BeNil())
@@ -246,11 +247,11 @@ var _ = Describe("SFCClientSelectorIntent", func() {
 		})
 		It("should return error for unmarshalling db error", func() {
 			// set up prerequisites
-			_, err := (*projClient).CreateProject(proj, false)
+			_, err := (*projClient).CreateProject(context.Background(), proj, false)
 			Expect(err).To(BeNil())
-			_, err = (*caClient).CreateCompositeApp(ca, "testproject", false)
+			_, err = (*caClient).CreateCompositeApp(context.Background(), ca, "testproject", false)
 			Expect(err).To(BeNil())
-			_, _, err = (*digClient).CreateDeploymentIntentGroup(dig, "testproject", "ca", "v1", true)
+			_, _, err = (*digClient).CreateDeploymentIntentGroup(context.Background(), dig, "testproject", "ca", "v1", true)
 			Expect(err).To(BeNil())
 			_, err = (*sfcIntentClient).CreateSfcIntent(sfcIntent, "testproject", "ca", "v1", "dig", false)
 			Expect(err).To(BeNil())
@@ -266,11 +267,11 @@ var _ = Describe("SFCClientSelectorIntent", func() {
 	Describe("Delete SFC Client Selector intent", func() {
 		It("successful delete", func() {
 			// set up prerequisites
-			_, err := (*projClient).CreateProject(proj, false)
+			_, err := (*projClient).CreateProject(context.Background(), proj, false)
 			Expect(err).To(BeNil())
-			_, err = (*caClient).CreateCompositeApp(ca, "testproject", false)
+			_, err = (*caClient).CreateCompositeApp(context.Background(), ca, "testproject", false)
 			Expect(err).To(BeNil())
-			_, _, err = (*digClient).CreateDeploymentIntentGroup(dig, "testproject", "ca", "v1", true)
+			_, _, err = (*digClient).CreateDeploymentIntentGroup(context.Background(), dig, "testproject", "ca", "v1", true)
 			Expect(err).To(BeNil())
 			_, err = (*sfcIntentClient).CreateSfcIntent(sfcIntent, "testproject", "ca", "v1", "dig", false)
 			Expect(err).To(BeNil())

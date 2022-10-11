@@ -17,7 +17,7 @@ function cleanup {
 
 function get_variables {
     project=$(cat values.yaml | grep ProjectName: | sed -z 's/.*ProjectName: //')
-    logical_cloud_name=$(cat values.yaml | grep AdminCloud: | sed -z 's/.*AdminCloud: //')
+    logical_cloud_name=$(cat values.yaml | grep LogicalCloud: | sed -z 's/.*LogicalCloud: //')
     composite_app="test-composite-app"
     deployment_intent_group_name="test-deployment-intent"
 
@@ -95,6 +95,7 @@ function delete {
     delete_prerequisites
     cleanup
 }
+
 
 if [ "$#" -lt 1 ] ; then
     usage

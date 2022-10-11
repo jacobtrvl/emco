@@ -24,6 +24,7 @@ type keyValueHandler struct {
 
 // CreateHandler handles creation of the key value entry in the database
 func (h keyValueHandler) createHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	project := vars["project"]
 	logicalCloud := vars["logicalCloud"]
@@ -56,7 +57,7 @@ func (h keyValueHandler) createHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ret, err := h.client.CreateKVPair(project, logicalCloud, v)
+	ret, err := h.client.CreateKVPair(ctx, project, logicalCloud, v)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, v, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -76,13 +77,14 @@ func (h keyValueHandler) createHandler(w http.ResponseWriter, r *http.Request) {
 // getHandler handles GET operations over key-value pairs
 // Returns a list of Key Values
 func (h keyValueHandler) getAllHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	project := vars["project"]
 	logicalCloud := vars["logicalCloud"]
 	var ret interface{}
 	var err error
 
-	ret, err = h.client.GetAllKVPairs(project, logicalCloud)
+	ret, err = h.client.GetAllKVPairs(ctx, project, logicalCloud)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -102,6 +104,7 @@ func (h keyValueHandler) getAllHandler(w http.ResponseWriter, r *http.Request) {
 // getHandler handle GET operations on a particular name
 // Returns a Key Value
 func (h keyValueHandler) getHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	project := vars["project"]
 	logicalCloud := vars["logicalCloud"]
@@ -109,7 +112,7 @@ func (h keyValueHandler) getHandler(w http.ResponseWriter, r *http.Request) {
 	var ret interface{}
 	var err error
 
-	ret, err = h.client.GetKVPair(project, logicalCloud, name)
+	ret, err = h.client.GetKVPair(ctx, project, logicalCloud, name)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -128,6 +131,7 @@ func (h keyValueHandler) getHandler(w http.ResponseWriter, r *http.Request) {
 
 // UpdateHandler handles Update operations on a particular Key Value
 func (h keyValueHandler) updateHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	var v module.KeyValue
 	vars := mux.Vars(r)
 	project := vars["project"]
@@ -160,7 +164,7 @@ func (h keyValueHandler) updateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ret, err := h.client.UpdateKVPair(project, logicalCloud, name, v)
+	ret, err := h.client.UpdateKVPair(ctx, project, logicalCloud, name, v)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, v, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -178,12 +182,13 @@ func (h keyValueHandler) updateHandler(w http.ResponseWriter, r *http.Request) {
 
 //deleteHandler handles DELETE operations on a particular record
 func (h keyValueHandler) deleteHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	project := vars["project"]
 	logicalCloud := vars["logicalCloud"]
 	name := vars["logicalCloudKv"]
 
-	err := h.client.DeleteKVPair(project, logicalCloud, name)
+	err := h.client.DeleteKVPair(ctx, project, logicalCloud, name)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)

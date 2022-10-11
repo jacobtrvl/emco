@@ -10,7 +10,7 @@ import (
 	hpaModel "gitlab.com/project-emco/core/emco-base/src/hpa-plc/pkg/model"
 	hpaUtils "gitlab.com/project-emco/core/emco-base/src/hpa-plc/pkg/utils"
 	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
-	connector "gitlab.com/project-emco/core/emco-base/src/rsync/pkg/connector"
+	connector "gitlab.com/project-emco/core/emco-base/src/rsync/pkg/utils"
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -151,7 +151,7 @@ func (p *GenericResource) PopulateResourceInfo(ctx context.Context, clusterName 
 	defer con.RemoveClient()
 
 	// Get Kube Client handle
-	c, err := con.GetClient(clusterName, "0", "default")
+	c, err := con.GetClient(context.Background(), clusterName, "0", "default")
 	if err != nil {
 		log.Error("Error in creating kubeconfig client", log.Fields{
 			"error":        err,

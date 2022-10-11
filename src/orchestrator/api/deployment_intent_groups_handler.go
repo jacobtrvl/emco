@@ -50,12 +50,13 @@ func (h deploymentIntentGroupHandler) createDeploymentIntentGroupHandler(w http.
 		return
 	}
 
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	projectName := vars["project"]
 	compositeAppName := vars["compositeApp"]
 	version := vars["compositeAppVersion"]
 
-	dIntent, _, createErr := h.client.CreateDeploymentIntentGroup(d, projectName, compositeAppName, version, true)
+	dIntent, _, createErr := h.client.CreateDeploymentIntentGroup(ctx, d, projectName, compositeAppName, version, true)
 	if createErr != nil {
 		apiErr := apierror.HandleErrors(vars, createErr, d, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -74,6 +75,7 @@ func (h deploymentIntentGroupHandler) createDeploymentIntentGroupHandler(w http.
 
 func (h deploymentIntentGroupHandler) getDeploymentIntentGroupHandler(w http.ResponseWriter, r *http.Request) {
 
+	ctx := r.Context()
 	vars := mux.Vars(r)
 
 	p := vars["project"]
@@ -103,7 +105,7 @@ func (h deploymentIntentGroupHandler) getDeploymentIntentGroupHandler(w http.Res
 		return
 	}
 
-	dIntentGrp, err := h.client.GetDeploymentIntentGroup(di, p, ca, v)
+	dIntentGrp, err := h.client.GetDeploymentIntentGroup(ctx, di, p, ca, v)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -122,6 +124,7 @@ func (h deploymentIntentGroupHandler) getDeploymentIntentGroupHandler(w http.Res
 }
 
 func (h deploymentIntentGroupHandler) getAllDeploymentIntentGroupsHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	pList := []string{"project", "compositeApp", "compositeAppVersion"}
 	err := validation.IsValidParameterPresent(vars, pList)
@@ -134,7 +137,7 @@ func (h deploymentIntentGroupHandler) getAllDeploymentIntentGroupsHandler(w http
 	ca := vars["compositeApp"]
 	v := vars["compositeAppVersion"]
 
-	diList, err := h.client.GetAllDeploymentIntentGroups(p, ca, v)
+	diList, err := h.client.GetAllDeploymentIntentGroups(ctx, p, ca, v)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -152,6 +155,7 @@ func (h deploymentIntentGroupHandler) getAllDeploymentIntentGroupsHandler(w http
 }
 
 func (h deploymentIntentGroupHandler) deleteDeploymentIntentGroupHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 
 	p := vars["project"]
@@ -159,7 +163,7 @@ func (h deploymentIntentGroupHandler) deleteDeploymentIntentGroupHandler(w http.
 	v := vars["compositeAppVersion"]
 	di := vars["deploymentIntentGroup"]
 
-	err := h.client.DeleteDeploymentIntentGroup(di, p, ca, v)
+	err := h.client.DeleteDeploymentIntentGroup(ctx, di, p, ca, v)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -171,6 +175,7 @@ func (h deploymentIntentGroupHandler) deleteDeploymentIntentGroupHandler(w http.
 // putDeploymentIntentGroupHandler handles the update operation of DeploymentIntentGroup
 func (h deploymentIntentGroupHandler) putDeploymentIntentGroupHandler(w http.ResponseWriter, r *http.Request) {
 	var dig moduleLib.DeploymentIntentGroup
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	p := vars["project"]
 	ca := vars["compositeApp"]
@@ -196,7 +201,7 @@ func (h deploymentIntentGroupHandler) putDeploymentIntentGroupHandler(w http.Res
 		return
 	}
 
-	deploymentIntentGroup, digExists, err := h.client.CreateDeploymentIntentGroup(dig, p, ca, v, false)
+	deploymentIntentGroup, digExists, err := h.client.CreateDeploymentIntentGroup(ctx, dig, p, ca, v, false)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, dig, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)

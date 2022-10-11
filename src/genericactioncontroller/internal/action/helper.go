@@ -8,6 +8,8 @@ import (
 	"encoding/json"
 	"strings"
 
+	"context"
+
 	"gitlab.com/project-emco/core/emco-base/src/clm/pkg/cluster"
 	"gitlab.com/project-emco/core/emco-base/src/genericactioncontroller/pkg/module"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/appcontext"
@@ -34,7 +36,7 @@ type updateError struct {
 
 // isValidClusterToApplyByLabel checks if a given cluster falls under the given label and provider
 func isValidClusterToApplyByLabel(provider, clusterName, clusterLabel, mode string) (bool, error) {
-	clusters, err := cluster.NewClusterClient().GetClustersWithLabel(provider, clusterLabel)
+	clusters, err := cluster.NewClusterClient().GetClustersWithLabel(context.Background(), provider, clusterLabel)
 	if err != nil {
 		log.Error("Failed to get clusters by the provider and label",
 			log.Fields{
@@ -57,7 +59,7 @@ func isValidClusterToApplyByLabel(provider, clusterName, clusterLabel, mode stri
 
 // isValidClusterToApplyByName checks if a given cluster under a provider matches with the cluster which is authenticated for
 func isValidClusterToApplyByName(provider, authenticatedCluster, givenCluster, mode string) (bool, error) {
-	clusters, err := cluster.NewClusterClient().GetClusters(provider)
+	clusters, err := cluster.NewClusterClient().GetClusters(context.Background(), provider)
 	if err != nil {
 		log.Error("Failed to get clusters by the provider",
 			log.Fields{
@@ -151,7 +153,7 @@ func (o *UpdateOptions) getCustomizationContent() error {
 
 // getClusterNames returns a list of all clusters for a given app
 func (o *UpdateOptions) getClusterNames() ([]string, error) {
-	clusters, err := o.appContext.GetClusterNames(o.Resource.Spec.AppName)
+	clusters, err := o.appContext.GetClusterNames(context.Background(), o.Resource.Spec.AppName)
 	if err != nil {
 		o.logUpdateError(
 			updateError{
@@ -165,7 +167,7 @@ func (o *UpdateOptions) getClusterNames() ([]string, error) {
 
 // getClusterHandle returns the handle for a given app and cluster
 func (o *UpdateOptions) getClusterHandle(cluster string) (interface{}, error) {
-	handle, err := o.appContext.GetClusterHandle(o.Resource.Spec.AppName, cluster)
+	handle, err := o.appContext.GetClusterHandle(context.Background(), o.Resource.Spec.AppName, cluster)
 	if err != nil {
 		o.logUpdateError(
 			updateError{
@@ -180,7 +182,7 @@ func (o *UpdateOptions) getClusterHandle(cluster string) (interface{}, error) {
 
 // addResource add the resource under the app and cluster
 func (o *UpdateOptions) addResource(handle interface{}, resource, value string) error {
-	if _, err := o.appContext.AddResource(handle, resource, value); err != nil {
+	if _, err := o.appContext.AddResource(context.Background(), handle, resource, value); err != nil {
 		o.logUpdateError(
 			updateError{
 				message: "Failed to add the resource",
@@ -194,7 +196,7 @@ func (o *UpdateOptions) addResource(handle interface{}, resource, value string) 
 
 // getResourceInstruction returns the resource instruction for a given instruction type
 func (o *UpdateOptions) getResourceInstruction(cluster string) (interface{}, error) {
-	resorder, err := o.appContext.GetResourceInstruction(o.Resource.Spec.AppName, cluster, "order")
+	resorder, err := o.appContext.GetResourceInstruction(context.Background(), o.Resource.Spec.AppName, cluster, "order")
 	if err != nil {
 		o.logUpdateError(
 			updateError{
@@ -213,7 +215,7 @@ func (o *UpdateOptions) addInstruction(handle, resorder interface{}, cluster, re
 	json.Unmarshal([]byte(resorder.(string)), &v)
 	v["resorder"] = append(v["resorder"], resource)
 	data, _ := json.Marshal(v)
-	if _, err := o.appContext.AddInstruction(handle, "resource", "order", string(data)); err != nil {
+	if _, err := o.appContext.AddInstruction(context.Background(), handle, "resource", "order", string(data)); err != nil {
 		o.logUpdateError(
 			updateError{
 				message: "Failed to add instruction",
@@ -228,7 +230,7 @@ func (o *UpdateOptions) addInstruction(handle, resorder interface{}, cluster, re
 
 // getResourceHandle returns the handle for the given app, cluster, and resource
 func (o *UpdateOptions) getResourceHandle(cluster, resource string) (interface{}, error) {
-	handle, err := o.appContext.GetResourceHandle(o.Resource.Spec.AppName, cluster, resource)
+	handle, err := o.appContext.GetResourceHandle(context.Background(), o.Resource.Spec.AppName, cluster, resource)
 	if err != nil {
 		o.logUpdateError(
 			updateError{
@@ -243,7 +245,7 @@ func (o *UpdateOptions) getResourceHandle(cluster, resource string) (interface{}
 
 // getValue returns the value for a given handle
 func (o *UpdateOptions) getValue(handle interface{}) (interface{}, error) {
-	val, err := o.appContext.GetValue(handle)
+	val, err := o.appContext.GetValue(context.Background(), handle)
 	if err != nil {
 		o.logUpdateError(
 			updateError{
@@ -263,7 +265,7 @@ func (o *UpdateOptions) getValue(handle interface{}) (interface{}, error) {
 
 // updateResourceValue updates the resource value using the given handle
 func (o *UpdateOptions) updateResourceValue(handle interface{}, value string) error {
-	if err := o.appContext.UpdateResourceValue(handle, value); err != nil {
+	if err := o.appContext.UpdateResourceValue(context.Background(), handle, value); err != nil {
 		o.logUpdateError(
 			updateError{
 				message: "Failed to update resource value",

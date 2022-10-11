@@ -48,10 +48,11 @@ func (h compositeAppHandler) createHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	projectName := vars["project"]
 
-	ret, err := h.client.CreateCompositeApp(c, projectName, false)
+	ret, err := h.client.CreateCompositeApp(ctx, c, projectName, false)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, c, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -71,12 +72,13 @@ func (h compositeAppHandler) createHandler(w http.ResponseWriter, r *http.Reques
 // getHandler handles GET operations on a particular CompositeApp Name
 // Returns a compositeApp
 func (h compositeAppHandler) getHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	name := vars["compositeApp"]
 	version := vars["compositeAppVersion"]
 	projectName := vars["project"]
 
-	ret, err := h.client.GetCompositeApp(name, version, projectName)
+	ret, err := h.client.GetCompositeApp(ctx, name, version, projectName)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -95,12 +97,13 @@ func (h compositeAppHandler) getHandler(w http.ResponseWriter, r *http.Request) 
 
 // getAllCompositeAppsHandler handles the GetAllComppositeApps, returns a list of compositeApps under a project
 func (h compositeAppHandler) getAllCompositeAppsHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	pName := vars["project"]
 
 	var caList []moduleLib.CompositeApp
 
-	cApps, err := h.client.GetAllCompositeApps(pName)
+	cApps, err := h.client.GetAllCompositeApps(ctx, pName)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -123,12 +126,13 @@ func (h compositeAppHandler) getAllCompositeAppsHandler(w http.ResponseWriter, r
 
 // deleteHandler handles DELETE operations on a particular CompositeApp Name
 func (h compositeAppHandler) deleteHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	name := vars["compositeApp"]
 	version := vars["compositeAppVersion"]
 	projectName := vars["project"]
 
-	err := h.client.DeleteCompositeApp(name, version, projectName)
+	err := h.client.DeleteCompositeApp(ctx, name, version, projectName)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -160,10 +164,11 @@ func (h compositeAppHandler) updateHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	projectName := vars["project"]
 
-	ret, err := h.client.CreateCompositeApp(c, projectName, true)
+	ret, err := h.client.CreateCompositeApp(ctx, c, projectName, true)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, c, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)

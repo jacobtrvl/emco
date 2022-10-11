@@ -1,0 +1,9 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2020-2021 Intel Corporation
+
+---
+#Terminate logical cloud
+version: emco/v2
+resourceContext:
+  anchor: projects/{{ .ProjectName }}/logical-clouds/{{ .AdminCloud }}/terminate
+

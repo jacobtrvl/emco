@@ -4,6 +4,8 @@
 package contextdb
 
 import (
+	"context"
+
 	pkgerrors "github.com/pkg/errors"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/config"
 )
@@ -16,17 +18,17 @@ type ContextDb interface {
 	// Returns nil if db health is good
 	HealthCheck() error
 	// Puts Json Struct in db with key
-	Put(key string, value interface{}) error
+	Put(ctx context.Context, key string, value interface{}) error
 	// Delete k,v
-	Delete(key string) error
+	Delete(ctx context.Context, key string) error
 	// Delete all keys in heirarchy
-	DeleteAll(key string) error
+	DeleteAll(ctx context.Context, key string) error
 	// Gets Json Struct from db
-	Get(key string, value interface{}) error
+	Get(ctx context.Context, key string, value interface{}) error
 	// Returns all keys with a prefix
-	GetAllKeys(path string) ([]string, error)
+	GetAllKeys(ctx context.Context, path string) ([]string, error)
 	// Put values in Etcd DB and check if already present
-	PutWithCheck(key string, value interface{}) error
+	PutWithCheck(ctx context.Context, key string, value interface{}) error
 }
 
 // createContextDBClient creates the DB client

@@ -4,6 +4,7 @@
 package module
 
 import (
+	"context"
 	"reflect"
 	"strings"
 	"testing"
@@ -213,9 +214,10 @@ func TestCreateIntent(t *testing.T) {
 	}
 	for _, test := range testCases {
 		t.Run(test.label, func(t *testing.T) {
+			ctx := context.Background()
 			db.DBconn = test.db
 			cli := NewIntentClient()
-			intent, iExists, err := cli.AddIntent(test.i, test.project, test.compositeApp, test.version, test.deploymentIntentGroup, true)
+			intent, iExists, err := cli.AddIntent(ctx, test.i, test.project, test.compositeApp, test.version, test.deploymentIntentGroup, true)
 			if err != nil {
 				if test.err == "" {
 					t.Fatalf("AddIntent returned an unexpected error %s, ", err.Error())
@@ -469,9 +471,10 @@ func TestUpdateIntent(t *testing.T) {
 
 	for _, test := range testCases {
 		t.Run(test.label, func(t *testing.T) {
+			ctx := context.Background()
 			db.DBconn = test.db
 			cli := NewIntentClient()
-			intent, iExists, err := cli.AddIntent(test.i, test.project, test.compositeApp, test.version, test.deploymentIntentGroup, false)
+			intent, iExists, err := cli.AddIntent(ctx, test.i, test.project, test.compositeApp, test.version, test.deploymentIntentGroup, false)
 			if err != nil {
 				if test.err == "" {
 					t.Fatalf("AddIntent returned an unexpected error %s, ", err.Error())
@@ -703,9 +706,10 @@ func TestGetIntent(t *testing.T) {
 
 	for _, test := range testCases {
 		t.Run(test.label, func(t *testing.T) {
+			ctx := context.Background()
 			db.DBconn = test.db
 			cli := NewIntentClient()
-			intent, err := cli.GetIntent(test.intent, test.project, test.compositeApp, test.version, test.deploymentIntentGroup)
+			intent, err := cli.GetIntent(ctx, test.intent, test.project, test.compositeApp, test.version, test.deploymentIntentGroup)
 			if err != nil {
 				if test.err == "" {
 					t.Fatalf("GetIntent returned an unexpected error %s, ", err.Error())
@@ -924,9 +928,10 @@ func TestGetIntentByName(t *testing.T) {
 
 	for _, test := range testCases {
 		t.Run(test.label, func(t *testing.T) {
+			ctx := context.Background()
 			db.DBconn = test.db
 			cli := NewIntentClient()
-			intentSpecData, err := cli.GetIntentByName(test.intent, test.project, test.compositeApp, test.version, test.deploymentIntentGroup)
+			intentSpecData, err := cli.GetIntentByName(ctx, test.intent, test.project, test.compositeApp, test.version, test.deploymentIntentGroup)
 			if err != nil {
 				if test.err == "" {
 					t.Fatalf("GetIntentByName returned an unexpected error %s, ", err.Error())
@@ -1126,9 +1131,10 @@ func TestGetAllIntents(t *testing.T) {
 
 	for _, test := range testCases {
 		t.Run(test.label, func(t *testing.T) {
+			ctx := context.Background()
 			db.DBconn = test.db
 			cli := NewIntentClient()
-			listOfIntents, err := cli.GetAllIntents(test.project, test.compositeApp, test.version, test.deploymentIntentGroup)
+			listOfIntents, err := cli.GetAllIntents(ctx, test.project, test.compositeApp, test.version, test.deploymentIntentGroup)
 			if err != nil {
 				if test.err == "" {
 					t.Fatalf("GetAllIntents returned an unexpected error %s, ", err.Error())
@@ -1462,9 +1468,10 @@ func TestDeleteIntent(t *testing.T) {
 
 	for _, test := range testCases {
 		t.Run(test.label, func(t *testing.T) {
+			ctx := context.Background()
 			db.DBconn = test.db
 			cli := NewIntentClient()
-			err := cli.DeleteIntent(test.intent, test.project, test.compositeApp, test.version, test.deploymentIntentGroup)
+			err := cli.DeleteIntent(ctx, test.intent, test.project, test.compositeApp, test.version, test.deploymentIntentGroup)
 			if err != nil {
 				if test.err == "" {
 					t.Fatalf("DeleteIntent returned an unexpected error %s, ", err.Error())

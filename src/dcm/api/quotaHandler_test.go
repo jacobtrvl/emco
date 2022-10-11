@@ -11,6 +11,7 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	pkgerrors "github.com/pkg/errors"
+	"github.com/stretchr/testify/mock"
 	"gitlab.com/project-emco/core/emco-base/src/dcm/api/mocks"
 	"gitlab.com/project-emco/core/emco-base/src/dcm/pkg/module"
 )
@@ -38,7 +39,7 @@ var _ = Describe("QuotaHandler", func() {
 	DescribeTable("Create Quota tests",
 		func(t testCase) {
 			// set up client mock responses
-			t.quotaClient.On("CreateQuota", "test-project", "test-lc", t.inStruct).Return(t.mockVal, t.mockError)
+			t.quotaClient.On("CreateQuota", mock.Anything, "test-project", "test-lc", t.inStruct).Return(t.mockVal, t.mockError)
 
 			// make HTTP request
 			request := httptest.NewRequest("POST", "/v2/projects/test-project/logical-clouds/test-lc/cluster-quotas", t.inputReader)
@@ -240,7 +241,7 @@ var _ = Describe("QuotaHandler", func() {
 	// DescribeTable("Put Quota tests",
 	// 	func(t testCase) {
 	// 		// set up client mock responses
-	// 		t.quotaClient.On("UpdateQuota", "test-project", "test-lc", t.inputName, t.inStruct).Return(t.mockVal, t.mockError)
+	// 		t.quotaClient.On("UpdateQuota", mock.Anything, "test-project", "test-lc", t.inputName, t.inStruct).Return(t.mockVal, t.mockError)
 
 	// 		// make HTTP request
 	// 		request := httptest.NewRequest("PUT", "/v2/projects/test-project/logical-clouds/test-lc/cluster-quotas/"+t.inputName, t.inputReader)
@@ -410,7 +411,7 @@ var _ = Describe("QuotaHandler", func() {
 	DescribeTable("Get List Quota tests",
 		func(t testCase) {
 			// set up client mock responses
-			t.quotaClient.On("GetAllQuotas", "test-project", "test-lc").Return(t.mockVals, t.mockError)
+			t.quotaClient.On("GetAllQuotas", mock.Anything, "test-project", "test-lc").Return(t.mockVals, t.mockError)
 
 			// make HTTP request
 			request := httptest.NewRequest("GET", "/v2/projects/test-project/logical-clouds/test-lc/cluster-quotas", nil)
@@ -460,7 +461,7 @@ var _ = Describe("QuotaHandler", func() {
 	DescribeTable("Get Quota tests",
 		func(t testCase) {
 			// set up client mock responses
-			t.quotaClient.On("GetQuota", "test-project", "test-lc", t.inputName).Return(t.mockVal, t.mockError)
+			t.quotaClient.On("GetQuota", mock.Anything, "test-project", "test-lc", t.inputName).Return(t.mockVal, t.mockError)
 
 			// make HTTP request
 			request := httptest.NewRequest("GET", "/v2/projects/test-project/logical-clouds/test-lc/cluster-quotas/"+t.inputName, nil)
@@ -510,7 +511,7 @@ var _ = Describe("QuotaHandler", func() {
 	DescribeTable("Delete Quota tests",
 		func(t testCase) {
 			// set up client mock responses
-			t.quotaClient.On("DeleteQuota", "test-project", "test-lc", t.inputName).Return(t.mockError)
+			t.quotaClient.On("DeleteQuota", mock.Anything, "test-project", "test-lc", t.inputName).Return(t.mockError)
 
 			// make HTTP request
 			request := httptest.NewRequest("DELETE", "/v2/projects/test-project/logical-clouds/test-lc/cluster-quotas/"+t.inputName, nil)

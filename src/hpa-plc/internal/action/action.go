@@ -26,13 +26,13 @@ import (
 func FilterClusters(appContextID string) error {
 	var ac appcontext.AppContext
 	log.Warn("FilterClusters .. start", log.Fields{"appContextID": appContextID})
-	_, err := ac.LoadAppContext(appContextID)
+	_, err := ac.LoadAppContext(context.Background(), appContextID)
 	if err != nil {
 		log.Error("FilterClusters .. Error getting AppContext", log.Fields{"appContextID": appContextID})
 		return pkgerrors.Wrapf(err, "FilterClusters .. Error getting AppContext with Id: %v", appContextID)
 	}
 
-	caMeta, err := ac.GetCompositeAppMeta()
+	caMeta, err := ac.GetCompositeAppMeta(context.Background())
 	if err != nil {
 		log.Error("FilterClusters .. Error getting metadata for AppContext", log.Fields{"appContextID": appContextID})
 		return pkgerrors.Wrapf(err, "FilterClusters .. Error getting metadata for AppContext with Id: %v", appContextID)
@@ -46,7 +46,7 @@ func FilterClusters(appContextID string) error {
 	log.Info("FilterClusters .. AppContext details", log.Fields{"project": project, "compositeApp": compositeApp, "deploymentGroup": deploymentIntentGroup})
 
 	// Get all apps in this composite app
-	apps, err := orchModuleLib.NewAppClient().GetApps(project, compositeApp, compositeAppVersion)
+	apps, err := orchModuleLib.NewAppClient().GetApps(context.Background(), project, compositeApp, compositeAppVersion)
 	if err != nil {
 		log.Error("FilterClusters .. Not finding the compositeApp attached apps", log.Fields{"appContextID": appContextID, "compositeApp": compositeApp})
 		return pkgerrors.Wrapf(err, "FilterClusters .. Not finding the compositeApp[%s] attached apps", compositeApp)
@@ -69,7 +69,7 @@ func FilterClusters(appContextID string) error {
 
 	// Dump group-clusters map
 	for index, eachApp := range allAppNames {
-		grpMap, _ := ac.GetClusterGroupMap(eachApp)
+		grpMap, _ := ac.GetClusterGroupMap(context.Background(), eachApp)
 		log.Warn("FilterClusters .. ClusterGroupMap dump before invoking HPA Placement filtering",
 			log.Fields{"index": index, "appContextID": appContextID, "appName": eachApp, "group-map_size": len(grpMap), "groupMap": grpMap})
 	}
@@ -110,7 +110,7 @@ func FilterClusters(appContextID string) error {
 				"app-name":                hpaIntent.Spec.AppName,
 			})
 
-			grpMap, err := ac.GetClusterGroupMap(hpaIntent.Spec.AppName)
+			grpMap, err := ac.GetClusterGroupMap(context.Background(), hpaIntent.Spec.AppName)
 			if err != nil {
 				log.Error("FilterClusters .. Error getting GroupMap for app", log.Fields{"appName": hpaIntent.Spec.AppName, "groupMap": grpMap})
 				return pkgerrors.Wrapf(err, "FilterClusters .. Error getting GroupMap for app[%s], groupMap[%s]", hpaIntent.Spec.AppName, grpMap)
@@ -125,7 +125,7 @@ func FilterClusters(appContextID string) error {
 				hpaQualifiedNodes := make([]string, 0)
 
 				// Get all clusters for the current App from the AppContext
-				getclusters, err := ac.GetClusterNames(hpaIntent.Spec.AppName)
+				getclusters, err := ac.GetClusterNames(context.Background(), hpaIntent.Spec.AppName)
 				log.Info("FilterClusters .. GetClusterNames for app Info.", log.Fields{
 					"clusters":                getclusters,
 					"project":                 project,
@@ -518,12 +518,12 @@ func FilterClusters(appContextID string) error {
 					log.Info("filterResource .. Delete non-qualified cluster", log.Fields{"cluster-index": i, "cluster": clExtra, "appname": hpaIntent.Spec.AppName})
 
 					// Delete the cluster from AppContext if not matching HPA rules
-					ch, err := ac.GetClusterHandle(hpaIntent.Spec.AppName, clExtra)
+					ch, err := ac.GetClusterHandle(context.Background(), hpaIntent.Spec.AppName, clExtra)
 					if err != nil {
 						log.Error("filterResource .. Unable to get cluster handle", log.Fields{"cluster": clExtra, "appname": hpaIntent.Spec.AppName})
 						return pkgerrors.Wrapf(err, "filterResource .. Unable to get cluster handle. appName[%s] cluster[%s]", hpaIntent.Spec.AppName, clExtra)
 					}
-					err = ac.DeleteCluster(ch)
+					err = ac.DeleteCluster(context.Background(), ch)
 					if err != nil {
 						log.Error("filterResource .. Unable to delete cluster", log.Fields{"cluster": clExtra, "appname": hpaIntent.Spec.AppName})
 						return pkgerrors.Wrapf(err, "filterResource .. Unable to delete cluster. appName[%s] cluster[%s]", hpaIntent.Spec.AppName, clExtra)
@@ -535,7 +535,7 @@ func FilterClusters(appContextID string) error {
 
 	// Dump group-clusters map
 	for index, eachApp := range allAppNames {
-		grpMap, _ := ac.GetClusterGroupMap(eachApp)
+		grpMap, _ := ac.GetClusterGroupMap(context.Background(), eachApp)
 		log.Warn("FilterClusters .. ClusterGroupMap dump after invoking HPA Placement filtering.",
 			log.Fields{"index": index, "appContextID": appContextID,
 				"project": project, "compositeApp": compositeApp,

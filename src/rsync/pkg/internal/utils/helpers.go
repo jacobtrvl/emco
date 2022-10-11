@@ -4,14 +4,16 @@
 package utils
 
 import (
+	"context"
 	"encoding/base64"
+	"strings"
+
 	pkgerrors "github.com/pkg/errors"
 	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 	mtypes "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/module/types"
 	"gitlab.com/project-emco/core/emco-base/src/rsync/pkg/db"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
-	"strings"
 )
 
 // DecodeYAMLData reads a string to extract the Kubernetes object definition
@@ -28,7 +30,7 @@ func DecodeYAMLData(data string, into runtime.Object) (runtime.Object, error) {
 
 // GetKubeConfig uses the connectivity client to get the kubeconfig based on the name
 // of the clustername.
-var GetKubeConfig = func(clustername string, level string, namespace string) ([]byte, error) {
+var GetKubeConfig = func(ctx context.Context, clustername string, level string, namespace string) ([]byte, error) {
 	if !strings.Contains(clustername, "+") {
 		return nil, pkgerrors.New("Not a valid cluster name")
 	}
@@ -40,7 +42,7 @@ var GetKubeConfig = func(clustername string, level string, namespace string) ([]
 	ccc := db.NewCloudConfigClient()
 
 	log.Info("Querying CloudConfig", log.Fields{"strs": strs, "level": level, "namespace": namespace})
-	cconfig, err := ccc.GetCloudConfig(strs[0], strs[1], level, namespace)
+	cconfig, err := ccc.GetCloudConfig(ctx, strs[0], strs[1], level, namespace)
 	if err != nil {
 		return nil, pkgerrors.Wrap(err, "Get kubeconfig failed")
 	}
@@ -53,7 +55,7 @@ var GetKubeConfig = func(clustername string, level string, namespace string) ([]
 	return dec, nil
 }
 
-var GetGitOpsConfig = func(clustername string, level string, namespace string) (mtypes.GitOpsSpec, error) {
+var GetGitOpsConfig = func(ctx context.Context, clustername string, level string, namespace string) (mtypes.GitOpsSpec, error) {
 	if !strings.Contains(clustername, "+") {
 		return mtypes.GitOpsSpec{}, pkgerrors.New("Not a valid cluster name")
 	}
@@ -63,7 +65,7 @@ var GetGitOpsConfig = func(clustername string, level string, namespace string) (
 	}
 	ccc := db.NewCloudConfigClient()
 
-	cfg, err := ccc.GetGitOpsConfig(strs[0], strs[1], level, namespace)
+	cfg, err := ccc.GetGitOpsConfig(ctx, strs[0], strs[1], level, namespace)
 	if err != nil {
 		return mtypes.GitOpsSpec{}, err
 	}

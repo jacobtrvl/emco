@@ -4,6 +4,7 @@
 package status
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -342,14 +343,14 @@ func isResourceHandle(ch, h interface{}) bool {
 }
 
 // getParallelHandle - return the handle h with the original contextId replaced with ac's contextId
-func getParallelHandle(h interface{}, ac appcontext.AppContext) string {
+func getParallelHandle(ctx context.Context, h interface{}, ac appcontext.AppContext) string {
 	ph := fmt.Sprintf("%v", h)
 	oldHs := strings.SplitN(ph, "/", -1)
 	if len(oldHs) < 3 {
 		return ""
 	}
 
-	ch, err := ac.GetCompositeAppHandle()
+	ch, err := ac.GetCompositeAppHandle(ctx)
 	if err != nil {
 		return ""
 	}
@@ -379,14 +380,14 @@ func keepResource(r string, rList []string) bool {
 // In case of no update it'll refer back to the same appContext
 // 'ac' is the target appcontext, 'sac' is the status appcontext
 // and 'h' is the resource handle in the StatusAppContext
-func getResourceFromReference(ac, sac appcontext.AppContext, h interface{}, appName, cluster string) (unstructured.Unstructured, error) {
+func getResourceFromReference(ctx context.Context, ac, sac appcontext.AppContext, h interface{}, appName, cluster string) (unstructured.Unstructured, error) {
 
 	var val = ""
 	var err error
 	// Read reference appContext value
-	sh, err := sac.GetLevelHandle(h, "reference")
+	sh, err := sac.GetLevelHandle(ctx, h, "reference")
 	if err == nil {
-		s, err := sac.GetValue(sh)
+		s, err := sac.GetValue(ctx, sh)
 		if err == nil {
 			js, err := json.Marshal(s)
 			if err == nil {
@@ -411,22 +412,22 @@ func getResourceFromReference(ac, sac appcontext.AppContext, h interface{}, appN
 
 		// Get Resource from status AppContext
 		var res interface{}
-		rh, err := sac.GetResourceHandle(appName, cluster, resource)
+		rh, err := sac.GetResourceHandle(ctx, appName, cluster, resource)
 		if err != nil {
 			log.Error(":: Error getting resource handle ::", log.Fields{"app": appName, "cluster": cluster, "resource": resource})
 			// if the resource is not in status appcontext and does not have a reference, then look in the appcontext
-			rh, err := ac.GetResourceHandle(appName, cluster, resource)
+			rh, err := ac.GetResourceHandle(ctx, appName, cluster, resource)
 			if err != nil {
 				log.Error(":: Error getting resource handle ::", log.Fields{"app": appName, "cluster": cluster, "resource": resource})
 				return unstructured.Unstructured{}, err
 			}
-			res, err = ac.GetValue(rh)
+			res, err = ac.GetValue(ctx, rh)
 			if err != nil {
 				log.Error(":: Error getting resource value ::", log.Fields{"app": appName, "cluster": cluster, "resource": resource})
 				return unstructured.Unstructured{}, err
 			}
 		} else {
-			res, err = sac.GetValue(rh)
+			res, err = sac.GetValue(ctx, rh)
 			if err != nil {
 				log.Error(":: Error getting resource value ::", log.Fields{"app": appName, "cluster": cluster, "resource": resource})
 				return unstructured.Unstructured{}, err
@@ -443,26 +444,26 @@ func getResourceFromReference(ac, sac appcontext.AppContext, h interface{}, appN
 	} else {
 		// Load the reference appContext
 		ref := appcontext.AppContext{}
-		_, err = ref.LoadAppContext(val)
+		_, err = ref.LoadAppContext(ctx, val)
 		if err != nil {
 			return unstructured.Unstructured{}, err
 		}
 		// Get Resource from reference AppContext
-		rh, err := ref.GetResourceHandle(appName, cluster, resource)
+		rh, err := ref.GetResourceHandle(ctx, appName, cluster, resource)
 		if err != nil {
 			log.Error(":: Error getting resource handle ::", log.Fields{"app": appName, "cluster": cluster, "resource": resource})
 			return unstructured.Unstructured{}, err
 		}
-		res, err := ref.GetValue(rh)
+		res, err := ref.GetValue(ctx, rh)
 		if err != nil {
 			log.Error(":: Error getting resource value ::", log.Fields{"app": appName, "cluster": cluster, "resource": resource})
 			return unstructured.Unstructured{}, err
 		}
 
 		// If ac == sac and ref != ac - then no error, but return empty resource
-		acH, _ := ac.GetCompositeAppHandle()
-		sacH, _ := sac.GetCompositeAppHandle()
-		refH, _ := ref.GetCompositeAppHandle()
+		acH, _ := ac.GetCompositeAppHandle(ctx)
+		sacH, _ := sac.GetCompositeAppHandle(ctx)
+		refH, _ := ref.GetCompositeAppHandle(ctx)
 		if acH == sacH && refH != acH {
 			return unstructured.Unstructured{}, nil
 		}
@@ -477,11 +478,11 @@ func getResourceFromReference(ac, sac appcontext.AppContext, h interface{}, appN
 }
 
 // getAppContextResources collects the resource status of all resources in an AppContext subject to the filter parameters
-func getAppContextResources(ac, sac appcontext.AppContext, ch interface{}, qOutput, qType string, fResources []string, resourceList *[]ResourceStatus, statusCnts map[string]int, clusterStatusCnts map[string]int, app, cluster string) (int, error) {
+func getAppContextResources(ctx context.Context, ac, sac appcontext.AppContext, ch interface{}, qOutput, qType string, fResources []string, resourceList *[]ResourceStatus, statusCnts map[string]int, clusterStatusCnts map[string]int, app, cluster string) (int, error) {
 	count := 0
 
 	// Get all Resources for the Cluster
-	hs, err := ac.GetAllHandles(ch)
+	hs, err := ac.GetAllHandles(ctx, ch)
 	if err != nil {
 		log.Info(":: Error getting all handles ::", log.Fields{"handles": ch, "error": err})
 		return 0, err
@@ -494,7 +495,7 @@ func getAppContextResources(ac, sac appcontext.AppContext, ch interface{}, qOutp
 		}
 
 		// Get the resource handle for the status appcontext
-		statusH := getParallelHandle(h, sac)
+		statusH := getParallelHandle(ctx, h, sac)
 		if statusH == "" {
 			log.Error(":: Error getting status app context handle::",
 				log.Fields{
@@ -507,9 +508,9 @@ func getAppContextResources(ac, sac appcontext.AppContext, ch interface{}, qOutp
 		// Get Resource Status from status AppContext
 		// Default to "Pending" if this key does not yet exist (or any other error occurs)
 		rstatus := resourcestatus.ResourceStatus{Status: resourcestatus.RsyncStatusEnum.Pending}
-		sh, err := sac.GetLevelHandle(statusH, "status")
+		sh, err := sac.GetLevelHandle(ctx, statusH, "status")
 		if err == nil {
-			s, err := sac.GetValue(sh)
+			s, err := sac.GetValue(ctx, sh)
 			if err == nil {
 				js, err := json.Marshal(s)
 				if err == nil {
@@ -517,7 +518,7 @@ func getAppContextResources(ac, sac appcontext.AppContext, ch interface{}, qOutp
 				}
 			}
 		}
-		unstruct, err := getResourceFromReference(ac, sac, statusH, app, cluster)
+		unstruct, err := getResourceFromReference(ctx, ac, sac, statusH, app, cluster)
 		if err != nil {
 			log.Error(":: Error getting GVK ::", log.Fields{"error": err})
 			continue
@@ -558,13 +559,13 @@ func getAppContextResources(ac, sac appcontext.AppContext, ch interface{}, qOutp
 }
 
 // getListOfApps gets the list of apps from the app context
-func getListOfApps(ac appcontext.AppContext) []string {
-	ch, err := ac.GetCompositeAppHandle()
+func getListOfApps(ctx context.Context, ac appcontext.AppContext) []string {
+	ch, err := ac.GetCompositeAppHandle(ctx)
 
 	apps := make([]string, 0)
 
 	// Get all handles
-	hs, err := ac.GetAllHandles(ch)
+	hs, err := ac.GetAllHandles(ctx, ch)
 	if err != nil {
 		log.Info(":: Error getting all handles ::", log.Fields{"handles": ch, "error": err})
 		return apps
@@ -597,8 +598,8 @@ const CaCertQuery = "CaCertStatus"
 
 // PrepareClusterStatusResult takes in a resource stateInfo object, the list of apps and the query parameters.
 // It then fills out the StatusResult structure appropriately from information in the AppContext
-func PrepareClusterStatusResult(stateInfo state.StateInfo, qInstance, qType, qOutput string, fApps, fClusters, fResources []string) (ClusterStatusResult, error) {
-	status, err := prepareStatusResult(ClusterStatusQuery, stateInfo, qInstance, qType, qOutput, fApps, fClusters, fResources)
+func PrepareClusterStatusResult(ctx context.Context, stateInfo state.StateInfo, qInstance, qType, qOutput string, fApps, fClusters, fResources []string) (ClusterStatusResult, error) {
+	status, err := prepareStatusResult(ctx, ClusterStatusQuery, stateInfo, qInstance, qType, qOutput, fApps, fClusters, fResources)
 	if err != nil {
 		return ClusterStatusResult{}, err
 	} else {
@@ -631,14 +632,14 @@ func PrepareClusterStatusResult(stateInfo state.StateInfo, qInstance, qType, qOu
 
 // GenericPrepareStatusResult takes in a resource stateInfo object, the list of apps and the query parameters.
 // It then fills out the StatusResult structure appropriately from information in the AppContext
-func GenericPrepareStatusResult(statusType string, stateInfo state.StateInfo, qInstance, qType, qOutput string, fApps, fClusters, fResources []string) (StatusResult, error) {
-	return prepareStatusResult(statusType, stateInfo, qInstance, qType, qOutput, fApps, fClusters, fResources)
+func GenericPrepareStatusResult(ctx context.Context, statusType string, stateInfo state.StateInfo, qInstance, qType, qOutput string, fApps, fClusters, fResources []string) (StatusResult, error) {
+	return prepareStatusResult(ctx, statusType, stateInfo, qInstance, qType, qOutput, fApps, fClusters, fResources)
 }
 
 // PrepareStatusResult takes in a resource stateInfo object, the list of apps and the query parameters.
 // It then fills out the StatusResult structure appropriately from information in the AppContext
-func PrepareStatusResult(stateInfo state.StateInfo, qInstance, qType, qOutput string, fApps, fClusters, fResources []string) (StatusResult, error) {
-	return prepareStatusResult(DeploymentIntentGroupStatusQuery, stateInfo, qInstance, qType, qOutput, fApps, fClusters, fResources)
+func PrepareStatusResult(ctx context.Context, stateInfo state.StateInfo, qInstance, qType, qOutput string, fApps, fClusters, fResources []string) (StatusResult, error) {
+	return prepareStatusResult(ctx, DeploymentIntentGroupStatusQuery, stateInfo, qInstance, qType, qOutput, fApps, fClusters, fResources)
 }
 
 // covenience fn that ignores the index returned by GetSliceContains
@@ -649,8 +650,8 @@ func isNameInList(name string, namesList []string) bool {
 
 // PrepareCaCertStatusResult takes in a caCert stateInfo object, the list of apps and the query parameters.
 // It then fills out the StatusResult structure appropriately from information in the AppContext
-func PrepareCaCertStatusResult(stateInfo state.StateInfo, qInstance, qType, qOutput string, fApps, fClusters, fResources []string) (CaCertStatusResult, error) {
-	status, err := prepareStatusResult(CaCertQuery, stateInfo, qInstance, qType, qOutput, fApps, fClusters, fResources)
+func PrepareCaCertStatusResult(ctx context.Context, stateInfo state.StateInfo, qInstance, qType, qOutput string, fApps, fClusters, fResources []string) (CaCertStatusResult, error) {
+	status, err := prepareStatusResult(ctx, CaCertQuery, stateInfo, qInstance, qType, qOutput, fApps, fClusters, fResources)
 	if err != nil {
 		return CaCertStatusResult{}, err
 	} else {
@@ -672,7 +673,7 @@ func PrepareCaCertStatusResult(stateInfo state.StateInfo, qInstance, qType, qOut
 
 // prepareStatusResult takes in a resource stateInfo object, the list of apps and the query parameters.
 // It then fills out the StatusResult structure appropriately from information in the AppContext
-func prepareStatusResult(statusType string, stateInfo state.StateInfo, qInstance, qType, qOutput string, fApps, fClusters, fResources []string) (StatusResult, error) {
+func prepareStatusResult(ctx context.Context, statusType string, stateInfo state.StateInfo, qInstance, qType, qOutput string, fApps, fClusters, fResources []string) (StatusResult, error) {
 
 	statusResult := StatusResult{}
 
@@ -698,21 +699,21 @@ func prepareStatusResult(statusType string, stateInfo state.StateInfo, qInstance
 		return statusResult, nil
 	}
 
-	ac, err := state.GetAppContextFromId(currentCtxId)
+	ac, err := state.GetAppContextFromId(ctx, currentCtxId)
 	if err != nil {
 		return StatusResult{}, pkgerrors.Wrap(err, "AppContext for status query not found")
 	}
 
 	// get the appcontext status value
-	h, err := ac.GetCompositeAppHandle()
+	h, err := ac.GetCompositeAppHandle(ctx)
 	if err != nil {
 		return StatusResult{}, pkgerrors.Wrap(err, "AppContext handle not found")
 	}
-	sh, err := ac.GetLevelHandle(h, "status")
+	sh, err := ac.GetLevelHandle(ctx, h, "status")
 	if err != nil {
 		return StatusResult{}, pkgerrors.Wrap(err, "AppContext status handle not found")
 	}
-	statusVal, err := ac.GetValue(sh)
+	statusVal, err := ac.GetValue(ctx, sh)
 	if err != nil {
 		return StatusResult{}, pkgerrors.Wrap(err, "AppContext status value not found")
 	}
@@ -732,13 +733,13 @@ func prepareStatusResult(statusType string, stateInfo state.StateInfo, qInstance
 		statusResult.DeployedStatus = acStatus.Status
 	}
 	// Get the StatusAppContext
-	sac, err := state.GetAppContextFromId(statusCtxId)
+	sac, err := state.GetAppContextFromId(ctx, statusCtxId)
 	if err != nil {
 		return StatusResult{}, pkgerrors.Wrap(err, "AppContext for status query not found")
 	}
 
 	// Get the composite app meta
-	caMeta, err := sac.GetCompositeAppMeta()
+	caMeta, err := sac.GetCompositeAppMeta(ctx)
 
 	if statusType != LcStatusQuery && statusType != ClusterStatusQuery && statusType != CaCertQuery {
 		if err != nil {
@@ -754,7 +755,7 @@ func prepareStatusResult(statusType string, stateInfo state.StateInfo, qInstance
 	clusterStatusCnts := make(map[string]int)
 
 	// Get the list of apps from the app context
-	apps := getListOfApps(ac)
+	apps := getListOfApps(ctx, ac)
 
 	// If filter-apps list is provided, ensure that every app to be
 	// filtered is part of this composite app
@@ -773,7 +774,7 @@ func prepareStatusResult(statusType string, stateInfo state.StateInfo, qInstance
 			continue
 		}
 		// Get the clusters in the appcontext for this app
-		clusters, err := ac.GetClusterNames(app)
+		clusters, err := ac.GetClusterNames(ctx, app)
 		if err != nil {
 			continue
 		}
@@ -791,10 +792,10 @@ func prepareStatusResult(statusType string, stateInfo state.StateInfo, qInstance
 			pc := strings.Split(cluster, "+")
 			clusterStatus.ClusterProvider = pc[0]
 			clusterStatus.Cluster = pc[1]
-			connectivity := getClusterReadyStatus(sac, app, cluster)
+			connectivity := getClusterReadyStatus(ctx, sac, app, cluster)
 			if connectivity == no_cluster_handle {
 				// try the current appcontext in case rsync hasn't updated status appcontext
-				connectivity = getClusterReadyStatus(ac, app, cluster)
+				connectivity = getClusterReadyStatus(ctx, ac, app, cluster)
 				if connectivity == no_cluster_handle {
 					connectivity = string(appcontext.ClusterReadyStatusEnum.Unknown)
 				}
@@ -805,7 +806,7 @@ func prepareStatusResult(statusType string, stateInfo state.StateInfo, qInstance
 				clusterStatus.Connectivity = connectivity
 			}
 
-			ch, err := ac.GetClusterHandle(app, cluster)
+			ch, err := ac.GetClusterHandle(ctx, app, cluster)
 			if err != nil {
 				log.Error(":: No handle for cluster, app ::",
 					log.Fields{"Cluster": cluster, "AppName": app, "Error": err})
@@ -813,7 +814,7 @@ func prepareStatusResult(statusType string, stateInfo state.StateInfo, qInstance
 			}
 
 			clusterStatus.Resources = make([]ResourceStatus, 0)
-			cnt, err := getAppContextResources(ac, sac, ch, qOutput, qType, fResources, &clusterStatus.Resources, rsyncStatusCnts, clusterStatusCnts, app, cluster)
+			cnt, err := getAppContextResources(ctx, ac, sac, ch, qOutput, qType, fResources, &clusterStatus.Resources, rsyncStatusCnts, clusterStatusCnts, app, cluster)
 			if err != nil {
 				log.Info(":: Error gathering appcontext resources for cluster, app ::",
 					log.Fields{"Cluster": cluster, "AppName": app, "Error": err})
@@ -824,7 +825,7 @@ func prepareStatusResult(statusType string, stateInfo state.StateInfo, qInstance
 			clusterCount += cnt
 
 			if qType == "cluster" || qType == "ready" {
-				rbValue, err := getResourceBundleStateStatus(sac, app, cluster)
+				rbValue, err := getResourceBundleStateStatus(ctx, sac, app, cluster)
 				if err != nil {
 					continue
 				}
@@ -872,15 +873,15 @@ func prepareStatusResult(statusType string, stateInfo state.StateInfo, qInstance
 	return statusResult, nil
 }
 
-func getResourceBundleStateStatus(ac appcontext.AppContext, app, cluster string) (rb.ResourceBundleStateStatus, error) {
-	csh, err := ac.GetClusterStatusHandle(app, cluster)
+func getResourceBundleStateStatus(ctx context.Context, ac appcontext.AppContext, app, cluster string) (rb.ResourceBundleStateStatus, error) {
+	csh, err := ac.GetClusterStatusHandle(ctx, app, cluster)
 	if err != nil {
 		log.Info(":: No cluster status handle for cluster, app ::",
 			log.Fields{"Cluster": cluster, "AppName": app, "Error": err})
 		// cluster status has not been created yet, return an empty status value
 		return rb.ResourceBundleStateStatus{}, nil
 	}
-	clusterRbValue, err := ac.GetValue(csh)
+	clusterRbValue, err := ac.GetValue(ctx, csh)
 	if err != nil {
 		log.Info(":: No cluster status value for cluster, app ::",
 			log.Fields{"Cluster": cluster, "AppName": app, "Error": err})
@@ -899,7 +900,7 @@ func getResourceBundleStateStatus(ac appcontext.AppContext, app, cluster string)
 
 // PrepareAppsListStatusResult takes in a resource stateInfo object, the list of apps and the query parameters.
 // It then fills out the StatusResult structure appropriately from information in the AppContext
-func PrepareAppsListStatusResult(stateInfo state.StateInfo, qInstance string) (AppsListResult, error) {
+func PrepareAppsListStatusResult(ctx context.Context, stateInfo state.StateInfo, qInstance string) (AppsListResult, error) {
 	statusResult := AppsListResult{}
 
 	var currentCtxId string
@@ -921,20 +922,20 @@ func PrepareAppsListStatusResult(stateInfo state.StateInfo, qInstance string) (A
 		return statusResult, nil
 	}
 
-	ac, err := state.GetAppContextFromId(currentCtxId)
+	ac, err := state.GetAppContextFromId(ctx, currentCtxId)
 	if err != nil {
 		return AppsListResult{}, pkgerrors.Wrap(err, "AppContext for Apps List status query not found")
 	}
 
 	// Get the list of apps from the app context
-	statusResult.Apps = getListOfApps(ac)
+	statusResult.Apps = getListOfApps(ctx, ac)
 
 	return statusResult, nil
 }
 
 // prepareStatusResult takes in a resource stateInfo object, the list of apps and the query parameters.
 // It then fills out the StatusResult structure appropriately from information in the AppContext
-func PrepareClustersByAppStatusResult(stateInfo state.StateInfo, qInstance string, fApps []string) (ClustersByAppResult, error) {
+func PrepareClustersByAppStatusResult(ctx context.Context, stateInfo state.StateInfo, qInstance string, fApps []string) (ClustersByAppResult, error) {
 	statusResult := ClustersByAppResult{}
 
 	statusResult.ClustersByApp = make([]ClustersByAppEntry, 0)
@@ -957,13 +958,13 @@ func PrepareClustersByAppStatusResult(stateInfo state.StateInfo, qInstance strin
 		return statusResult, nil
 	}
 
-	ac, err := state.GetAppContextFromId(currentCtxId)
+	ac, err := state.GetAppContextFromId(ctx, currentCtxId)
 	if err != nil {
 		return ClustersByAppResult{}, pkgerrors.Wrap(err, "AppContext for status query not found")
 	}
 
 	// Get the list of apps from the app context
-	apps := getListOfApps(ac)
+	apps := getListOfApps(ctx, ac)
 
 	// Loop through each app and get the clusters for the app
 	for _, app := range apps {
@@ -987,7 +988,7 @@ func PrepareClustersByAppStatusResult(stateInfo state.StateInfo, qInstance strin
 
 		// Get the clusters in the appcontext for this app
 		entry.Clusters = make([]ClusterEntry, 0)
-		clusters, err := ac.GetClusterNames(app)
+		clusters, err := ac.GetClusterNames(ctx, app)
 		if err != nil {
 		} else {
 			for _, cl := range clusters {
@@ -1007,7 +1008,7 @@ func PrepareClustersByAppStatusResult(stateInfo state.StateInfo, qInstance strin
 
 // PrepareResourcesByAppStatusResult takes in a resource stateInfo object, the list of apps and the query parameters.
 // It then fills out the ResourcesByAppStatusResult structure appropriately from information in the AppContext
-func PrepareResourcesByAppStatusResult(stateInfo state.StateInfo, qInstance, qType string, fApps, fClusters []string) (ResourcesByAppResult, error) {
+func PrepareResourcesByAppStatusResult(ctx context.Context, stateInfo state.StateInfo, qInstance, qType string, fApps, fClusters []string) (ResourcesByAppResult, error) {
 
 	var currentCtxId, statusCtxId string
 	if qInstance != "" {
@@ -1032,25 +1033,25 @@ func PrepareResourcesByAppStatusResult(stateInfo state.StateInfo, qInstance, qTy
 		return statusResult, nil
 	}
 
-	ac, err := state.GetAppContextFromId(currentCtxId)
+	ac, err := state.GetAppContextFromId(ctx, currentCtxId)
 	if err != nil {
 		return ResourcesByAppResult{}, pkgerrors.Wrap(err, "AppContext for status query not found")
 	}
 
-	sac, err := state.GetAppContextFromId(statusCtxId)
+	sac, err := state.GetAppContextFromId(ctx, statusCtxId)
 	if err != nil {
 		return ResourcesByAppResult{}, pkgerrors.Wrap(err, "Status AppContext for status query not found")
 	}
 
-	return prepareResourcesByAppStatusResult(ac, sac, qType, fApps, fClusters)
+	return prepareResourcesByAppStatusResult(ctx, ac, sac, qType, fApps, fClusters)
 }
 
-func prepareResourcesByAppStatusResult(ac, sac appcontext.AppContext, qType string, fApps, fClusters []string) (ResourcesByAppResult, error) {
+func prepareResourcesByAppStatusResult(ctx context.Context, ac, sac appcontext.AppContext, qType string, fApps, fClusters []string) (ResourcesByAppResult, error) {
 	statusResult := ResourcesByAppResult{}
 	statusResult.ResourcesByApp = make([]ResourcesByAppEntry, 0)
 
 	// Get the list of apps from the app context
-	apps := getListOfApps(ac)
+	apps := getListOfApps(ctx, ac)
 
 	// Loop through each app and get the status data for each cluster in the app
 	for _, app := range apps {
@@ -1068,7 +1069,7 @@ func prepareResourcesByAppStatusResult(ac, sac appcontext.AppContext, qType stri
 		}
 
 		// Get the clusters in the appcontext for this app
-		clusters, err := ac.GetClusterNames(app)
+		clusters, err := ac.GetClusterNames(ctx, app)
 		if err != nil {
 			continue
 		}
@@ -1103,7 +1104,7 @@ func prepareResourcesByAppStatusResult(ac, sac appcontext.AppContext, qType stri
 			}
 			resourcesByAppEntry.Resources = make([]ResourceEntry, 0)
 
-			ch, err := ac.GetClusterHandle(app, cluster)
+			ch, err := ac.GetClusterHandle(ctx, app, cluster)
 			if err != nil {
 				log.Error(":: No handle for cluster, app ::",
 					log.Fields{"Cluster": cluster, "AppName": app, "Error": err})
@@ -1112,7 +1113,7 @@ func prepareResourcesByAppStatusResult(ac, sac appcontext.AppContext, qType stri
 
 			resources := make([]ResourceStatus, 0)
 			// Get all resources from the appcontext for the given app/cluster
-			_, err = getAppContextResources(ac, sac, ch, "all", qType, make([]string, 0), &resources, rsyncStatusCnts, clusterStatusCnts, app, cluster)
+			_, err = getAppContextResources(ctx, ac, sac, ch, "all", qType, make([]string, 0), &resources, rsyncStatusCnts, clusterStatusCnts, app, cluster)
 			if err != nil {
 				log.Info(":: Error gathering appcontext resources for cluster, app ::",
 					log.Fields{"Cluster": cluster, "AppName": app, "Error": err})
@@ -1121,7 +1122,7 @@ func prepareResourcesByAppStatusResult(ac, sac appcontext.AppContext, qType stri
 
 			// find any additional resources on the cluster
 			if qType == "cluster" || qType == "ready" {
-				rbValue, err := getResourceBundleStateStatus(sac, app, cluster)
+				rbValue, err := getResourceBundleStateStatus(ctx, sac, app, cluster)
 				if err != nil {
 					continue
 				}
@@ -1153,10 +1154,10 @@ func prepareResourcesByAppStatusResult(ac, sac appcontext.AppContext, qType stri
 const no_cluster_handle = "cluster handle not found"
 
 // Read readystatus from reference
-func getClusterReadyStatus(ac appcontext.AppContext, app, cluster string) string {
+func getClusterReadyStatus(ctx context.Context, ac appcontext.AppContext, app, cluster string) string {
 
 	// the appcontext here is the status appcontext - follow the reference to get the readystatus
-	ch, err := ac.GetClusterHandle(app, cluster)
+	ch, err := ac.GetClusterHandle(ctx, app, cluster)
 	if err != nil {
 		log.Error("Cluster handle not found", log.Fields{"cluster": cluster})
 		// return special string to trigger requery with current appcontext
@@ -1164,9 +1165,9 @@ func getClusterReadyStatus(ac appcontext.AppContext, app, cluster string) string
 	}
 	var val = ""
 	// Read reference appContext value
-	sh, err := ac.GetLevelHandle(ch, "reference")
+	sh, err := ac.GetLevelHandle(ctx, ch, "reference")
 	if err == nil {
-		s, err := ac.GetValue(sh)
+		s, err := ac.GetValue(ctx, sh)
 		if err == nil {
 			js, err := json.Marshal(s)
 			if err == nil {
@@ -1178,10 +1179,10 @@ func getClusterReadyStatus(ac appcontext.AppContext, app, cluster string) string
 		// Cluster may be unreachable, and reference key not created yet
 		log.Info("Reference not found for cluster status", log.Fields{"cluster": cluster})
 
-		rsh, _ := ac.GetLevelHandle(ch, "readystatus")
+		rsh, _ := ac.GetLevelHandle(ctx, ch, "readystatus")
 
 		if rsh != nil {
-			status, err := ac.GetValue(rsh)
+			status, err := ac.GetValue(ctx, rsh)
 			if err != nil {
 				log.Error("Error getting cluster readystatus", log.Fields{"cluster": cluster, "error": err})
 				return string(appcontext.ClusterReadyStatusEnum.Unknown)
@@ -1192,20 +1193,20 @@ func getClusterReadyStatus(ac appcontext.AppContext, app, cluster string) string
 	} else {
 		// Load the reference appContext
 		ref := appcontext.AppContext{}
-		_, err = ref.LoadAppContext(val)
+		_, err = ref.LoadAppContext(ctx, val)
 		if err != nil {
 			log.Error(":: Error loading the app context::", log.Fields{"appContextId": val, "error": err})
 			return string(appcontext.ClusterReadyStatusEnum.Unknown)
 		}
-		rlh, err := ref.GetClusterHandle(app, cluster)
+		rlh, err := ref.GetClusterHandle(ctx, app, cluster)
 		if err != nil {
 			log.Error("Error getting cluster handle for Reference", log.Fields{"cluster": cluster, "error": err})
 			return string(appcontext.ClusterReadyStatusEnum.Unknown)
 		}
-		rsh, err := ref.GetLevelHandle(rlh, "readystatus")
+		rsh, err := ref.GetLevelHandle(ctx, rlh, "readystatus")
 
 		if rsh != nil {
-			status, err := ref.GetValue(rsh)
+			status, err := ref.GetValue(ctx, rsh)
 			if err != nil {
 				log.Error("Error getting readystatus from Reference", log.Fields{"cluster": cluster, "error": err})
 				return string(appcontext.ClusterReadyStatusEnum.Unknown)

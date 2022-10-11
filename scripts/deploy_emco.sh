@@ -53,7 +53,7 @@ EOF
 
   make -C ${BIN_PATH}/helm/emcoBase all
   mv ${BIN_PATH}/helm/emcoBase/dist/packages/emco-db-1.0.0.tgz ${BIN_PATH}/helm/emco-db-${TAG}.tgz
-  mv ${BIN_PATH}/helm/emcoBase/dist/packages/emco-services-1.0.1.tgz ${BIN_PATH}/helm/emco-services-${TAG}.tgz
+  mv ${BIN_PATH}/helm/emcoBase/dist/packages/emco-services-1.0.2.tgz ${BIN_PATH}/helm/emco-services-${TAG}.tgz
   mv ${BIN_PATH}/helm/emcoBase/dist/packages/emco-tools-1.0.0.tgz ${BIN_PATH}/helm/emco-tools-${TAG}.tgz
   rm -rf ${BIN_PATH}/helm/emcoBase
 

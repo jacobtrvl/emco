@@ -17,7 +17,11 @@ spec:
       - env:
         - name: PORT
           value: {{ .Values.emailservice.server.port | quote }}
+        - name: DISABLE_TRACING
+          value: "1"
         - name: DISABLE_PROFILER
+          value: "1"
+        - name: DISABLE_DEBUGGER
           value: "1"
         image: {{ .Values.emailservice.server.image.repository }}:{{ .Values.emailservice.server.image.tag | default .Chart.AppVersion }}
         imagePullPolicy: {{ .Values.emailservice.server.image.pullPolicy }}
@@ -26,6 +30,7 @@ spec:
             command:
             - /bin/grpc_health_probe
             - -addr=:{{ .Values.emailservice.server.port }}
+          initialDelaySeconds: 30
           periodSeconds: 5
         name: server
         ports:
@@ -35,6 +40,7 @@ spec:
             command:
             - /bin/grpc_health_probe
             - -addr=:{{ .Values.emailservice.server.port }}
+          initialDelaySeconds: 30
           periodSeconds: 5
         resources: {{- toYaml .Values.emailservice.server.resources | nindent 10 }}
       serviceAccountName: default

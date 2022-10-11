@@ -55,7 +55,7 @@ spec:
   overrideValues:
   - app: tm2-nginx
     values:
-      ".Values.replicaCount": '1'
+      "replicaCount": '1'
 
 ---
 version: emco/v2

@@ -1,6 +1,7 @@
 package status_test
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -35,6 +36,7 @@ type appContext struct {
 
 // populate an example deployment intent group app context
 func createSampleVfwAppContext() (appContext, error) {
+	ctx := context.Background()
 	ac := appcontext.AppContext{}
 	ctxVal, err := ac.InitAppContext()
 	if err != nil {
@@ -42,42 +44,42 @@ func createSampleVfwAppContext() (appContext, error) {
 	}
 
 	// composite app create
-	cah, err := ac.CreateCompositeApp()
+	cah, err := ac.CreateCompositeApp(ctx)
 	if err != nil {
 		return appContext{}, pkgerrors.Wrap(err, "Error making composite app handle")
 	}
 
 	// add composite app meta structure
 	caMeta := appcontext.CompositeAppMeta{Project: "testvfw", CompositeApp: "compositevfw", Version: "v1", Release: "fw0", DeploymentIntentGroup: "vfw_deployment_intent_group", Namespace: "default", Level: "0"}
-	err = ac.AddCompositeAppMeta(caMeta)
+	err = ac.AddCompositeAppMeta(ctx, caMeta)
 	if err != nil {
 		return appContext{}, pkgerrors.Wrap(err, "Error making ca meta data")
 	}
 
 	// add composite app status
-	_, err = ac.AddLevelValue(cah, "status", appcontext.AppContextStatus{Status: appcontext.AppContextStatusEnum.Instantiated})
+	_, err = ac.AddLevelValue(ctx, cah, "status", appcontext.AppContextStatus{Status: appcontext.AppContextStatusEnum.Instantiated})
 
 	// Add app instructions
 	appDep, _ := json.Marshal(map[string]map[string]string{"appdependency": map[string]string{"packetgen": "go", "firewall": "go", "sink": "go"}})
-	_, err = ac.AddInstruction(cah, "app", "dependency", string(appDep))
+	_, err = ac.AddInstruction(ctx, cah, "app", "dependency", string(appDep))
 	if err != nil {
 		return appContext{}, pkgerrors.Wrap(err, "Error making app dependency instruction")
 	}
 	appOrder, _ := json.Marshal(map[string][]string{"apporder": []string{"packetgen", "firewall", "sink"}})
-	_, err = ac.AddInstruction(cah, "app", "order", string(appOrder))
+	_, err = ac.AddInstruction(ctx, cah, "app", "order", string(appOrder))
 	if err != nil {
 		return appContext{}, pkgerrors.Wrap(err, "Error making app order instruction")
 	}
 
 	// add apps
 	for _, app := range []string{"firewall", "packetgen", "sink"} {
-		apph, err := ac.AddApp(cah, app)
+		apph, err := ac.AddApp(ctx, cah, app)
 		if err != nil {
 			return appContext{}, pkgerrors.Wrapf(err, "Error making app: %v", app)
 		}
 
 		for _, cluster := range []string{"edge01", "edge02"} {
-			clh, err := ac.AddCluster(apph, "vfw-cluster-provider+"+cluster)
+			clh, err := ac.AddCluster(ctx, apph, "vfw-cluster-provider+"+cluster)
 			if err != nil {
 				return appContext{}, pkgerrors.Wrapf(err, "Error making cluster: %v", cluster)
 			}
@@ -85,7 +87,7 @@ func createSampleVfwAppContext() (appContext, error) {
 			// Note - the same resourcebundlestate sample for just the 'packetgen' app is saved
 			// for both clusters.
 			if app == "packetgen" {
-				_, err = ac.AddLevelValue(clh, "status", packetgenStatusContent)
+				_, err = ac.AddLevelValue(ctx, clh, "status", packetgenStatusContent)
 				if err != nil {
 					return appContext{}, pkgerrors.Wrapf(err, "Error making clustesr status: %v", cluster)
 				}
@@ -93,34 +95,34 @@ func createSampleVfwAppContext() (appContext, error) {
 
 			// Add resource instructions
 			resDep, _ := json.Marshal(map[string]map[string]string{"resdependency": map[string]string{"fw0-" + app + "+Deployment": "go"}})
-			_, err = ac.AddInstruction(clh, "resource", "dependency", string(resDep))
+			_, err = ac.AddInstruction(ctx, clh, "resource", "dependency", string(resDep))
 			if err != nil {
 				return appContext{}, pkgerrors.Wrap(err, "Error making resource dependency instruction")
 			}
 			resOrder, _ := json.Marshal(map[string][]string{"resorder": []string{"fw0-" + app + "+Deployment"}})
-			_, err = ac.AddInstruction(clh, "resource", "order", string(resOrder))
+			_, err = ac.AddInstruction(ctx, clh, "resource", "order", string(resOrder))
 			if err != nil {
 				return appContext{}, pkgerrors.Wrap(err, "Error making resource order instruction")
 			}
 			// Add a reference
-			_, err = ac.AddLevelValue(clh, "reference", ctxVal)
+			_, err = ac.AddLevelValue(ctx, clh, "reference", ctxVal)
 			// Add resources
 			var rh interface{}
 			switch app {
 			case "firewall":
-				rh, err = ac.AddResource(clh, "fw0-"+app+"+Deployment", firewallContent)
+				rh, err = ac.AddResource(ctx, clh, "fw0-"+app+"+Deployment", firewallContent)
 			case "packetgen":
-				rh, err = ac.AddResource(clh, "fw0-"+app+"+Deployment", packetgenContent)
+				rh, err = ac.AddResource(ctx, clh, "fw0-"+app+"+Deployment", packetgenContent)
 			case "sink":
-				rh, err = ac.AddResource(clh, "fw0-"+app+"+Deployment", sinkContent)
+				rh, err = ac.AddResource(ctx, clh, "fw0-"+app+"+Deployment", sinkContent)
 			}
 			if err != nil {
 				return appContext{}, pkgerrors.Wrap(err, "Error making resource order instruction")
 			}
 			// Add a reference
-			_, err = ac.AddLevelValue(rh, "reference", ctxVal)
+			_, err = ac.AddLevelValue(ctx, rh, "reference", ctxVal)
 			// Add resource status
-			_, err = ac.AddLevelValue(rh, "status", resourcestatus.ResourceStatus{Status: resourcestatus.RsyncStatusEnum.Applied})
+			_, err = ac.AddLevelValue(ctx, rh, "status", resourcestatus.ResourceStatus{Status: resourcestatus.RsyncStatusEnum.Applied})
 		}
 	}
 	return appContext{ac: ac, ctxVal: ctxVal}, nil
@@ -395,37 +397,37 @@ var _ = Describe("StatusHelper", func() {
 	})
 
 	It("get apps list of instantiated vfw", func() {
-		result, err := status.PrepareAppsListStatusResult(stateInfoInstantiated, "")
+		result, err := status.PrepareAppsListStatusResult(context.Background(), stateInfoInstantiated, "")
 		Expect(err).To(BeNil())
 		Expect(result).Should(Equal(expectedAppsList))
 	})
 
 	It("get clusters for sink of instantiated vfw", func() {
-		result, err := status.PrepareClustersByAppStatusResult(stateInfoInstantiated, "", []string{"sink"})
+		result, err := status.PrepareClustersByAppStatusResult(context.Background(), stateInfoInstantiated, "", []string{"sink"})
 		Expect(err).To(BeNil())
 		Expect(result).Should(Equal(expectedClustersByApp))
 	})
 
 	It("get rsync resources for packetgen of instantiated vfw", func() {
-		result, err := status.PrepareResourcesByAppStatusResult(stateInfoInstantiated, "", "rsync", []string{}, []string{})
+		result, err := status.PrepareResourcesByAppStatusResult(context.Background(), stateInfoInstantiated, "", "rsync", []string{}, []string{})
 		Expect(err).To(BeNil())
 		Expect(result).Should(Equal(expectedRsyncResourcesByApp))
 	})
 
 	It("get cluster resources for packetgen of instantiated vfw", func() {
-		result, err := status.PrepareResourcesByAppStatusResult(stateInfoInstantiated, "", "cluster", []string{"packetgen"}, []string{})
+		result, err := status.PrepareResourcesByAppStatusResult(context.Background(), stateInfoInstantiated, "", "cluster", []string{"packetgen"}, []string{})
 		Expect(err).To(BeNil())
 		Expect(result).Should(Equal(expectedClusterResourcesByApp))
 	})
 
 	It("get cluster status for packetgen app of instantiated vfw", func() {
-		result, err := status.PrepareStatusResult(stateInfoInstantiated, "", "cluster", "all", []string{"packetgen"}, []string{}, []string{})
+		result, err := status.PrepareStatusResult(context.Background(), stateInfoInstantiated, "", "cluster", "all", []string{"packetgen"}, []string{}, []string{})
 		Expect(err).To(BeNil())
 		Expect(result).Should(Equal(expectedClusterStatusResult))
 	})
 
 	It("get rsync status for packetgen app of instantiated vfw", func() {
-		result, err := status.PrepareStatusResult(stateInfoInstantiated, "", "rsync", "all", []string{"packetgen"}, []string{}, []string{})
+		result, err := status.PrepareStatusResult(context.Background(), stateInfoInstantiated, "", "rsync", "all", []string{"packetgen"}, []string{}, []string{})
 		Expect(err).To(BeNil())
 		Expect(result).Should(Equal(expectedRsyncStatusResult))
 	})

@@ -184,7 +184,7 @@ func (v *WorkflowIntentClient) CreateWorkflowIntent(wfi WorkflowIntent,
 		return WorkflowIntent{}, pkgerrors.New("WorkflowIntent already exists")
 	}
 
-	err = db.DBconn.Insert(v.db.storeName, key, nil, v.db.tagMeta, wfi)
+	err = db.DBconn.Insert(context.Background(), v.db.storeName, key, nil, v.db.tagMeta, wfi)
 	if err != nil {
 		return WorkflowIntent{}, pkgerrors.Wrap(err, "Creating DB Entry")
 	}
@@ -205,7 +205,7 @@ func (v *WorkflowIntentClient) GetWorkflowIntent(name,
 		DigName:             dig,
 	}
 
-	value, err := db.DBconn.Find(v.db.storeName, key, v.db.tagMeta)
+	value, err := db.DBconn.Find(context.Background(), v.db.storeName, key, v.db.tagMeta)
 	if err != nil {
 		return WorkflowIntent{}, err
 	} else if len(value) == 0 {
@@ -241,7 +241,7 @@ func (v *WorkflowIntentClient) GetWorkflowIntents(
 	}
 
 	var resp []WorkflowIntent
-	values, err := db.DBconn.Find(v.db.storeName, key, v.db.tagMeta)
+	values, err := db.DBconn.Find(context.Background(), v.db.storeName, key, v.db.tagMeta)
 	if err != nil {
 		return []WorkflowIntent{}, err
 	}
@@ -271,7 +271,7 @@ func (v *WorkflowIntentClient) DeleteWorkflowIntent(name,
 		DigName:             dig,
 	}
 
-	err := db.DBconn.Remove(v.db.storeName, key)
+	err := db.DBconn.Remove(context.Background(), v.db.storeName, key)
 	return err
 }
 
@@ -474,7 +474,7 @@ func (v *WorkflowIntentClient) CancelWorkflowIntent(name,
 		DigName:             dig,
 	}
 
-	value, err := db.DBconn.Find(v.db.storeName, key, v.db.tagMeta)
+	value, err := db.DBconn.Find(context.Background(), v.db.storeName, key, v.db.tagMeta)
 	if err != nil {
 		log.Error("CancelWorkflowIntent: Error getting intent",
 			log.Fields{"project": project, "composite app": cApp,

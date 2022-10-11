@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	pkgerrors "github.com/pkg/errors"
+	"golang.org/x/net/context"
 )
 
 type MockDB struct {
@@ -16,11 +17,11 @@ type MockDB struct {
 	MarshalErr error
 }
 
-func (m *MockDB) HealthCheck() error {
+func (m *MockDB) HealthCheck(ctx context.Context) error {
 	return m.Err
 }
 
-func (m *MockDB) Insert(table string, key Key, query interface{}, tag string, data interface{}) error {
+func (m *MockDB) Insert(ctx context.Context, table string, key Key, query interface{}, tag string, data interface{}) error {
 
 	i := make(map[string][]byte)
 	out, _ := json.Marshal(data)
@@ -52,7 +53,7 @@ func (m *MockDB) Unmarshal(inp []byte, out interface{}) error {
 	return m.MarshalErr
 }
 
-func (m *MockDB) Find(table string, key Key, tag string) ([][]byte, error) {
+func (m *MockDB) Find(ctx context.Context, table string, key Key, tag string) ([][]byte, error) {
 
 	jkey, _ := json.Marshal(key)
 	str := (string(jkey))
@@ -108,7 +109,7 @@ func (m *MockDB) Find(table string, key Key, tag string) ([][]byte, error) {
 	}
 }
 
-func (m *MockDB) Remove(table string, key Key) error {
+func (m *MockDB) Remove(ctx context.Context, table string, key Key) error {
 	if m.Err != nil {
 		return m.Err
 	}
@@ -127,10 +128,10 @@ func (m *MockDB) Remove(table string, key Key) error {
 	return pkgerrors.New("db Remove resource not found")
 }
 
-func (m *MockDB) RemoveAll(table string, key Key) error {
+func (m *MockDB) RemoveAll(ctx context.Context, table string, key Key) error {
 	return m.Err
 }
 
-func (m *MockDB) RemoveTag(table string, key Key, tag string) error {
+func (m *MockDB) RemoveTag(ctx context.Context, table string, key Key, tag string) error {
 	return m.Err
 }

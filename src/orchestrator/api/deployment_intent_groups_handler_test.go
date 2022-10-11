@@ -5,6 +5,7 @@ package api
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -25,7 +26,7 @@ type mockDeploymentIntentGroupManager struct {
 	StateInfo state.StateInfo
 }
 
-func (digm *mockDeploymentIntentGroupManager) GetDeploymentIntentGroup(deploymentIntentGroup, project, compositeApp, version string) (moduleLib.DeploymentIntentGroup, error) {
+func (digm *mockDeploymentIntentGroupManager) GetDeploymentIntentGroup(ctx context.Context, deploymentIntentGroup, project, compositeApp, version string) (moduleLib.DeploymentIntentGroup, error) {
 	if digm.Err != nil {
 		return moduleLib.DeploymentIntentGroup{}, digm.Err
 	}
@@ -39,7 +40,7 @@ func (digm *mockDeploymentIntentGroupManager) GetDeploymentIntentGroup(deploymen
 	return moduleLib.DeploymentIntentGroup{}, pkgerrors.New("DeploymentIntentGroup not found")
 }
 
-func (digm *mockDeploymentIntentGroupManager) GetAllDeploymentIntentGroups(project, compositeApp, version string) ([]moduleLib.DeploymentIntentGroup, error) {
+func (digm *mockDeploymentIntentGroupManager) GetAllDeploymentIntentGroups(ctx context.Context, project, compositeApp, version string) ([]moduleLib.DeploymentIntentGroup, error) {
 	if digm.Err != nil {
 		return []moduleLib.DeploymentIntentGroup{}, digm.Err
 	}
@@ -51,7 +52,7 @@ func (digm *mockDeploymentIntentGroupManager) GetAllDeploymentIntentGroups(proje
 	return []moduleLib.DeploymentIntentGroup{}, nil
 }
 
-func (digm *mockDeploymentIntentGroupManager) CreateDeploymentIntentGroup(d moduleLib.DeploymentIntentGroup, project, compositeApp, version string, failIfExists bool) (moduleLib.DeploymentIntentGroup, bool, error) {
+func (digm *mockDeploymentIntentGroupManager) CreateDeploymentIntentGroup(ctx context.Context, d moduleLib.DeploymentIntentGroup, project, compositeApp, version string, failIfExists bool) (moduleLib.DeploymentIntentGroup, bool, error) {
 	digExists := false
 	index := 0
 
@@ -82,7 +83,7 @@ func (digm *mockDeploymentIntentGroupManager) CreateDeploymentIntentGroup(d modu
 
 }
 
-func (digm *mockDeploymentIntentGroupManager) DeleteDeploymentIntentGroup(deploymentIntentGroup, project, compositeApp, version string) error {
+func (digm *mockDeploymentIntentGroupManager) DeleteDeploymentIntentGroup(ctx context.Context, deploymentIntentGroup, project, compositeApp, version string) error {
 	if digm.Err != nil {
 		return digm.Err
 	}
@@ -99,7 +100,7 @@ func (digm *mockDeploymentIntentGroupManager) DeleteDeploymentIntentGroup(deploy
 	return pkgerrors.New("db Remove resource not found") // resource does not exist
 }
 
-func (digm *mockDeploymentIntentGroupManager) GetDeploymentIntentGroupState(deploymentIntentGroup, project, compositeApp, version string) (state.StateInfo, error) {
+func (digm *mockDeploymentIntentGroupManager) GetDeploymentIntentGroupState(ctx context.Context, deploymentIntentGroup, project, compositeApp, version string) (state.StateInfo, error) {
 	if digm.Err != nil {
 		return state.StateInfo{}, digm.Err
 	}

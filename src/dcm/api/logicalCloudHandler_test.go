@@ -11,6 +11,7 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	pkgerrors "github.com/pkg/errors"
+	"github.com/stretchr/testify/mock"
 	"gitlab.com/project-emco/core/emco-base/src/dcm/api/mocks"
 	orch_mocks "gitlab.com/project-emco/core/emco-base/src/orchestrator/api/mocks"
 	module "gitlab.com/project-emco/core/emco-base/src/orchestrator/common"
@@ -52,9 +53,9 @@ var _ = Describe("LogicalCloudHandler", func() {
 			// 		UserData2:   "some user data 2",
 			// 	},
 			// }
-			// t.prClient.On("GetProject", "test-project").Return(mockedProject, nil)
+			// t.prClient.On("GetProject", mock.Anything, "test-project").Return(mockedProject, nil)
 			// set up client mock responses
-			t.lcClient.On("Create", "test-project", t.inStruct).Return(t.mockVal, t.mockError)
+			t.lcClient.On("Create", mock.Anything, "test-project", t.inStruct).Return(t.mockVal, t.mockError)
 
 			// make HTTP request
 			request := httptest.NewRequest("POST", "/v2/projects/test-project/logical-clouds", t.inputReader)
@@ -208,7 +209,7 @@ var _ = Describe("LogicalCloudHandler", func() {
 	// DescribeTable("Put LogicalCloud tests",
 	// 	func(t testCase) {
 	// 		// set up client mock responses
-	// 		t.lcClient.On("Update", "test-project", t.inputName, t.inStruct).Return(t.mockVal, t.mockError)
+	// 		t.lcClient.On("Update", mock.Anything, "test-project", t.inputName, t.inStruct).Return(t.mockVal, t.mockError)
 
 	// 		// make HTTP request
 	// 		request := httptest.NewRequest("PUT", "/v2/projects/test-project/logical-clouds/"+t.inputName, t.inputReader)
@@ -378,7 +379,7 @@ var _ = Describe("LogicalCloudHandler", func() {
 	DescribeTable("List LogicalCloud tests",
 		func(t testCase) {
 			// set up client mock responses
-			t.lcClient.On("GetAll", "test-project").Return(t.mockVals, t.mockError)
+			t.lcClient.On("GetAll", mock.Anything, "test-project").Return(t.mockVals, t.mockError)
 
 			// make HTTP request
 			request := httptest.NewRequest("GET", "/v2/projects/test-project/logical-clouds", nil)
@@ -428,7 +429,7 @@ var _ = Describe("LogicalCloudHandler", func() {
 	DescribeTable("Get LogicalCloud tests",
 		func(t testCase) {
 			// set up client mock responses
-			t.lcClient.On("Get", "test-project", t.inputName).Return(t.mockVal, t.mockError)
+			t.lcClient.On("Get", mock.Anything, "test-project", t.inputName).Return(t.mockVal, t.mockError)
 
 			// make HTTP request
 			request := httptest.NewRequest("GET", "/v2/projects/test-project/logical-clouds/"+t.inputName, nil)
@@ -478,7 +479,7 @@ var _ = Describe("LogicalCloudHandler", func() {
 	DescribeTable("Delete LogicalCloud tests",
 		func(t testCase) {
 			// set up client mock responses
-			t.lcClient.On("Delete", "test-project", t.inputName).Return(t.mockError)
+			t.lcClient.On("Delete", mock.Anything, "test-project", t.inputName).Return(t.mockError)
 
 			// make HTTP request
 			request := httptest.NewRequest("DELETE", "/v2/projects/test-project/logical-clouds/"+t.inputName, nil)
@@ -545,10 +546,10 @@ var _ = Describe("LogicalCloudHandler", func() {
 	// 			UserData2:   "some user data 2",
 	// 		}
 	// 		// set up client mock responses
-	// 		t.lcClient.On("Get", "test-project", "testlogicalcloud").Return(t.mockVal, t.mockError)
-	// 		t.clClient.On("GetAllClusters", "test-project", "testlogicalcloud").Return(mockedClusters, nil)
-	// 		t.quotaClient.On("GetAllQuotas", "test-project", "testlogicalcloud").Return(mockedQuotas, nil)
-	// 		t.lcClient.On("Instantiate", "test-project", "testlogicalcloud", mockedClusters, mockedQuotas).Return(t.mockVal, t.mockError)
+	// 		t.lcClient.On("Get", mock.Anything, "test-project", "testlogicalcloud").Return(t.mockVal, t.mockError)
+	// 		t.clClient.On("GetAllClusters", mock.Anything, "test-project", "testlogicalcloud").Return(mockedClusters, nil)
+	// 		t.quotaClient.On("GetAllQuotas", mock.Anything, "test-project", "testlogicalcloud").Return(mockedQuotas, nil)
+	// 		t.lcClient.On("Instantiate", mock.Anything, "test-project", "testlogicalcloud", mockedClusters, mockedQuotas).Return(t.mockVal, t.mockError)
 
 	// 		// make HTTP request
 	// 		request := httptest.NewRequest("POST", "/v2/projects/test-project/logical-clouds/"+t.inputName+"/instantiate", nil)
@@ -584,8 +585,8 @@ var _ = Describe("LogicalCloudHandler", func() {
 	DescribeTable("Get State of LogicalCloud tests",
 		func(t testCase) {
 			// set up client mock responses
-			t.lcClient.On("Get", "test-project", "testlogicalcloud").Return(t.mockVal, t.mockError)
-			t.lcClient.On("Status", "test-project", "testlogicalcloud", "", "ready", "all", []string{}, []string{}).Return(t.lcStatus, t.mockError)
+			t.lcClient.On("Get", mock.Anything, "test-project", "testlogicalcloud").Return(t.mockVal, t.mockError)
+			t.lcClient.On("Status", mock.Anything, "test-project", "testlogicalcloud", "", "ready", "all", []string{}, []string{}).Return(t.lcStatus, t.mockError)
 
 			// make HTTP request
 			request := httptest.NewRequest("GET", "/v2/projects/test-project/logical-clouds/"+t.inputName+"/status", nil)

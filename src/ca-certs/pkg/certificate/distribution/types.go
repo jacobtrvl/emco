@@ -5,6 +5,7 @@ package distribution
 
 import (
 	cmv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
+	tcsv1 "github.com/intel/trusted-certificate-issuer/api/v1alpha1"
 	"gitlab.com/project-emco/core/emco-base/src/ca-certs/pkg/module"
 	"gitlab.com/project-emco/core/emco-base/src/ca-certs/pkg/service/istioservice"
 	"gitlab.com/project-emco/core/emco-base/src/ca-certs/pkg/service/knccservice"
@@ -21,7 +22,9 @@ type DistributionContext struct {
 	ContextID           string
 	ResOrder            []string
 	EnrollmentContextID string
+	Certificates        []cmv1.Certificate
 	CertificateRequests []cmv1.CertificateRequest
+	Secrets             []v1.Secret
 	Resources           DistributionResource
 	ClusterGroups       []module.ClusterGroup
 	ClusterGroup        module.ClusterGroup
@@ -38,4 +41,5 @@ type DistributionResource struct {
 	ProxyConfig   map[string]*istioservice.ProxyConfig
 	Secret        map[string]*v1.Secret
 	KnccConfig    map[string]*knccservice.Config
+	TCSIssuer     map[string]*tcsv1.TCSIssuer
 }

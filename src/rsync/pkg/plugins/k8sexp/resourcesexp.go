@@ -8,13 +8,14 @@ import (
 	"io/ioutil"
 	"os"
 
+	"strings"
+
 	pkgerrors "github.com/pkg/errors"
 	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 	"gitlab.com/project-emco/core/emco-base/src/rsync/pkg/internal/utils"
 	"gitlab.com/project-emco/core/emco-base/src/rsync/pkg/status"
 	. "gitlab.com/project-emco/core/emco-base/src/rsync/pkg/types"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"strings"
 )
 
 type approval struct {
@@ -85,7 +86,7 @@ func (p *K8sProviderExp) Create(name string, ref interface{}, content []byte) (i
 }
 
 // Apply resource to the cluster
-func (p *K8sProviderExp) Apply(name string, ref interface{}, content []byte) (interface{}, error) {
+func (p *K8sProviderExp) Apply(ctx context.Context, name string, ref interface{}, content []byte) (interface{}, error) {
 	var apv approval
 	// Add the label based on the Status Appcontext ID
 	label := p.cid + "-" + p.app
@@ -95,12 +96,12 @@ func (p *K8sProviderExp) Apply(name string, ref interface{}, content []byte) (in
 		return nil, err
 	}
 	// Check if subresource
-	acUtils, err := utils.NewAppContextReference(p.cid)
+	acUtils, err := utils.NewAppContextReference(ctx, p.cid)
 	if err != nil {
 		return ref, err
 	}
 	// Currently only subresource supported is approval
-	subres, _, err := acUtils.GetSubResApprove(name, p.app, p.cluster)
+	subres, _, err := acUtils.GetSubResApprove(ctx, name, p.app, p.cluster)
 	if err == nil {
 		result := strings.Split(name, "+")
 		if result[0] == "" {
@@ -123,8 +124,8 @@ func (p *K8sProviderExp) Delete(name string, ref interface{}, content []byte) (i
 }
 
 // Get resource from the cluster
-func (p *K8sProviderExp) Get(name string, gvkRes []byte) ([]byte, error) {
-	b, err := p.client.Get(gvkRes, p.namespace)
+func (p *K8sProviderExp) Get(ctx context.Context, name string, gvkRes []byte) ([]byte, error) {
+	b, err := p.client.Get(ctx, gvkRes, p.namespace)
 	if err != nil {
 		log.Error("Failed to get res", log.Fields{"error": err, "resource": name})
 		return nil, err
@@ -169,7 +170,7 @@ func (p *K8sProviderExp) Commit(ctx context.Context, ref interface{}) error {
 		//Check if approval list is not 0
 		if len(rf.approveList) > 0 {
 			for _, apv := range rf.approveList {
-				if err := p.client.Approve(apv.name, apv.res); err != nil {
+				if err := p.client.Approve(ctx, apv.name, apv.res); err != nil {
 					log.Error("Failed to approve resources", log.Fields{"error": err})
 					return err
 				}

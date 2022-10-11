@@ -9,25 +9,27 @@ import (
 
 // StartClusterWatcher watches for CR
 // Same as K8s
-func (p *AzureArcV2Provider) StartClusterWatcher() error {
-	return p.gitProvider.StartClusterWatcher()
+func (p *AzureArcV2Provider) StartClusterWatcher(ctx context.Context) error {
+	return p.gitProvider.StartClusterWatcher(ctx)
 }
 
 // ApplyStatusCR applies status CR
-func (p *AzureArcV2Provider) ApplyStatusCR(name string, content []byte) error {
-	ref, err := p.gitProvider.Apply(name, nil, content)
+func (p *AzureArcV2Provider) ApplyStatusCR(ctx context.Context, name string, content []byte) error {
+	path := p.gitProvider.GetPath("context") + name + ".yaml"
+	ref, err := p.gitProvider.Apply(path, nil, content)
 	if err != nil {
 		return err
 	}
-	return p.gitProvider.Commit(context.Background(), ref)
+	return p.gitProvider.Commit(ctx, ref)
 }
 
 // DeleteStatusCR deletes status CR
-func (p *AzureArcV2Provider) DeleteStatusCR(name string, content []byte) error {
+func (p *AzureArcV2Provider) DeleteStatusCR(ctx context.Context, name string, content []byte) error {
 
-	ref, err := p.gitProvider.Delete(name, nil, content)
+	path := p.gitProvider.GetPath("context") + name + ".yaml"
+	ref, err := p.gitProvider.Delete(path, nil, content)
 	if err != nil {
 		return err
 	}
-	return p.gitProvider.Commit(context.Background(), ref)
+	return p.gitProvider.Commit(ctx, ref)
 }

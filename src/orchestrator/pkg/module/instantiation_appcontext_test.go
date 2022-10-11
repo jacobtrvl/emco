@@ -4,6 +4,7 @@
 package module
 
 import (
+	"context"
 	"fmt"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/appcontext"
 	gpic "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/gpic"
@@ -20,13 +21,14 @@ func init() {
 }
 
 func TestHookInstructionAppContext(t *testing.T) {
+	ctx := context.Background()
 
 	context := appcontext.AppContext{}
 	ctxval, err := context.InitAppContext()
 	if err != nil {
 		t.Fatalf("Got unexpected error message %s", err)
 	}
-	compositeHandle, err := context.CreateCompositeApp()
+	compositeHandle, err := context.CreateCompositeApp(ctx)
 	if err != nil {
 		t.Fatalf("Got unexpected error message %s", err)
 	}
@@ -98,7 +100,7 @@ func TestHookInstructionAppContext(t *testing.T) {
 			}
 			ah := AppHandler{appName: "testApp", clusters: listOfClusters, namespace: "testNamespace", ht: out, hk: hooks}
 			// Test function
-			err = ah.addAppToAppContext(cca)
+			err = ah.addAppToAppContext(ctx, cca)
 			if err != nil {
 				if testCase.expectedError == "" {
 					t.Fatalf("Got unexpected error message %s", err)
@@ -111,7 +113,7 @@ func TestHookInstructionAppContext(t *testing.T) {
 				cluster = testCase.optionalCluster
 			}
 			// Check for hook in the mandatory or optional cluster
-			v, err := context.GetResourceInstruction(ah.appName, cluster, "dependency")
+			v, err := context.GetResourceInstruction(ctx, ah.appName, cluster, "dependency")
 			if err != nil {
 				if testCase.expectedError == "" {
 					t.Fatalf("Got an error %s", err)

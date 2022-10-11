@@ -1,0 +1,78 @@
+---
+#create privileged logical cloud
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/logical-clouds
+metadata:
+  name: {{.LogicalCloud}}
+spec:
+  namespace: {{.PrivilegedNamespace}}
+  user:
+    userName: user-1
+    type: certificate
+
+---
+#add primary user permission
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/logical-clouds/{{.LogicalCloud}}/user-permissions
+metadata:
+    name: {{.PrivilegedPermission1}}
+spec:
+    namespace: {{.PrivilegedNamespace}}
+    apiGroups:
+    - "*"
+    resources:
+    - "*"
+    verbs:
+    - "*"
+
+---
+#add kube-system namespace user permission
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/logical-clouds/{{.LogicalCloud}}/user-permissions
+metadata:
+    name: {{.PrivilegedPermission2}}
+spec:
+    namespace: "kube-system"
+    apiGroups:
+    - "*"
+    resources:
+    - "*"
+    verbs:
+    - "*"
+
+---
+#add cluster-wide user permission
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/logical-clouds/{{.LogicalCloud}}/user-permissions
+metadata:
+    name: {{.PrivilegedPermission3}}
+spec:
+    namespace: ""
+    apiGroups:
+    - "*"
+    resources:
+    - "*"
+    verbs:
+    - "*"
+
+---
+#add cluster reference to logical cloud
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/logical-clouds/{{.LogicalCloud}}/cluster-references
+metadata:
+  name: {{.Cluster1Ref}}
+spec:
+  clusterProvider: {{.ClusterProvider}}
+  cluster: {{.Cluster1}}
+  loadbalancerIp: "0.0.0.0"
+
+---
+#instantiate logical cloud
+version: emco/v2
+resourceContext:
+  anchor: projects/{{ .ProjectName }}/logical-clouds/{{ .LogicalCloud }}/instantiate

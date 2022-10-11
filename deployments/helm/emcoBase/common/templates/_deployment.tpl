@@ -81,6 +81,18 @@ spec:
               name: emco-etcd
               key: etcd-root-password
         {{- end }}
+        - name: APP_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.labels['app']
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
         command: [{{ .Values.command }}]
         args: [{{ .Values.args }}]
         workingDir: {{ .Values.workingDir }}

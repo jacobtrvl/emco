@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"reflect"
 
+	"context"
 	"github.com/pkg/errors"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/module/types"
@@ -141,12 +142,12 @@ func (cc *CustomizationClient) CreateCustomization(customization Customization, 
 		return Customization{}, cExists, errors.New("Customization already exists")
 	}
 
-	if err = db.DBconn.Insert(cc.db.storeName, key, nil, cc.db.tagMeta, customization); err != nil {
+	if err = db.DBconn.Insert(context.Background(), cc.db.storeName, key, nil, cc.db.tagMeta, customization); err != nil {
 		return Customization{}, cExists, err
 	}
 
 	if len(customizationContent.Content) > 0 {
-		if err = db.DBconn.Insert(cc.db.storeName, key, nil, cc.db.tagContent, customizationContent); err != nil {
+		if err = db.DBconn.Insert(context.Background(), cc.db.storeName, key, nil, cc.db.tagContent, customizationContent); err != nil {
 			return Customization{}, cExists, err
 		}
 	}
@@ -168,7 +169,7 @@ func (cc *CustomizationClient) GetCustomization(
 		Resource:              resource,
 	}
 
-	value, err := db.DBconn.Find(cc.db.storeName, key, cc.db.tagMeta)
+	value, err := db.DBconn.Find(context.Background(), cc.db.storeName, key, cc.db.tagMeta)
 	if err != nil {
 		return Customization{}, err
 	}
@@ -202,7 +203,7 @@ func (cc *CustomizationClient) GetAllCustomization(
 		Resource:              resource,
 	}
 
-	values, err := db.DBconn.Find(cc.db.storeName, key, cc.db.tagMeta)
+	values, err := db.DBconn.Find(context.Background(), cc.db.storeName, key, cc.db.tagMeta)
 	if err != nil {
 		return []Customization{}, err
 	}
@@ -233,7 +234,7 @@ func (cc *CustomizationClient) GetCustomizationContent(
 		Resource:              resource,
 	}
 
-	value, err := db.DBconn.Find(cc.db.storeName, key, cc.db.tagContent)
+	value, err := db.DBconn.Find(context.Background(), cc.db.storeName, key, cc.db.tagContent)
 	if err != nil {
 		return CustomizationContent{}, err
 	}
@@ -264,5 +265,5 @@ func (cc *CustomizationClient) DeleteCustomization(
 		Resource:              resource,
 	}
 
-	return db.DBconn.Remove(cc.db.storeName, key)
+	return db.DBconn.Remove(context.Background(), cc.db.storeName, key)
 }

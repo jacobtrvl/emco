@@ -4,6 +4,7 @@
 package db
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -30,7 +31,7 @@ var _ = Describe("Read schema file",
 			It("continue without any error", func() {
 				refSchemaFile = "test-schemas/non-exists.yaml"
 				mockMongoStore.db.Items = mockSchemaSegments()
-				validate(mockMongoStore.ReadRefSchema(), "")
+				validate(mockMongoStore.ReadRefSchema(context.Background()), "")
 				clear()
 			})
 		})
@@ -38,7 +39,7 @@ var _ = Describe("Read schema file",
 		Context("when the schema file exists but the schema is not valid", func() {
 			It("returns schema unmarshal error", func() {
 				refSchemaFile = wd + "/test-schemas/invalid-schema.yaml"
-				validate(mockMongoStore.ReadRefSchema(), "yaml: line 4: did not find expected key")
+				validate(mockMongoStore.ReadRefSchema(context.Background()), "yaml: line 4: did not find expected key")
 				clear()
 			})
 		})
@@ -46,7 +47,7 @@ var _ = Describe("Read schema file",
 		Context("when the schema file exists but the schema name is missing", func() {
 			It("returns a JSON schema validation error", func() {
 				refSchemaFile = wd + "/test-schemas/missing-name.yaml"
-				validate(mockMongoStore.ReadRefSchema(), "Invalid Input.")
+				validate(mockMongoStore.ReadRefSchema(context.Background()), "Invalid Input.")
 				clear()
 			})
 		})
@@ -54,7 +55,7 @@ var _ = Describe("Read schema file",
 		Context("when the schema file exists but the resources are missing", func() {
 			It("returns a JSON schema validation error", func() {
 				refSchemaFile = wd + "/test-schemas/missing-resource.yaml"
-				validate(mockMongoStore.ReadRefSchema(), "Invalid Input.")
+				validate(mockMongoStore.ReadRefSchema(context.Background()), "Invalid Input.")
 				clear()
 			})
 		})
@@ -62,7 +63,7 @@ var _ = Describe("Read schema file",
 		Context("when a valid schema file exists", func() {
 			It("continue without any error", func() {
 				refSchemaFile = wd + "/test-schemas/emco-base.yaml"
-				validate(mockMongoStore.ReadRefSchema(), "")
+				validate(mockMongoStore.ReadRefSchema(context.Background()), "")
 				clear()
 			})
 
@@ -91,7 +92,7 @@ var _ = Describe("Verify referential integrity",
 				refSchemaFile = "test-schemas/non-exists.yaml"
 				mockMongoStore.db.Items = mockSchemaSegments()
 				refSchemaMapExpected := mockSchemaMap(false)
-				validate(mockMongoStore.ReadRefSchema(), "")
+				validate(mockMongoStore.ReadRefSchema(context.Background()), "")
 				Expect(refSchemaMap).To(Equal(refSchemaMapExpected))
 				Expect(len(mockMongoStore.db.Items)).To(Equal(2)) // no new schema segment registered in the database
 				clear()
@@ -103,7 +104,7 @@ var _ = Describe("Verify referential integrity",
 				refSchemaFile = wd + "/test-schemas/new-controller.yaml"
 				mockMongoStore.db.Items = mockSchemaSegments()
 				refSchemaMapExpected := mockSchemaMap(true)
-				validate(mockMongoStore.ReadRefSchema(), "")
+				validate(mockMongoStore.ReadRefSchema(context.Background()), "")
 				Expect(refSchemaMap).To(Equal(refSchemaMapExpected))
 				Expect(len(mockMongoStore.db.Items)).To(Equal(3)) // register the new schema in the database
 				clear()
@@ -116,7 +117,7 @@ var _ = Describe("Verify referential integrity",
 				refSchemaFile = wd + "/test-schemas/emco-base.yaml"
 				mockMongoStore.db.Items = mockSchemaSegments()
 				refSchemaMapExpected := mockSchemaMap(false)
-				validate(mockMongoStore.ReadRefSchema(), "")
+				validate(mockMongoStore.ReadRefSchema(context.Background()), "")
 				Expect(refSchemaMap).To(Equal(refSchemaMapExpected))
 				Expect(len(mockMongoStore.db.Items)).To(Equal(2)) // no new schema segment registered in the database
 				clear()
@@ -127,7 +128,7 @@ var _ = Describe("Verify referential integrity",
 			It("the controller returns an error", func() {
 				refSchemaFile = wd + "/test-schemas/missing-parent.yaml"
 				mockMongoStore.db.Items = mockSchemaSegments()
-				validate(mockMongoStore.ReadRefSchema(), "Resource schema not found.")
+				validate(mockMongoStore.ReadRefSchema(context.Background()), "Resource schema not found.")
 				clear()
 			})
 		})
@@ -136,7 +137,7 @@ var _ = Describe("Verify referential integrity",
 			It("the second controller returns an error", func() {
 				refSchemaFile = wd + "/test-schemas/duplicate-resource.yaml"
 				mockMongoStore.db.Items = mockSchemaSegments()
-				validate(mockMongoStore.ReadRefSchema(), "Resource already exists.")
+				validate(mockMongoStore.ReadRefSchema(context.Background()), "Resource already exists.")
 				clear()
 			})
 		})
@@ -145,7 +146,7 @@ var _ = Describe("Verify referential integrity",
 			It("the controller returns an error", func() {
 				refSchemaFile = wd + "/test-schemas/invalid-resource-name.yaml"
 				mockMongoStore.db.Items = mockSchemaSegments()
-				validate(mockMongoStore.ReadRefSchema(), "Invalid schema resource name.")
+				validate(mockMongoStore.ReadRefSchema(context.Background()), "Invalid schema resource name.")
 				clear()
 			})
 		})
@@ -153,7 +154,7 @@ var _ = Describe("Verify referential integrity",
 		Context("when the resource has a circular dependency on another resource", func() {
 			It("the controller returns an error", func() {
 				refSchemaFile = wd + "/test-schemas/loop.yaml"
-				validate(mockMongoStore.ReadRefSchema(), "Circular schema dependency for resources.")
+				validate(mockMongoStore.ReadRefSchema(context.Background()), "Circular schema dependency for resources.")
 				clear()
 			})
 		})
@@ -162,7 +163,7 @@ var _ = Describe("Verify referential integrity",
 			It("the second controller returns an error", func() {
 				refSchemaFile = wd + "/test-schemas/duplicate-schema.yaml"
 				mockMongoStore.db.Items = mockSchemaSegments()
-				validate(mockMongoStore.ReadRefSchema(), "A schema with the name already exists.")
+				validate(mockMongoStore.ReadRefSchema(context.Background()), "A schema with the name already exists.")
 				clear()
 			})
 		})

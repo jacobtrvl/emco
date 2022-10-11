@@ -4,6 +4,7 @@
 package statusnotifyserver
 
 import (
+	"context"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	pb "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/grpc/statusnotify"
@@ -12,11 +13,11 @@ import (
 
 type mockHelpers struct{}
 
-func (m mockHelpers) GetAppContextId(reg *pb.StatusRegistration) (string, error) {
+func (m mockHelpers) GetAppContextId(ctx context.Context, reg *pb.StatusRegistration) (string, error) {
 	return "", nil
 }
 
-func (m mockHelpers) StatusQuery(reg *pb.StatusRegistration, qInstance, qType, qOutput string, qApps, qClusters, qResources []string) status.StatusResult {
+func (m mockHelpers) StatusQuery(ctx context.Context, reg *pb.StatusRegistration, qInstance, qType, qOutput string, qApps, qClusters, qResources []string) status.StatusResult {
 	return status.StatusResult{}
 }
 

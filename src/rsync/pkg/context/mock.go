@@ -50,7 +50,7 @@ func NewProvider(id interface{}) MockConnector {
 	}
 }
 
-func (c *MockConnector) GetClientProviders(app, cluster, level, namespace string) (ClientProvider, error) {
+func (c *MockConnector) GetClientProviders(ctx context.Context, app, cluster, level, namespace string) (ClientProvider, error) {
 	c.Lock()
 	defer c.Unlock()
 	if c.Clients == nil {
@@ -97,7 +97,7 @@ func (m *MockClient) TagResource(res []byte, l string) ([]byte, error) {
 }
 
 // Apply Collects resources applied to cluster
-func (m *MockClient) Apply(name string, ref interface{}, content []byte) (interface{}, error) {
+func (m *MockClient) Apply(ctx context.Context, name string, ref interface{}, content []byte) (interface{}, error) {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 	m.applyCounter = m.applyCounter + 1
@@ -181,7 +181,7 @@ func (m *MockClient) Delete(name string, ref interface{}, content []byte) (inter
 	return str, nil
 }
 
-func (m *MockClient) Get(name string, gvkRes []byte) ([]byte, error) {
+func (m *MockClient) Get(ctx context.Context, name string, gvkRes []byte) ([]byte, error) {
 	b := []byte("test")
 	return b, nil
 }
@@ -196,15 +196,15 @@ func (m *MockClient) IsReachable() error {
 	return nil
 }
 
-func (m *MockClient) StartClusterWatcher() error {
+func (m *MockClient) StartClusterWatcher(ctx context.Context) error {
 	return nil
 }
 
-func (m *MockClient) ApplyStatusCR(name string, content []byte) error {
+func (m *MockClient) ApplyStatusCR(ctx context.Context, name string, content []byte) error {
 	return nil
 }
 
-func (m *MockClient) DeleteStatusCR(name string, content []byte) error {
+func (m *MockClient) DeleteStatusCR(ctx context.Context, name string, content []byte) error {
 	return nil
 }
 func (m *MockClient) ApplyConfig(ctx context.Context, config interface{}) error {
@@ -262,20 +262,20 @@ func CompareMaps(m, n map[string]string) bool {
 	return reflect.DeepEqual(m1, n1)
 }
 
-func GetAppContextStatus(cid interface{}, key string) (string, error) {
+func GetAppContextStatus(ctx context.Context, cid interface{}, key string) (string, error) {
 	//var acStatus appcontext.AppContextStatus = appcontext.AppContextStatus{}
 	ac := appcontext.AppContext{}
-	_, err := ac.LoadAppContext(cid)
+	_, err := ac.LoadAppContext(ctx, cid)
 	if err != nil {
 		return "", err
 	}
-	hc, err := ac.GetCompositeAppHandle()
+	hc, err := ac.GetCompositeAppHandle(ctx)
 	if err != nil {
 		return "", err
 	}
-	dsh, err := ac.GetLevelHandle(hc, key)
+	dsh, err := ac.GetLevelHandle(ctx, hc, key)
 	if dsh != nil {
-		v, err := ac.GetValue(dsh)
+		v, err := ac.GetValue(ctx, dsh)
 		if err != nil {
 			return "", err
 		}
@@ -285,22 +285,22 @@ func GetAppContextStatus(cid interface{}, key string) (string, error) {
 	return "", err
 }
 
-func UpdateAppContextFlag(cid interface{}, key string, b bool) error {
+func UpdateAppContextFlag(ctx context.Context, cid interface{}, key string, b bool) error {
 	ac := appcontext.AppContext{}
-	_, err := ac.LoadAppContext(cid)
+	_, err := ac.LoadAppContext(ctx, cid)
 	if err != nil {
 		return err
 	}
-	h, err := ac.GetCompositeAppHandle()
+	h, err := ac.GetCompositeAppHandle(ctx)
 	if err != nil {
 
 		return err
 	}
-	sh, err := ac.GetLevelHandle(h, key)
+	sh, err := ac.GetLevelHandle(ctx, h, key)
 	if sh == nil {
-		_, err = ac.AddLevelValue(h, key, b)
+		_, err = ac.AddLevelValue(ctx, h, key, b)
 	} else {
-		err = ac.UpdateValue(sh, b)
+		err = ac.UpdateValue(ctx, sh, b)
 	}
 	return err
 }

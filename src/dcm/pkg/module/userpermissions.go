@@ -4,6 +4,8 @@
 package module
 
 import (
+	"context"
+
 	pkgerrors "github.com/pkg/errors"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
 )
@@ -39,11 +41,11 @@ type UserPermissionKey struct {
 
 // UserPermissionManager is an interface that exposes the connection functionality
 type UserPermissionManager interface {
-	CreateUserPerm(project, logicalCloud string, c UserPermission) (UserPermission, error)
-	GetUserPerm(project, logicalCloud, name string) (UserPermission, error)
-	GetAllUserPerms(project, logicalCloud string) ([]UserPermission, error)
-	DeleteUserPerm(project, logicalCloud, name string) error
-	UpdateUserPerm(project, logicalCloud, name string, c UserPermission) (UserPermission, error)
+	CreateUserPerm(ctx context.Context, project, logicalCloud string, c UserPermission) (UserPermission, error)
+	GetUserPerm(ctx context.Context, project, logicalCloud, name string) (UserPermission, error)
+	GetAllUserPerms(ctx context.Context, project, logicalCloud string) ([]UserPermission, error)
+	DeleteUserPerm(ctx context.Context, project, logicalCloud, name string) error
+	UpdateUserPerm(ctx context.Context, project, logicalCloud, name string, c UserPermission) (UserPermission, error)
 }
 
 // UserPermissionClient implements the UserPermissionManager
@@ -63,7 +65,7 @@ func NewUserPermissionClient() *UserPermissionClient {
 }
 
 // Create entry for the User Permission resource in the database
-func (v *UserPermissionClient) CreateUserPerm(project, logicalCloud string, c UserPermission) (UserPermission, error) {
+func (v *UserPermissionClient) CreateUserPerm(ctx context.Context, project, logicalCloud string, c UserPermission) (UserPermission, error) {
 
 	//Construct key consisting of name
 	key := UserPermissionKey{
@@ -73,12 +75,12 @@ func (v *UserPermissionClient) CreateUserPerm(project, logicalCloud string, c Us
 	}
 
 	//Check if this User Permission already exists
-	_, err := v.GetUserPerm(project, logicalCloud, c.MetaData.UserPermissionName)
+	_, err := v.GetUserPerm(ctx, project, logicalCloud, c.MetaData.UserPermissionName)
 	if err == nil {
 		return UserPermission{}, pkgerrors.New("User Permission already exists")
 	}
 
-	err = db.DBconn.Insert(v.storeName, key, nil, v.tagMeta, c)
+	err = db.DBconn.Insert(ctx, v.storeName, key, nil, v.tagMeta, c)
 	if err != nil {
 		return UserPermission{}, pkgerrors.Wrap(err, "Creating DB Entry")
 	}
@@ -87,7 +89,7 @@ func (v *UserPermissionClient) CreateUserPerm(project, logicalCloud string, c Us
 }
 
 // Get returns User Permission for corresponding name
-func (v *UserPermissionClient) GetUserPerm(project, logicalCloud, userPermName string) (UserPermission, error) {
+func (v *UserPermissionClient) GetUserPerm(ctx context.Context, project, logicalCloud, userPermName string) (UserPermission, error) {
 
 	//Construct the composite key to select the entry
 	key := UserPermissionKey{
@@ -96,7 +98,7 @@ func (v *UserPermissionClient) GetUserPerm(project, logicalCloud, userPermName s
 		UserPermissionName: userPermName,
 	}
 
-	value, err := db.DBconn.Find(v.storeName, key, v.tagMeta)
+	value, err := db.DBconn.Find(ctx, v.storeName, key, v.tagMeta)
 	if err != nil {
 		return UserPermission{}, err
 	}
@@ -119,7 +121,7 @@ func (v *UserPermissionClient) GetUserPerm(project, logicalCloud, userPermName s
 }
 
 // GetAll lists all user permissions
-func (v *UserPermissionClient) GetAllUserPerms(project, logicalCloud string) ([]UserPermission, error) {
+func (v *UserPermissionClient) GetAllUserPerms(ctx context.Context, project, logicalCloud string) ([]UserPermission, error) {
 	//Construct the composite key to select the entry
 	key := UserPermissionKey{
 		Project:            project,
@@ -127,7 +129,7 @@ func (v *UserPermissionClient) GetAllUserPerms(project, logicalCloud string) ([]
 		UserPermissionName: "",
 	}
 	var resp []UserPermission
-	values, err := db.DBconn.Find(v.storeName, key, v.tagMeta)
+	values, err := db.DBconn.Find(ctx, v.storeName, key, v.tagMeta)
 	if err != nil {
 		return []UserPermission{}, err
 	}
@@ -144,14 +146,14 @@ func (v *UserPermissionClient) GetAllUserPerms(project, logicalCloud string) ([]
 }
 
 // Delete the User Permission entry from database
-func (v *UserPermissionClient) DeleteUserPerm(project, logicalCloud, userPermName string) error {
+func (v *UserPermissionClient) DeleteUserPerm(ctx context.Context, project, logicalCloud, userPermName string) error {
 	//Construct the composite key to select the entry
 	key := UserPermissionKey{
 		Project:            project,
 		LogicalCloudName:   logicalCloud,
 		UserPermissionName: userPermName,
 	}
-	err := db.DBconn.Remove(v.storeName, key)
+	err := db.DBconn.Remove(ctx, v.storeName, key)
 	if err != nil {
 		return pkgerrors.Wrap(err, "Delete User Permission")
 	}
@@ -159,7 +161,7 @@ func (v *UserPermissionClient) DeleteUserPerm(project, logicalCloud, userPermNam
 }
 
 // Update an entry for the User Permission in the database
-func (v *UserPermissionClient) UpdateUserPerm(project, logicalCloud, userPermName string, c UserPermission) (
+func (v *UserPermissionClient) UpdateUserPerm(ctx context.Context, project, logicalCloud, userPermName string, c UserPermission) (
 	UserPermission, error) {
 
 	key := UserPermissionKey{
@@ -172,11 +174,11 @@ func (v *UserPermissionClient) UpdateUserPerm(project, logicalCloud, userPermNam
 		return UserPermission{}, pkgerrors.New("Update Error - Permission name mismatch")
 	}
 	//Check if this User Permission exists
-	_, err := v.GetUserPerm(project, logicalCloud, userPermName)
+	_, err := v.GetUserPerm(ctx, project, logicalCloud, userPermName)
 	if err != nil {
 		return UserPermission{}, err
 	}
-	err = db.DBconn.Insert(v.storeName, key, nil, v.tagMeta, c)
+	err = db.DBconn.Insert(ctx, v.storeName, key, nil, v.tagMeta, c)
 	if err != nil {
 		return UserPermission{}, pkgerrors.Wrap(err, "Updating DB Entry")
 	}

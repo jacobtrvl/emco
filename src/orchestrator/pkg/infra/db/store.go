@@ -8,6 +8,7 @@ import (
 	"reflect"
 
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/config"
+	"golang.org/x/net/context"
 
 	pkgerrors "github.com/pkg/errors"
 )
@@ -24,34 +25,34 @@ type Key interface {
 // Store is an interface for accessing the database
 type Store interface {
 	// Returns nil if db health is good
-	HealthCheck() error
+	HealthCheck(ctx context.Context) error
 
 	// Unmarshal implements any unmarshalling needed for the database
 	Unmarshal(inp []byte, out interface{}) error
 
 	// Inserts and Updates a tag with key and also adds query fields if provided
-	Insert(coll string, key Key, query interface{}, tag string, data interface{}) error
+	Insert(ctx context.Context, coll string, key Key, query interface{}, tag string, data interface{}) error
 
 	// Find the document(s) with key and get the tag values from the document(s)
-	Find(coll string, key Key, tag string) ([][]byte, error)
+	Find(ctx context.Context, coll string, key Key, tag string) ([][]byte, error)
 
 	// Removes the document(s) matching the key if no child reference in collection
-	Remove(coll string, key Key) error
+	Remove(ctx context.Context, coll string, key Key) error
 
 	// Remove all the document(s) matching the key
-	RemoveAll(coll string, key Key) error
+	RemoveAll(ctx context.Context, coll string, key Key) error
 
 	// Remove the specifiec tag from the document matching the key
-	RemoveTag(coll string, key Key, tag string) error
+	RemoveTag(ctx context.Context, coll string, key Key, tag string) error
 }
 
 // CreateDBClient creates the DB client
-func createDBClient(dbType string, dbName string) error {
+func createDBClient(ctx context.Context, dbType string, dbName string) error {
 	var err error
 	switch dbType {
 	case "mongo":
 		// create a mongodb database with orchestrator as the name
-		DBconn, err = NewMongoStore(dbName, nil)
+		DBconn, err = NewMongoStore(ctx, dbName, nil)
 	default:
 		return pkgerrors.New(dbType + "DB not supported")
 	}
@@ -78,13 +79,13 @@ func DeSerialize(str string, v interface{}) error {
 
 // InitializeDatabaseConnection sets up the connection to the
 // configured database to allow the application to talk to it.
-func InitializeDatabaseConnection(dbName string) error {
-	err := createDBClient(config.GetConfiguration().DatabaseType, dbName)
+func InitializeDatabaseConnection(ctx context.Context, dbName string) error {
+	err := createDBClient(ctx, config.GetConfiguration().DatabaseType, dbName)
 	if err != nil {
 		return pkgerrors.Cause(err)
 	}
 
-	err = DBconn.HealthCheck()
+	err = DBconn.HealthCheck(ctx)
 	if err != nil {
 		return pkgerrors.Cause(err)
 	}

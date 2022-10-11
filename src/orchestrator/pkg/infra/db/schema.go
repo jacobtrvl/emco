@@ -18,6 +18,9 @@ import (
 	pkgerrors "github.com/pkg/errors"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/config"
 	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/trace"
+	"golang.org/x/net/context"
 	"gopkg.in/yaml.v3"
 )
 
@@ -88,20 +91,31 @@ func (key DbSchemaKey) String() string {
 }
 
 // ReadRefSchema reads the Referential Schema Segment file and creates the refSchemaMap.
-func (m *MongoStore) ReadRefSchema() {
+func (m *MongoStore) ReadRefSchema(ctx context.Context) {
+	// This function is executed asynchronously, so we must create
+	// a new (not derived) context to prevent the context from
+	// being cancelled when the caller completes: a cancelled
+	// context will cause the below work to exit early.  A link is
+	// used so that the traces can be associated.
+	tracer := otel.Tracer("orchestrator")
+	ctx, span := tracer.Start(context.Background(), "ReadRefSchema",
+		trace.WithLinks(trace.LinkFromContext(ctx)),
+	)
+	defer span.End()
+
 	schema, err := readSchema()
 	if err != nil {
 		return
 	}
 
-	m.verifyReferentialIntegrity(schema)
+	m.verifyReferentialIntegrity(ctx, schema)
 }
 
 // verifyReferentialIntegrity verifies the referential integrity of the resources
 // defined by the controller(s) schema.
 // Wait for controllers to register schema in scenarios where
 // multiple controllers start simultaneously.
-func (m *MongoStore) verifyReferentialIntegrity(serviceSchema DbSchema) {
+func (m *MongoStore) verifyReferentialIntegrity(ctx context.Context, serviceSchema DbSchema) {
 	var (
 		backOff       int   = config.GetConfiguration().BackOff
 		maxBackOff    int   = config.GetConfiguration().MaxBackOff
@@ -110,7 +124,7 @@ func (m *MongoStore) verifyReferentialIntegrity(serviceSchema DbSchema) {
 	)
 
 	for waitForSchema {
-		waitForSchema, err = m.processSchema(serviceSchema)
+		waitForSchema, err = m.processSchema(ctx, serviceSchema)
 		if err != nil {
 			return
 		}
@@ -135,7 +149,7 @@ func (m *MongoStore) verifyReferentialIntegrity(serviceSchema DbSchema) {
 }
 
 // processSchema process each schema segment in the db.
-func (m *MongoStore) processSchema(serviceSchema DbSchema) (bool, error) {
+func (m *MongoStore) processSchema(ctx context.Context, serviceSchema DbSchema) (bool, error) {
 	var (
 		emcoRefSchema    DbSchema
 		schemaExists     bool
@@ -148,7 +162,7 @@ func (m *MongoStore) processSchema(serviceSchema DbSchema) (bool, error) {
 	defer schemaLock.Unlock()
 
 	// Retrieve all the schema segments.
-	segments, err := m.Find("resources", DbSchemaKey{}, "segment")
+	segments, err := m.Find(ctx, "resources", DbSchemaKey{}, "segment")
 	if err != nil {
 		log.Error("DatabaseReferentialSchema: failed to retrieve schema segments from db.",
 			log.Fields{
@@ -228,7 +242,7 @@ func (m *MongoStore) processSchema(serviceSchema DbSchema) (bool, error) {
 	if !schemaExists &&
 		serviceSchema.SegmentId != "" {
 		// Register the controller schema in the db.
-		err := m.Insert("resources", DbSchemaKey{SegmentId: serviceSchema.SegmentId}, nil, "segment", serviceSchema)
+		err := m.Insert(ctx, "resources", DbSchemaKey{SegmentId: serviceSchema.SegmentId}, nil, "segment", serviceSchema)
 		if err != nil {
 			log.Error("DatabaseReferentialSchema: failed to insert service schema into the db.",
 				log.Fields{

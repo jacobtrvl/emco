@@ -20,7 +20,7 @@ func (p *Fluxv2Provider) Create(name string, ref interface{}, content []byte) (i
 }
 
 // Apply resource to the cluster
-func (p *Fluxv2Provider) Apply(name string, ref interface{}, content []byte) (interface{}, error) {
+func (p *Fluxv2Provider) Apply(ctx context.Context, name string, ref interface{}, content []byte) (interface{}, error) {
 
 	//Decode the yaml to create a runtime.Object
 	unstruct := &unstructured.Unstructured{}
@@ -39,7 +39,8 @@ func (p *Fluxv2Provider) Apply(name string, ref interface{}, content []byte) (in
 	if err != nil {
 		return nil, err
 	}
-	res, err := p.gitProvider.Apply(name, ref, b)
+	path := p.gitProvider.GetPath("context") + name + ".yaml"
+	res, err := p.gitProvider.Apply(path, ref, b)
 	return res, err
 
 }
@@ -47,13 +48,14 @@ func (p *Fluxv2Provider) Apply(name string, ref interface{}, content []byte) (in
 // Delete resource from the cluster
 func (p *Fluxv2Provider) Delete(name string, ref interface{}, content []byte) (interface{}, error) {
 
-	res, err := p.gitProvider.Delete(name, ref, content)
+	path := p.gitProvider.GetPath("context") + name + ".yaml"
+	res, err := p.gitProvider.Delete(path, ref, content)
 	return res, err
 
 }
 
 // Get resource from the cluster
-func (p *Fluxv2Provider) Get(name string, gvkRes []byte) ([]byte, error) {
+func (p *Fluxv2Provider) Get(ctx context.Context, name string, gvkRes []byte) ([]byte, error) {
 
 	return []byte{}, nil
 }

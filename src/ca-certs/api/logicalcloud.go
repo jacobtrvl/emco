@@ -10,7 +10,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"gitlab.com/project-emco/core/emco-base/src/ca-certs/pkg/client/logicalcloud"
-	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/apierror"
+	"gitlab.com/project-emco/core/emco-base/src/orchestrator/common/emcoerror"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 )
 
@@ -29,7 +29,7 @@ func (h *lcHandler) handleLogicalCloudDelete(w http.ResponseWriter, r *http.Requ
 	// get the route variables
 	vars := _lcVars(mux.Vars(r))
 	if err := h.manager.DeleteLogicalCloud(vars.logicalCloud, vars.cert, vars.project); err != nil {
-		apiErr := apierror.HandleErrors(mux.Vars(r), err, nil, apiErrors)
+		apiErr := emcoerror.HandleAPIError(err)
 		http.Error(w, apiErr.Message, apiErr.Status)
 		return
 	}
@@ -53,7 +53,7 @@ func (h *lcHandler) handleLogicalCloudGet(w http.ResponseWriter, r *http.Request
 	}
 
 	if err != nil {
-		apiErr := apierror.HandleErrors(mux.Vars(r), err, nil, apiErrors)
+		apiErr := emcoerror.HandleAPIError(err)
 		http.Error(w, apiErr.Message, apiErr.Status)
 		return
 	}
@@ -97,7 +97,7 @@ func (h *lcHandler) createOrUpdateLogicalCloud(w http.ResponseWriter, r *http.Re
 
 	clr, clrExists, err := h.manager.CreateLogicalCloud(logicalCloud, vars.cert, vars.project, methodPost)
 	if err != nil {
-		apiErr := apierror.HandleErrors(mux.Vars(r), err, logicalCloud, apiErrors)
+		apiErr := emcoerror.HandleAPIError(err)
 		http.Error(w, apiErr.Message, apiErr.Status)
 		return
 	}

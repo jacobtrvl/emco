@@ -12,7 +12,10 @@ spec:
   compositeProfile: {{ .CompositeProfile }} 
   version: r1
   logicalCloud: {{ .LogicalCloud }}
-  overrideValues: []
+  overrideValues:
+  - app: sleep
+    values:
+      "clientservice.image.repository": "{{.ClientServiceImageRepository}}"
 
 ---
 #create intent in deployment intent group

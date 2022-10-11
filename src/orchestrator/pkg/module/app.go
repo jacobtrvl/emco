@@ -4,6 +4,7 @@
 package module
 
 import (
+	"context"
 	"encoding/json"
 
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
@@ -49,11 +50,11 @@ func (aK AppKey) String() string {
 
 // AppManager is an interface exposes the App functionality
 type AppManager interface {
-	CreateApp(a App, ac AppContent, p string, cN string, cV string, exists bool) (App, error)
-	GetApp(name string, p string, cN string, cV string) (App, error)
-	GetAppContent(name string, p string, cN string, cV string) (AppContent, error)
-	GetApps(p string, cN string, cV string) ([]App, error)
-	DeleteApp(name string, p string, cN string, cV string) error
+	CreateApp(ctx context.Context, a App, ac AppContent, p string, cN string, cV string, exists bool) (App, error)
+	GetApp(ctx context.Context, name string, p string, cN string, cV string) (App, error)
+	GetAppContent(ctx context.Context, name string, p string, cN string, cV string) (AppContent, error)
+	GetApps(ctx context.Context, p string, cN string, cV string) ([]App, error)
+	DeleteApp(ctx context.Context, name string, p string, cN string, cV string) error
 }
 
 // AppClient implements the AppManager
@@ -74,7 +75,7 @@ func NewAppClient() *AppClient {
 }
 
 // CreateApp creates a new collection based on the App
-func (v *AppClient) CreateApp(a App, ac AppContent, p string, cN string, cV string, exists bool) (App, error) {
+func (v *AppClient) CreateApp(ctx context.Context, a App, ac AppContent, p string, cN string, cV string, exists bool) (App, error) {
 
 	//Construct the composite key to select the entry
 	key := AppKey{
@@ -85,17 +86,17 @@ func (v *AppClient) CreateApp(a App, ac AppContent, p string, cN string, cV stri
 	}
 
 	//Check if this App already exists
-	_, err := v.GetApp(a.Metadata.Name, p, cN, cV)
+	_, err := v.GetApp(ctx, a.Metadata.Name, p, cN, cV)
 	if err == nil && !exists {
 		return App{}, pkgerrors.New("App already exists")
 	}
 
-	err = db.DBconn.Insert(v.storeName, key, nil, v.tagMeta, a)
+	err = db.DBconn.Insert(ctx, v.storeName, key, nil, v.tagMeta, a)
 	if err != nil {
 		return App{}, pkgerrors.Wrap(err, "Create DB entry error")
 	}
 
-	err = db.DBconn.Insert(v.storeName, key, nil, v.tagContent, ac)
+	err = db.DBconn.Insert(ctx, v.storeName, key, nil, v.tagContent, ac)
 	if err != nil {
 		return App{}, pkgerrors.Wrap(err, "Create DB entry error")
 	}
@@ -104,7 +105,7 @@ func (v *AppClient) CreateApp(a App, ac AppContent, p string, cN string, cV stri
 }
 
 // GetApp returns the App for corresponding name
-func (v *AppClient) GetApp(name string, p string, cN string, cV string) (App, error) {
+func (v *AppClient) GetApp(ctx context.Context, name string, p string, cN string, cV string) (App, error) {
 
 	//Construct the composite key to select the entry
 	key := AppKey{
@@ -113,7 +114,7 @@ func (v *AppClient) GetApp(name string, p string, cN string, cV string) (App, er
 		CompositeApp:        cN,
 		CompositeAppVersion: cV,
 	}
-	value, err := db.DBconn.Find(v.storeName, key, v.tagMeta)
+	value, err := db.DBconn.Find(ctx, v.storeName, key, v.tagMeta)
 	if err != nil {
 		return App{}, err
 	} else if len(value) == 0 {
@@ -134,7 +135,7 @@ func (v *AppClient) GetApp(name string, p string, cN string, cV string) (App, er
 }
 
 // GetAppContent returns content for corresponding app
-func (v *AppClient) GetAppContent(name string, p string, cN string, cV string) (AppContent, error) {
+func (v *AppClient) GetAppContent(ctx context.Context, name string, p string, cN string, cV string) (AppContent, error) {
 
 	//Construct the composite key to select the entry
 	key := AppKey{
@@ -143,7 +144,7 @@ func (v *AppClient) GetAppContent(name string, p string, cN string, cV string) (
 		CompositeApp:        cN,
 		CompositeAppVersion: cV,
 	}
-	value, err := db.DBconn.Find(v.storeName, key, v.tagContent)
+	value, err := db.DBconn.Find(ctx, v.storeName, key, v.tagContent)
 	if err != nil {
 		return AppContent{}, err
 	} else if len(value) == 0 {
@@ -164,7 +165,7 @@ func (v *AppClient) GetAppContent(name string, p string, cN string, cV string) (
 }
 
 // GetApps returns all Apps for given composite App
-func (v *AppClient) GetApps(project, compositeApp, compositeAppVersion string) ([]App, error) {
+func (v *AppClient) GetApps(ctx context.Context, project, compositeApp, compositeAppVersion string) ([]App, error) {
 
 	key := AppKey{
 		App:                 "",
@@ -174,7 +175,7 @@ func (v *AppClient) GetApps(project, compositeApp, compositeAppVersion string) (
 	}
 
 	var resp []App
-	values, err := db.DBconn.Find(v.storeName, key, v.tagMeta)
+	values, err := db.DBconn.Find(ctx, v.storeName, key, v.tagMeta)
 	if err != nil {
 		return []App{}, err
 	}
@@ -192,7 +193,7 @@ func (v *AppClient) GetApps(project, compositeApp, compositeAppVersion string) (
 }
 
 // DeleteApp deletes the  App from database
-func (v *AppClient) DeleteApp(name string, p string, cN string, cV string) error {
+func (v *AppClient) DeleteApp(ctx context.Context, name string, p string, cN string, cV string) error {
 
 	//Construct the composite key to select the entry
 	key := AppKey{
@@ -201,6 +202,6 @@ func (v *AppClient) DeleteApp(name string, p string, cN string, cV string) error
 		CompositeApp:        cN,
 		CompositeAppVersion: cV,
 	}
-	err := db.DBconn.Remove(v.storeName, key)
+	err := db.DBconn.Remove(ctx, v.storeName, key)
 	return err
 }

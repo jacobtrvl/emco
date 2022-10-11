@@ -4,6 +4,8 @@
 package statusnotify
 
 import (
+	"context"
+
 	pkgerrors "github.com/pkg/errors"
 	clustermodule "gitlab.com/project-emco/core/emco-base/src/clm/pkg/cluster"
 	"gitlab.com/project-emco/core/emco-base/src/ncm/pkg/scheduler"
@@ -32,13 +34,13 @@ func getClusterKeyValues(reg *statusnotifypb.StatusRegistration) (string, string
 	return clusterKey.GetClusterProvider(), clusterKey.GetCluster(), nil
 }
 
-func (d clusterHelpers) GetAppContextId(reg *statusnotifypb.StatusRegistration) (string, error) {
+func (d clusterHelpers) GetAppContextId(ctx context.Context, reg *statusnotifypb.StatusRegistration) (string, error) {
 	clusterProvider, cluster, err := getClusterKeyValues(reg)
 	if err != nil {
 		return "", err
 	}
 
-	si, err := clustermodule.NewClusterClient().GetClusterState(clusterProvider, cluster)
+	si, err := clustermodule.NewClusterClient().GetClusterState(context.Background(), clusterProvider, cluster)
 	if err != nil {
 		return "", pkgerrors.Wrapf(err, "Cluster state not found: %v+%v", clusterProvider, cluster)
 	}
@@ -46,7 +48,7 @@ func (d clusterHelpers) GetAppContextId(reg *statusnotifypb.StatusRegistration) 
 	return state.GetStatusContextIdFromStateInfo(si), nil
 }
 
-func (d clusterHelpers) StatusQuery(reg *statusnotifypb.StatusRegistration, qStatusInstance, qType, qOutput string, qApps, qClusters, qResources []string) status.StatusResult {
+func (d clusterHelpers) StatusQuery(ctx context.Context, reg *statusnotifypb.StatusRegistration, qStatusInstance, qType, qOutput string, qApps, qClusters, qResources []string) status.StatusResult {
 	clusterProvider, cluster, err := getClusterKeyValues(reg)
 	if err != nil {
 		return status.StatusResult{}

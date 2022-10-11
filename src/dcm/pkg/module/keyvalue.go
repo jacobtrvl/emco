@@ -4,6 +4,8 @@
 package module
 
 import (
+	"context"
+
 	pkgerrors "github.com/pkg/errors"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
 )
@@ -37,11 +39,11 @@ type KeyValueKey struct {
 // KeyValueManager is an interface that exposes the connection
 // functionality
 type KeyValueManager interface {
-	CreateKVPair(project, logicalCloud string, c KeyValue) (KeyValue, error)
-	GetKVPair(project, logicalCloud, name string) (KeyValue, error)
-	GetAllKVPairs(project, logicalCloud string) ([]KeyValue, error)
-	DeleteKVPair(project, logicalCloud, name string) error
-	UpdateKVPair(project, logicalCloud, name string, c KeyValue) (KeyValue, error)
+	CreateKVPair(ctx context.Context, project, logicalCloud string, c KeyValue) (KeyValue, error)
+	GetKVPair(ctx context.Context, project, logicalCloud, name string) (KeyValue, error)
+	GetAllKVPairs(ctx context.Context, project, logicalCloud string) ([]KeyValue, error)
+	DeleteKVPair(ctx context.Context, project, logicalCloud, name string) error
+	UpdateKVPair(ctx context.Context, project, logicalCloud, name string, c KeyValue) (KeyValue, error)
 }
 
 // KeyValueClient implements the KeyValueManager
@@ -61,7 +63,7 @@ func NewKeyValueClient() *KeyValueClient {
 }
 
 // Create entry for the key value resource in the database
-func (v *KeyValueClient) CreateKVPair(project, logicalCloud string, c KeyValue) (KeyValue, error) {
+func (v *KeyValueClient) CreateKVPair(ctx context.Context, project, logicalCloud string, c KeyValue) (KeyValue, error) {
 
 	//Construct key consisting of name
 	key := KeyValueKey{
@@ -71,12 +73,12 @@ func (v *KeyValueClient) CreateKVPair(project, logicalCloud string, c KeyValue) 
 	}
 
 	//Check if this Key Value already exists
-	_, err := v.GetKVPair(project, logicalCloud, c.MetaData.KeyValueName)
+	_, err := v.GetKVPair(ctx, project, logicalCloud, c.MetaData.KeyValueName)
 	if err == nil {
 		return KeyValue{}, pkgerrors.New("Key Value already exists")
 	}
 
-	err = db.DBconn.Insert(v.storeName, key, nil, v.tagMeta, c)
+	err = db.DBconn.Insert(ctx, v.storeName, key, nil, v.tagMeta, c)
 	if err != nil {
 		return KeyValue{}, pkgerrors.Wrap(err, "Creating DB Entry")
 	}
@@ -85,7 +87,7 @@ func (v *KeyValueClient) CreateKVPair(project, logicalCloud string, c KeyValue) 
 }
 
 // Get returns Key Value for correspondin name
-func (v *KeyValueClient) GetKVPair(project, logicalCloud, kvPairName string) (KeyValue, error) {
+func (v *KeyValueClient) GetKVPair(ctx context.Context, project, logicalCloud, kvPairName string) (KeyValue, error) {
 
 	//Construct the composite key to select the entry
 	key := KeyValueKey{
@@ -93,7 +95,7 @@ func (v *KeyValueClient) GetKVPair(project, logicalCloud, kvPairName string) (Ke
 		LogicalCloudName: logicalCloud,
 		KeyValueName:     kvPairName,
 	}
-	value, err := db.DBconn.Find(v.storeName, key, v.tagMeta)
+	value, err := db.DBconn.Find(ctx, v.storeName, key, v.tagMeta)
 	if err != nil {
 		return KeyValue{}, err
 	}
@@ -116,7 +118,7 @@ func (v *KeyValueClient) GetKVPair(project, logicalCloud, kvPairName string) (Ke
 }
 
 // Get All lists all key value pairs
-func (v *KeyValueClient) GetAllKVPairs(project, logicalCloud string) ([]KeyValue, error) {
+func (v *KeyValueClient) GetAllKVPairs(ctx context.Context, project, logicalCloud string) ([]KeyValue, error) {
 
 	//Construct the composite key to select the entry
 	key := KeyValueKey{
@@ -125,7 +127,7 @@ func (v *KeyValueClient) GetAllKVPairs(project, logicalCloud string) ([]KeyValue
 		KeyValueName:     "",
 	}
 	var resp []KeyValue
-	values, err := db.DBconn.Find(v.storeName, key, v.tagMeta)
+	values, err := db.DBconn.Find(ctx, v.storeName, key, v.tagMeta)
 	if err != nil {
 		return []KeyValue{}, err
 	}
@@ -143,7 +145,7 @@ func (v *KeyValueClient) GetAllKVPairs(project, logicalCloud string) ([]KeyValue
 }
 
 // Delete the Key Value entry from database
-func (v *KeyValueClient) DeleteKVPair(project, logicalCloud, kvPairName string) error {
+func (v *KeyValueClient) DeleteKVPair(ctx context.Context, project, logicalCloud, kvPairName string) error {
 
 	//Construct the composite key to select the entry
 	key := KeyValueKey{
@@ -151,7 +153,7 @@ func (v *KeyValueClient) DeleteKVPair(project, logicalCloud, kvPairName string) 
 		LogicalCloudName: logicalCloud,
 		KeyValueName:     kvPairName,
 	}
-	err := db.DBconn.Remove(v.storeName, key)
+	err := db.DBconn.Remove(ctx, v.storeName, key)
 	if err != nil {
 		return pkgerrors.Wrap(err, "Delete Key Value")
 	}
@@ -159,7 +161,7 @@ func (v *KeyValueClient) DeleteKVPair(project, logicalCloud, kvPairName string) 
 }
 
 // Update an entry for the Key Value in the database
-func (v *KeyValueClient) UpdateKVPair(project, logicalCloud, kvPairName string, c KeyValue) (KeyValue, error) {
+func (v *KeyValueClient) UpdateKVPair(ctx context.Context, project, logicalCloud, kvPairName string, c KeyValue) (KeyValue, error) {
 
 	key := KeyValueKey{
 		Project:          project,
@@ -171,11 +173,11 @@ func (v *KeyValueClient) UpdateKVPair(project, logicalCloud, kvPairName string, 
 		return KeyValue{}, pkgerrors.New("Update Error - KV pair name mismatch")
 	}
 	//Check if this Key Value exists
-	_, err := v.GetKVPair(project, logicalCloud, kvPairName)
+	_, err := v.GetKVPair(ctx, project, logicalCloud, kvPairName)
 	if err != nil {
 		return KeyValue{}, err
 	}
-	err = db.DBconn.Insert(v.storeName, key, nil, v.tagMeta, c)
+	err = db.DBconn.Insert(ctx, v.storeName, key, nil, v.tagMeta, c)
 	if err != nil {
 		return KeyValue{}, pkgerrors.Wrap(err, "Updating DB Entry")
 	}

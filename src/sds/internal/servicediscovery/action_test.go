@@ -16,6 +16,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
+	"context"
+	pkgerrors "github.com/pkg/errors"
 	"gitlab.com/project-emco/core/emco-base/src/clm/pkg/cluster"
 	"gitlab.com/project-emco/core/emco-base/src/dtc/pkg/module"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/appcontext"
@@ -25,7 +27,6 @@ import (
 	mtypes "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/module/types"
 	"gitlab.com/project-emco/core/emco-base/src/rsync/pkg/grpc/installapp"
 	"gitlab.com/project-emco/core/emco-base/src/sds/internal/servicediscovery"
-	pkgerrors "github.com/pkg/errors"
 )
 
 type contextForCompositeApp struct {
@@ -61,22 +62,22 @@ func (r *rpcMsg) String() string {
 }
 
 func makeAppContextForCompositeApp(p, ca, v, rName, dig string, namespace string, level string) (contextForCompositeApp, error) {
-	context := appcontext.AppContext{}
-	ctxval, err := context.InitAppContext()
+	appCtx := appcontext.AppContext{}
+	ctxval, err := appCtx.InitAppContext()
 	if err != nil {
 		return contextForCompositeApp{}, pkgerrors.Wrap(err, "Error creating AppContext CompositeApp")
 	}
-	compositeHandle, err := context.CreateCompositeApp()
+	compositeHandle, err := appCtx.CreateCompositeApp(context.Background())
 	if err != nil {
 		return contextForCompositeApp{}, pkgerrors.Wrap(err, "Error creating CompositeApp handle")
 	}
 	compMetadata := appcontext.CompositeAppMeta{Project: p, CompositeApp: ca, Version: v, Release: rName, DeploymentIntentGroup: dig, Namespace: namespace, Level: level}
-	err = context.AddCompositeAppMeta(compMetadata)
+	err = appCtx.AddCompositeAppMeta(context.Background(), compMetadata)
 	if err != nil {
 		return contextForCompositeApp{}, pkgerrors.Wrap(err, "Error Adding CompositeAppMeta")
 	}
 
-	cca := contextForCompositeApp{context: context, ctxval: ctxval, compositeAppHandle: compositeHandle}
+	cca := contextForCompositeApp{context: appCtx, ctxval: ctxval, compositeAppHandle: compositeHandle}
 
 	return cca, nil
 
@@ -95,7 +96,7 @@ func CreateClusterLabel(provider, clu string) error {
 		},
 	}
 
-	_, _ = client.CreateClusterProvider(cp, false)
+	_, _ = client.CreateClusterProvider(context.Background(), cp, false)
 	c := cluster.Cluster{
 		Metadata: mtypes.Metadata{
 			Name:        clu,
@@ -107,13 +108,13 @@ func CreateClusterLabel(provider, clu string) error {
 	cc := cluster.ClusterContent{
 		Kubeconfig: "dummydata",
 	}
-	_, _ = client.CreateCluster(provider, c, cc)
+	_, _ = client.CreateCluster(context.Background(), provider, c, cc)
 
 	cl := cluster.ClusterLabel{
 		LabelName: "networkpolicy-supported",
 	}
 
-	_, _ = client.CreateClusterLabel(provider, clu, cl, false)
+	_, _ = client.CreateClusterLabel(context.Background(), provider, clu, cl, false)
 
 	return nil
 
@@ -305,9 +306,9 @@ spec:
 	})
 
 	Describe("App context", func() {
-		It("cover invalid context error", func() {
+		It("cover invalid appCtx error", func() {
 			var ac appcontext.AppContext
-			_, err := ac.LoadAppContext("dummycontextid")
+			_, err := ac.LoadAppContext(context.Background(), "dummycontextid")
 			//Expect(err).To(BeNil())
 			// TODO: Pls check why the BeNil() fails
 			Expect(err).To(HaveOccurred())
@@ -315,36 +316,36 @@ spec:
 			Expect(err).To(HaveOccurred())
 		})
 		It("cover invalid meta data error", func() {
-			context := appcontext.AppContext{}
-			ctxval, err := context.InitAppContext()
+			appCtx := appcontext.AppContext{}
+			ctxval, err := appCtx.InitAppContext()
 			Expect(err).To(BeNil())
 			contextID := fmt.Sprintf("%v", ctxval)
-			err = servicediscovery.DeployServiceEntry(context, contextID, "server1", "client", "server-svc")
+			err = servicediscovery.DeployServiceEntry(appCtx, contextID, "server1", "client", "server-svc")
 			Expect(err).To(HaveOccurred())
 		})
 		It("cover error getting server inbound intents", func() {
 			cfca, err := makeAppContextForCompositeApp("project1", "ca", "v2", "r1", "dig", "n1", "app")
 			Expect(err).To(BeNil())
-			sap, err := cfca.context.AddApp(cfca.compositeAppHandle, "server")
+			sap, err := cfca.context.AddApp(context.Background(), cfca.compositeAppHandle, "server")
 			Expect(err).To(BeNil())
-			sapc1, err := cfca.context.AddCluster(sap, "provider1+cluster1")
+			sapc1, err := cfca.context.AddCluster(context.Background(), sap, "provider1+cluster1")
 			Expect(err).To(BeNil())
-			_, err = cfca.context.AddResource(sapc1, "r1", "dummy test resource")
+			_, err = cfca.context.AddResource(context.Background(), sapc1, "r1", "dummy test resource")
 			Expect(err).To(BeNil())
 			resOrder, err := json.Marshal(map[string][]string{"resorder": []string{"r1"}})
-			_, err = cfca.context.AddInstruction(sapc1, "resource", "order", string(resOrder))
+			_, err = cfca.context.AddInstruction(context.Background(), sapc1, "resource", "order", string(resOrder))
 
-			cap, err := cfca.context.AddApp(cfca.compositeAppHandle, "client")
+			cap, err := cfca.context.AddApp(context.Background(), cfca.compositeAppHandle, "client")
 			Expect(err).To(BeNil())
-			capc2, err := cfca.context.AddCluster(cap, "provider2+cluster2")
+			capc2, err := cfca.context.AddCluster(context.Background(), cap, "provider2+cluster2")
 			Expect(err).To(BeNil())
-			_, err = cfca.context.AddResource(capc2, "r1", "dummy test resource")
+			_, err = cfca.context.AddResource(context.Background(), capc2, "r1", "dummy test resource")
 			Expect(err).To(BeNil())
 			resOrder, err = json.Marshal(map[string][]string{"resorder": []string{"r1"}})
-			_, err = cfca.context.AddInstruction(capc2, "resource", "order", string(resOrder))
+			_, err = cfca.context.AddInstruction(context.Background(), capc2, "resource", "order", string(resOrder))
 			contextID := fmt.Sprintf("%v", cfca.ctxval)
 			var ac appcontext.AppContext
-			_, err = ac.LoadAppContext(contextID)
+			_, err = ac.LoadAppContext(context.Background(), contextID)
 			Expect(err).To(BeNil())
 			err = servicediscovery.DeployServiceEntry(ac, contextID, "server", "client", "server-svc")
 			Expect(err).To(HaveOccurred())
@@ -352,23 +353,23 @@ spec:
 		It("cover error getting clients inbound intents", func() {
 			cfca, err := makeAppContextForCompositeApp("project1", "ca", "v2", "r1", "dig", "n1", "app")
 			Expect(err).To(BeNil())
-			sap, err := cfca.context.AddApp(cfca.compositeAppHandle, "server")
+			sap, err := cfca.context.AddApp(context.Background(), cfca.compositeAppHandle, "server")
 			Expect(err).To(BeNil())
-			sapc1, err := cfca.context.AddCluster(sap, "provider1+cluster1")
+			sapc1, err := cfca.context.AddCluster(context.Background(), sap, "provider1+cluster1")
 			Expect(err).To(BeNil())
-			_, err = cfca.context.AddResource(sapc1, "r1", "dummy test resource")
+			_, err = cfca.context.AddResource(context.Background(), sapc1, "r1", "dummy test resource")
 			Expect(err).To(BeNil())
 			resOrder, err := json.Marshal(map[string][]string{"resorder": []string{"r1"}})
-			_, err = cfca.context.AddInstruction(sapc1, "resource", "order", string(resOrder))
+			_, err = cfca.context.AddInstruction(context.Background(), sapc1, "resource", "order", string(resOrder))
 
-			cap, err := cfca.context.AddApp(cfca.compositeAppHandle, "client")
+			cap, err := cfca.context.AddApp(context.Background(), cfca.compositeAppHandle, "client")
 			Expect(err).To(BeNil())
-			capc2, err := cfca.context.AddCluster(cap, "provider2+cluster2")
+			capc2, err := cfca.context.AddCluster(context.Background(), cap, "provider2+cluster2")
 			Expect(err).To(BeNil())
-			_, err = cfca.context.AddResource(capc2, "r1", "dummy test resource")
+			_, err = cfca.context.AddResource(context.Background(), capc2, "r1", "dummy test resource")
 			Expect(err).To(BeNil())
 			resOrder, err = json.Marshal(map[string][]string{"resorder": []string{"r1"}})
-			_, err = cfca.context.AddInstruction(capc2, "resource", "order", string(resOrder))
+			_, err = cfca.context.AddInstruction(context.Background(), capc2, "resource", "order", string(resOrder))
 			tgi, err := (*TGIDBC).CreateTrafficGroupIntent(TGI, "project1", "ca", "v2", "dig", false)
 			Expect(tgi).To(Equal(TGI))
 			Expect(err).To(BeNil())
@@ -377,7 +378,7 @@ spec:
 			Expect(err).To(BeNil())
 			contextID := fmt.Sprintf("%v", cfca.ctxval)
 			var ac appcontext.AppContext
-			_, err = ac.LoadAppContext(contextID)
+			_, err = ac.LoadAppContext(context.Background(), contextID)
 			Expect(err).To(BeNil())
 			err = servicediscovery.DeployServiceEntry(ac, contextID, "server", "client", "server-svc")
 			Expect(err).To(HaveOccurred())
@@ -385,23 +386,23 @@ spec:
 		It("cover invalid cluster name", func() {
 			cfca, err := makeAppContextForCompositeApp("project1", "ca", "v2", "r1", "dig", "n1", "app")
 			Expect(err).To(BeNil())
-			sap, err := cfca.context.AddApp(cfca.compositeAppHandle, "server")
+			sap, err := cfca.context.AddApp(context.Background(), cfca.compositeAppHandle, "server")
 			Expect(err).To(BeNil())
-			sapc1, err := cfca.context.AddCluster(sap, "provider1-cluster1")
+			sapc1, err := cfca.context.AddCluster(context.Background(), sap, "provider1-cluster1")
 			Expect(err).To(BeNil())
-			_, err = cfca.context.AddResource(sapc1, "r1", "dummy test resource")
+			_, err = cfca.context.AddResource(context.Background(), sapc1, "r1", "dummy test resource")
 			Expect(err).To(BeNil())
 			resOrder, err := json.Marshal(map[string][]string{"resorder": []string{"r1"}})
-			_, err = cfca.context.AddInstruction(sapc1, "resource", "order", string(resOrder))
+			_, err = cfca.context.AddInstruction(context.Background(), sapc1, "resource", "order", string(resOrder))
 
-			cap, err := cfca.context.AddApp(cfca.compositeAppHandle, "client")
+			cap, err := cfca.context.AddApp(context.Background(), cfca.compositeAppHandle, "client")
 			Expect(err).To(BeNil())
-			capc2, err := cfca.context.AddCluster(cap, "provider2-cluster2")
+			capc2, err := cfca.context.AddCluster(context.Background(), cap, "provider2-cluster2")
 			Expect(err).To(BeNil())
-			_, err = cfca.context.AddResource(capc2, "r1", "dummy test resource")
+			_, err = cfca.context.AddResource(context.Background(), capc2, "r1", "dummy test resource")
 			Expect(err).To(BeNil())
 			resOrder, err = json.Marshal(map[string][]string{"resorder": []string{"r1"}})
-			_, err = cfca.context.AddInstruction(capc2, "resource", "order", string(resOrder))
+			_, err = cfca.context.AddInstruction(context.Background(), capc2, "resource", "order", string(resOrder))
 			tgi, err := (*TGIDBC).CreateTrafficGroupIntent(TGI, "project1", "ca", "v2", "dig", false)
 			Expect(tgi).To(Equal(TGI))
 			Expect(err).To(BeNil())
@@ -413,7 +414,7 @@ spec:
 			Expect(err).To(BeNil())
 			contextID := fmt.Sprintf("%v", cfca.ctxval)
 			var ac appcontext.AppContext
-			_, err = ac.LoadAppContext(contextID)
+			_, err = ac.LoadAppContext(context.Background(), contextID)
 			Expect(err).To(BeNil())
 			err = servicediscovery.DeployServiceEntry(ac, contextID, "server", "client", "server-svc")
 			Expect(err).To(HaveOccurred())
@@ -423,26 +424,26 @@ spec:
 			Expect(err).To(BeNil())
 
 			// Server
-			sap, err := cfca.context.AddApp(cfca.compositeAppHandle, "server")
+			sap, err := cfca.context.AddApp(context.Background(), cfca.compositeAppHandle, "server")
 			Expect(err).To(BeNil())
-			sapc1, err := cfca.context.AddCluster(sap, "provider1+cluster1")
+			sapc1, err := cfca.context.AddCluster(context.Background(), sap, "provider1+cluster1")
 			Expect(err).To(BeNil())
 			serviceData, err := createService("server-svc")
 			Expect(err).To(BeNil())
-			_, err = cfca.context.AddResource(sapc1, "server-svc", serviceData)
+			_, err = cfca.context.AddResource(context.Background(), sapc1, "server-svc", serviceData)
 			Expect(err).To(BeNil())
 			resOrder, err := json.Marshal(map[string][]string{"resorder": []string{"server-svc"}})
-			_, err = cfca.context.AddInstruction(sapc1, "resource", "order", string(resOrder))
+			_, err = cfca.context.AddInstruction(context.Background(), sapc1, "resource", "order", string(resOrder))
 
 			// Client
-			cap, err := cfca.context.AddApp(cfca.compositeAppHandle, "client")
+			cap, err := cfca.context.AddApp(context.Background(), cfca.compositeAppHandle, "client")
 			Expect(err).To(BeNil())
-			capc2, err := cfca.context.AddCluster(cap, "provider2+cluster2")
+			capc2, err := cfca.context.AddCluster(context.Background(), cap, "provider2+cluster2")
 			Expect(err).To(BeNil())
-			_, err = cfca.context.AddResource(capc2, "r1", "dummy test resource")
+			_, err = cfca.context.AddResource(context.Background(), capc2, "r1", "dummy test resource")
 			Expect(err).To(BeNil())
 			resOrder, err = json.Marshal(map[string][]string{"resorder": []string{"r1"}})
-			_, err = cfca.context.AddInstruction(capc2, "resource", "order", string(resOrder))
+			_, err = cfca.context.AddInstruction(context.Background(), capc2, "resource", "order", string(resOrder))
 
 			tgi, err := (*TGIDBC).CreateTrafficGroupIntent(TGI, "project1", "ca", "v2", "dig", false)
 			Expect(tgi).To(Equal(TGI))
@@ -459,12 +460,12 @@ spec:
 
 			contextID := fmt.Sprintf("%v", cfca.ctxval)
 			var ac appcontext.AppContext
-			_, err = ac.LoadAppContext(contextID)
+			_, err = ac.LoadAppContext(context.Background(), contextID)
 			Expect(err).To(BeNil())
 
 			// Update the cluster resource status
 			acrh := "/context/" + contextID + "/app/" + "server" + "/cluster/" + "provider1+cluster1" + "/status/"
-			err = cfca.context.UpdateResourceValue(acrh, clusterResourceStatus)
+			err = cfca.context.UpdateResourceValue(context.Background(), acrh, clusterResourceStatus)
 			Expect(err).To(BeNil())
 
 			type appContextStatus struct {
@@ -473,7 +474,7 @@ spec:
 
 			// Update the app context status to Instantiated
 			acStatusHandle := "/context/" + contextID + "/status/"
-			err = cfca.context.UpdateStatusValue(acStatusHandle, &appContextStatus{Status: "Instantiated"})
+			err = cfca.context.UpdateStatusValue(context.Background(), acStatusHandle, &appContextStatus{Status: "Instantiated"})
 			Expect(err).To(BeNil())
 
 			// Create mock definitions for rsync installapp
@@ -488,15 +489,15 @@ spec:
 			err = servicediscovery.DeployServiceEntry(ac, contextID, "server", "client", "server-svc")
 			Expect(err).To(BeNil())
 			// Get the parent composite app meta and the child context ID
-			m, err := ac.GetCompositeAppMeta()
+			m, err := ac.GetCompositeAppMeta(context.Background())
 			Expect(err).To(BeNil())
 
 			for _, childContextID := range m.ChildContextIDs {
 				serviceDiscoveryHandle := "/context/" + childContextID + "/app/service-discovery/cluster/provider2+cluster2/resource/server-svc+Service/"
 				var childContext appcontext.AppContext
-				_, err := childContext.LoadAppContext(childContextID)
+				_, err := childContext.LoadAppContext(context.Background(), childContextID)
 				Expect(err).To(BeNil())
-				v, err := childContext.GetValue(serviceDiscoveryHandle)
+				v, err := childContext.GetValue(context.Background(), serviceDiscoveryHandle)
 				Expect(err).To(BeNil())
 				Expect(v).To(Equal(expectedOut))
 			}

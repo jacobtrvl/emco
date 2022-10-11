@@ -4,6 +4,7 @@
 package db
 
 import (
+	"context"
 	"encoding/json"
 	"sort"
 
@@ -16,7 +17,7 @@ type NewMockDB struct {
 	MarshalErr error
 }
 
-func (m *NewMockDB) HealthCheck() error {
+func (m *NewMockDB) HealthCheck(ctx context.Context) error {
 	return m.Err
 }
 
@@ -44,7 +45,7 @@ func createKeyField(key interface{}) (string, error) {
 	return s, nil
 }
 
-func (m *NewMockDB) Insert(table string, key Key, query interface{}, tag string, data interface{}) error {
+func (m *NewMockDB) Insert(ctx context.Context, table string, key Key, query interface{}, tag string, data interface{}) error {
 
 	i := make(map[string][]byte)
 	out, _ := json.Marshal(data)
@@ -89,7 +90,7 @@ func (m *NewMockDB) Unmarshal(inp []byte, out interface{}) error {
 	return m.MarshalErr
 }
 
-func (m *NewMockDB) Find(table string, key Key, tag string) ([][]byte, error) {
+func (m *NewMockDB) Find(ctx context.Context, table string, key Key, tag string) ([][]byte, error) {
 
 	tkey, _ := createKeyField(key)
 
@@ -153,7 +154,7 @@ func (m *NewMockDB) Find(table string, key Key, tag string) ([][]byte, error) {
 	}
 }
 
-func (m *NewMockDB) Remove(table string, key Key) error {
+func (m *NewMockDB) Remove(ctx context.Context, table string, key Key) error {
 	jkey, _ := json.Marshal(key)
 	str := (string(jkey))
 	for i, item := range m.Items {
@@ -168,10 +169,10 @@ func (m *NewMockDB) Remove(table string, key Key) error {
 	return m.Err
 }
 
-func (m *NewMockDB) RemoveAll(table string, key Key) error {
+func (m *NewMockDB) RemoveAll(ctx context.Context, table string, key Key) error {
 	return m.Err
 }
 
-func (m *NewMockDB) RemoveTag(table string, key Key, tag string) error {
+func (m *NewMockDB) RemoveTag(ctx context.Context, table string, key Key, tag string) error {
 	return m.Err
 }

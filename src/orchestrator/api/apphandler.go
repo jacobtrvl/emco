@@ -103,12 +103,13 @@ func (h appHandler) createAppHandler(w http.ResponseWriter, r *http.Request) {
 
 	ac.FileContent = base64.StdEncoding.EncodeToString(content)
 
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	projectName := vars["project"]
 	compositeAppName := vars["compositeApp"]
 	compositeAppVersion := vars["compositeAppVersion"]
 
-	ret, createErr := h.client.CreateApp(a, ac, projectName, compositeAppName, compositeAppVersion, false)
+	ret, createErr := h.client.CreateApp(ctx, a, ac, projectName, compositeAppName, compositeAppVersion, false)
 	if createErr != nil {
 		apiErr := apierror.HandleErrors(vars, createErr, a, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -128,6 +129,7 @@ func (h appHandler) createAppHandler(w http.ResponseWriter, r *http.Request) {
 // getAppHandler handles GET operations on a particular App Name
 // Returns an app
 func (h appHandler) getAppHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	projectName := vars["project"]
 	compositeAppName := vars["compositeApp"]
@@ -138,7 +140,7 @@ func (h appHandler) getAppHandler(w http.ResponseWriter, r *http.Request) {
 	if len(name) == 0 {
 		var retList []moduleLib.App
 
-		ret, err := h.client.GetApps(projectName, compositeAppName, compositeAppVersion)
+		ret, err := h.client.GetApps(ctx, projectName, compositeAppName, compositeAppVersion)
 		if err != nil {
 			apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 			http.Error(w, apiErr.Message, apiErr.Status)
@@ -170,14 +172,14 @@ func (h appHandler) getAppHandler(w http.ResponseWriter, r *http.Request) {
 	var retApp moduleLib.App
 	var retAppContent moduleLib.AppContent
 
-	retApp, err = h.client.GetApp(name, projectName, compositeAppName, compositeAppVersion)
+	retApp, err = h.client.GetApp(ctx, name, projectName, compositeAppName, compositeAppVersion)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
 		return
 	}
 
-	retAppContent, err = h.client.GetAppContent(name, projectName, compositeAppName, compositeAppVersion)
+	retAppContent, err = h.client.GetAppContent(ctx, name, projectName, compositeAppName, compositeAppVersion)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -251,13 +253,14 @@ func (h appHandler) getAppHandler(w http.ResponseWriter, r *http.Request) {
 
 // deleteAppHandler handles DELETE operations on a particular App Name
 func (h appHandler) deleteAppHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	projectName := vars["project"]
 	compositeAppName := vars["compositeApp"]
 	compositeAppVersion := vars["compositeAppVersion"]
 	name := vars["app"]
 
-	err := h.client.DeleteApp(name, projectName, compositeAppName, compositeAppVersion)
+	err := h.client.DeleteApp(ctx, name, projectName, compositeAppName, compositeAppVersion)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -332,12 +335,13 @@ func (h appHandler) updateAppHandler(w http.ResponseWriter, r *http.Request) {
 
 	ac.FileContent = base64.StdEncoding.EncodeToString(content)
 
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	projectName := vars["project"]
 	compositeAppName := vars["compositeApp"]
 	compositeAppVersion := vars["compositeAppVersion"]
 
-	ret, createErr := h.client.CreateApp(a, ac, projectName, compositeAppName, compositeAppVersion, true)
+	ret, createErr := h.client.CreateApp(ctx, a, ac, projectName, compositeAppName, compositeAppVersion, true)
 	if createErr != nil {
 		apiErr := apierror.HandleErrors(vars, createErr, a, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)

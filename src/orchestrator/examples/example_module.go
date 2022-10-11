@@ -4,8 +4,10 @@
 package test
 
 import (
-	moduleLib "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/module"
+	"context"
 	"log"
+
+	moduleLib "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/module"
 )
 
 // ExampleClient_Project to test Project
@@ -19,23 +21,24 @@ func ExampleClient_Project() {
 	}
 	// Perform operations on Project Module
 	// POST request (exists == false)
-	_, err := c.Project.CreateProject(moduleLib.Project{MetaData: moduleLib.ProjectMetaData{Name: "test", Description: "test", UserData1: "userData1", UserData2: "userData2"}}, false)
+	ctx := context.TODO()
+	_, err := c.Project.CreateProject(ctx, moduleLib.Project{MetaData: moduleLib.ProjectMetaData{Name: "test", Description: "test", UserData1: "userData1", UserData2: "userData2"}}, false)
 	if err != nil {
 		log.Println(err)
 		return
 	}
 	// PUT request (exists == true)
-	_, err = c.Project.CreateProject(moduleLib.Project{MetaData: moduleLib.ProjectMetaData{Name: "test", Description: "test", UserData1: "userData1", UserData2: "userData2"}}, true)
+	_, err = c.Project.CreateProject(ctx, moduleLib.Project{MetaData: moduleLib.ProjectMetaData{Name: "test", Description: "test", UserData1: "userData1", UserData2: "userData2"}}, true)
 	if err != nil {
 		log.Println(err)
 		return
 	}
-	_, err = c.Project.GetProject("test")
+	_, err = c.Project.GetProject(ctx, "test")
 	if err != nil {
 		log.Println(err)
 		return
 	}
-	err = c.Project.DeleteProject("test")
+	err = c.Project.DeleteProject(ctx, "test")
 	if err != nil {
 		log.Println(err)
 	}

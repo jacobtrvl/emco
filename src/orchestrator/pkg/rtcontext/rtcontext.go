@@ -4,6 +4,7 @@
 package rtcontext
 
 import (
+	"context"
 	"fmt"
 	"math/rand"
 	"strings"
@@ -25,20 +26,20 @@ type RunTimeContext struct {
 type Rtcontext interface {
 	RtcInit() (interface{}, error)
 	RtcInitWithValue(value interface{}) (interface{}, error)
-	RtcLoad(interface{}) (interface{}, error)
-	RtcCreate() (interface{}, error)
-	RtcAddMeta(meta interface{}) error
-	RtcGet() (interface{}, error)
-	RtcAddLevel(handle interface{}, level string, value string) (interface{}, error)
-	RtcAddResource(handle interface{}, resname string, value interface{}) (interface{}, error)
-	RtcAddInstruction(handle interface{}, level string, insttype string, value interface{}) (interface{}, error)
-	RtcDeletePair(handle interface{}) error
-	RtcDeletePrefix(handle interface{}) error
-	RtcGetHandles(handle interface{}) ([]interface{}, error)
-	RtcGetValue(handle interface{}, value interface{}) error
-	RtcUpdateValue(handle interface{}, value interface{}) error
-	RtcGetMeta() (interface{}, error)
-	RtcAddOneLevel(pl interface{}, level string, value interface{}) (interface{}, error)
+	RtcLoad(ctx context.Context, id interface{}) (interface{}, error)
+	RtcCreate(ctx context.Context) (interface{}, error)
+	RtcAddMeta(ctx context.Context, meta interface{}) error
+	RtcGet(ctx context.Context) (interface{}, error)
+	RtcAddLevel(ctx context.Context, handle interface{}, level string, value string) (interface{}, error)
+	RtcAddResource(ctx context.Context, handle interface{}, resname string, value interface{}) (interface{}, error)
+	RtcAddInstruction(ctx context.Context, handle interface{}, level string, insttype string, value interface{}) (interface{}, error)
+	RtcDeletePair(ctx context.Context, handle interface{}) error
+	RtcDeletePrefix(ctx context.Context, handle interface{}) error
+	RtcGetHandles(ctx context.Context, handle interface{}) ([]interface{}, error)
+	RtcGetValue(ctx context.Context, handle interface{}, value interface{}) error
+	RtcUpdateValue(ctx context.Context, handle interface{}, value interface{}) error
+	RtcGetMeta(ctx context.Context) (interface{}, error)
+	RtcAddOneLevel(ctx context.Context, pl interface{}, level string, value interface{}) (interface{}, error)
 }
 
 //Intialize context by assiging a new id
@@ -73,21 +74,21 @@ func (rtc *RunTimeContext) RtcInitWithValue(value interface{}) (interface{}, err
 }
 
 //Load context using the given id
-func (rtc *RunTimeContext) RtcLoad(id interface{}) (interface{}, error) {
+func (rtc *RunTimeContext) RtcLoad(ctx context.Context, id interface{}) (interface{}, error) {
 	str := fmt.Sprintf("%v", id)
 	if str == "" {
 		return nil, pkgerrors.Errorf("Not a valid context id")
 	}
 	cid := (prefix + str + "/")
 	rtc.cid = interface{}(cid)
-	handle, err := rtc.RtcGet()
+	handle, err := rtc.RtcGet(ctx)
 	if err != nil {
 		return nil, pkgerrors.Errorf("Error finding the context id: %s", err.Error())
 	}
 	return handle, nil
 }
 
-func (rtc *RunTimeContext) RtcCreate() (interface{}, error) {
+func (rtc *RunTimeContext) RtcCreate(ctx context.Context) (interface{}, error) {
 	cid := fmt.Sprintf("%v", rtc.cid)
 	if cid == "" {
 		return nil, pkgerrors.Errorf("Error, context not intialized")
@@ -98,7 +99,7 @@ func (rtc *RunTimeContext) RtcCreate() (interface{}, error) {
 	id := strings.SplitN(cid, "/", 4)[2]
 	// Create context only if context doesn't exist
 	// Returns error if id is in database
-	err := contextdb.Db.PutWithCheck(cid, id)
+	err := contextdb.Db.PutWithCheck(ctx, cid, id)
 	if err != nil {
 		return nil, pkgerrors.Errorf("Error creating run time context: %s", err.Error())
 	}
@@ -107,7 +108,7 @@ func (rtc *RunTimeContext) RtcCreate() (interface{}, error) {
 }
 
 //RtcAddMeta is used for saving meta data of appContext into ETCD.
-func (rtc *RunTimeContext) RtcAddMeta(meta interface{}) error {
+func (rtc *RunTimeContext) RtcAddMeta(ctx context.Context, meta interface{}) error {
 	cid := fmt.Sprintf("%v", rtc.cid)
 	if cid == "" {
 		return pkgerrors.Errorf("Error, context not intialized")
@@ -118,7 +119,7 @@ func (rtc *RunTimeContext) RtcAddMeta(meta interface{}) error {
 
 	rtc.meta = meta
 	k := cid + "meta" + "/"
-	err := contextdb.Db.Put(k, rtc.meta)
+	err := contextdb.Db.Put(ctx, k, rtc.meta)
 	if err != nil {
 		return pkgerrors.Errorf("Error saving metadata in run time context: %s", err.Error())
 	}
@@ -127,14 +128,14 @@ func (rtc *RunTimeContext) RtcAddMeta(meta interface{}) error {
 }
 
 //Get the root handle
-func (rtc *RunTimeContext) RtcGet() (interface{}, error) {
+func (rtc *RunTimeContext) RtcGet(ctx context.Context) (interface{}, error) {
 	str := fmt.Sprintf("%v", rtc.cid)
 	if !strings.HasPrefix(str, prefix) {
 		return nil, pkgerrors.Errorf("Not a valid run time context")
 	}
 
 	var value string
-	err := contextdb.Db.Get(str, &value)
+	err := contextdb.Db.Get(ctx, str, &value)
 	if err != nil {
 		return nil, pkgerrors.Errorf("Error getting run time context metadata: %s", err.Error())
 	}
@@ -146,7 +147,7 @@ func (rtc *RunTimeContext) RtcGet() (interface{}, error) {
 }
 
 // RtcGetMeta method fetches the meta data of the rtc object and returns it.
-func (rtc *RunTimeContext) RtcGetMeta() (interface{}, error) {
+func (rtc *RunTimeContext) RtcGetMeta(ctx context.Context) (interface{}, error) {
 	str := fmt.Sprintf("%v", rtc.cid)
 	if !strings.HasPrefix(str, prefix) {
 		return nil, pkgerrors.Errorf("Not a valid run time context")
@@ -154,7 +155,7 @@ func (rtc *RunTimeContext) RtcGetMeta() (interface{}, error) {
 
 	var value interface{}
 	k := str + "meta" + "/"
-	err := contextdb.Db.Get(k, &value)
+	err := contextdb.Db.Get(ctx, k, &value)
 	if err != nil {
 		return nil, pkgerrors.Errorf("Error getting run time context metadata: %s", err.Error())
 	}
@@ -163,7 +164,7 @@ func (rtc *RunTimeContext) RtcGetMeta() (interface{}, error) {
 }
 
 //Add a new level at a given handle and return the new handle
-func (rtc *RunTimeContext) RtcAddLevel(handle interface{}, level string, value string) (interface{}, error) {
+func (rtc *RunTimeContext) RtcAddLevel(ctx context.Context, handle interface{}, level string, value string) (interface{}, error) {
 	str := fmt.Sprintf("%v", handle)
 	sid := fmt.Sprintf("%v", rtc.cid)
 	if !strings.HasPrefix(str, sid) {
@@ -178,7 +179,7 @@ func (rtc *RunTimeContext) RtcAddLevel(handle interface{}, level string, value s
 	}
 
 	key := str + level + "/" + value + "/"
-	err := contextdb.Db.Put(key, value)
+	err := contextdb.Db.Put(ctx, key, value)
 	if err != nil {
 		return nil, pkgerrors.Errorf("Error adding run time context level: %s", err.Error())
 	}
@@ -188,7 +189,7 @@ func (rtc *RunTimeContext) RtcAddLevel(handle interface{}, level string, value s
 
 // RtcAddOneLevel adds one more level to the existing context prefix.RtcAddOneLevel. It takes in PreviousContentLevel as inteface, new level to be appended as string and the value to be saved of any type. It returns the updated interface and nil if no error.
 //
-func (rtc *RunTimeContext) RtcAddOneLevel(pl interface{}, level string, value interface{}) (interface{}, error) {
+func (rtc *RunTimeContext) RtcAddOneLevel(ctx context.Context, pl interface{}, level string, value interface{}) (interface{}, error) {
 	str := fmt.Sprintf("%v", pl)
 	sid := fmt.Sprintf("%v", rtc.cid)
 	if !strings.HasPrefix(str, sid) {
@@ -203,7 +204,7 @@ func (rtc *RunTimeContext) RtcAddOneLevel(pl interface{}, level string, value in
 	}
 
 	key := str + level + "/"
-	err := contextdb.Db.Put(key, value)
+	err := contextdb.Db.Put(ctx, key, value)
 	if err != nil {
 		return nil, pkgerrors.Errorf("Error adding run time context level: %s", err.Error())
 	}
@@ -211,7 +212,7 @@ func (rtc *RunTimeContext) RtcAddOneLevel(pl interface{}, level string, value in
 }
 
 // Add a resource under the given level and return new handle
-func (rtc *RunTimeContext) RtcAddResource(handle interface{}, resname string, value interface{}) (interface{}, error) {
+func (rtc *RunTimeContext) RtcAddResource(ctx context.Context, handle interface{}, resname string, value interface{}) (interface{}, error) {
 
 	str := fmt.Sprintf("%v", handle)
 	sid := fmt.Sprintf("%v", rtc.cid)
@@ -226,7 +227,7 @@ func (rtc *RunTimeContext) RtcAddResource(handle interface{}, resname string, va
 	}
 
 	k := str + "resource" + "/" + resname + "/"
-	err := contextdb.Db.Put(k, value)
+	err := contextdb.Db.Put(ctx, k, value)
 	if err != nil {
 		return nil, pkgerrors.Errorf("Error adding run time context resource: %s", err.Error())
 	}
@@ -234,7 +235,7 @@ func (rtc *RunTimeContext) RtcAddResource(handle interface{}, resname string, va
 }
 
 // Add instruction at a given level and type, return the new handle
-func (rtc *RunTimeContext) RtcAddInstruction(handle interface{}, level string, insttype string, value interface{}) (interface{}, error) {
+func (rtc *RunTimeContext) RtcAddInstruction(ctx context.Context, handle interface{}, level string, insttype string, value interface{}) (interface{}, error) {
 	str := fmt.Sprintf("%v", handle)
 	sid := fmt.Sprintf("%v", rtc.cid)
 	if !strings.HasPrefix(str, sid) {
@@ -251,7 +252,7 @@ func (rtc *RunTimeContext) RtcAddInstruction(handle interface{}, level string, i
 		return nil, pkgerrors.Errorf("Not a valid run time context instruction value")
 	}
 	k := str + level + "/" + "instruction" + "/" + insttype + "/"
-	err := contextdb.Db.Put(k, fmt.Sprintf("%v", value))
+	err := contextdb.Db.Put(ctx, k, fmt.Sprintf("%v", value))
 	if err != nil {
 		return nil, pkgerrors.Errorf("Error adding run time context instruction: %s", err.Error())
 	}
@@ -260,13 +261,13 @@ func (rtc *RunTimeContext) RtcAddInstruction(handle interface{}, level string, i
 }
 
 //Delete the key value pair using given handle
-func (rtc *RunTimeContext) RtcDeletePair(handle interface{}) error {
+func (rtc *RunTimeContext) RtcDeletePair(ctx context.Context, handle interface{}) error {
 	str := fmt.Sprintf("%v", handle)
 	sid := fmt.Sprintf("%v", rtc.cid)
 	if !strings.HasPrefix(str, sid) {
 		return pkgerrors.Errorf("Not a valid run time context handle")
 	}
-	err := contextdb.Db.Delete(str)
+	err := contextdb.Db.Delete(ctx, str)
 	if err != nil {
 		return pkgerrors.Errorf("Error deleting run time context pair: %s", err.Error())
 	}
@@ -275,7 +276,7 @@ func (rtc *RunTimeContext) RtcDeletePair(handle interface{}) error {
 }
 
 // Delete all handles underneath the given handle
-func (rtc *RunTimeContext) RtcDeletePrefix(handle interface{}) error {
+func (rtc *RunTimeContext) RtcDeletePrefix(ctx context.Context, handle interface{}) error {
 	str := fmt.Sprintf("%v", handle)
 	sid := fmt.Sprintf("%v", rtc.cid)
 	if !strings.HasPrefix(str, sid) {
@@ -283,7 +284,7 @@ func (rtc *RunTimeContext) RtcDeletePrefix(handle interface{}) error {
 		return pkgerrors.Errorf("Not a valid run time context handle")
 	}
 
-	err := contextdb.Db.DeleteAll(str)
+	err := contextdb.Db.DeleteAll(ctx, str)
 	if err != nil {
 		return pkgerrors.Errorf("Error deleting run time context with prefix: %s", err.Error())
 	}
@@ -292,14 +293,14 @@ func (rtc *RunTimeContext) RtcDeletePrefix(handle interface{}) error {
 }
 
 // Return the list of handles under the given handle
-func (rtc *RunTimeContext) RtcGetHandles(handle interface{}) ([]interface{}, error) {
+func (rtc *RunTimeContext) RtcGetHandles(ctx context.Context, handle interface{}) ([]interface{}, error) {
 	str := fmt.Sprintf("%v", handle)
 	sid := fmt.Sprintf("%v", rtc.cid)
 	if !strings.HasPrefix(str, sid) {
 		return nil, pkgerrors.Errorf("Not a valid run time context handle")
 	}
 
-	s, err := contextdb.Db.GetAllKeys(str)
+	s, err := contextdb.Db.GetAllKeys(ctx, str)
 	if err != nil {
 
 		return nil, pkgerrors.Errorf("Error getting run time context handles: %s", err.Error())
@@ -312,14 +313,14 @@ func (rtc *RunTimeContext) RtcGetHandles(handle interface{}) ([]interface{}, err
 }
 
 // Get the value for a given handle
-func (rtc *RunTimeContext) RtcGetValue(handle interface{}, value interface{}) error {
+func (rtc *RunTimeContext) RtcGetValue(ctx context.Context, handle interface{}, value interface{}) error {
 	str := fmt.Sprintf("%v", handle)
 	sid := fmt.Sprintf("%v", rtc.cid)
 	if !strings.HasPrefix(str, sid) {
 		return pkgerrors.Errorf("Not a valid run time context handle")
 	}
 
-	err := contextdb.Db.Get(str, value)
+	err := contextdb.Db.Get(ctx, str, value)
 	if err != nil {
 		return pkgerrors.Errorf("Error getting run time context value: %s", err.Error())
 	}
@@ -328,13 +329,13 @@ func (rtc *RunTimeContext) RtcGetValue(handle interface{}, value interface{}) er
 }
 
 // Update the value of a given handle
-func (rtc *RunTimeContext) RtcUpdateValue(handle interface{}, value interface{}) error {
+func (rtc *RunTimeContext) RtcUpdateValue(ctx context.Context, handle interface{}, value interface{}) error {
 	str := fmt.Sprintf("%v", handle)
 	sid := fmt.Sprintf("%v", rtc.cid)
 	if !strings.HasPrefix(str, sid) {
 		return pkgerrors.Errorf("Not a valid run time context handle")
 	}
-	err := contextdb.Db.Put(str, value)
+	err := contextdb.Db.Put(ctx, str, value)
 	if err != nil {
 		return pkgerrors.Errorf("Error updating run time context value: %s", err.Error())
 	}

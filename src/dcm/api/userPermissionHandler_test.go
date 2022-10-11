@@ -11,9 +11,9 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	pkgerrors "github.com/pkg/errors"
+	"github.com/stretchr/testify/mock"
 	"gitlab.com/project-emco/core/emco-base/src/dcm/api/mocks"
 	"gitlab.com/project-emco/core/emco-base/src/dcm/pkg/module"
-
 )
 
 func init() {
@@ -39,7 +39,7 @@ var _ = Describe("UserPermissionHandler", func() {
 	DescribeTable("Create UserPermission tests",
 		func(t testCase) {
 			// set up client mock responses
-			t.upClient.On("CreateUserPerm", "test-project", "test-lc", t.inStruct).Return(t.mockVal, t.mockError)
+			t.upClient.On("CreateUserPerm", mock.Anything, "test-project", "test-lc", t.inStruct).Return(t.mockVal, t.mockError)
 
 			// make HTTP request
 			request := httptest.NewRequest("POST", "/v2/projects/test-project/logical-clouds/test-lc/user-permissions", t.inputReader)
@@ -209,7 +209,7 @@ var _ = Describe("UserPermissionHandler", func() {
 	// DescribeTable("Put UserPermission tests",
 	// 	func(t testCase) {
 	// 		// set up client mock responses
-	// 		t.upClient.On("UpdateUserPerm", "test-project", "test-lc", t.inputName, t.inStruct).Return(t.mockVal, t.mockError)
+	// 		t.upClient.On("UpdateUserPerm", mock.Anything, "test-project", "test-lc", t.inputName, t.inStruct).Return(t.mockVal, t.mockError)
 
 	// 		// make HTTP request
 	// 		request := httptest.NewRequest("PUT", "/v2/projects/test-project/logical-clouds/test-lc/user-permissions/"+t.inputName, t.inputReader)
@@ -351,7 +351,7 @@ var _ = Describe("UserPermissionHandler", func() {
 	DescribeTable("Get List UserPermission tests",
 		func(t testCase) {
 			// set up client mock responses
-			t.upClient.On("GetAllUserPerms", "test-project", "test-lc").Return(t.mockVals, t.mockError)
+			t.upClient.On("GetAllUserPerms", mock.Anything, "test-project", "test-lc").Return(t.mockVals, t.mockError)
 
 			// make HTTP request
 			request := httptest.NewRequest("GET", "/v2/projects/test-project/logical-clouds/test-lc/user-permissions", nil)
@@ -407,7 +407,7 @@ var _ = Describe("UserPermissionHandler", func() {
 	DescribeTable("Get UserPermission tests",
 		func(t testCase) {
 			// set up client mock responses
-			t.upClient.On("GetUserPerm", "test-project", "test-lc", t.inputName).Return(t.mockVal, t.mockError)
+			t.upClient.On("GetUserPerm", mock.Anything, "test-project", "test-lc", t.inputName).Return(t.mockVal, t.mockError)
 
 			// make HTTP request
 			request := httptest.NewRequest("GET", "/v2/projects/test-project/logical-clouds/test-lc/user-permissions/"+t.inputName, nil)
@@ -460,7 +460,7 @@ var _ = Describe("UserPermissionHandler", func() {
 	DescribeTable("Delete UserPermission tests",
 		func(t testCase) {
 			// set up client mock responses
-			t.upClient.On("DeleteUserPerm", "test-project", "test-lc", t.inputName).Return(t.mockError)
+			t.upClient.On("DeleteUserPerm", mock.Anything, "test-project", "test-lc", t.inputName).Return(t.mockError)
 
 			// make HTTP request
 			request := httptest.NewRequest("DELETE", "/v2/projects/test-project/logical-clouds/test-lc/user-permissions/"+t.inputName, nil)

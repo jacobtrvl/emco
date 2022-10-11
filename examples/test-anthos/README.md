@@ -24,7 +24,7 @@ $ ./setup.sh create
 
 ## Creating the controllers
 
-Apply 00-controllers.yaml, this creates the controllers. This step is required to be done only once.
+Apply 00-controllers.yaml, this creates the controllers.
 
 ```
 $ emcoctl --config emco-cfg.yaml apply -f 00-controllers.yaml -v values.yaml
@@ -38,36 +38,54 @@ Apply 01-prerequisites.yaml.
 $ emcoctl --config emco-cfg.yaml apply -f 01-prerequisites.yaml -v values.yaml
 ```
 
-## Create the deployment intent
+## Create the logical cloud
 
-Apply 02-deployment-intent.yaml.
+Apply 02-logicalcloud.yaml. This creates a Privileged Logical Cloud.
 
 ```
-$ emcoctl --config emco-cfg.yaml apply -f 02-deployment-intent.yaml -v values.yaml
+$ emcoctl --config emco-cfg.yaml apply -f 02-logicalcloud.yaml -v values.yaml -s
+```
+
+After this step, we should see resources created under the clusters/ directory of the git repo, and Logical Cloud resources will show up in the Google Anthos cluster.
+
+## Create the deployment intent
+
+Apply 03-deployment-intent.yaml.
+
+```
+$ emcoctl --config emco-cfg.yaml apply -f 03-deployment-intent.yaml -v values.yaml
 ```
 
 ## Running the test case
 
 ```
-$ emcoctl --config emco-cfg.yaml apply -f 03-instantiation.yaml -v values.yaml
+$ emcoctl --config emco-cfg.yaml apply -f 04-instantiation.yaml -v values.yaml -s
 ```
 
-After this step, we should see the resources created in the Google Anthos cluster.
+After this step, we should see resources created under the namespaces/ directory of the git repo, and DIG resources will show up in the Google Anthos cluster.
 
 
 ## Cleanup
 
-1. Delete usecase
+1. Terminate the DIG.
 
     ```
-    $ emcoctl --config emco-cfg.yaml delete -f 03-instantiation.yaml -v values.yaml
+    $ emcoctl --config emco-cfg.yaml delete -f 04-instantiation.yaml -v values.yaml -s
     ```
 
-2. Cleanup deployment intent.
+2. Cleanup deployment intent resources.
 
     ```
-    $ emcoctl --config emco-cfg.yaml delete -f 02-deployment-intent.yaml -v values.yaml
+    $ emcoctl --config emco-cfg.yaml delete -f 03-deployment-intent.yaml -v values.yaml
     ```
+
+3. Terminate and delete Logical Cloud
+
+    ```
+    $ emcoctl --config emco-cfg.yaml delete -f 02-logicalcloud.yaml -v values.yaml
+    ```
+
+    Note: you may need to repeat the command a second time, after a few seconds, due to the delay in the terminate operation.
 
 3. Cleanup prerequisites
 

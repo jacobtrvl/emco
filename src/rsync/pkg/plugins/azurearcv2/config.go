@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -143,11 +142,11 @@ func (p *AzureArcV2Provider) ApplyConfig(ctx context.Context, config interface{}
 	}
 
 	//Get the Namespace
-	acUtils, err := utils.NewAppContextReference(p.gitProvider.Cid)
+	acUtils, err := utils.NewAppContextReference(ctx, p.gitProvider.Cid)
 	if err != nil {
 		return nil
 	}
-	_, level := acUtils.GetNamespace()
+	_, level := acUtils.GetNamespace(ctx)
 	if err != nil {
 		return err
 	}
@@ -202,11 +201,11 @@ func (p *AzureArcV2Provider) DeleteConfig(ctx context.Context, config interface{
 	}
 
 	//Get the Namespace
-	acUtils, err := utils.NewAppContextReference(p.gitProvider.Cid)
+	acUtils, err := utils.NewAppContextReference(ctx, p.gitProvider.Cid)
 	if err != nil {
 		return nil
 	}
-	_, level := acUtils.GetNamespace()
+	_, level := acUtils.GetNamespace(ctx)
 	if err != nil {
 		return err
 	}
@@ -279,7 +278,6 @@ func (p *AzureArcV2Provider) createFluxConfiguration(accessToken string, reposit
 	authorizationString := "Bearer " + accessToken
 	reqPut.Header.Set("Content-Type", "application/json; charset=UTF-8")
 	reqPut.Header.Add("Authorization", authorizationString)
-	fmt.Println(reqPut)
 	resPut, err := client.Do(reqPut)
 	if err != nil {
 		log.Error("Error in http response for creation of flux configuration", log.Fields{"err": err})
@@ -321,7 +319,6 @@ func (p *AzureArcV2Provider) installFluxExtension(accessToken string, subscripti
 	authorizationString := "Bearer " + accessToken
 	reqPut.Header.Set("Content-Type", "application/json; charset=UTF-8")
 	reqPut.Header.Add("Authorization", authorizationString)
-	fmt.Println(reqPut)
 	resPut, err := client.Do(reqPut)
 	if err != nil {
 		log.Error("Error in http response for Flux extension installation", log.Fields{"err": err})
@@ -358,7 +355,6 @@ func (p *AzureArcV2Provider) deleteFluxConfiguration(accessToken string, subscri
 	authorizationString := "Bearer " + accessToken
 	reqDelete.Header.Set("Content-Type", "application/json; charset=UTF-8")
 	reqDelete.Header.Add("Authorization", authorizationString)
-	fmt.Println(reqDelete)
 	resPut, err := client.Do(reqDelete)
 	if err != nil {
 		log.Error("Error in http response for deleting flux configuration", log.Fields{"err": err})

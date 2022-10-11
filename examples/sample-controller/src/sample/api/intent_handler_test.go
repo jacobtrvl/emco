@@ -6,6 +6,7 @@ package api_test
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -38,7 +39,7 @@ func init() {
 	api.SampleJSONFile = "../json-schemas/intent.json"
 }
 
-func (m *mockIntentManager) CreateSampleIntent(intent model.SampleIntent, project, app, version, deploymentIntentGroup string, failIfExists bool) (model.SampleIntent, error) {
+func (m *mockIntentManager) CreateSampleIntent(ctx context.Context, intent model.SampleIntent, project, app, version, deploymentIntentGroup string, failIfExists bool) (model.SampleIntent, error) {
 	if m.Err != nil {
 		return model.SampleIntent{}, m.Err
 	}
@@ -46,7 +47,7 @@ func (m *mockIntentManager) CreateSampleIntent(intent model.SampleIntent, projec
 	return m.Items[0], nil
 }
 
-func (m *mockIntentManager) GetSampleIntents(name, project, app, version, deploymentIntentGroup string) ([]model.SampleIntent, error) {
+func (m *mockIntentManager) GetSampleIntents(ctx context.Context, name, project, app, version, deploymentIntentGroup string) ([]model.SampleIntent, error) {
 	if m.Err != nil {
 		return []model.SampleIntent{}, m.Err
 	}

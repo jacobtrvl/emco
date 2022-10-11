@@ -25,7 +25,7 @@ type intentHandler struct {
 // Add Intent in Deployment Group
 func (h intentHandler) addIntentHandler(w http.ResponseWriter, r *http.Request) {
 	var i moduleLib.Intent
-
+	ctx := r.Context()
 	err := json.NewDecoder(r.Body).Decode(&i)
 	switch {
 	case err == io.EOF:
@@ -53,7 +53,7 @@ func (h intentHandler) addIntentHandler(w http.ResponseWriter, r *http.Request) 
 	v := vars["compositeAppVersion"]
 	d := vars["deploymentIntentGroup"]
 
-	intent, _, addError := h.client.AddIntent(i, p, ca, v, d, true)
+	intent, _, addError := h.client.AddIntent(ctx, i, p, ca, v, d, true)
 	if addError != nil {
 		apiErr := apierror.HandleErrors(vars, addError, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -76,6 +76,7 @@ URL: /v2/projects/{p}/composite-apps/{compositeApp}/{version}/
 deployment-intent-groups/{deploymentIntentGroup}/intents?intent=<intent>
 */
 func (h intentHandler) getIntentByNameHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	pList := []string{"project", "compositeApp", "compositeAppVersion", "deploymentIntentGroup"}
 	err := validation.IsValidParameterPresent(vars, pList)
@@ -96,7 +97,7 @@ func (h intentHandler) getIntentByNameHandler(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	mapOfIntents, err := h.client.GetIntentByName(iN, p, ca, v, di)
+	mapOfIntents, err := h.client.GetIntentByName(ctx, iN, p, ca, v, di)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -119,6 +120,7 @@ URL: /v2/projects/{project}/composite-apps/{compositeApp}/{version}/
 deployment-intent-groups/{deploymentIntentGroup}/intents
 */
 func (h intentHandler) getAllIntentsHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	pList := []string{"project", "compositeApp", "compositeAppVersion", "deploymentIntentGroup"}
 	err := validation.IsValidParameterPresent(vars, pList)
@@ -133,7 +135,7 @@ func (h intentHandler) getAllIntentsHandler(w http.ResponseWriter, r *http.Reque
 	v := vars["compositeAppVersion"]
 	di := vars["deploymentIntentGroup"]
 
-	mapOfIntents, err := h.client.GetAllIntents(p, ca, v, di)
+	mapOfIntents, err := h.client.GetAllIntents(ctx, p, ca, v, di)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -152,7 +154,7 @@ func (h intentHandler) getAllIntentsHandler(w http.ResponseWriter, r *http.Reque
 }
 
 func (h intentHandler) getIntentHandler(w http.ResponseWriter, r *http.Request) {
-
+	ctx := r.Context()
 	vars := mux.Vars(r)
 
 	i := vars["groupIntent"]
@@ -189,7 +191,7 @@ func (h intentHandler) getIntentHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	intent, err := h.client.GetIntent(i, p, ca, v, di)
+	intent, err := h.client.GetIntent(ctx, i, p, ca, v, di)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -207,6 +209,7 @@ func (h intentHandler) getIntentHandler(w http.ResponseWriter, r *http.Request) 
 }
 
 func (h intentHandler) deleteIntentHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 
 	i := vars["groupIntent"]
@@ -215,7 +218,7 @@ func (h intentHandler) deleteIntentHandler(w http.ResponseWriter, r *http.Reques
 	v := vars["compositeAppVersion"]
 	di := vars["deploymentIntentGroup"]
 
-	err := h.client.DeleteIntent(i, p, ca, v, di)
+	err := h.client.DeleteIntent(ctx, i, p, ca, v, di)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -228,6 +231,7 @@ func (h intentHandler) deleteIntentHandler(w http.ResponseWriter, r *http.Reques
 // putIntentHandler handles the update operations on intent
 func (h intentHandler) putIntentHandler(w http.ResponseWriter, r *http.Request) {
 	var i moduleLib.Intent
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	p := vars["project"]
 	ca := vars["compositeApp"]
@@ -255,7 +259,7 @@ func (h intentHandler) putIntentHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	intent, iExists, err := h.client.AddIntent(i, p, ca, v, dig, false)
+	intent, iExists, err := h.client.AddIntent(ctx, i, p, ca, v, dig, false)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)

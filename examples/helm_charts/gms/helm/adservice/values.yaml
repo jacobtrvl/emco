@@ -9,7 +9,7 @@ adservice:
     port: 9555
     image:
       repository: gcr.io/google-samples/microservices-demo/adservice
-      tag: v0.3.0
+      tag: v0.3.9
       pullPolicy: IfNotPresent
     resources:
       limits:

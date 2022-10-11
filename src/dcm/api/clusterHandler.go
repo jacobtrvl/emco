@@ -25,6 +25,7 @@ type clusterHandler struct {
 
 // createHandler handles creation of the cluster reference entry in the database
 func (h clusterHandler) createHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	project := vars["project"]
 	logicalCloud := vars["logicalCloud"]
@@ -32,7 +33,7 @@ func (h clusterHandler) createHandler(w http.ResponseWriter, r *http.Request) {
 	var err error
 
 	// Check logical cloud exists and is valid
-	_, err = module.NewLogicalCloudClient().Get(project, logicalCloud)
+	_, err = module.NewLogicalCloudClient().Get(ctx, project, logicalCloud)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -66,7 +67,7 @@ func (h clusterHandler) createHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ret, err := h.client.CreateCluster(project, logicalCloud, v)
+	ret, err := h.client.CreateCluster(ctx, project, logicalCloud, v)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, v, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -86,6 +87,7 @@ func (h clusterHandler) createHandler(w http.ResponseWriter, r *http.Request) {
 // getAllHandler handles GET operations over cluster references
 // Returns a list of Cluster References
 func (h clusterHandler) getAllHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	project := vars["project"]
 	logicalCloud := vars["logicalCloud"]
@@ -93,14 +95,14 @@ func (h clusterHandler) getAllHandler(w http.ResponseWriter, r *http.Request) {
 	var err error
 
 	// Check logical cloud exists and is valid
-	_, err = module.NewLogicalCloudClient().Get(project, logicalCloud)
+	_, err = module.NewLogicalCloudClient().Get(ctx, project, logicalCloud)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
 		return
 	}
 
-	ret, err = h.client.GetAllClusters(project, logicalCloud)
+	ret, err = h.client.GetAllClusters(ctx, project, logicalCloud)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -120,6 +122,7 @@ func (h clusterHandler) getAllHandler(w http.ResponseWriter, r *http.Request) {
 // getHandler handles GET operations on a particular name
 // Returns a Cluster Reference
 func (h clusterHandler) getHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	project := vars["project"]
 	logicalCloud := vars["logicalCloud"]
@@ -128,14 +131,14 @@ func (h clusterHandler) getHandler(w http.ResponseWriter, r *http.Request) {
 	var err error
 
 	// Check logical cloud exists and is valid
-	_, err = module.NewLogicalCloudClient().Get(project, logicalCloud)
+	_, err = module.NewLogicalCloudClient().Get(ctx, project, logicalCloud)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
 		return
 	}
 
-	ret, err = h.client.GetCluster(project, logicalCloud, name)
+	ret, err = h.client.GetCluster(ctx, project, logicalCloud, name)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -154,6 +157,7 @@ func (h clusterHandler) getHandler(w http.ResponseWriter, r *http.Request) {
 
 // UpdateHandler handles Update operations on a particular cluster reference
 func (h clusterHandler) updateHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	var v common.Cluster
 	vars := mux.Vars(r)
 	project := vars["project"]
@@ -162,7 +166,7 @@ func (h clusterHandler) updateHandler(w http.ResponseWriter, r *http.Request) {
 	var err error
 
 	// Check logical cloud exists and is valid
-	_, err = module.NewLogicalCloudClient().Get(project, logicalCloud)
+	_, err = module.NewLogicalCloudClient().Get(ctx, project, logicalCloud)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -195,7 +199,7 @@ func (h clusterHandler) updateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ret, err := h.client.UpdateCluster(project, logicalCloud, name, v)
+	ret, err := h.client.UpdateCluster(ctx, project, logicalCloud, name, v)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, v, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -214,6 +218,7 @@ func (h clusterHandler) updateHandler(w http.ResponseWriter, r *http.Request) {
 
 //deleteHandler handles DELETE operations on a particular record
 func (h clusterHandler) deleteHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	project := vars["project"]
 	logicalCloud := vars["logicalCloud"]
@@ -221,14 +226,14 @@ func (h clusterHandler) deleteHandler(w http.ResponseWriter, r *http.Request) {
 	var err error
 
 	// Check logical cloud exists and is valid
-	_, err = module.NewLogicalCloudClient().Get(project, logicalCloud)
+	_, err = module.NewLogicalCloudClient().Get(ctx, project, logicalCloud)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
 		return
 	}
 
-	err = h.client.DeleteCluster(project, logicalCloud, name)
+	err = h.client.DeleteCluster(ctx, project, logicalCloud, name)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -241,6 +246,7 @@ func (h clusterHandler) deleteHandler(w http.ResponseWriter, r *http.Request) {
 // getConfigHandler handles GET operations on kubeconfigs
 // Returns a kubeconfig file
 func (h clusterHandler) getConfigHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	project := vars["project"]
 	logicalCloud := vars["logicalCloud"]
@@ -248,21 +254,21 @@ func (h clusterHandler) getConfigHandler(w http.ResponseWriter, r *http.Request)
 	var err error
 
 	// Check logical cloud exists and is valid
-	_, err = module.NewLogicalCloudClient().Get(project, logicalCloud)
+	_, err = module.NewLogicalCloudClient().Get(ctx, project, logicalCloud)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
 		return
 	}
 
-	_, err = h.client.GetCluster(project, logicalCloud, name)
+	_, err = h.client.GetCluster(ctx, project, logicalCloud, name)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
 		return
 	}
 
-	cfg, err := h.client.GetClusterConfig(project, logicalCloud, name)
+	cfg, err := h.client.GetClusterConfig(ctx, project, logicalCloud, name)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)

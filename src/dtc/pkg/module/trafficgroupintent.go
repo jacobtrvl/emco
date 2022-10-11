@@ -4,6 +4,7 @@
 package module
 
 import (
+	"context"
 	pkgerrors "github.com/pkg/errors"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
 )
@@ -58,7 +59,7 @@ func (v TrafficGroupIntentDbClient) CreateTrafficGroupIntent(tci TrafficGroupInt
 		return TrafficGroupIntent{}, pkgerrors.New("TrafficGroupIntent already exists")
 	}
 
-	err = db.DBconn.Insert(v.db.storeName, key, nil, v.db.tagMeta, tci)
+	err = db.DBconn.Insert(context.Background(), v.db.storeName, key, nil, v.db.tagMeta, tci)
 	if err != nil {
 		return TrafficGroupIntent{}, pkgerrors.Wrap(err, "Creating DB Entry")
 	}
@@ -78,7 +79,7 @@ func (v *TrafficGroupIntentDbClient) GetTrafficGroupIntent(name, project, compos
 		DeploymentIntentGroupName: dig,
 	}
 
-	value, err := db.DBconn.Find(v.db.storeName, key, v.db.tagMeta)
+	value, err := db.DBconn.Find(context.Background(), v.db.storeName, key, v.db.tagMeta)
 	if err != nil {
 		return TrafficGroupIntent{}, err
 	} else if len(value) == 0 {
@@ -113,7 +114,7 @@ func (v *TrafficGroupIntentDbClient) GetTrafficGroupIntents(project, compositeap
 	}
 
 	var resp []TrafficGroupIntent
-	values, err := db.DBconn.Find(v.db.storeName, key, v.db.tagMeta)
+	values, err := db.DBconn.Find(context.Background(), v.db.storeName, key, v.db.tagMeta)
 	if err != nil {
 		return []TrafficGroupIntent{}, err
 	}
@@ -142,6 +143,6 @@ func (v *TrafficGroupIntentDbClient) DeleteTrafficGroupIntent(name, project, com
 		DeploymentIntentGroupName: dig,
 	}
 
-	err := db.DBconn.Remove(v.db.storeName, key)
+	err := db.DBconn.Remove(context.Background(), v.db.storeName, key)
 	return err
 }

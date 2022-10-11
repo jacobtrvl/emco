@@ -5,8 +5,7 @@ export GO111MODULE=on
 
 all: clean
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
-	go build -tags netgo -o ../../bin/tac/tac ./cmd/main.go
-
+        go build -tags netgo -o ../../bin/tac/tac ./cmd/main.go
 build: clean test cover
 
 deploy: build

@@ -14,7 +14,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func (c *Client) Approve(name string, sa []byte) error {
+func (c *Client) Approve(ctx context.Context, name string, sa []byte) error {
 
 	var a subresources.ApprovalSubresource
 
@@ -23,7 +23,7 @@ func (c *Client) Approve(name string, sa []byte) error {
 		return pkgerrors.Wrap(err, "An error occurred while parsing the approval Subresource.")
 	}
 
-	csr, err := c.Clientset.CertificatesV1().CertificateSigningRequests().Get(context.TODO(), name, metav1.GetOptions{})
+	csr, err := c.Clientset.CertificatesV1().CertificateSigningRequests().Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
 		return pkgerrors.Wrap(err, "could not get the certificate")
 	}
@@ -41,7 +41,7 @@ func (c *Client) Approve(name string, sa []byte) error {
 		Status:         a.Status,
 	})
 	// CSR Approval
-	_, err = c.Clientset.CertificatesV1().CertificateSigningRequests().UpdateApproval(context.TODO(), csr.Name, csr, metav1.UpdateOptions{})
+	_, err = c.Clientset.CertificatesV1().CertificateSigningRequests().UpdateApproval(ctx, csr.Name, csr, metav1.UpdateOptions{})
 	if err != nil {
 		logutils.Error("Failed to UpdateApproval", logutils.Fields{
 			"error":    err,

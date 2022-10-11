@@ -4,6 +4,7 @@
 package rtcontext
 
 import (
+	"context"
 	"strings"
 	"testing"
 
@@ -18,7 +19,7 @@ type MockContextDb struct {
 }
 
 // Put function
-func (c *MockContextDb) Put(key string, val interface{}) error {
+func (c *MockContextDb) Put(ctx context.Context, key string, val interface{}) error {
 	if c.Items == nil {
 		c.Items = make(map[string]interface{})
 	}
@@ -27,7 +28,7 @@ func (c *MockContextDb) Put(key string, val interface{}) error {
 }
 
 // Put function
-func (c *MockContextDb) PutWithCheck(key string, val interface{}) error {
+func (c *MockContextDb) PutWithCheck(ctx context.Context, key string, val interface{}) error {
 	if c.Items == nil {
 		c.Items = make(map[string]interface{})
 	}
@@ -40,7 +41,7 @@ func (c *MockContextDb) PutWithCheck(key string, val interface{}) error {
 }
 
 // Get function
-func (c *MockContextDb) Get(key string, val interface{}) error {
+func (c *MockContextDb) Get(ctx context.Context, key string, val interface{}) error {
 	var s *string
 	s = val.(*string)
 	for kvKey, kvValue := range c.Items {
@@ -53,13 +54,13 @@ func (c *MockContextDb) Get(key string, val interface{}) error {
 }
 
 // Delete function
-func (c *MockContextDb) Delete(key string) error {
+func (c *MockContextDb) Delete(ctx context.Context, key string) error {
 	delete(c.Items, key)
 	return c.Err
 }
 
 // Delete all function
-func (c *MockContextDb) DeleteAll(key string) error {
+func (c *MockContextDb) DeleteAll(ctx context.Context, key string) error {
 	for kvKey := range c.Items {
 		delete(c.Items, kvKey)
 	}
@@ -67,7 +68,7 @@ func (c *MockContextDb) DeleteAll(key string) error {
 }
 
 // GetAllKeys function
-func (c *MockContextDb) GetAllKeys(path string) ([]string, error) {
+func (c *MockContextDb) GetAllKeys(ctx context.Context, path string) ([]string, error) {
 	var keys []string
 
 	for k := range c.Items {
@@ -175,8 +176,9 @@ func TestRtcLoad(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.label, func(t *testing.T) {
+			ctx := context.Background()
 			contextdb.Db = testCase.mockContextDb
-			_, err := rtc.RtcLoad("5345674458787728")
+			_, err := rtc.RtcLoad(ctx, "5345674458787728")
 			if err != nil {
 				if !strings.Contains(string(err.Error()), testCase.expectedError) {
 					t.Fatalf("Method returned an error (%s)", err)
@@ -213,8 +215,9 @@ func TestRtcCreate(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.label, func(t *testing.T) {
+			ctx := context.Background()
 			contextdb.Db = testCase.mockContextDb
-			_, err := rtc.RtcCreate()
+			_, err := rtc.RtcCreate(ctx)
 			if err != nil {
 				if !strings.Contains(string(err.Error()), testCase.expectedError) {
 					t.Fatalf("Method returned an error (%s)", err)
@@ -250,14 +253,15 @@ func TestRtcGet(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.label, func(t *testing.T) {
+			ctx := context.Background()
 			switch testCase.label {
 			case "Success case":
 				contextdb.Db = testCase.mockContextDb
-				chandle, err := rtc.RtcCreate()
+				chandle, err := rtc.RtcCreate(ctx)
 				if err != nil {
 					t.Fatalf("Create returned an error (%s)", err)
 				}
-				ghandle, err := rtc.RtcGet()
+				ghandle, err := rtc.RtcGet(ctx)
 				if err != nil {
 					t.Fatalf("Get returned an error (%s)", err)
 				}
@@ -266,7 +270,7 @@ func TestRtcGet(t *testing.T) {
 				}
 			case "Get returns error case":
 				contextdb.Db = testCase.mockContextDb
-				_, err := rtc.RtcGet()
+				_, err := rtc.RtcGet(ctx)
 				if err != nil {
 					if !strings.Contains(string(err.Error()), testCase.expectedError) {
 						t.Fatalf("Method returned an error (%s)", err)
@@ -274,8 +278,8 @@ func TestRtcGet(t *testing.T) {
 				}
 			case "Context handle does not match":
 				contextdb.Db = testCase.mockContextDb
-				contextdb.Db.Put("/context/5345674458787728/", "6345674458787728")
-				_, err := rtc.RtcGet()
+				contextdb.Db.Put(ctx, "/context/5345674458787728/", "6345674458787728")
+				_, err := rtc.RtcGet(ctx)
 				if err != nil {
 					if !strings.Contains(string(err.Error()), testCase.expectedError) {
 						t.Fatalf("Method returned an error (%s)", err)
@@ -339,8 +343,9 @@ func TestRtcAddLevel(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.label, func(t *testing.T) {
+			ctx := context.Background()
 			contextdb.Db = testCase.mockContextDb
-			_, err := rtc.RtcAddLevel(testCase.handle, testCase.level, testCase.value)
+			_, err := rtc.RtcAddLevel(ctx, testCase.handle, testCase.level, testCase.value)
 			if err != nil {
 				if !strings.Contains(string(err.Error()), testCase.expectedError) {
 					t.Fatalf("Method returned an error (%s)", err)
@@ -403,8 +408,9 @@ func TestRtcAddResource(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.label, func(t *testing.T) {
+			ctx := context.Background()
 			contextdb.Db = testCase.mockContextDb
-			_, err := rtc.RtcAddResource(testCase.handle, testCase.resname, testCase.value)
+			_, err := rtc.RtcAddResource(ctx, testCase.handle, testCase.resname, testCase.value)
 			if err != nil {
 				if !strings.Contains(string(err.Error()), testCase.expectedError) {
 					t.Fatalf("Method returned an error (%s)", err)
@@ -482,8 +488,9 @@ func TestRtcAddInstruction(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.label, func(t *testing.T) {
+			ctx := context.Background()
 			contextdb.Db = testCase.mockContextDb
-			_, err := rtc.RtcAddInstruction(testCase.handle, testCase.level, testCase.insttype, testCase.value)
+			_, err := rtc.RtcAddInstruction(ctx, testCase.handle, testCase.level, testCase.insttype, testCase.value)
 			if err != nil {
 				if !strings.Contains(string(err.Error()), testCase.expectedError) {
 					t.Fatalf("Method returned an error (%s)", err)
@@ -522,11 +529,12 @@ func TestRtcGetHandles(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.label, func(t *testing.T) {
+			ctx := context.Background()
 			contextdb.Db = testCase.mockContextDb
 			if testCase.label == "Success case" {
-				contextdb.Db.Put("/context/5345674458787728/", 5345674458787728)
+				contextdb.Db.Put(ctx, "/context/5345674458787728/", 5345674458787728)
 			}
-			_, err := rtc.RtcGetHandles(testCase.key)
+			_, err := rtc.RtcGetHandles(ctx, testCase.key)
 			if err != nil {
 				if !strings.Contains(string(err.Error()), testCase.expectedError) {
 					t.Fatalf("Method returned an error (%s)", err)
@@ -565,12 +573,13 @@ func TestRtcGetValue(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.label, func(t *testing.T) {
+			ctx := context.Background()
 			contextdb.Db = testCase.mockContextDb
 			if testCase.label == "Success case" {
-				contextdb.Db.Put("/context/5345674458787728/", "5345674458787728")
+				contextdb.Db.Put(ctx, "/context/5345674458787728/", "5345674458787728")
 			}
 			var val string
-			err := rtc.RtcGetValue(testCase.key, &val)
+			err := rtc.RtcGetValue(ctx, testCase.key, &val)
 			if err != nil {
 				if !strings.Contains(string(err.Error()), testCase.expectedError) {
 					t.Fatalf("Method returned an error (%s)", err)
@@ -613,11 +622,12 @@ func TestRtcUpdateValue(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.label, func(t *testing.T) {
+			ctx := context.Background()
 			contextdb.Db = testCase.mockContextDb
 			if testCase.label == "Success case" {
-				contextdb.Db.Put("/context/5345674458787728/", "5345674458787728")
+				contextdb.Db.Put(ctx, "/context/5345674458787728/", "5345674458787728")
 			}
-			err := rtc.RtcUpdateValue(testCase.key, testCase.value)
+			err := rtc.RtcUpdateValue(ctx, testCase.key, testCase.value)
 			if err != nil {
 				if !strings.Contains(string(err.Error()), testCase.expectedError) {
 					t.Fatalf("Method returned an error (%s)", err)
@@ -656,8 +666,9 @@ func TestRtcDeletePair(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.label, func(t *testing.T) {
+			ctx := context.Background()
 			contextdb.Db = testCase.mockContextDb
-			err := rtc.RtcDeletePair(testCase.key)
+			err := rtc.RtcDeletePair(ctx, testCase.key)
 			if err != nil {
 				if !strings.Contains(string(err.Error()), testCase.expectedError) {
 					t.Fatalf("Method returned an error (%s)", err)
@@ -696,8 +707,9 @@ func TestRtcDeletePrefix(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.label, func(t *testing.T) {
+			ctx := context.Background()
 			contextdb.Db = testCase.mockContextDb
-			err := rtc.RtcDeletePrefix(testCase.key)
+			err := rtc.RtcDeletePrefix(ctx, testCase.key)
 			if err != nil {
 				if !strings.Contains(string(err.Error()), testCase.expectedError) {
 					t.Fatalf("Method returned an error (%s)", err)

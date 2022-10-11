@@ -5,6 +5,7 @@ package api
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -25,7 +26,7 @@ type mockCompositeProfileManager struct {
 	Err   error
 }
 
-func (m *mockCompositeProfileManager) CreateCompositeProfile(inp moduleLib.CompositeProfile, p string, ca string,
+func (m *mockCompositeProfileManager) CreateCompositeProfile(ctx context.Context, inp moduleLib.CompositeProfile, p string, ca string,
 	v string, exists bool) (moduleLib.CompositeProfile, error) {
 	if m.Err != nil {
 		return moduleLib.CompositeProfile{}, m.Err
@@ -34,7 +35,7 @@ func (m *mockCompositeProfileManager) CreateCompositeProfile(inp moduleLib.Compo
 	return m.Items[0], nil
 }
 
-func (m *mockCompositeProfileManager) GetCompositeProfile(name string, projectName string,
+func (m *mockCompositeProfileManager) GetCompositeProfile(ctx context.Context, name string, projectName string,
 	compositeAppName string, version string) (moduleLib.CompositeProfile, error) {
 	if m.Err != nil {
 		return moduleLib.CompositeProfile{}, m.Err
@@ -43,7 +44,7 @@ func (m *mockCompositeProfileManager) GetCompositeProfile(name string, projectNa
 	return m.Items[0], nil
 }
 
-func (m *mockCompositeProfileManager) GetCompositeProfiles(projectName string,
+func (m *mockCompositeProfileManager) GetCompositeProfiles(ctx context.Context, projectName string,
 	compositeAppName string, version string) ([]moduleLib.CompositeProfile, error) {
 	if m.Err != nil {
 		return []moduleLib.CompositeProfile{}, m.Err
@@ -52,7 +53,7 @@ func (m *mockCompositeProfileManager) GetCompositeProfiles(projectName string,
 	return m.Items, nil
 }
 
-func (m *mockCompositeProfileManager) DeleteCompositeProfile(name string, projectName string,
+func (m *mockCompositeProfileManager) DeleteCompositeProfile(ctx context.Context, name string, projectName string,
 	compositeAppName string, version string) error {
 	return m.Err
 }

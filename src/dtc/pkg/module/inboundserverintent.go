@@ -4,6 +4,7 @@
 package module
 
 import (
+	"context"
 	pkgerrors "github.com/pkg/errors"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
 )
@@ -14,26 +15,26 @@ type InboundServerIntent struct {
 }
 
 type InbondServerIntentSpec struct {
-	AppName         string `json:"app"`
-	AppLabel        string `json:"appLabel"`
-	ServiceName     string `json:"serviceName"`
-	ExternalName    string `json:"externalName", default:""`
-	Port            int    `json:"port"`
-	Protocol        string `json:"protocol"`
-	ExternalSupport bool   `json:"externalSupport", default:false`
-	ServiceMesh     string `json:"serviceMesh", default:"none"`
+	AppName         string                `json:"app"`
+	AppLabel        string                `json:"appLabel"`
+	ServiceName     string                `json:"serviceName"`
+	ExternalName    string                `json:"externalName", default:""`
+	Port            int                   `json:"port"`
+	Protocol        string                `json:"protocol"`
+	ExternalSupport bool                  `json:"externalSupport", default:false`
+	ServiceMesh     string                `json:"serviceMesh", default:"none"`
 	Management      ServiceMeshManagement `json:"management"`
-	External        ExternalInfo `json:"external"`
-	EdgeCNF         string `json:"edgeCNF", default: "none"`
+	External        ExternalInfo          `json:"external"`
+	EdgeCNF         string                `json:"edgeCNF", default: "none"`
 }
 
 type ServiceMeshManagement struct {
-	SidecarProxy string   `json:"sidecarProxy"`
-	TlsType      string   `json:"tlsType"`
+	SidecarProxy string `json:"sidecarProxy"`
+	TlsType      string `json:"tlsType"`
 }
 
 type ExternalInfo struct {
-	ExternalCerts  ExternalCertInfo  `json:"externalCerts"`
+	ExternalCerts ExternalCertInfo `json:"externalCerts"`
 }
 type ExternalCertInfo struct {
 	ServiceCertificate string `json:"serviceCertificate"`
@@ -90,7 +91,7 @@ func (v InboundServerIntentDbClient) CreateServerInboundIntent(isi InboundServer
 		return InboundServerIntent{}, pkgerrors.New("ServerInboundIntent already exists")
 	}
 
-	err = db.DBconn.Insert(v.db.storeName, key, nil, v.db.tagMeta, isi)
+	err = db.DBconn.Insert(context.Background(), v.db.storeName, key, nil, v.db.tagMeta, isi)
 	if err != nil {
 		return InboundServerIntent{}, pkgerrors.Wrap(err, "Creating DB Entry")
 	}
@@ -111,7 +112,7 @@ func (v *InboundServerIntentDbClient) GetServerInboundIntent(name, project, comp
 		ServerInboundIntentName:   name,
 	}
 
-	value, err := db.DBconn.Find(v.db.storeName, key, v.db.tagMeta)
+	value, err := db.DBconn.Find(context.Background(), v.db.storeName, key, v.db.tagMeta)
 	if err != nil {
 		return InboundServerIntent{}, err
 	} else if len(value) == 0 {
@@ -145,7 +146,7 @@ func (v *InboundServerIntentDbClient) GetServerInboundIntents(project, composite
 	}
 
 	var resp []InboundServerIntent
-	values, err := db.DBconn.Find(v.db.storeName, key, v.db.tagMeta)
+	values, err := db.DBconn.Find(context.Background(), v.db.storeName, key, v.db.tagMeta)
 	if err != nil {
 		return []InboundServerIntent{}, err
 	}
@@ -175,6 +176,6 @@ func (v *InboundServerIntentDbClient) DeleteServerInboundIntent(name, project, c
 		ServerInboundIntentName:   name,
 	}
 
-	err := db.DBconn.Remove(v.db.storeName, key)
+	err := db.DBconn.Remove(context.Background(), v.db.storeName, key)
 	return err
 }

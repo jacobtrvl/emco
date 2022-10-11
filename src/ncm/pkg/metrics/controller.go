@@ -1,6 +1,7 @@
 package metrics
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -14,14 +15,14 @@ func start() {
 		netClient := netintents.NewNetworkClient()
 		providerNetClient := netintents.NewProviderNetClient()
 		for {
-			clps, err := clusterClient.GetClusterProviders()
+			clps, err := clusterClient.GetClusterProviders(context.Background())
 			if err != nil {
 				fmt.Println(err)
 				continue
 			}
 
 			for _, clp := range clps {
-				clusters, err := clusterClient.GetClusters(clp.Metadata.Name)
+				clusters, err := clusterClient.GetClusters(context.Background(), clp.Metadata.Name)
 				if err != nil {
 					fmt.Println(err)
 					continue

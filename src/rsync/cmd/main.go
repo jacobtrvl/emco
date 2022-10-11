@@ -35,7 +35,9 @@ func RegisterRsyncServices(grpcServer *grpc.Server, srv interface{}) {
 func main() {
 	rand.Seed(time.Now().UnixNano())
 
-	err := db.InitializeDatabaseConnection("emco")
+	ctx := context.Background()
+
+	err := db.InitializeDatabaseConnection(ctx, "emco")
 	if err != nil {
 		log.Error("Unable to initialize mongo database connection", log.Fields{"Error": err})
 		os.Exit(1)
@@ -61,7 +63,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	err = con.RestoreActiveContext()
+	err = con.RestoreActiveContext(ctx)
 	if err != nil {
 		log.Error("RestoreActiveContext failed", log.Fields{"Error": err})
 	}
@@ -71,7 +73,7 @@ func main() {
 		c := make(chan os.Signal, 1)
 		signal.Notify(c, os.Interrupt)
 		<-c
-		server.Shutdown(context.Background())
+		server.Shutdown(ctx)
 		close(connectionsClose)
 	}()
 

@@ -4,6 +4,7 @@
 package controller
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 	"strings"
@@ -62,7 +63,8 @@ func TestCreateController(t *testing.T) {
 			fmt.Printf("\n================== TestCreateController .. testcase_count[%d] testcase_name[%s] ==================\n", i, testCase.label)
 			db.DBconn = testCase.mockdb
 			impl := NewControllerClient()
-			got, err := impl.CreateController(testCase.inp, false)
+			ctx := context.Background()
+			got, err := impl.CreateController(ctx, testCase.inp, false)
 			if err != nil {
 				if testCase.expectedError == "" {
 					t.Fatalf("Create returned an unexpected error %s", err)
@@ -134,7 +136,8 @@ func TestGetController(t *testing.T) {
 		t.Run(testCase.label, func(t *testing.T) {
 			db.DBconn = testCase.mockdb
 			impl := NewControllerClient()
-			got, err := impl.GetController(testCase.name)
+			ctx := context.Background()
+			got, err := impl.GetController(ctx, testCase.name)
 			if err != nil {
 				if testCase.expectedError == "" {
 					t.Fatalf("Get returned an unexpected-error[%s] expected[%s]", err, testCase.expectedError)
@@ -195,7 +198,8 @@ func TestDeleteController(t *testing.T) {
 		t.Run(testCase.label, func(t *testing.T) {
 			db.DBconn = testCase.mockdb
 			impl := NewControllerClient()
-			err := impl.DeleteController(testCase.name)
+			ctx := context.Background()
+			err := impl.DeleteController(ctx, testCase.name)
 			if err != nil {
 				if testCase.expectedError == "" {
 					t.Fatalf("Delete returned an unexpected error %s", err)

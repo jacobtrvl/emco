@@ -8,6 +8,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 
+	"context"
 	"gitlab.com/project-emco/core/emco-base/src/ca-certs/pkg/client/logicalcloud"
 	"gitlab.com/project-emco/core/emco-base/src/ca-certs/pkg/module"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/module/types"
@@ -34,7 +35,7 @@ var _ = Describe("Create ClusterGroup",
 				l := len(mockdb.Items)
 				mClusterGroup := mockClusterGroup("test-clusterGroup-1")
 				cg, cExists, err := client.CreateClusterGroup(mClusterGroup, "lc1", "cert1", "proj1", true)
-				validateError(err, "ClusterGroup already exists")
+				validateError(err, module.CaCertClusterGroupAlreadyExists)
 				Expect(cg).To(Equal(module.ClusterGroup{}))
 				Expect(cExists).To(Equal(true))
 				Expect(len(mockdb.Items)).To(Equal(l))
@@ -106,7 +107,7 @@ var _ = Describe("Get ClusterGroup",
 		Context("get a nonexisting clusterGroup", func() {
 			It("returns an error, no clusterGroup", func() {
 				cluster, err := client.GetClusterGroup("non-existing-cluster", "lc1", "cert1", "proj1")
-				validateError(err, "ClusterGroup not found")
+				validateError(err, module.CaCertClusterGroupNotFound)
 				validateClusterGroup(cluster, module.ClusterGroup{})
 			})
 		})
@@ -143,7 +144,7 @@ func populateClusterGroupTestData() {
 		Project:            "proj1",
 		CaCertLogicalCloud: "lc1",
 		Cert:               "cert1"}
-	_ = mockdb.Insert("resources", cpKey, nil, "data", cluster)
+	_ = mockdb.Insert(context.Background(), "resources", cpKey, nil, "data", cluster)
 
 	// clusterGroup 2
 	cluster = mockClusterGroup("test-clusterGroup-2")
@@ -152,7 +153,7 @@ func populateClusterGroupTestData() {
 		Project:            "proj1",
 		CaCertLogicalCloud: "lc1",
 		Cert:               "cert1"}
-	_ = mockdb.Insert("resources", cpKey, nil, "data", cluster)
+	_ = mockdb.Insert(context.Background(), "resources", cpKey, nil, "data", cluster)
 
 	// clusterGroup 3
 	cluster = mockClusterGroup("test-clusterGroup-3")
@@ -161,5 +162,5 @@ func populateClusterGroupTestData() {
 		Project:            "proj1",
 		CaCertLogicalCloud: "lc1",
 		Cert:               "cert1"}
-	_ = mockdb.Insert("resources", cpKey, nil, "data", cluster)
+	_ = mockdb.Insert(context.Background(), "resources", cpKey, nil, "data", cluster)
 }

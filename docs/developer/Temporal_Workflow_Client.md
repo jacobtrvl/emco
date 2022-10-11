@@ -1,158 +1,110 @@
-```text
-SPDX-License-Identifier: Apache-2.0
-Copyright (c) 2022 Intel Corporation
-```
+[//]: # "SPDX-License-Identifier: Apache-2.0"
+[//]: # "Copyright (c) 2020-2022 Intel Corporation"
 
-# Temporal Workflow Client
+# Workflow Client - Server and Temporal Client to Queue Workflows for Execution.
 
-This Document is a reference for both TAC, and the demo for TAC listed in examples.
-The demo stands up TAC, the workflow client, workflow server, and workers and executes a simple hello world application as a proof of concept.
+This document will be going over the structure of the workflow client and it's http server
+to make it easier for developers to use the EMCO Temporal controller and write their own workers.
 
-The reader is expected to be familiar with
-[EMCO](https://gitlab.com/project-emco/core/emco-base) and
-[Temporal](https://docs.temporal.io/docs/temporal-explained/introduction).
-In particular, it is important to read the document [Temporal Workflows in
-EMCO](https://gitlab.com/project-emco/core/emco-base/-/blob/main/docs/user/Temporal_Workflows_In_EMCO.md) first.
+This document will assume you have a basic understanding of Temporal. If you do not please visit [their docs](https://docs.temporal.io/), and
+familiarize yourself with the basics.
 
-## Introduction
+## How It Works
 
-The Edge Multi-Cluster Orchestrator (EMCO), an open source project in Linux Foundation Networking, has been enhanced to launch and manage Temporal workflows. This repository contains a reference workflow that migrates a stateless application deployed by EMCO in one cluster to another specified cluster. This can be taken as a template to develop workflows to migrate stateful applications and other workflows as well.
+As a quick refresher the Temporal Client is what submits workflows to the temporal engine to be scheduled for execution. 
+The workers in temporal are used to actually do that job, and the temporal engine is what controls + manages them. The image
+below shows the flow of an EMCO controller making a request to temporal for a workflow to be executed.
 
-## Temporal Background
+In the context of EMCO currently the HTTP server that handles the temporal requests, and the temporal client itself 
+are both expected to be running inside the same container.
 
-Temporal is a scalable and reliable runtime for Reentrant Processes called Temporal Workflow Executions.
+![Workflow Client Flow](images/workflow-client-diagram.png)
 
-In general a workflow execution is executed inside a worker entity which is inside a worker process. There can be one or more worker entities inside of a worker process, and you can register one or more worker process with the temporal server. A worker process is a process the user writes that completes a specific job. The process is made up of two items - activities and workflows. Workflows a deterministic functions written by the user that will not fail. Activities are non-deterministic functions that are expected to fail within acceptable paramaters depending on the state of resources they are interacting with.
+### The HTTP Server
 
-Worker processes are then bound to a temporal server and a task queue. When a worker is registered to a task queue they must have an identical composition of activities and workflows because task queues are associated with specific jobs to be completed. When a user wants to schedule a job to be completed they will write a workflow client that will submit a job to the temporal server along with all the data needed to complete the job. The temporal will then takes these requests off the task queue in no specific order, and spawn a worker entity to complete the requested job.
+The user will make a request to schedule a temporal workflow from one of the temporal controllers inside of EMCO. This will be handled by the http server.
+The user will make a request to the workflow client by POSTing to the /invoke path on the workflow client's http server.
 
-## Temporal Workflow Structure in EMCO
+The server will expect the body of the request to only be the temporal information. You can find the struct for it [here](https://gitlab.com/project-emco/core/emco-base/-/blob/main/src/workflowmgr/pkg/emcotemporalapi/emco_temporal_api.go).
+The server will also be expecting the controller to have validated the data submitted to them.
 
-There are three main components that make Temporal run: workflow client - which is two different processes working in tandem in our case, the temporal server, and the worker.
+Once the server receives the request from the user it will unmarhsal the temporal workflow parameters into a temp JSON file.
+Once the data has been stored in the temporary JSON file the server will move on to execute the workflow clients binary.
+The http server will execute the workflow client binary via the OS library using commands on the CLI. It will pass the 
+location of the JSON file to the workflow client as a command line argument to the workflow client. Once the server executes the
+workflow client binary all that is left for the http server is to wait for the response from the workflow client, and then to pass that
+status back to the user who invoked the client.
 
-The temporal workflow client is the process that is in charge of telling the temporal server to queue a job. There are two different processes that let us accomplish this in EMCO. 
+### The Workflow Client
 
-The first the http server. The http server takes temporal requests from the TAC action controller in EMCO. It takes the request, and saves the data locally in a way that temporal can understand. From it runs the second process to actually queue the job. The second process, the workflow client, creates a connection to the temporal server and queues the job on the temporal server to be eventually completed when there are resources available.
+The remainder of the job is done inside of the workflow client itself. It has just been executed
+by the server, and handed all the information it needs to finish the job.
 
-The temporal server itself is the orchestrator of the entire operation. It is the entity that schedules workers for execution, and also takes in requests from workflow clients. The Temporal server requires no modification from us, and is spun up with default configuration following temporal guides. The most common, and easiest, way to bring up a temporal server on a local machine is using docker-compose while following the [temporal docs.](https://docs.temporal.io/clusters/quick-install/) Ultimately it does not matter how the temporal server is is brought up as long as both the workflow client, and worker can see it.
+The first thing it is going to do is use its predefined environmental variables to find the 
+location of the temporal server itself. Once that is complete it will move on to retrieving
+all the relevant information from the temporary JSON file. It will take the file name from
+the command line argument, and read the file. It will then put all of the options into a 
+struct.
 
-
-The final portion of the of temporal is the worker itself. The worker is a composition of activities and workflow written by the user to a complete a specific overarching job. For each job that needs to be completed the user will write a corresponding worker process and bind it to a specific queue. Everytime the user wants to invoke this job they will tell the temporal server to put another job on a specific task queue with all the required data.
-
-
-## Temporal Client in EMCO
-
-To add a new client to EMCO the user must follow the template provided in [EMCO source code](https://gitlab.com/project-emco/core/emco-base/-/tree/main/src/tools/workflowclient)
-
-The HTTP server portion of the workflow client will remain largely unedited. It has been abstracted to be able to accommodate generally any workflow client the user writes. The workflow clients job name is taken from its only registered route /invoke/{client-name}. The HTTP server will take all the data associated with the job request, and package for the workflow client and then store it into a locally stored JSON file. The http server will then execute the workflow client and provide the relative location of the JSON file via command line arguments.
-
-The workflow client itself is what must be written by the user, although most of the time a barely edited version workflow client provided in the [emco source code](https://gitlab.com/project-emco/core/emco-base/-/tree/main/src/tools/workflowclient) will suffice. The general flow of the workflow client will be unpacking the data from the JSON file, submitting the job and data to the appropriate task queue in the temporal server, and waiting for it to finish.
-
-## Temporal Worker in EMCO
-
-To add a new worker the user should follow the template provided in [EMCO source code](https://gitlab.com/project-emco/core/emco-base/-/tree/main/src/tools/workflowclient) or the examples provided in [temporal docs themselves](https://docs.temporal.io/go/how-to-develop-a-worker-program-in-go/)
-
-
-## Example Temporal Action Controller workflow
-
-To see an example of how temporal action controller operates and executees workflows visit the exammple in examples/test-tac/ and follow the guide there.
+Now that it has everything it needs it will create the workflow options variable from the 
+data it just unmarshalled, make a connection to the temporal server, and then schedule the 
+workflow to be executed. It will wait for whatever response the Temporal server gives it, and
+hand it back to the http server. Who will finish up the entire process by returning that to the user.
 
 
-## Routes in Temporal
+## EMCO Temporal Struct
 
-## Temporal action controller (TAC) API
-
-Temporal action controller (TAC) as name suggests is an EMCO action controller. TAC API are for users to provide intents for running workflows at various LCM Hooks like pre-install, post-install, pre-terminate, pre-terminate, pre-update and post-update. During the LCM events like instantiation, terminate, update TAC will be invoked and based on the intents TAC will in turn start workflows.
-
-
-### Temporal Action Controller API
+The final item worth going over in some detail is the temporal struct in EMCO located [here](https://gitlab.com/project-emco/core/emco-base/-/blob/main/src/workflowmgr/pkg/emcotemporalapi/emco_temporal_api.go) 
+and [here.](https://gitlab.com/project-emco/core/emco-base/-/blob/main/src/workflowmgr/pkg/module/workflow_intent.go)
 
 
-This API is to add configuration per LCM hook for a DIG. `workflowClient` and `temporal` sections are similar to workflow manage API's. The field `hookType` is used to provide the LCM hook and `hookBlocking` is to specify if wait in TAC is required for the workflow to complete before returning to the orchestrator. `hookBlockingTimeout` field is used if blocking is true.
-
-
-* Post API
-
-URL: `v2/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/temporal-action-controller`
-
-Body:
+This struct is how a developer fine tunes their workers, can request different jobs to be done, etc. This next section will just go over the 
+data inside that struct and what it means.
 
 ```
-metadata:
-  name: ABCD
-spec:
-hookType: pre-install
-hookBlocking: true
-workflowClient:
-  clientEndpointName: ABCDEFGHIJKLMNOPQRSTU
-  clientEndpointPort: 121
-temporal:
-  workflowClientName: ABCD
-  workflowStartOptions:
-    id: ABCDEFGHIJK
-    taskqueue: ABCDEFGHIJKLMNOPQRSTUVW
-    workflowexecutiontimeout: 327
-    workflowruntimeout: 983
-    workflowtasktimeout: 213
-    workflowidreusepolicy: 916
-    workflowexecutionerrorwhenalreadystarted: true
-    retrypolicy:
-      initialinterval: 679
-      backoffcoefficient: 358.25
-      maximuminterval: 658
-      maximumattempts: 127
-      nonretryableerrortypes: []
-  workflowParams:
-    activityOptions: {}
-    activityParams: {}
-
+{
+"workflowClient": {
+      "clientEndpointName": "demo-workflowclient.demo.svc.cluster.local",
+      "clientEndpointPort": 9090
+    }
+}
 ```
 
-Before calling the workflow client, TAC will fill in the following `activityParams`
+The workflow client section of the struct is to let the emco controller know where 
+the workflow client resides. It just needs a resovable domain, and the port it is running on.
 
 ```
-    activityParams:
-      emco:
-        emcoURL: http://1.1.1.1:2
-        project: "proj1"
-        compositeApp: "c1"
-        compositeAppVersion: "v1"
-        deploymentIntentGroup: "d1"
-        appcontextId: "1234567890999"
+{
+    "temporal": {
+      "workflowClientName": "migrate_workflowclient",
+      "workflowStartOptions": {
+        "ID": "pre-install-1",
+        "TaskQueue": "GREETING_TASK_QUEUE",
+        "WorkflowExecutionTimeout": 0,
+        "WorkflowRunTimeout": 0,
+        "WorkflowTaskTimeout": 0,
+        "WorkflowIDReusePolicy": 0,
+        "WorkflowExecutionErrorWhenAlreadyStarted": false,
+        "RetryPolicy": {
+          "InitialInterval": 0,
+          "BackoffCoefficient": 0,
+          "MaximumInterval": 0,
+          "MaximumAttempts": 2,
+          "NonRetryableErrorTypes": null
+        },
+        "CronSchedule": "",
+        "Memo": null,
+        "SearchAttributes": null
+      },
+      "workflowParams": {}
+    }
+}
 ```
 
+From the rest of the list above there are only three things worth pointing out specifically:
 
-* Get API
+ - WorkflowClientName: this is the client that will be invoked in the /invoke/{client} to the http server.
+ - ID: the name of this specific workflow to be scheduled
+ - Task Queue: The task queue is essentially how temporal distinguishes the different tasks it can complete. You can read about it more [here](https://docs.temporal.io/concepts/what-is-a-task-queue/)
 
-URL: `v2/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/temporal-action-controller/{tac-intent}`
-
-* Get All API
-
-URL: `v2/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/temporal-action-controller`
-
-* Delete API
-
-URL: `v2/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/temporal-action-controller/{tac-intent}`
-
-* Put API:
-
-URL: `v2/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/temporal-action-controller/{tac-intent}`
-
-Same body as post
-
-
-### Temporal cancel API
-
-* Post API
-
-URL: `v2/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/temporal-action-controller/{tac-intent}/cancel`
-
-Note: Same as the workflow API
-
-### Temporal status API
-
-* Get API
-
-URL: `v2/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/temporal-action-controller/{tac-intent}/status`
-
-Note: Same as the workflow API
+The rest of the items can be read about inside of the temporal golang documentation: [Workflow Start Options](https://pkg.go.dev/go.temporal.io/sdk@v1.15.0/internal#StartWorkflowOptions), [Retry Policy](https://pkg.go.dev/go.temporal.io/sdk@v1.15.0/internal#RetryPolicy), and [Activity Options](https://pkg.go.dev/go.temporal.io/sdk@v1.15.0/internal#ActivityOptions)

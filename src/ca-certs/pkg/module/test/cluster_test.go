@@ -8,6 +8,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 
+	"context"
 	"gitlab.com/project-emco/core/emco-base/src/ca-certs/pkg/client/clusterprovider"
 	"gitlab.com/project-emco/core/emco-base/src/ca-certs/pkg/client/logicalcloud"
 	"gitlab.com/project-emco/core/emco-base/src/ca-certs/pkg/module"
@@ -45,7 +46,7 @@ var _ = Describe("Create ClusterGroup",
 					ClusterProvider: "provider1"}
 				client := module.NewClusterGroupClient(key)
 				cg, cExists, err := client.CreateClusterGroup(mClusterGroup, true)
-				validateError(err, "ClusterGroup already exists")
+				validateError(err, module.CaCertClusterGroupAlreadyExists)
 				Expect(cg).To(Equal(module.ClusterGroup{}))
 				Expect(cExists).To(Equal(true))
 				Expect(len(mockdb.Items)).To(Equal(l))
@@ -78,7 +79,7 @@ var _ = Describe("Create ClusterGroup",
 					Project:            "proj1"}
 				client := module.NewClusterGroupClient(key)
 				cg, cExists, err := client.CreateClusterGroup(mClusterGroup, true)
-				validateError(err, "ClusterGroup already exists")
+				validateError(err, module.CaCertClusterGroupAlreadyExists)
 				Expect(cg).To(Equal(module.ClusterGroup{}))
 				Expect(cExists).To(Equal(true))
 				Expect(len(mockdb.Items)).To(Equal(l))
@@ -233,7 +234,7 @@ var _ = Describe("Get ClusterGroup",
 					ClusterProvider: "provider1"}
 				client := module.NewClusterGroupClient(key)
 				cluster, err := client.GetClusterGroup()
-				validateError(err, "ClusterGroup not found")
+				validateError(err, module.CaCertClusterGroupNotFound)
 				validateClusterGroup(cluster, module.ClusterGroup{})
 			})
 		})
@@ -269,7 +270,7 @@ func populateClusterGroupTestData() {
 		Cert:            "cert1",
 		ClusterGroup:    cluster.MetaData.Name,
 		ClusterProvider: "provider1"}
-	_ = mockdb.Insert("resources", cpKey, nil, "data", cluster)
+	_ = mockdb.Insert(context.Background(), "resources", cpKey, nil, "data", cluster)
 
 	// clusterGroups 2
 	cluster = mockClusterGroup("test-clusterGroup-2")
@@ -277,7 +278,7 @@ func populateClusterGroupTestData() {
 		Cert:            "cert1",
 		ClusterGroup:    cluster.MetaData.Name,
 		ClusterProvider: "provider1"}
-	_ = mockdb.Insert("resources", cpKey, nil, "data", cluster)
+	_ = mockdb.Insert(context.Background(), "resources", cpKey, nil, "data", cluster)
 
 	// clusterGroups 3
 	cluster = mockClusterGroup("test-clusterGroup-3")
@@ -285,7 +286,7 @@ func populateClusterGroupTestData() {
 		Cert:            "cert1",
 		ClusterGroup:    cluster.MetaData.Name,
 		ClusterProvider: "provider1"}
-	_ = mockdb.Insert("resources", cpKey, nil, "data", cluster)
+	_ = mockdb.Insert(context.Background(), "resources", cpKey, nil, "data", cluster)
 
 	// clusterGroups 4
 	cluster = mockClusterGroup("test-clusterGroup-4")
@@ -294,7 +295,7 @@ func populateClusterGroupTestData() {
 		CaCertLogicalCloud: "lc1",
 		ClusterGroup:       cluster.MetaData.Name,
 		Project:            "proj1"}
-	_ = mockdb.Insert("resources", lcKey, nil, "data", cluster)
+	_ = mockdb.Insert(context.Background(), "resources", lcKey, nil, "data", cluster)
 
 	// clusterGroups 5
 	cluster = mockClusterGroup("test-clusterGroup-5")
@@ -303,7 +304,7 @@ func populateClusterGroupTestData() {
 		CaCertLogicalCloud: "lc1",
 		ClusterGroup:       cluster.MetaData.Name,
 		Project:            "proj1"}
-	_ = mockdb.Insert("resources", lcKey, nil, "data", cluster)
+	_ = mockdb.Insert(context.Background(), "resources", lcKey, nil, "data", cluster)
 
 	// clusterGroups 6
 	cluster = mockClusterGroup("test-clusterGroup-6")
@@ -312,6 +313,6 @@ func populateClusterGroupTestData() {
 		CaCertLogicalCloud: "lc1",
 		ClusterGroup:       cluster.MetaData.Name,
 		Project:            "proj1"}
-	_ = mockdb.Insert("resources", lcKey, nil, "data", cluster)
+	_ = mockdb.Insert(context.Background(), "resources", lcKey, nil, "data", cluster)
 
 }

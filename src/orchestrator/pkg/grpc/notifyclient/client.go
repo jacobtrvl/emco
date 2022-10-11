@@ -32,9 +32,9 @@ type RsyncInfo struct {
 }
 
 // queryDBAndSetRsyncInfo queries the MCO db to find the record the sync controller and then sets the RsyncInfo global variable
-func queryDBAndSetRsyncInfo() (installappclient.RsyncInfo, error) {
+func queryDBAndSetRsyncInfo(ctx context.Context) (installappclient.RsyncInfo, error) {
 	client := controller.NewControllerClient("resources", "data", "orchestrator")
-	vals, _ := client.GetControllers()
+	vals, _ := client.GetControllers(ctx)
 	for _, v := range vals {
 		if v.Metadata.Name == rsyncName {
 			log.Info("Initializing RPC connection to resource synchronizer", log.Fields{
@@ -50,8 +50,8 @@ func queryDBAndSetRsyncInfo() (installappclient.RsyncInfo, error) {
 /*
 CallRsyncInstall method shall take in the app context id and invokes the rsync service via grpc
 */
-func CallRsyncInstall(contextid interface{}) error {
-	rsyncInfo, err := queryDBAndSetRsyncInfo()
+func CallRsyncInstall(ctx context.Context, contextid interface{}) error {
+	rsyncInfo, err := queryDBAndSetRsyncInfo(ctx)
 	log.Info("Calling the Rsync ", log.Fields{
 		"RsyncName": rsyncInfo.RsyncName,
 	})
@@ -60,7 +60,7 @@ func CallRsyncInstall(contextid interface{}) error {
 	}
 
 	appContextID := fmt.Sprintf("%v", contextid)
-	err = rsyncclient.InvokeInstallApp(appContextID)
+	err = rsyncclient.InvokeInstallApp(ctx, appContextID)
 	if err != nil {
 		return err
 	}
@@ -71,14 +71,14 @@ func CallRsyncInstall(contextid interface{}) error {
 CallRsyncUpdate method shall take in the new and existing appContextID and invokes the rsync service via grpc
 */
 
-func CallRsyncUpdate(from, to interface{}) error {
-	if _, err := queryDBAndSetRsyncInfo(); err != nil {
+func CallRsyncUpdate(ctx context.Context, from, to interface{}) error {
+	if _, err := queryDBAndSetRsyncInfo(ctx); err != nil {
 		return err
 	}
 
 	fromAppContextID := fmt.Sprintf("%v", from)
 	toAppContextID := fmt.Sprintf("%v", to)
-	if err := updateappclient.InvokeUpdateApp(fromAppContextID, toAppContextID); err != nil {
+	if err := updateappclient.InvokeUpdateApp(ctx, fromAppContextID, toAppContextID); err != nil {
 		return err
 	}
 
@@ -89,13 +89,13 @@ func CallRsyncUpdate(from, to interface{}) error {
 CallRsyncUninstall method shall take in the app context id and invokes the rsync service via grpc
 */
 
-func CallRsyncUninstall(contextid interface{}) error {
-	if _, err := queryDBAndSetRsyncInfo(); err != nil {
+func CallRsyncUninstall(ctx context.Context, contextid interface{}) error {
+	if _, err := queryDBAndSetRsyncInfo(ctx); err != nil {
 		return err
 	}
 
 	appContextID := fmt.Sprintf("%v", contextid)
-	if err := rsyncclient.InvokeUninstallApp(appContextID); err != nil {
+	if err := rsyncclient.InvokeUninstallApp(ctx, appContextID); err != nil {
 		return err
 	}
 
@@ -104,14 +104,14 @@ func CallRsyncUninstall(contextid interface{}) error {
 
 // InvokeReadyNotify will make a gRPC call to the resource synchronizer and will
 // subscribe the clients to alerts from the rsync gRPC server ("ready-notify")
-func InvokeReadyNotify(appContextID, clientName string) (readynotifypb.ReadyNotify_AlertClient, readynotifypb.ReadyNotifyClient, error) {
+func InvokeReadyNotify(ctx context.Context, appContextID, clientName string) (readynotifypb.ReadyNotify_AlertClient, readynotifypb.ReadyNotifyClient, error) {
 
 	var stream readynotifypb.ReadyNotify_AlertClient
 	var client readynotifypb.ReadyNotifyClient
-	_, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	_, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
-	rsyncInfo, err := queryDBAndSetRsyncInfo()
+	rsyncInfo, err := queryDBAndSetRsyncInfo(ctx)
 	log.Info("Calling rsync", log.Fields{
 		"RsyncName": rsyncInfo.RsyncName,
 	})
@@ -120,10 +120,10 @@ func InvokeReadyNotify(appContextID, clientName string) (readynotifypb.ReadyNoti
 		return stream, client, pkgerrors.Wrapf(err, "Unable to find the rsync info from EMCO db")
 	}
 
-	conn := rpc.GetRpcConn(rsyncName)
+	conn := rpc.GetRpcConn(ctx, rsyncName)
 	if conn == nil {
 		installappclient.InitRsyncClient()
-		conn = rpc.GetRpcConn(rsyncName)
+		conn = rpc.GetRpcConn(ctx, rsyncName)
 		if conn == nil {
 			return stream, client, pkgerrors.Wrapf(err, "Unable to connect to rsync")
 		}
@@ -132,11 +132,11 @@ func InvokeReadyNotify(appContextID, clientName string) (readynotifypb.ReadyNoti
 	client = readynotifypb.NewReadyNotifyClient(conn)
 
 	if client != nil {
-		stream, err = client.Alert(context.Background(), &readynotifypb.Topic{ClientName: clientName, AppContext: appContextID}, grpc.WaitForReady(true))
+		stream, err = client.Alert(ctx, &readynotifypb.Topic{ClientName: clientName, AppContext: appContextID}, grpc.WaitForReady(true))
 		if err != nil {
 			log.Error("[ReadyNotify gRPC] Failed to subscribe to alerts", log.Fields{"err": err, "clientName": clientName, "appContextId": appContextID})
 			time.Sleep(5 * time.Second)
-			InvokeReadyNotify(appContextID, clientName)
+			InvokeReadyNotify(ctx, appContextID, clientName)
 		}
 
 		log.Info("[ReadyNotify gRPC] Subscribing to alerts about appcontext ID", log.Fields{"appContextId": appContextID})

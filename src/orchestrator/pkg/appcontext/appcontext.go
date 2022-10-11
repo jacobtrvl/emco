@@ -4,6 +4,7 @@
 package appcontext
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -96,7 +97,8 @@ type CompositeAppMeta struct {
 	Level                 string   `json:"Level"`
 	ChildContextIDs       []string `json:"ChildContextIDs"`
 	LogicalCloud          string   `json:"LogicalCloud"`
-	LogicalCloudNamespace string  `json:"LogicalCloudNamespace"`
+	LogicalCloudNamespace string   `json:"LogicalCloudNamespace"`
+	LogicalCloudLevel     string   `json:"LogicalCloudLevel"`
 }
 
 // Init app context
@@ -114,15 +116,15 @@ func (ac *AppContext) InitAppContextWithValue(cid interface{}) (interface{}, err
 }
 
 // Load app context that was previously created
-func (ac *AppContext) LoadAppContext(cid interface{}) (interface{}, error) {
+func (ac *AppContext) LoadAppContext(ctx context.Context, cid interface{}) (interface{}, error) {
 	ac.rtcObj = rtcontext.RunTimeContext{}
 	ac.rtc = &ac.rtcObj
-	return ac.rtc.RtcLoad(cid)
+	return ac.rtc.RtcLoad(ctx, cid)
 }
 
 // CreateCompositeApp method returns composite app handle as interface.
-func (ac *AppContext) CreateCompositeApp() (interface{}, error) {
-	h, err := ac.rtc.RtcCreate()
+func (ac *AppContext) CreateCompositeApp(ctx context.Context) (interface{}, error) {
+	h, err := ac.rtc.RtcCreate(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -131,8 +133,8 @@ func (ac *AppContext) CreateCompositeApp() (interface{}, error) {
 }
 
 // AddCompositeAppMeta adds the meta data associated with a composite app
-func (ac *AppContext) AddCompositeAppMeta(meta interface{}) error {
-	err := ac.rtc.RtcAddMeta(meta)
+func (ac *AppContext) AddCompositeAppMeta(ctx context.Context, meta interface{}) error {
+	err := ac.rtc.RtcAddMeta(ctx, meta)
 	if err != nil {
 		return err
 	}
@@ -140,12 +142,12 @@ func (ac *AppContext) AddCompositeAppMeta(meta interface{}) error {
 }
 
 // Deletes the entire context
-func (ac *AppContext) DeleteCompositeApp() error {
-	h, err := ac.rtc.RtcGet()
+func (ac *AppContext) DeleteCompositeApp(ctx context.Context) error {
+	h, err := ac.rtc.RtcGet(ctx)
 	if err != nil {
 		return err
 	}
-	err = ac.rtc.RtcDeletePrefix(h)
+	err = ac.rtc.RtcDeletePrefix(ctx, h)
 	if err != nil {
 		return err
 	}
@@ -153,8 +155,8 @@ func (ac *AppContext) DeleteCompositeApp() error {
 }
 
 //Returns the handles for a given composite app context
-func (ac *AppContext) GetCompositeAppHandle() (interface{}, error) {
-	h, err := ac.rtc.RtcGet()
+func (ac *AppContext) GetCompositeAppHandle(ctx context.Context) (interface{}, error) {
+	h, err := ac.rtc.RtcGet(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -163,9 +165,9 @@ func (ac *AppContext) GetCompositeAppHandle() (interface{}, error) {
 
 // GetLevelHandle returns the handle for the supplied level at the given handle.
 // For example, to get the handle of the 'status' level at a given handle.
-func (ac *AppContext) GetLevelHandle(handle interface{}, level string) (interface{}, error) {
+func (ac *AppContext) GetLevelHandle(ctx context.Context, handle interface{}, level string) (interface{}, error) {
 	ach := fmt.Sprintf("%v%v/", handle, level)
-	hs, err := ac.rtc.RtcGetHandles(ach)
+	hs, err := ac.rtc.RtcGetHandles(ctx, ach)
 	if err != nil {
 		return nil, err
 	}
@@ -178,8 +180,8 @@ func (ac *AppContext) GetLevelHandle(handle interface{}, level string) (interfac
 }
 
 //Add app to the context under composite app
-func (ac *AppContext) AddApp(handle interface{}, appname string) (interface{}, error) {
-	h, err := ac.rtc.RtcAddLevel(handle, "app", appname)
+func (ac *AppContext) AddApp(ctx context.Context, handle interface{}, appname string) (interface{}, error) {
+	h, err := ac.rtc.RtcAddLevel(ctx, handle, "app", appname)
 	if err != nil {
 		return nil, err
 	}
@@ -188,8 +190,8 @@ func (ac *AppContext) AddApp(handle interface{}, appname string) (interface{}, e
 }
 
 //Delete app from the context and everything underneth
-func (ac *AppContext) DeleteApp(handle interface{}) error {
-	err := ac.rtc.RtcDeletePrefix(handle)
+func (ac *AppContext) DeleteApp(ctx context.Context, handle interface{}) error {
+	err := ac.rtc.RtcDeletePrefix(ctx, handle)
 	if err != nil {
 		return err
 	}
@@ -197,18 +199,18 @@ func (ac *AppContext) DeleteApp(handle interface{}) error {
 }
 
 //Returns the handle for a given app
-func (ac *AppContext) GetAppHandle(appname string) (interface{}, error) {
+func (ac *AppContext) GetAppHandle(ctx context.Context, appname string) (interface{}, error) {
 	if appname == "" {
 		return nil, pkgerrors.Errorf("Not a valid run time context app name")
 	}
 
-	rh, err := ac.rtc.RtcGet()
+	rh, err := ac.rtc.RtcGet(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	apph := fmt.Sprintf("%v", rh) + "app/" + appname + "/"
-	hs, err := ac.rtc.RtcGetHandles(apph)
+	hs, err := ac.rtc.RtcGetHandles(ctx, apph)
 	if err != nil {
 		return nil, err
 	}
@@ -221,8 +223,8 @@ func (ac *AppContext) GetAppHandle(appname string) (interface{}, error) {
 }
 
 // AddCluster helps to add cluster to the context under app. It takes in the app handle and clusterName as value.
-func (ac *AppContext) AddCluster(handle interface{}, clustername string) (interface{}, error) {
-	h, err := ac.rtc.RtcAddLevel(handle, "cluster", clustername)
+func (ac *AppContext) AddCluster(ctx context.Context, handle interface{}, clustername string) (interface{}, error) {
+	h, err := ac.rtc.RtcAddLevel(ctx, handle, "cluster", clustername)
 	if err != nil {
 		return nil, err
 	}
@@ -232,8 +234,8 @@ func (ac *AppContext) AddCluster(handle interface{}, clustername string) (interf
 
 // AddClusterMetaGrp adds the meta info of groupNumber to which a cluster belongs.
 // It takes in cluster handle and groupNumber as arguments
-func (ac *AppContext) AddClusterMetaGrp(ch interface{}, gn string) error {
-	mh, err := ac.rtc.RtcAddOneLevel(ch, metaGrpPREFIX, gn)
+func (ac *AppContext) AddClusterMetaGrp(ctx context.Context, ch interface{}, gn string) error {
+	mh, err := ac.rtc.RtcAddOneLevel(ctx, ch, metaGrpPREFIX, gn)
 	if err != nil {
 		return err
 	}
@@ -242,8 +244,8 @@ func (ac *AppContext) AddClusterMetaGrp(ch interface{}, gn string) error {
 }
 
 // DeleteClusterMetaGrpHandle deletes the group number to which the cluster belongs, it takes in the cluster handle.
-func (ac *AppContext) DeleteClusterMetaGrpHandle(ch interface{}) error {
-	err := ac.rtc.RtcDeletePrefix(ch)
+func (ac *AppContext) DeleteClusterMetaGrpHandle(ctx context.Context, ch interface{}) error {
+	err := ac.rtc.RtcDeletePrefix(ctx, ch)
 	if err != nil {
 		return err
 	}
@@ -254,7 +256,7 @@ func (ac *AppContext) DeleteClusterMetaGrpHandle(ch interface{}) error {
 /*
 GetClusterMetaHandle takes in appName and ClusterName as string arguments and return the ClusterMetaHandle as string
 */
-func (ac *AppContext) GetClusterMetaHandle(app string, cluster string) (string, error) {
+func (ac *AppContext) GetClusterMetaHandle(ctx context.Context, app string, cluster string) (string, error) {
 	if app == "" {
 		return "", pkgerrors.Errorf("Not a valid run time context app name")
 	}
@@ -262,7 +264,7 @@ func (ac *AppContext) GetClusterMetaHandle(app string, cluster string) (string, 
 		return "", pkgerrors.Errorf("Not a valid run time context cluster name")
 	}
 
-	ch, err := ac.GetClusterHandle(app, cluster)
+	ch, err := ac.GetClusterHandle(ctx, app, cluster)
 	if err != nil {
 		return "", err
 	}
@@ -275,13 +277,13 @@ func (ac *AppContext) GetClusterMetaHandle(app string, cluster string) (string, 
 GetClusterGroupMap shall take in appName and return a map showing the grouping among the clusters.
 sample output of "GroupMap" :{"1":["cluster_provider1+clusterName3","cluster_provider1+clusterName5"],"2":["cluster_provider2+clusterName4","cluster_provider2+clusterName6"]}
 */
-func (ac *AppContext) GetClusterGroupMap(an string) (map[string][]string, error) {
-	cl, err := ac.GetClusterNames(an)
+func (ac *AppContext) GetClusterGroupMap(ctx context.Context, an string) (map[string][]string, error) {
+	cl, err := ac.GetClusterNames(ctx, an)
 	if err != nil {
 		log.Info(":: Unable to fetch clusterList for app ::", log.Fields{"AppName ": an})
 		return nil, err
 	}
-	rh, err := ac.rtc.RtcGet()
+	rh, err := ac.rtc.RtcGet(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -290,7 +292,7 @@ func (ac *AppContext) GetClusterGroupMap(an string) (map[string][]string, error)
 	for _, cn := range cl {
 		s := fmt.Sprintf("%v", rh) + "app/" + an + "/cluster/" + cn + "/" + metaGrpPREFIX + "/"
 		var v string
-		err = ac.rtc.RtcGetValue(s, &v)
+		err = ac.rtc.RtcGetValue(ctx, s, &v)
 		if err != nil {
 			log.Info(":: No group number for cluster  ::", log.Fields{"cluster": cn, "Reason": err})
 			continue
@@ -309,8 +311,8 @@ func (ac *AppContext) GetClusterGroupMap(an string) (map[string][]string, error)
 }
 
 //Delete cluster from the context and everything underneth
-func (ac *AppContext) DeleteCluster(handle interface{}) error {
-	err := ac.rtc.RtcDeletePrefix(handle)
+func (ac *AppContext) DeleteCluster(ctx context.Context, handle interface{}) error {
+	err := ac.rtc.RtcDeletePrefix(ctx, handle)
 	if err != nil {
 		return err
 	}
@@ -318,7 +320,7 @@ func (ac *AppContext) DeleteCluster(handle interface{}) error {
 }
 
 //Returns the handle for a given app and cluster
-func (ac *AppContext) GetClusterHandle(appname string, clustername string) (interface{}, error) {
+func (ac *AppContext) GetClusterHandle(ctx context.Context, appname string, clustername string) (interface{}, error) {
 	if appname == "" {
 		return nil, pkgerrors.Errorf("Not a valid run time context app name")
 	}
@@ -326,13 +328,13 @@ func (ac *AppContext) GetClusterHandle(appname string, clustername string) (inte
 		return nil, pkgerrors.Errorf("Not a valid run time context cluster name")
 	}
 
-	rh, err := ac.rtc.RtcGet()
+	rh, err := ac.rtc.RtcGet(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	ach := fmt.Sprintf("%v", rh) + "app/" + appname + "/cluster/" + clustername + "/"
-	hs, err := ac.rtc.RtcGetHandles(ach)
+	hs, err := ac.rtc.RtcGetHandles(ctx, ach)
 	if err != nil {
 		return nil, err
 	}
@@ -345,18 +347,18 @@ func (ac *AppContext) GetClusterHandle(appname string, clustername string) (inte
 }
 
 //Returns a list of all clusters for a given app
-func (ac *AppContext) GetClusterNames(appname string) ([]string, error) {
+func (ac *AppContext) GetClusterNames(ctx context.Context, appname string) ([]string, error) {
 	if appname == "" {
 		return nil, pkgerrors.Errorf("Not a valid run time context app name")
 	}
 
-	rh, err := ac.rtc.RtcGet()
+	rh, err := ac.rtc.RtcGet(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	prefix := fmt.Sprintf("%v", rh) + "app/" + appname + "/cluster/"
-	hs, err := ac.rtc.RtcGetHandles(prefix)
+	hs, err := ac.rtc.RtcGetHandles(ctx, prefix)
 	if err != nil {
 		return nil, pkgerrors.Errorf("Error getting handles for %v", prefix)
 	}
@@ -382,8 +384,8 @@ func (ac *AppContext) GetClusterNames(appname string) ([]string, error) {
 }
 
 //Add resource under app and cluster
-func (ac *AppContext) AddResource(handle interface{}, resname string, value interface{}) (interface{}, error) {
-	h, err := ac.rtc.RtcAddResource(handle, resname, value)
+func (ac *AppContext) AddResource(ctx context.Context, handle interface{}, resname string, value interface{}) (interface{}, error) {
+	h, err := ac.rtc.RtcAddResource(ctx, handle, resname, value)
 	if err != nil {
 		return nil, err
 	}
@@ -393,7 +395,7 @@ func (ac *AppContext) AddResource(handle interface{}, resname string, value inte
 }
 
 //Return the handle for given app, cluster and resource name
-func (ac *AppContext) GetResourceHandle(appname string, clustername string, resname string) (interface{}, error) {
+func (ac *AppContext) GetResourceHandle(ctx context.Context, appname string, clustername string, resname string) (interface{}, error) {
 	if appname == "" {
 		return nil, pkgerrors.Errorf("Not a valid run time context app name")
 	}
@@ -401,13 +403,13 @@ func (ac *AppContext) GetResourceHandle(appname string, clustername string, resn
 		return nil, pkgerrors.Errorf("Not a valid run time context cluster name")
 	}
 
-	rh, err := ac.rtc.RtcGet()
+	rh, err := ac.rtc.RtcGet(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	acrh := fmt.Sprintf("%v", rh) + "app/" + appname + "/cluster/" + clustername + "/resource/" + resname + "/"
-	hs, err := ac.rtc.RtcGetHandles(acrh)
+	hs, err := ac.rtc.RtcGetHandles(ctx, acrh)
 	if err != nil {
 		return nil, err
 	}
@@ -420,12 +422,12 @@ func (ac *AppContext) GetResourceHandle(appname string, clustername string, resn
 }
 
 //Update the resource value using the given handle
-func (ac *AppContext) UpdateResourceValue(handle interface{}, value interface{}) error {
-	return ac.rtc.RtcUpdateValue(handle, value)
+func (ac *AppContext) UpdateResourceValue(ctx context.Context, handle interface{}, value interface{}) error {
+	return ac.rtc.RtcUpdateValue(ctx, handle, value)
 }
 
 //Return the handle for given app, cluster and resource name
-func (ac *AppContext) GetResourceStatusHandle(appname string, clustername string, resname string) (interface{}, error) {
+func (ac *AppContext) GetResourceStatusHandle(ctx context.Context, appname string, clustername string, resname string) (interface{}, error) {
 	if appname == "" {
 		return nil, pkgerrors.Errorf("Not a valid run time context app name")
 	}
@@ -436,13 +438,13 @@ func (ac *AppContext) GetResourceStatusHandle(appname string, clustername string
 		return nil, pkgerrors.Errorf("Not a valid run time context resource name")
 	}
 
-	rh, err := ac.rtc.RtcGet()
+	rh, err := ac.rtc.RtcGet(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	acrh := fmt.Sprintf("%v", rh) + "app/" + appname + "/cluster/" + clustername + "/resource/" + resname + "/status/"
-	hs, err := ac.rtc.RtcGetHandles(acrh)
+	hs, err := ac.rtc.RtcGetHandles(ctx, acrh)
 	if err != nil {
 		return nil, err
 	}
@@ -455,7 +457,7 @@ func (ac *AppContext) GetResourceStatusHandle(appname string, clustername string
 }
 
 //GetResourceNames ... Returns a list of all resource names for a given app
-func (ac *AppContext) GetResourceNames(appname string, clustername string) ([]string, error) {
+func (ac *AppContext) GetResourceNames(ctx context.Context, appname string, clustername string) ([]string, error) {
 	if appname == "" {
 		return nil, pkgerrors.Errorf("Not a valid run time context app name")
 	}
@@ -463,13 +465,13 @@ func (ac *AppContext) GetResourceNames(appname string, clustername string) ([]st
 		return nil, pkgerrors.Errorf("Not a valid run time context cluster name")
 	}
 
-	rh, err := ac.rtc.RtcGet()
+	rh, err := ac.rtc.RtcGet(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	prefix := fmt.Sprintf("%v", rh) + "app/" + appname + "/cluster/" + clustername + "/resource/"
-	hs, err := ac.rtc.RtcGetHandles(prefix)
+	hs, err := ac.rtc.RtcGetHandles(ctx, prefix)
 	if err != nil {
 		return nil, pkgerrors.Errorf("Error getting handles for %v", prefix)
 	}
@@ -488,7 +490,7 @@ func (ac *AppContext) GetResourceNames(appname string, clustername string) ([]st
 }
 
 //Add instruction under given handle and type
-func (ac *AppContext) AddInstruction(handle interface{}, level string, insttype string, value interface{}) (interface{}, error) {
+func (ac *AppContext) AddInstruction(ctx context.Context, handle interface{}, level string, insttype string, value interface{}) (interface{}, error) {
 	if !(insttype == OrderInstruction || insttype == DependencyInstruction) {
 		log.Error("Not a valid app context instruction type", log.Fields{})
 		return nil, pkgerrors.Errorf("Not a valid app context instruction type")
@@ -497,7 +499,7 @@ func (ac *AppContext) AddInstruction(handle interface{}, level string, insttype 
 		log.Error("Not a valid app context instruction level", log.Fields{})
 		return nil, pkgerrors.Errorf("Not a valid app context instruction level")
 	}
-	h, err := ac.rtc.RtcAddInstruction(handle, level, insttype, value)
+	h, err := ac.rtc.RtcAddInstruction(ctx, handle, level, insttype, value)
 	if err != nil {
 		log.Error("ac.rtc.RtcAddInstruction(handle, level, insttype, value)", log.Fields{"err": err})
 		return nil, err
@@ -507,13 +509,13 @@ func (ac *AppContext) AddInstruction(handle interface{}, level string, insttype 
 }
 
 //Returns the resource instruction for a given instruction type per app
-func (ac *AppContext) GetAppLevelInstruction(appname, insttype string) (interface{}, error) {
+func (ac *AppContext) GetAppLevelInstruction(ctx context.Context, appname, insttype string) (interface{}, error) {
 	if !(insttype == DependencyInstruction) {
 		log.Error("Not a valid app context instruction type", log.Fields{})
 		return nil, pkgerrors.Errorf("Not a valid app context instruction type")
 	}
 
-	rh, err := ac.rtc.RtcGet()
+	rh, err := ac.rtc.RtcGet(ctx)
 	if err != nil {
 		log.Error("ac.rtc.RtcGet()", log.Fields{"err": err})
 		return nil, err
@@ -521,7 +523,7 @@ func (ac *AppContext) GetAppLevelInstruction(appname, insttype string) (interfac
 	s := fmt.Sprintf("%v", rh) + "app/" + appname + "/instruction/" + insttype + "/"
 	log.Info("Getting app instruction", log.Fields{"s": s})
 	var v string
-	err = ac.rtc.RtcGetValue(s, &v)
+	err = ac.rtc.RtcGetValue(ctx, s, &v)
 	if err != nil {
 		return nil, err
 	}
@@ -529,8 +531,8 @@ func (ac *AppContext) GetAppLevelInstruction(appname, insttype string) (interfac
 }
 
 //Delete instruction under given handle
-func (ac *AppContext) DeleteInstruction(handle interface{}) error {
-	err := ac.rtc.RtcDeletePair(handle)
+func (ac *AppContext) DeleteInstruction(ctx context.Context, handle interface{}) error {
+	err := ac.rtc.RtcDeletePair(ctx, handle)
 	if err != nil {
 		return err
 	}
@@ -538,12 +540,12 @@ func (ac *AppContext) DeleteInstruction(handle interface{}) error {
 }
 
 //Returns the app instruction for a given instruction type
-func (ac *AppContext) GetAppInstruction(insttype string) (interface{}, error) {
+func (ac *AppContext) GetAppInstruction(ctx context.Context, insttype string) (interface{}, error) {
 	if !(insttype == OrderInstruction || insttype == DependencyInstruction) {
 		log.Error("Not a valid app context instruction type", log.Fields{})
 		return nil, pkgerrors.Errorf("Not a valid app context instruction type")
 	}
-	rh, err := ac.rtc.RtcGet()
+	rh, err := ac.rtc.RtcGet(ctx)
 	if err != nil {
 		log.Error("ac.rtc.RtcGet()", log.Fields{"err": err})
 		return nil, err
@@ -551,7 +553,7 @@ func (ac *AppContext) GetAppInstruction(insttype string) (interface{}, error) {
 	s := fmt.Sprintf("%v", rh) + "app/" + "instruction/" + insttype + "/"
 	log.Info("Getting app instruction", log.Fields{"s": s})
 	var v string
-	err = ac.rtc.RtcGetValue(s, &v)
+	err = ac.rtc.RtcGetValue(ctx, s, &v)
 	if err != nil {
 		log.Error("ac.rtc.RtcGetValue(s, &v)", log.Fields{"err": err})
 		return nil, err
@@ -560,24 +562,24 @@ func (ac *AppContext) GetAppInstruction(insttype string) (interface{}, error) {
 }
 
 //Update the instruction usign the given handle
-func (ac *AppContext) UpdateInstructionValue(handle interface{}, value interface{}) error {
-	return ac.rtc.RtcUpdateValue(handle, value)
+func (ac *AppContext) UpdateInstructionValue(ctx context.Context, handle interface{}, value interface{}) error {
+	return ac.rtc.RtcUpdateValue(ctx, handle, value)
 }
 
 //Returns the resource instruction for a given instruction type
-func (ac *AppContext) GetResourceInstruction(appname string, clustername string, insttype string) (interface{}, error) {
+func (ac *AppContext) GetResourceInstruction(ctx context.Context, appname string, clustername string, insttype string) (interface{}, error) {
 	if !(insttype == OrderInstruction || insttype == DependencyInstruction) {
 		log.Error("Not a valid app context instruction type", log.Fields{})
 		return nil, pkgerrors.Errorf("Not a valid app context instruction type")
 	}
-	rh, err := ac.rtc.RtcGet()
+	rh, err := ac.rtc.RtcGet(ctx)
 	if err != nil {
 		log.Error("ac.rtc.RtcGet()", log.Fields{"err": err})
 		return nil, err
 	}
 	s := fmt.Sprintf("%v", rh) + "app/" + appname + "/cluster/" + clustername + "/resource/instruction/" + insttype + "/"
 	var v string
-	err = ac.rtc.RtcGetValue(s, &v)
+	err = ac.rtc.RtcGetValue(ctx, s, &v)
 	if err != nil {
 		return nil, err
 	}
@@ -586,8 +588,8 @@ func (ac *AppContext) GetResourceInstruction(appname string, clustername string,
 
 // AddLevelValue for holding a state object at a given level
 // will make a handle with an appended "<level>/" to the key
-func (ac *AppContext) AddLevelValue(handle interface{}, level string, value interface{}) (interface{}, error) {
-	h, err := ac.rtc.RtcAddOneLevel(handle, level, value)
+func (ac *AppContext) AddLevelValue(ctx context.Context, handle interface{}, level string, value interface{}) (interface{}, error) {
+	h, err := ac.rtc.RtcAddOneLevel(ctx, handle, level, value)
 	if err != nil {
 		return nil, err
 	}
@@ -597,7 +599,7 @@ func (ac *AppContext) AddLevelValue(handle interface{}, level string, value inte
 }
 
 // GetClusterStatusHandle returns the handle for cluster status for a given app and cluster
-func (ac *AppContext) GetClusterStatusHandle(appname string, clustername string) (interface{}, error) {
+func (ac *AppContext) GetClusterStatusHandle(ctx context.Context, appname string, clustername string) (interface{}, error) {
 	if appname == "" {
 		return nil, pkgerrors.Errorf("Not a valid run time context app name")
 	}
@@ -605,13 +607,13 @@ func (ac *AppContext) GetClusterStatusHandle(appname string, clustername string)
 		return nil, pkgerrors.Errorf("Not a valid run time context cluster name")
 	}
 
-	rh, err := ac.rtc.RtcGet()
+	rh, err := ac.rtc.RtcGet(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	acrh := fmt.Sprintf("%v", rh) + "app/" + appname + "/cluster/" + clustername + "/status/"
-	hs, err := ac.rtc.RtcGetHandles(acrh)
+	hs, err := ac.rtc.RtcGetHandles(ctx, acrh)
 	if err != nil {
 		return nil, err
 	}
@@ -624,18 +626,18 @@ func (ac *AppContext) GetClusterStatusHandle(appname string, clustername string)
 }
 
 //UpdateStatusValue updates the status value with the given handle
-func (ac *AppContext) UpdateStatusValue(handle interface{}, value interface{}) error {
-	return ac.rtc.RtcUpdateValue(handle, value)
+func (ac *AppContext) UpdateStatusValue(ctx context.Context, handle interface{}, value interface{}) error {
+	return ac.rtc.RtcUpdateValue(ctx, handle, value)
 }
 
 //UpdateValue updates the state value with the given handle
-func (ac *AppContext) UpdateValue(handle interface{}, value interface{}) error {
-	return ac.rtc.RtcUpdateValue(handle, value)
+func (ac *AppContext) UpdateValue(ctx context.Context, handle interface{}, value interface{}) error {
+	return ac.rtc.RtcUpdateValue(ctx, handle, value)
 }
 
 //Return all the handles under the composite app
-func (ac *AppContext) GetAllHandles(handle interface{}) ([]interface{}, error) {
-	hs, err := ac.rtc.RtcGetHandles(handle)
+func (ac *AppContext) GetAllHandles(ctx context.Context, handle interface{}) ([]interface{}, error) {
+	hs, err := ac.rtc.RtcGetHandles(ctx, handle)
 	if err != nil {
 		return nil, err
 	}
@@ -643,9 +645,9 @@ func (ac *AppContext) GetAllHandles(handle interface{}) ([]interface{}, error) {
 }
 
 //Returns the value for a given handle
-func (ac *AppContext) GetValue(handle interface{}) (interface{}, error) {
+func (ac *AppContext) GetValue(ctx context.Context, handle interface{}) (interface{}, error) {
 	var v interface{}
-	err := ac.rtc.RtcGetValue(handle, &v)
+	err := ac.rtc.RtcGetValue(ctx, handle, &v)
 	if err != nil {
 		return nil, err
 	}
@@ -654,8 +656,8 @@ func (ac *AppContext) GetValue(handle interface{}) (interface{}, error) {
 
 // GetCompositeAppMeta returns the meta data associated with the compositeApp
 // Its return type is CompositeAppMeta
-func (ac *AppContext) GetCompositeAppMeta() (CompositeAppMeta, error) {
-	mi, err := ac.rtcObj.RtcGetMeta()
+func (ac *AppContext) GetCompositeAppMeta(ctx context.Context) (CompositeAppMeta, error) {
+	mi, err := ac.rtcObj.RtcGetMeta(ctx)
 
 	if err != nil {
 		return CompositeAppMeta{}, pkgerrors.Errorf("Failed to get compositeApp meta")
@@ -682,6 +684,8 @@ func (ac *AppContext) GetCompositeAppMeta() (CompositeAppMeta, error) {
 	}
 	lc := fmt.Sprintf("%v", datamap["LogicalCloud"])
 	lcn := fmt.Sprintf("%v", datamap["LogicalCloudNamespace"])
+	// user-intended level of logical cloud, not level of app itself (which a logical cloud can be):
+	lclevel := fmt.Sprintf("%v", datamap["LogicalCloudLevel"])
 
-	return CompositeAppMeta{Project: p, CompositeApp: ca, Version: v, Release: rn, DeploymentIntentGroup: dig, Namespace: namespace, Level: level, ChildContextIDs: childCtxs, LogicalCloud: lc, LogicalCloudNamespace: lcn}, nil
+	return CompositeAppMeta{Project: p, CompositeApp: ca, Version: v, Release: rn, DeploymentIntentGroup: dig, Namespace: namespace, Level: level, ChildContextIDs: childCtxs, LogicalCloud: lc, LogicalCloudNamespace: lcn, LogicalCloudLevel: lclevel}, nil
 }

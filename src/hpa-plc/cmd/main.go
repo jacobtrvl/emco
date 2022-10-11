@@ -33,7 +33,7 @@ func RegisterHpaPlacementServices(grpcServer *grpc.Server, srv interface{}) {
 func main() {
 	rand.Seed(time.Now().UnixNano())
 
-	err := db.InitializeDatabaseConnection("emco")
+	err := db.InitializeDatabaseConnection(context.Background(), "emco")
 	if err != nil {
 		log.Error("Unable to initialize mongo database connection", log.Fields{"Error": err})
 		os.Exit(1)

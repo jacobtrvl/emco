@@ -5,6 +5,7 @@
 package module_test
 
 import (
+	"context"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -76,16 +77,17 @@ var _ = Describe("SampleIntent",
 			func() {
 				It("successful creation of  SampleIntent",
 					func() {
+						ctx := context.Background()
 						// set up prerequisites
-						_, err := (*pClient).CreateProject(project, false)
+						_, err := (*pClient).CreateProject(ctx, project, false)
 						Expect(err).To(BeNil())
-						_, err = (*aClient).CreateCompositeApp(app, "testProj", false)
+						_, err = (*aClient).CreateCompositeApp(ctx, app, "testProj", false)
 						Expect(err).To(BeNil())
-						_, _, err = (*digClient).CreateDeploymentIntentGroup(diGroup, "testProj", "app", "v1", true)
+						_, _, err = (*digClient).CreateDeploymentIntentGroup(ctx, diGroup, "testProj", "app", "v1", true)
 						Expect(err).To(BeNil())
 
 						// test  intent creation
-						_, err = (*iClient).CreateSampleIntent(intent, "testProj", "app", "v1", "diGroup", true)
+						_, err = (*iClient).CreateSampleIntent(ctx, intent, "testProj", "app", "v1", "diGroup", true)
 						Expect(err).To(BeNil())
 					},
 				)
@@ -96,19 +98,20 @@ var _ = Describe("SampleIntent",
 			func() {
 				It("successful get of SampleIntent",
 					func() {
+						ctx := context.Background()
 						// set up prerequisites
-						_, err := (*pClient).CreateProject(project, false)
+						_, err := (*pClient).CreateProject(ctx, project, false)
 						Expect(err).To(BeNil())
-						_, err = (*aClient).CreateCompositeApp(app, "testProj", false)
+						_, err = (*aClient).CreateCompositeApp(ctx, app, "testProj", false)
 						Expect(err).To(BeNil())
-						_, _, err = (*digClient).CreateDeploymentIntentGroup(diGroup, "testProj", "app", "v1", true)
+						_, _, err = (*digClient).CreateDeploymentIntentGroup(ctx, diGroup, "testProj", "app", "v1", true)
 						Expect(err).To(BeNil())
 
 						// test  intent creation
-						_, err = (*iClient).CreateSampleIntent(intent, "testProj", "app", "v1", "diGroup", false)
+						_, err = (*iClient).CreateSampleIntent(ctx, intent, "testProj", "app", "v1", "diGroup", false)
 						Expect(err).To(BeNil())
 
-						_, err = (*iClient).GetSampleIntents("sampleIntentName", "testProj", "app", "v1", "diGroup")
+						_, err = (*iClient).GetSampleIntents(ctx, "sampleIntentName", "testProj", "app", "v1", "diGroup")
 						Expect(err).To(BeNil())
 					},
 				)

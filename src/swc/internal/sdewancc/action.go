@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"strings"
 
+	"context"
+
 	pkgerrors "github.com/pkg/errors"
 	clusterPkg "gitlab.com/project-emco/core/emco-base/src/clm/pkg/cluster"
 	"gitlab.com/project-emco/core/emco-base/src/dtc/pkg/module"
@@ -16,11 +18,11 @@ import (
 )
 
 type clusterData struct {
-	Reslist        []map[string][]byte //resname: res
-	ClusterName    string
-	CNFPort        string
-	ServicePort    string
-	AllowedCIDR    string
+	Reslist     []map[string][]byte //resname: res
+	ClusterName string
+	CNFPort     string
+	ServicePort string
+	AllowedCIDR string
 }
 type client struct {
 	ClientName        string
@@ -39,7 +41,7 @@ type serverData struct {
 // Action applies the supplied intent against the given AppContext ID
 func UpdateAppContext(intentName, appContextId string) error {
 	var ac appcontext.AppContext
-	_, err := ac.LoadAppContext(appContextId)
+	_, err := ac.LoadAppContext(context.Background(), appContextId)
 	if err != nil {
 		log.Error("Error loading AppContext", log.Fields{
 			"error": err,
@@ -47,7 +49,7 @@ func UpdateAppContext(intentName, appContextId string) error {
 		return pkgerrors.Wrapf(err, "Error loading AppContext with Id: %v", appContextId)
 	}
 
-	caMeta, err := ac.GetCompositeAppMeta()
+	caMeta, err := ac.GetCompositeAppMeta(context.Background())
 	if err != nil {
 		log.Error("Error getting metadata from AppContext", log.Fields{
 			"error": err,
@@ -82,7 +84,7 @@ func UpdateAppContext(intentName, appContextId string) error {
 			})
 			return pkgerrors.Wrapf(err, "Error SDEWAN not enabled for this server")
 		}
-		clusters, err := ac.GetClusterNames(is.Spec.AppName)
+		clusters, err := ac.GetClusterNames(context.Background(), is.Spec.AppName)
 		if err != nil {
 			log.Error("Error retrieving clusters from App Context", log.Fields{
 				"error":    err,
@@ -100,30 +102,30 @@ func UpdateAppContext(intentName, appContextId string) error {
 			obj, err := getClusterKvPair(c, "SdewanCnfPort")
 			if err != nil {
 				log.Error("Error getting sdewan cnf port", log.Fields{
-					"error":    err,
+					"error": err,
 				})
 				return pkgerrors.Wrapf(err,
 					"Error getting sdewan cnf port")
 			}
 			servers[index].ClusterData[ci].CNFPort = obj
 			obj, err = getClusterKvPair(c, "SdewanServicePort")
-                        if err != nil {
-                                log.Error("Error getting sdewan service port", log.Fields{
-                                        "error":    err,
-                                })
-                                return pkgerrors.Wrapf(err,
-                                        "Error getting sdewan service port")
-                        }
-                        servers[index].ClusterData[ci].ServicePort = obj
+			if err != nil {
+				log.Error("Error getting sdewan service port", log.Fields{
+					"error": err,
+				})
+				return pkgerrors.Wrapf(err,
+					"Error getting sdewan service port")
+			}
+			servers[index].ClusterData[ci].ServicePort = obj
 			obj, err = getClusterKvPair(c, "SdewanServiceAllowedCidr")
-                        if err != nil {
-                                log.Error("Error getting sdewan service allowed CIDR", log.Fields{
-                                        "error":    err,
-                                })
-                                return pkgerrors.Wrapf(err,
-                                        "Error getting sdewan service allowed CIDR")
-                        }
-                        servers[index].ClusterData[ci].AllowedCIDR = obj
+			if err != nil {
+				log.Error("Error getting sdewan service allowed CIDR", log.Fields{
+					"error": err,
+				})
+				return pkgerrors.Wrapf(err,
+					"Error getting sdewan service allowed CIDR")
+			}
+			servers[index].ClusterData[ci].AllowedCIDR = obj
 			servers[index].ClusterData[ci].ClusterName = c
 			servers[index].ClusterData[ci].Reslist = make([]map[string][]byte, 0)
 		}
@@ -147,7 +149,7 @@ func UpdateAppContext(intentName, appContextId string) error {
 		for i, ic := range ics {
 			servers[index].Clients[i].ClientName = ic.Spec.AppName
 			servers[index].Clients[i].ClientServiceName = ic.Spec.ServiceName
-			clusters, err = ac.GetClusterNames(ic.Spec.AppName)
+			clusters, err = ac.GetClusterNames(context.Background(), ic.Spec.AppName)
 			if err != nil {
 				log.Error("Error retrieving clusters from App Context", log.Fields{
 					"error":    err,
@@ -228,7 +230,7 @@ func UpdateAppContext(intentName, appContextId string) error {
 }
 
 func addClusterResource(ac appcontext.AppContext, appname string, c string, res map[string][]byte) error {
-	ch, err := ac.GetClusterHandle(appname, c)
+	ch, err := ac.GetClusterHandle(context.Background(), appname, c)
 	if err != nil {
 		log.Error("Error getting clusters handle App Context", log.Fields{
 			"error":        err,
@@ -255,7 +257,7 @@ func addClusterResource(ac appcontext.AppContext, appname string, c string, res 
 		r = ro
 	}
 
-	_, err = ac.AddResource(ch, resname, string(r))
+	_, err = ac.AddResource(context.Background(), ch, resname, string(r))
 	if err != nil {
 		log.Error("Error adding Resource to AppContext", log.Fields{
 			"error":        err,
@@ -264,7 +266,7 @@ func addClusterResource(ac appcontext.AppContext, appname string, c string, res 
 		})
 		return pkgerrors.Wrap(err, "Error adding Resource to AppContext")
 	}
-	resorder, err := ac.GetResourceInstruction(appname, c, "order")
+	resorder, err := ac.GetResourceInstruction(context.Background(), appname, c, "order")
 	if err != nil {
 		log.Error("Error getting Resource order", log.Fields{
 			"error":        err,
@@ -278,7 +280,7 @@ func addClusterResource(ac appcontext.AppContext, appname string, c string, res 
 	aov["resorder"] = append(aov["resorder"], resname)
 	jresord, _ := json.Marshal(aov)
 
-	_, err = ac.AddInstruction(ch, "resource", "order", string(jresord))
+	_, err = ac.AddInstruction(context.Background(), ch, "resource", "order", string(jresord))
 	if err != nil {
 		log.Error("Error updating Resource order", log.Fields{
 			"error":        err,
@@ -293,7 +295,7 @@ func addClusterResource(ac appcontext.AppContext, appname string, c string, res 
 func createServerResources(is module.InboundServerIntent, c string, servers []serverData, namespace string, index, ci int) error {
 
 	cnfport := servers[index].ClusterData[ci].CNFPort
-        serviceport := servers[index].ClusterData[ci].ServicePort
+	serviceport := servers[index].ClusterData[ci].ServicePort
 	cidr := servers[index].ClusterData[ci].AllowedCIDR
 	fullname := is.Spec.ServiceName + "." + namespace + "." + "svc.cluster.local"
 	res, err := createSdewanService(fullname, namespace, cnfport, serviceport, cidr)
@@ -374,7 +376,7 @@ func getClusterKvPair(c, kvkey string) (string, error) {
 		})
 		return "", pkgerrors.New("Not a valid cluster name")
 	}
-	ckv, err := clusterPkg.NewClusterClient().GetAllClusterKvPairs(parts[0], parts[1])
+	ckv, err := clusterPkg.NewClusterClient().GetAllClusterKvPairs(context.Background(), parts[0], parts[1])
 	var val string
 	if err == nil {
 		for _, kvp := range ckv {

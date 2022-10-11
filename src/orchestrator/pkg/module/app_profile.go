@@ -4,6 +4,8 @@
 package module
 
 import (
+	"context"
+
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
 
 	pkgerrors "github.com/pkg/errors"
@@ -56,13 +58,13 @@ type AppProfileFindByAppKey struct {
 
 // AppProfileManager exposes the AppProfile functionality
 type AppProfileManager interface {
-	CreateAppProfile(provider, compositeApp, compositeAppVersion, compositeProfile string, ap AppProfile, ac AppProfileContent, exists bool) (AppProfile, error)
-	GetAppProfile(project, compositeApp, compositeAppVersion, compositeProfile, profile string) (AppProfile, error)
-	GetAppProfiles(project, compositeApp, compositeAppVersion, compositeProfile string) ([]AppProfile, error)
-	GetAppProfileByApp(project, compositeApp, compositeAppVersion, compositeProfile, appName string) (AppProfile, error)
-	GetAppProfileContent(project, compositeApp, compositeAppVersion, compositeProfile, profile string) (AppProfileContent, error)
-	GetAppProfileContentByApp(project, compositeApp, compositeAppVersion, compositeProfile, appName string) (AppProfileContent, error)
-	DeleteAppProfile(project, compositeApp, compositeAppVersion, compositeProfile, profile string) error
+	CreateAppProfile(ctx context.Context, provider, compositeApp, compositeAppVersion, compositeProfile string, ap AppProfile, ac AppProfileContent, exists bool) (AppProfile, error)
+	GetAppProfile(ctx context.Context, project, compositeApp, compositeAppVersion, compositeProfile, profile string) (AppProfile, error)
+	GetAppProfiles(ctx context.Context, project, compositeApp, compositeAppVersion, compositeProfile string) ([]AppProfile, error)
+	GetAppProfileByApp(ctx context.Context, project, compositeApp, compositeAppVersion, compositeProfile, appName string) (AppProfile, error)
+	GetAppProfileContent(ctx context.Context, project, compositeApp, compositeAppVersion, compositeProfile, profile string) (AppProfileContent, error)
+	GetAppProfileContentByApp(ctx context.Context, project, compositeApp, compositeAppVersion, compositeProfile, appName string) (AppProfileContent, error)
+	DeleteAppProfile(ctx context.Context, project, compositeApp, compositeAppVersion, compositeProfile, profile string) error
 }
 
 // AppProfileClient implements the Manager
@@ -84,7 +86,7 @@ func NewAppProfileClient() *AppProfileClient {
 }
 
 // CreateAppProfile creates an entry for AppProfile in the database.
-func (c *AppProfileClient) CreateAppProfile(project, compositeApp, compositeAppVersion, compositeProfile string, ap AppProfile, ac AppProfileContent, exists bool) (AppProfile, error) {
+func (c *AppProfileClient) CreateAppProfile(ctx context.Context, project, compositeApp, compositeAppVersion, compositeProfile string, ap AppProfile, ac AppProfileContent, exists bool) (AppProfile, error) {
 	key := AppProfileKey{
 		Project:             project,
 		CompositeApp:        compositeApp,
@@ -96,29 +98,29 @@ func (c *AppProfileClient) CreateAppProfile(project, compositeApp, compositeAppV
 		AppName: ap.Spec.AppName,
 	}
 
-	res, err := c.GetAppProfile(project, compositeApp, compositeAppVersion, compositeProfile, ap.Metadata.Name)
+	res, err := c.GetAppProfile(ctx, project, compositeApp, compositeAppVersion, compositeProfile, ap.Metadata.Name)
 	if res != (AppProfile{}) && !exists {
 		return AppProfile{}, pkgerrors.New("AppProfile already exists")
 	}
 
-	res, err = c.GetAppProfileByApp(project, compositeApp, compositeAppVersion, compositeProfile, ap.Spec.AppName)
+	res, err = c.GetAppProfileByApp(ctx, project, compositeApp, compositeAppVersion, compositeProfile, ap.Spec.AppName)
 	if res != (AppProfile{}) && !exists {
 		return AppProfile{}, pkgerrors.New("App already has an AppProfile")
 	}
 
 	//Check if composite profile exists (success assumes existance of all higher level 'parent' objects)
-	_, err = NewCompositeProfileClient().GetCompositeProfile(compositeProfile, project, compositeApp, compositeAppVersion)
+	_, err = NewCompositeProfileClient().GetCompositeProfile(ctx, compositeProfile, project, compositeApp, compositeAppVersion)
 	if err != nil {
 		return AppProfile{}, err
 	}
 
 	// TODO: (after app api is ready) check that the app Spec.AppName exists as part of the composite app
 
-	err = db.DBconn.Insert(c.storeName, key, qkey, c.tagMeta, ap)
+	err = db.DBconn.Insert(ctx, c.storeName, key, qkey, c.tagMeta, ap)
 	if err != nil {
 		return AppProfile{}, pkgerrors.Wrap(err, "Create DB entry error")
 	}
-	err = db.DBconn.Insert(c.storeName, key, qkey, c.tagContent, ac)
+	err = db.DBconn.Insert(ctx, c.storeName, key, qkey, c.tagContent, ac)
 	if err != nil {
 		return AppProfile{}, pkgerrors.Wrap(err, "Create DB entry error")
 	}
@@ -127,7 +129,7 @@ func (c *AppProfileClient) CreateAppProfile(project, compositeApp, compositeAppV
 }
 
 // GetAppProfile - return specified App Profile
-func (c *AppProfileClient) GetAppProfile(project, compositeApp, compositeAppVersion, compositeProfile, profile string) (AppProfile, error) {
+func (c *AppProfileClient) GetAppProfile(ctx context.Context, project, compositeApp, compositeAppVersion, compositeProfile, profile string) (AppProfile, error) {
 	key := AppProfileKey{
 		Project:             project,
 		CompositeApp:        compositeApp,
@@ -136,7 +138,7 @@ func (c *AppProfileClient) GetAppProfile(project, compositeApp, compositeAppVers
 		Profile:             profile,
 	}
 
-	value, err := db.DBconn.Find(c.storeName, key, c.tagMeta)
+	value, err := db.DBconn.Find(ctx, c.storeName, key, c.tagMeta)
 	if err != nil {
 		return AppProfile{}, err
 	} else if len(value) == 0 {
@@ -157,7 +159,7 @@ func (c *AppProfileClient) GetAppProfile(project, compositeApp, compositeAppVers
 }
 
 // GetAppProfile - return all App Profiles for given composite profile
-func (c *AppProfileClient) GetAppProfiles(project, compositeApp, compositeAppVersion, compositeProfile string) ([]AppProfile, error) {
+func (c *AppProfileClient) GetAppProfiles(ctx context.Context, project, compositeApp, compositeAppVersion, compositeProfile string) ([]AppProfile, error) {
 
 	key := AppProfileKey{
 		Project:             project,
@@ -168,7 +170,7 @@ func (c *AppProfileClient) GetAppProfiles(project, compositeApp, compositeAppVer
 	}
 
 	var resp []AppProfile
-	values, err := db.DBconn.Find(c.storeName, key, c.tagMeta)
+	values, err := db.DBconn.Find(ctx, c.storeName, key, c.tagMeta)
 	if err != nil {
 		return []AppProfile{}, err
 	}
@@ -186,7 +188,7 @@ func (c *AppProfileClient) GetAppProfiles(project, compositeApp, compositeAppVer
 }
 
 // GetAppProfileByApp - return all App Profiles for given composite profile
-func (c *AppProfileClient) GetAppProfileByApp(project, compositeApp, compositeAppVersion, compositeProfile, appName string) (AppProfile, error) {
+func (c *AppProfileClient) GetAppProfileByApp(ctx context.Context, project, compositeApp, compositeAppVersion, compositeProfile, appName string) (AppProfile, error) {
 
 	key := AppProfileFindByAppKey{
 		Project:             project,
@@ -196,7 +198,7 @@ func (c *AppProfileClient) GetAppProfileByApp(project, compositeApp, compositeAp
 		AppName:             appName,
 	}
 
-	value, err := db.DBconn.Find(c.storeName, key, c.tagMeta)
+	value, err := db.DBconn.Find(ctx, c.storeName, key, c.tagMeta)
 	if err != nil {
 		return AppProfile{}, err
 	} else if len(value) == 0 {
@@ -215,7 +217,7 @@ func (c *AppProfileClient) GetAppProfileByApp(project, compositeApp, compositeAp
 	return AppProfile{}, pkgerrors.New("Unknown Error")
 }
 
-func (c *AppProfileClient) GetAppProfileContent(project, compositeApp, compositeAppVersion, compositeProfile, profile string) (AppProfileContent, error) {
+func (c *AppProfileClient) GetAppProfileContent(ctx context.Context, project, compositeApp, compositeAppVersion, compositeProfile, profile string) (AppProfileContent, error) {
 	key := AppProfileKey{
 		Project:             project,
 		CompositeApp:        compositeApp,
@@ -224,7 +226,7 @@ func (c *AppProfileClient) GetAppProfileContent(project, compositeApp, composite
 		Profile:             profile,
 	}
 
-	value, err := db.DBconn.Find(c.storeName, key, c.tagContent)
+	value, err := db.DBconn.Find(ctx, c.storeName, key, c.tagContent)
 	if err != nil {
 		return AppProfileContent{}, err
 	} else if len(value) == 0 {
@@ -244,7 +246,7 @@ func (c *AppProfileClient) GetAppProfileContent(project, compositeApp, composite
 	return AppProfileContent{}, pkgerrors.New("Unknown Error")
 }
 
-func (c *AppProfileClient) GetAppProfileContentByApp(project, compositeApp, compositeAppVersion, compositeProfile, appName string) (AppProfileContent, error) {
+func (c *AppProfileClient) GetAppProfileContentByApp(ctx context.Context, project, compositeApp, compositeAppVersion, compositeProfile, appName string) (AppProfileContent, error) {
 	key := AppProfileFindByAppKey{
 		Project:             project,
 		CompositeApp:        compositeApp,
@@ -253,7 +255,7 @@ func (c *AppProfileClient) GetAppProfileContentByApp(project, compositeApp, comp
 		AppName:             appName,
 	}
 
-	value, err := db.DBconn.Find(c.storeName, key, c.tagContent)
+	value, err := db.DBconn.Find(ctx, c.storeName, key, c.tagContent)
 	if err != nil {
 		return AppProfileContent{}, err
 	} else if len(value) == 0 {
@@ -274,7 +276,7 @@ func (c *AppProfileClient) GetAppProfileContentByApp(project, compositeApp, comp
 }
 
 // Delete AppProfile from the database
-func (c *AppProfileClient) DeleteAppProfile(project, compositeApp, compositeAppVersion, compositeProfile, profile string) error {
+func (c *AppProfileClient) DeleteAppProfile(ctx context.Context, project, compositeApp, compositeAppVersion, compositeProfile, profile string) error {
 	key := AppProfileKey{
 		Project:             project,
 		CompositeApp:        compositeApp,
@@ -283,6 +285,6 @@ func (c *AppProfileClient) DeleteAppProfile(project, compositeApp, compositeAppV
 		Profile:             profile,
 	}
 
-	err := db.DBconn.Remove(c.storeName, key)
+	err := db.DBconn.Remove(ctx, c.storeName, key)
 	return err
 }

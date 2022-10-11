@@ -7,6 +7,7 @@ import (
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
 	"gitlab.com/project-emco/core/emco-base/src/sfc/pkg/model"
 
+	"context"
 	pkgerrors "github.com/pkg/errors"
 )
 
@@ -32,7 +33,7 @@ func (v *SfcClientSelectorIntentClient) CreateSfcClientSelectorIntent(intent mod
 		return model.SfcClientSelectorIntent{}, pkgerrors.New("SFC Client Selector Intent already exists")
 	}
 
-	err = db.DBconn.Insert(v.db.storeName, key, endKey, v.db.tagMeta, intent)
+	err = db.DBconn.Insert(context.Background(), v.db.storeName, key, endKey, v.db.tagMeta, intent)
 	if err != nil {
 		return model.SfcClientSelectorIntent{}, pkgerrors.Wrap(err, "Creating DB Entry")
 	}
@@ -52,7 +53,7 @@ func (v *SfcClientSelectorIntentClient) GetSfcClientSelectorIntent(name, pr, ca,
 		SfcClientSelectorIntent: name,
 	}
 
-	value, err := db.DBconn.Find(v.db.storeName, key, v.db.tagMeta)
+	value, err := db.DBconn.Find(context.Background(), v.db.storeName, key, v.db.tagMeta)
 	if err != nil {
 		return model.SfcClientSelectorIntent{}, err
 	} else if len(value) == 0 {
@@ -92,7 +93,7 @@ func (v *SfcClientSelectorIntentClient) GetAllSfcClientSelectorIntents(pr, ca, c
 		return resp, err
 	}
 
-	values, err := db.DBconn.Find(v.db.storeName, key, v.db.tagMeta)
+	values, err := db.DBconn.Find(context.Background(), v.db.storeName, key, v.db.tagMeta)
 	if err != nil {
 		return resp, err
 	}
@@ -130,7 +131,7 @@ func (v *SfcClientSelectorIntentClient) GetSfcClientSelectorIntentsByEnd(pr, ca,
 		return resp, err
 	}
 
-	values, err := db.DBconn.Find(v.db.storeName, key, v.db.tagMeta)
+	values, err := db.DBconn.Find(context.Background(), v.db.storeName, key, v.db.tagMeta)
 	if err != nil {
 		return resp, err
 	}
@@ -160,6 +161,6 @@ func (v *SfcClientSelectorIntentClient) DeleteSfcClientSelectorIntent(name, pr, 
 		SfcClientSelectorIntent: name,
 	}
 
-	err := db.DBconn.Remove(v.db.storeName, key)
+	err := db.DBconn.Remove(context.Background(), v.db.storeName, key)
 	return err
 }

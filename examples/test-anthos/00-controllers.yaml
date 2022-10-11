@@ -9,7 +9,7 @@ resourceContext:
 metadata :
    name: rsync
 spec:
-  host:  {{ .HostIP }}
+  host: rsync
   port: {{ .RsyncPort }}
 
 ---
@@ -20,7 +20,7 @@ resourceContext:
 metadata :
    name: gac
 spec:
-  host:  {{ .HostIP }}
+  host:  gac
   port: {{ .GacPort }}
   type: "action"
   priority: 1
@@ -33,7 +33,7 @@ resourceContext:
 metadata :
   name: ovnaction
 spec:
-  host: {{ .HostIP }}
+  host: ovnaction
   port: {{ .OvnPort }}
   type: "action"
   priority: 1
@@ -46,7 +46,7 @@ resourceContext:
 metadata :
   name: dtc
 spec:
-  host: {{ .HostIP }}
+  host: dtc
   port: {{ .DtcPort }}
   type: "action"
   priority: 1
@@ -59,7 +59,7 @@ resourceContext:
 metadata :
    name: nps
 spec:
-  host:  {{.HostIP}}
+  host: nps
   port: {{.NpsPort}}
   type: "action"
   priority: 1

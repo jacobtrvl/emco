@@ -7,17 +7,15 @@ import (
 	"context"
 	"fmt"
 	"strings"
-	"time"
 
 	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 
-	"github.com/fluxcd/go-git-providers/gitprovider"
 	pkgerrors "github.com/pkg/errors"
-	v1alpha1 "gitlab.com/project-emco/core/emco-base/src/monitor/pkg/apis/k8splugin/v1alpha1"
+
 	"gitlab.com/project-emco/core/emco-base/src/rsync/pkg/db"
-	emcogit "gitlab.com/project-emco/core/emco-base/src/rsync/pkg/gitops/emcogit"
+	emcogit2go "gitlab.com/project-emco/core/emco-base/src/rsync/pkg/gitops/emcogit2go"
+	emcogithub "gitlab.com/project-emco/core/emco-base/src/rsync/pkg/gitops/emcogithub"
 	"gitlab.com/project-emco/core/emco-base/src/rsync/pkg/internal/utils"
-	"gitlab.com/project-emco/core/emco-base/src/rsync/pkg/status"
 )
 
 type GitProvider struct {
@@ -32,7 +30,15 @@ type GitProvider struct {
 	Branch    string
 	RepoName  string
 	Url       string
-	Client    interface{}
+
+	gitInterface GitInterfaceProvider
+}
+
+type GitInterfaceProvider interface {
+	AddToCommit(fileName, content string, ref interface{}) interface{}
+	DeleteToCommit(fileName string, ref interface{}) interface{}
+	CommitFiles(app, message string, files interface{}) error
+	ClusterWatcher(ctx context.Context, cid, app, cluster string, waitTime int) error
 }
 
 /*
@@ -40,17 +46,17 @@ type GitProvider struct {
 	params : cid, app, cluster, level, namespace string
 	return : GitProvider, error
 */
-func NewGitProvider(cid, app, cluster, level, namespace string) (*GitProvider, error) {
+func NewGitProvider(ctx context.Context, cid, app, cluster, level, namespace string) (*GitProvider, error) {
 
 	result := strings.SplitN(cluster, "+", 2)
 
-	c, err := utils.GetGitOpsConfig(cluster, "0", "default")
+	c, err := utils.GetGitOpsConfig(ctx, cluster, "0", "default")
 	if err != nil {
 		return nil, err
 	}
 	// Read from database
 	ccc := db.NewCloudConfigClient()
-	refObject, err := ccc.GetClusterSyncObjects(result[0], c.Props.GitOpsReferenceObject)
+	refObject, err := ccc.GetClusterSyncObjects(ctx, result[0], c.Props.GitOpsReferenceObject)
 
 	if err != nil {
 		log.Error("Invalid refObject :", log.Fields{"refObj": c.Props.GitOpsReferenceObject, "error": err})
@@ -59,7 +65,7 @@ func NewGitProvider(cid, app, cluster, level, namespace string) (*GitProvider, e
 
 	kvRef := refObject.Spec.Kv
 
-	var gitType, gitToken, branch, userName, repoName string
+	var gitType, gitToken, branch, userName, repoName, url string
 
 	for _, kvpair := range kvRef {
 		log.Info("kvpair", log.Fields{"kvpair": kvpair})
@@ -88,9 +94,14 @@ func NewGitProvider(cid, app, cluster, level, namespace string) (*GitProvider, e
 			branch = fmt.Sprintf("%v", v)
 			continue
 		}
+		v, ok = kvpair["url"]
+		if ok {
+			url = fmt.Sprintf("%v", v)
+			continue
+		}
 	}
-	if len(gitType) <= 0 || len(gitToken) <= 0 || len(branch) <= 0 || len(userName) <= 0 || len(repoName) <= 0 {
-		log.Error("Missing information for Git", log.Fields{"gitType": gitType, "token": gitToken, "branch": branch, "userName": userName, "repoName": repoName})
+	if len(gitToken) <= 0 || len(branch) <= 0 || len(userName) <= 0 || len(repoName) <= 0 || len(url) <= 0 {
+		log.Error("Missing information for Git", log.Fields{"token": gitToken, "branch": branch, "userName": userName, "repoName": repoName, "url": url})
 		return nil, pkgerrors.Errorf("Missing Information for Git")
 	}
 
@@ -105,14 +116,15 @@ func NewGitProvider(cid, app, cluster, level, namespace string) (*GitProvider, e
 		Branch:    branch,
 		UserName:  userName,
 		RepoName:  repoName,
-		Url:       "https://" + gitType + ".com/" + userName + "/" + repoName,
+		Url:       url,
 	}
-	client, err := emcogit.CreateClient(userName, gitToken, gitType)
-	if err != nil {
-		log.Error("Error getting git client", log.Fields{"err": err})
-		return nil, err
+
+	if strings.EqualFold(gitType, "github") {
+		p.gitInterface, err = emcogithub.NewGithub(p.Cluster, p.Url, p.Branch, p.UserName, p.RepoName, p.GitToken)
+	} else {
+		p.gitInterface, err = emcogit2go.NewGit2Go(p.Url, p.Branch, p.UserName, p.RepoName, p.GitToken)
 	}
-	p.Client = client
+
 	return &p, nil
 }
 
@@ -121,7 +133,6 @@ func NewGitProvider(cid, app, cluster, level, namespace string) (*GitProvider, e
 	params : string
 	return : string
 */
-
 func (p *GitProvider) GetPath(t string) string {
 	return "clusters/" + p.Cluster + "/" + t + "/" + p.Cid + "/app/" + p.App + "/"
 }
@@ -134,8 +145,8 @@ func (p *GitProvider) GetPath(t string) string {
 func (p *GitProvider) Create(name string, ref interface{}, content []byte) (interface{}, error) {
 
 	path := p.GetPath("context") + name + ".yaml"
-	ref = emcogit.Add(path, string(content), ref, p.GitType)
-	return ref, nil
+	files := p.gitInterface.AddToCommit(path, string(content), ref)
+	return files, nil
 }
 
 /*
@@ -143,11 +154,10 @@ func (p *GitProvider) Create(name string, ref interface{}, content []byte) (inte
 	params : name string, ref interface{}, content []byte
 	return : interface{}, error
 */
-func (p *GitProvider) Apply(name string, ref interface{}, content []byte) (interface{}, error) {
+func (p *GitProvider) Apply(path string, ref interface{}, content []byte) (interface{}, error) {
 
-	path := p.GetPath("context") + name + ".yaml"
-	ref = emcogit.Add(path, string(content), ref, p.GitType)
-	return ref, nil
+	files := p.gitInterface.AddToCommit(path, string(content), ref)
+	return files, nil
 
 }
 
@@ -156,11 +166,10 @@ func (p *GitProvider) Apply(name string, ref interface{}, content []byte) (inter
 	params : name string, ref interface{}, content []byte
 	return : interface{}, error
 */
-func (p *GitProvider) Delete(name string, ref interface{}, content []byte) (interface{}, error) {
+func (p *GitProvider) Delete(path string, ref interface{}, content []byte) (interface{}, error) {
 
-	path := p.GetPath("context") + name + ".yaml"
-	ref = emcogit.Delete(path, ref, p.GitType)
-	return ref, nil
+	files := p.gitInterface.DeleteToCommit(path, ref)
+	return files, nil
 
 }
 
@@ -181,22 +190,7 @@ func (p *GitProvider) Get(name string, gvkRes []byte) ([]byte, error) {
 */
 func (p *GitProvider) Commit(ctx context.Context, ref interface{}) error {
 
-	var exists bool
-	switch ref.(type) {
-	case []gitprovider.CommitFile:
-		exists = true
-	default:
-		exists = false
-
-	}
-	// Check for rf
-	if !exists {
-		log.Error("Commit: No ref found", log.Fields{})
-		return nil
-	}
-	appName := p.Cid + "-" + p.App
-	err := emcogit.CommitFiles(ctx, p.Client, p.UserName, p.RepoName, p.Branch, "Commit for "+p.GetPath("context"), appName, ref.([]gitprovider.CommitFile), p.GitType)
-
+	err := p.gitInterface.CommitFiles(p.App, "Commit for "+p.GetPath("context"), ref)
 	return err
 }
 
@@ -215,96 +209,6 @@ var waitTime int = 60
 // StartClusterWatcher watches for CR changes in git location
 // go routine starts and reads after waitTime
 // Thread exists when the AppContext is deleted
-func (p *GitProvider) StartClusterWatcher() error {
-	// obtain the sha key for main
-	//obtain shaake
-	ctx := context.Background()
-
-	latestSHA, err := emcogit.GetLatestCommitSHA(ctx, p.Client, p.UserName, p.RepoName, p.Branch, "", p.GitType)
-	if err != nil {
-		return err
-	}
-	// create branch for status
-	branch := p.Cluster + "-" + p.Cid + "-" + p.App
-	err = emcogit.CreateBranch(ctx, p.Client, latestSHA, p.UserName, p.RepoName, branch, p.GitType)
-	if err != nil {
-		if !strings.Contains(err.Error(), "422 Reference already exists") {
-			return err
-		}
-	}
-
-	// Start thread to sync monitor CR
-	go func() error {
-		ctx := context.Background()
-		var lastCommitSHA string
-		for {
-			select {
-			case <-time.After(time.Duration(waitTime) * time.Second):
-				if ctx.Err() != nil {
-					return ctx.Err()
-				}
-				// Check if AppContext doesn't exist then exit the thread
-				if _, err := utils.NewAppContextReference(p.Cid); err != nil {
-					// Delete the Status CR updated by Monitor running on the cluster
-					log.Info("Deleting cluster StatusCR", log.Fields{})
-					p.DeleteClusterStatusCR()
-					// AppContext deleted - Exit thread
-					return nil
-				}
-				path := p.GetPath("status")
-				// branch to track
-				branch := p.Cluster + "-" + p.Cid + "-" + p.App
-
-				latestCommitSHA, err := emcogit.GetLatestCommitSHA(ctx, p.Client, p.UserName, p.RepoName, branch, path, p.GitType)
-				if err != nil {
-					log.Error("Error in obtaining latest commit SHA", log.Fields{"err": err})
-				}
-
-				if lastCommitSHA != latestCommitSHA {
-					// new commit get files
-					// Read file
-					log.Debug("New Status File, pulling files", log.Fields{"LatestSHA": latestCommitSHA, "LastSHA": lastCommitSHA})
-					c, err := emcogit.GetFiles(ctx, p.Client, p.UserName, p.RepoName, branch, path, p.GitType)
-					if err != nil {
-						log.Debug("Status file not available", log.Fields{"error": err, "cluster": p.Cluster, "resource": path})
-						continue
-					}
-					cp := c.([]*gitprovider.CommitFile)
-					if len(cp) > 0 {
-						// Only one file expected in the location
-						content := &v1alpha1.ResourceBundleState{}
-						_, err := utils.DecodeYAMLData(*cp[0].Content, content)
-						if err != nil {
-							log.Error("", log.Fields{"error": err, "cluster": p.Cluster, "resource": path})
-							return err
-						}
-						status.HandleResourcesStatus(p.Cid, p.App, p.Cluster, content)
-					}
-					lastCommitSHA = latestCommitSHA
-				}
-
-			// Check if the context is canceled
-			case <-ctx.Done():
-				return ctx.Err()
-			}
-		}
-	}()
-	return nil
-}
-
-// DeleteClusterStatusCR deletes the status CR provided by the monitor on the cluster
-func (p *GitProvider) DeleteClusterStatusCR() error {
-	// Delete the status CR
-	// branch to track
-	branch := p.Cluster + "-" + p.Cid + "-" + p.App
-
-	ctx := context.Background()
-
-	// Delete the branch
-	err := emcogit.DeleteBranch(ctx, p.Client, p.UserName, p.RepoName, branch, p.GitType)
-	if err != nil {
-		log.Error("Error in deleting branch", log.Fields{"err": err})
-		return err
-	}
-	return nil
+func (p *GitProvider) StartClusterWatcher(ctx context.Context) error {
+	return p.gitInterface.ClusterWatcher(ctx, p.Cid, p.App, p.Cluster, waitTime)
 }

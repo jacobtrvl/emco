@@ -34,3 +34,6 @@ build-containers:
 
 run-containers:
 	docker run --name emco-sample --network="emconet" --rm -p 9024-9025:9024-9025/tcp emco-sample:${TAG}
+
+test:
+	$(MAKE) -C ./src/sample test

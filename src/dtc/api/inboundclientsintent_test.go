@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 
+	"context"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
@@ -44,19 +45,19 @@ var _ = Describe("Inboundclientsintenthandler", func() {
 		mdb.Err = nil
 		db.DBconn = mdb
 		c := orcmod.NewClient()
-		_, err := c.Project.CreateProject(orcmod.Project{MetaData: orcmod.ProjectMetaData{Name: "test-project", Description: "test", UserData1: "userData1", UserData2: "userData2"}}, false)
+		_, err := c.Project.CreateProject(context.Background(), orcmod.Project{MetaData: orcmod.ProjectMetaData{Name: "test-project", Description: "test", UserData1: "userData1", UserData2: "userData2"}}, false)
 		if err != nil {
 			fmt.Println(err)
 			return
 		}
-		_, err = c.CompositeApp.CreateCompositeApp(orcmod.CompositeApp{Metadata: orcmod.CompositeAppMetaData{Name: "test-compositeapp", Description: "test", UserData1: "userData1", UserData2: "userData2"}, Spec: orcmod.CompositeAppSpec{Version: "v1"}}, "test-project", false)
+		_, err = c.CompositeApp.CreateCompositeApp(context.Background(), orcmod.CompositeApp{Metadata: orcmod.CompositeAppMetaData{Name: "test-compositeapp", Description: "test", UserData1: "userData1", UserData2: "userData2"}, Spec: orcmod.CompositeAppSpec{Version: "v1"}}, "test-project", false)
 		if err != nil {
 			fmt.Println(err)
 			return
 		}
 
 		list := []orcmod.OverrideValues{}
-		_, _, err = c.DeploymentIntentGroup.CreateDeploymentIntentGroup(orcmod.DeploymentIntentGroup{MetaData: orcmod.DepMetaData{Name: "test-dig", Description: "test", UserData1: "userData1", UserData2: "userData2"}, Spec: orcmod.DepSpecData{Profile: "prof1", Version: "v1", OverrideValuesObj: list, LogicalCloud: "lc1"}}, "test-project", "test-compositeapp", "v1", true)
+		_, _, err = c.DeploymentIntentGroup.CreateDeploymentIntentGroup(context.Background(), orcmod.DeploymentIntentGroup{MetaData: orcmod.DepMetaData{Name: "test-dig", Description: "test", UserData1: "userData1", UserData2: "userData2"}, Spec: orcmod.DepSpecData{Profile: "prof1", Version: "v1", OverrideValuesObj: list, LogicalCloud: "lc1"}}, "test-project", "test-compositeapp", "v1", true)
 		if err != nil {
 			fmt.Println(err)
 			return

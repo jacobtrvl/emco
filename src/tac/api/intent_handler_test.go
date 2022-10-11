@@ -73,7 +73,7 @@ var _ = Describe("HookIntentHandlers", func() {
 
 		},
 
-		Entry("Succsefully create new workflow", testCase{
+		Entry("successfully create new workflow", testCase{
 			expectedCode: http.StatusCreated,
 			inputReader: bytes.NewBuffer([]byte(`{
 				"metadata": {

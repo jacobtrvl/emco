@@ -2,7 +2,6 @@
     ProjectName: proj-anthos
     ClusterProvider: provider-anthos
     ClusterLabel: edge-cluster
-    AdminCloud: default
     CompositeApp: test-composite-app
     CompositeProfile: test-composite-profile
     GenericPlacementIntent: test-placement-intent
@@ -13,19 +12,22 @@
     OvnPort: 9032
     DtcPort: 9048
     NpsPort: 9038
-    HostIP: 127.0.0.1
-    APP1: http-server
-    APP2: collectd
-    APP3: operator
     GitObj: GitObject
-    GithubUser: REPLACE_WITH_GITHUB_USER
-    GithubToken: REPLACE_WITH_GITHUB_ACCESS_TOKEN
-    GithubRepo: REPLACE_WITH_GITHUB_REPO_NAME
-    Branch: REPLACE_WITH_GIT_BRANCH_NAME
+    GitUser:
+    GitToken: TOKEN_HERE
+    GitRepo:
+    GitUrl: URL_HERE
+    Branch: main
+    Cluster1: acm-cluster
+    Cluster1Ref: acm-cluster-ref
+    LogicalCloud: lc1
+    PrivilegedNamespace: privileged-lc-ns
+    StandardNamespace: standard-lc-ns
+    ClusterQuota: quota1
+    StandardPermission: standard-permission
+    PrivilegedPermission1: privileged-permission-primary
+    PrivilegedPermission2: privileged-permission-kube-system
+    PrivilegedPermission3: privileged-permission-cluster
 
-    Clusters:
-      - Name: cluster2
     Applist:
       - Name: collectd
-        Cluster:
-          - cluster2

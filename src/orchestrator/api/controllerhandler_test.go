@@ -5,6 +5,7 @@ package api
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -28,7 +29,7 @@ type mockControllerManager struct {
 	Err   error
 }
 
-func (m *mockControllerManager) CreateController(inp controller.Controller, mayExist bool) (controller.Controller, error) {
+func (m *mockControllerManager) CreateController(ctx context.Context, inp controller.Controller, mayExist bool) (controller.Controller, error) {
 	if m.Err != nil {
 		return controller.Controller{}, m.Err
 	}
@@ -36,7 +37,7 @@ func (m *mockControllerManager) CreateController(inp controller.Controller, mayE
 	return m.Items[0], nil
 }
 
-func (m *mockControllerManager) GetController(name string) (controller.Controller, error) {
+func (m *mockControllerManager) GetController(ctx context.Context, name string) (controller.Controller, error) {
 	if m.Err != nil {
 		return controller.Controller{}, m.Err
 	}
@@ -44,7 +45,7 @@ func (m *mockControllerManager) GetController(name string) (controller.Controlle
 	return m.Items[0], nil
 }
 
-func (m *mockControllerManager) GetControllers() ([]controller.Controller, error) {
+func (m *mockControllerManager) GetControllers(ctx context.Context) ([]controller.Controller, error) {
 	if m.Err != nil {
 		return []controller.Controller{}, m.Err
 	}
@@ -52,11 +53,11 @@ func (m *mockControllerManager) GetControllers() ([]controller.Controller, error
 	return m.Items, nil
 }
 
-func (m *mockControllerManager) DeleteController(name string) error {
+func (m *mockControllerManager) DeleteController(ctx context.Context, name string) error {
 	return m.Err
 }
 
-func (m *mockControllerManager) InitControllers() {
+func (m *mockControllerManager) InitControllers(ctx context.Context) {
 	return
 }
 

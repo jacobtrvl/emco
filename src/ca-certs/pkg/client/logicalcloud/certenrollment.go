@@ -4,10 +4,13 @@
 package logicalcloud
 
 import (
+	"context"
+
 	cmv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	"gitlab.com/project-emco/core/emco-base/src/ca-certs/pkg/certificate/enrollment"
 	"gitlab.com/project-emco/core/emco-base/src/ca-certs/pkg/module"
 	dcm "gitlab.com/project-emco/core/emco-base/src/dcm/pkg/module"
+	"gitlab.com/project-emco/core/emco-base/src/orchestrator/common"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/appcontext"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/state"
@@ -42,7 +45,7 @@ func (c *CaCertEnrollmentClient) Instantiate(cert, project string) error {
 		Enrollment: enrollment.AppName}
 
 	sc := module.NewStateClient(ek)
-	if _, err := sc.VerifyState(module.InstantiateEvent); err != nil {
+	if _, err := sc.VerifyState(common.Instantiate); err != nil {
 		return err
 	}
 
@@ -74,6 +77,7 @@ func (c *CaCertEnrollmentClient) Instantiate(cert, project string) error {
 		ContextID:  ctx.ContextID,
 		Resources: enrollment.EnrollmentResource{
 			CertificateRequest: map[string]*cmv1.CertificateRequest{},
+			Certificate:        map[string]*cmv1.Certificate{},
 		},
 		Project: project,
 	}
@@ -89,7 +93,7 @@ func (c *CaCertEnrollmentClient) Instantiate(cert, project string) error {
 	// get all the clusters associated with these logicalClouds
 	for _, lc := range lcs {
 		// get the logicalCloud
-		l, err := dcm.NewLogicalCloudClient().Get(project, lc.Spec.LogicalCloud)
+		l, err := dcm.NewLogicalCloudClient().Get(context.Background(), project, lc.Spec.LogicalCloud)
 		if err != nil {
 			return err
 		}
@@ -163,7 +167,7 @@ func (c *CaCertEnrollmentClient) Terminate(cert, project string) error {
 
 	sc := module.NewStateClient(ek)
 	// check the current state of the Instantiation, if any
-	contextID, err := sc.VerifyState(module.TerminateEvent)
+	contextID, err := sc.VerifyState(common.Terminate)
 	if err != nil {
 		return err
 	}
@@ -194,6 +198,7 @@ func (c *CaCertEnrollmentClient) Terminate(cert, project string) error {
 		ContextID: ctx.ContextID,
 		Resources: enrollment.EnrollmentResource{
 			CertificateRequest: map[string]*cmv1.CertificateRequest{},
+			Certificate:        map[string]*cmv1.Certificate{},
 		},
 		Project: project,
 	}
@@ -203,7 +208,7 @@ func (c *CaCertEnrollmentClient) Terminate(cert, project string) error {
 	// get all the clusters associated with these logicalCloud(s)
 	for _, lc := range lcs {
 		// get the logicalCloud
-		l, err := dcm.NewLogicalCloudClient().Get(project, lc.Spec.LogicalCloud)
+		l, err := dcm.NewLogicalCloudClient().Get(context.Background(), project, lc.Spec.LogicalCloud)
 		if err != nil {
 			return err
 		}
@@ -261,7 +266,7 @@ func (c *CaCertEnrollmentClient) Update(cert, project string) error {
 	contextID := state.GetLastContextIdFromStateInfo(stateInfo)
 	if len(contextID) > 0 {
 		// get the existing appContext
-		status, err := state.GetAppContextStatus(contextID)
+		status, err := state.GetAppContextStatus(context.Background(), contextID)
 		if err != nil {
 			logutils.Error("Failed to get the appContext status",
 				logutils.Fields{
@@ -286,6 +291,7 @@ func (c *CaCertEnrollmentClient) Update(cert, project string) error {
 				ClientName: clientName,
 				Resources: enrollment.EnrollmentResource{
 					CertificateRequest: map[string]*cmv1.CertificateRequest{},
+					Certificate:        map[string]*cmv1.Certificate{},
 				},
 				Project: project,
 			}
@@ -304,7 +310,7 @@ func (c *CaCertEnrollmentClient) Update(cert, project string) error {
 
 			for _, lc := range lcs {
 				// get the logicalCloud
-				l, err := dcm.NewLogicalCloudClient().Get(project, lc.Spec.LogicalCloud)
+				l, err := dcm.NewLogicalCloudClient().Get(context.Background(), project, lc.Spec.LogicalCloud)
 				if err != nil {
 					return err
 				}

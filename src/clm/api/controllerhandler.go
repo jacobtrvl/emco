@@ -33,6 +33,8 @@ func (h controllerHandler) createHandler(w http.ResponseWriter, r *http.Request)
 	reqDump, _ := httputil.DumpRequest(r, true)
 	log.Info(":: createHandler .. info ::", log.Fields{"req": string(reqDump)})
 
+	ctx := r.Context()
+
 	err := json.NewDecoder(r.Body).Decode(&m)
 	switch {
 	case err == io.EOF:
@@ -53,7 +55,7 @@ func (h controllerHandler) createHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	ret, err := h.client.CreateController(m, false)
+	ret, err := h.client.CreateController(ctx, m, false)
 	if err != nil {
 		apiErr := apierror.HandleErrors(mux.Vars(r), err, m, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -76,6 +78,7 @@ func (h controllerHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 	reqDump, _ := httputil.DumpRequest(r, true)
 	log.Info(":: putHandler .. info ::", log.Fields{"req": string(reqDump)})
 
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	name := vars["controller-name"]
 
@@ -106,7 +109,7 @@ func (h controllerHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ret, err := h.client.CreateController(m, true)
+	ret, err := h.client.CreateController(ctx, m, true)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, m, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
@@ -129,6 +132,7 @@ func (h controllerHandler) getHandler(w http.ResponseWriter, r *http.Request) {
 	reqDump, _ := httputil.DumpRequest(r, true)
 	log.Info(":: getHandler .. info ::", log.Fields{"req": string(reqDump)})
 
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	name := vars["controller-name"]
 	var ret interface{}
@@ -136,9 +140,9 @@ func (h controllerHandler) getHandler(w http.ResponseWriter, r *http.Request) {
 
 	// handle the get all controllers case
 	if len(name) == 0 {
-		ret, err = h.client.GetControllers()
+		ret, err = h.client.GetControllers(ctx)
 	} else {
-		ret, err = h.client.GetController(name)
+		ret, err = h.client.GetController(ctx, name)
 	}
 
 	if err != nil {
@@ -161,10 +165,11 @@ func (h controllerHandler) getHandler(w http.ResponseWriter, r *http.Request) {
 func (h controllerHandler) deleteHandler(w http.ResponseWriter, r *http.Request) {
 	reqDump, _ := httputil.DumpRequest(r, true)
 	log.Info(":: deleteHandler .. info ::", log.Fields{"req": string(reqDump)})
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	name := vars["controller-name"]
 
-	err := h.client.DeleteController(name)
+	err := h.client.DeleteController(ctx, name)
 	if err != nil {
 		apiErr := apierror.HandleErrors(vars, err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)

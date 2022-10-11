@@ -5,6 +5,7 @@
 package module_test
 
 import (
+	"context"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
@@ -80,11 +81,11 @@ var _ = Describe("WorkflowIntentHook",
 				It("Successful Create a workflow hook intent",
 					func() {
 						// set up prerequisites
-						_, err := (*pClient).CreateProject(project, false)
+						_, err := (*pClient).CreateProject(context.Background(), project, false)
 						Expect(err).To(BeNil())
-						_, err = (*aClient).CreateCompositeApp(app, "testProj", false)
+						_, err = (*aClient).CreateCompositeApp(context.Background(), app, "testProj", false)
 						Expect(err).To(BeNil())
-						_, _, err = (*digClient).CreateDeploymentIntentGroup(diGroup, "testProj", "app", "v1", true)
+						_, _, err = (*digClient).CreateDeploymentIntentGroup(context.Background(), diGroup, "testProj", "app", "v1", true)
 						Expect(err).To(BeNil())
 
 						// create a workflow hook
@@ -99,11 +100,11 @@ var _ = Describe("WorkflowIntentHook",
 				It("Successful get a workflow hook intent",
 					func() {
 						// set up prerequisites
-						_, err := (*pClient).CreateProject(project, false)
+						_, err := (*pClient).CreateProject(context.Background(), project, false)
 						Expect(err).To(BeNil())
-						_, err = (*aClient).CreateCompositeApp(app, "testProj", false)
+						_, err = (*aClient).CreateCompositeApp(context.Background(), app, "testProj", false)
 						Expect(err).To(BeNil())
-						_, _, err = (*digClient).CreateDeploymentIntentGroup(diGroup, "testProj", "app", "v1", true)
+						_, _, err = (*digClient).CreateDeploymentIntentGroup(context.Background(), diGroup, "testProj", "app", "v1", true)
 						Expect(err).To(BeNil())
 
 						// create a workflow hook
@@ -124,11 +125,11 @@ var _ = Describe("WorkflowIntentHook",
 				It("Successful get workflow hook intents",
 					func() {
 						// set up prerequisites
-						_, err := (*pClient).CreateProject(project, false)
+						_, err := (*pClient).CreateProject(context.Background(), project, false)
 						Expect(err).To(BeNil())
-						_, err = (*aClient).CreateCompositeApp(app, "testProj", false)
+						_, err = (*aClient).CreateCompositeApp(context.Background(), app, "testProj", false)
 						Expect(err).To(BeNil())
-						_, _, err = (*digClient).CreateDeploymentIntentGroup(diGroup, "testProj", "app", "v1", true)
+						_, _, err = (*digClient).CreateDeploymentIntentGroup(context.Background(), diGroup, "testProj", "app", "v1", true)
 						Expect(err).To(BeNil())
 						wfhIntentTwo := model.WorkflowHookIntent{
 							Metadata: mtypes.Metadata{
@@ -163,11 +164,11 @@ var _ = Describe("WorkflowIntentHook",
 				It("Successful delete workflow hook intents",
 					func() {
 						// set up prerequisites
-						_, err := (*pClient).CreateProject(project, false)
+						_, err := (*pClient).CreateProject(context.Background(), project, false)
 						Expect(err).To(BeNil())
-						_, err = (*aClient).CreateCompositeApp(app, "testProj", false)
+						_, err = (*aClient).CreateCompositeApp(context.Background(), app, "testProj", false)
 						Expect(err).To(BeNil())
-						_, _, err = (*digClient).CreateDeploymentIntentGroup(diGroup, "testProj", "app", "v1", true)
+						_, _, err = (*digClient).CreateDeploymentIntentGroup(context.Background(), diGroup, "testProj", "app", "v1", true)
 						Expect(err).To(BeNil())
 
 						// create a workflow hook
@@ -184,11 +185,11 @@ var _ = Describe("WorkflowIntentHook",
 		It("Error Deleting DNE",
 			func() {
 				// set up prerequisites
-				_, err := (*pClient).CreateProject(project, false)
+				_, err := (*pClient).CreateProject(context.Background(), project, false)
 				Expect(err).To(BeNil())
-				_, err = (*aClient).CreateCompositeApp(app, "testProj", false)
+				_, err = (*aClient).CreateCompositeApp(context.Background(), app, "testProj", false)
 				Expect(err).To(BeNil())
-				_, _, err = (*digClient).CreateDeploymentIntentGroup(diGroup, "testProj", "app", "v1", true)
+				_, _, err = (*digClient).CreateDeploymentIntentGroup(context.Background(), diGroup, "testProj", "app", "v1", true)
 				Expect(err).To(BeNil())
 
 				// delete the workflow.
@@ -202,11 +203,11 @@ var _ = Describe("WorkflowIntentHook",
 				It("Successful update workflow hook intent",
 					func() {
 						// set up prerequisites
-						_, err := (*pClient).CreateProject(project, false)
+						_, err := (*pClient).CreateProject(context.Background(), project, false)
 						Expect(err).To(BeNil())
-						_, err = (*aClient).CreateCompositeApp(app, "testProj", false)
+						_, err = (*aClient).CreateCompositeApp(context.Background(), app, "testProj", false)
 						Expect(err).To(BeNil())
-						_, _, err = (*digClient).CreateDeploymentIntentGroup(diGroup, "testProj", "app", "v1", true)
+						_, _, err = (*digClient).CreateDeploymentIntentGroup(context.Background(), diGroup, "testProj", "app", "v1", true)
 						Expect(err).To(BeNil())
 
 						// create a workflow hook

@@ -1,6 +1,7 @@
 package metrics
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -11,7 +12,7 @@ func start() {
 	go func() {
 		client := cluster.NewClusterClient()
 		for {
-			clps, err := client.GetClusterProviders()
+			clps, err := client.GetClusterProviders(context.Background())
 			if err != nil {
 				fmt.Println(err)
 				continue
@@ -19,7 +20,7 @@ func start() {
 
 			for _, clp := range clps {
 				CLPGauge.WithLabelValues(clp.Metadata.Name).Set(1)
-				clusters, err := client.GetClusters(clp.Metadata.Name)
+				clusters, err := client.GetClusters(context.Background(), clp.Metadata.Name)
 				if err != nil {
 					fmt.Println(err)
 					continue

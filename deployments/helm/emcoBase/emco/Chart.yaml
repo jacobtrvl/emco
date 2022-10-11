@@ -5,7 +5,7 @@ apiVersion: v2
 description: EMCO All-In-One Package
 name: emco
 type: application
-version: 1.0.1
+version: 1.0.2
 
 dependencies:
   - name: emco-db
@@ -15,5 +15,5 @@ dependencies:
     version: ~1.x-0
     repository: 'file://../emco-tools'
   - name: emco-services
-    version: "1.0.1"
+    version: "1.0.2"
     repository: 'file://../emco-services'

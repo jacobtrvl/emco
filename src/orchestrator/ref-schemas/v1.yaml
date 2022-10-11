@@ -134,6 +134,8 @@ resources:
 #emco-tac
   - name: workflowHookIntent
     parent: deploymentIntentGroup
+  - name: workerIntent
+    parent: workflowHookIntent
 #emco-clusterProviderCertificate
   - name: caCertCp
     parent: clusterProvider

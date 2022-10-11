@@ -9,9 +9,9 @@ import (
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 
-	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
-	connector "gitlab.com/project-emco/core/emco-base/src/rsync/pkg/connector"
 	pkgerrors "github.com/pkg/errors"
+	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
+	connector "gitlab.com/project-emco/core/emco-base/src/rsync/pkg/utils"
 )
 
 // PlacementClusterKey is the key structure that is used in the database
@@ -58,7 +58,7 @@ func SaveClusterLabelsDB(provider string, cluster string) error {
 
 	clusterFQDN := (provider + "+" + cluster)
 	// Get Kube Client handle
-	c, err := con.GetClient(clusterFQDN, "0", "default")
+	c, err := con.GetClient(context.Background(), clusterFQDN, "0", "default")
 	if err != nil {
 		log.Error("SaveClusterLabelsDB .. Error in creating kubeconfig client", logutils.Fields{
 			"error":       err,
@@ -78,7 +78,7 @@ func SaveClusterLabelsDB(provider string, cluster string) error {
 	for _, node := range nodeList.Items {
 		clInfo.NodeNames = append(clInfo.NodeNames, node.Name)
 	}
-	err = db.DBconn.Insert(clmClusterCollectionName, key, nil, tagClusterNodes, clInfo)
+	err = db.DBconn.Insert(context.Background(), clmClusterCollectionName, key, nil, tagClusterNodes, clInfo)
 	if err != nil {
 		log.Error("SaveClusterLabelsDB .. Error in creating DB Entry for Cluster Nodes", log.Fields{"clusterFQDN": clusterFQDN})
 		return pkgerrors.Wrapf(err, "SaveClusterLabelsDB .. Error in creating DB Entry for cluster[%s] to store Cluster Nodes", clusterFQDN)
@@ -96,7 +96,7 @@ func SaveClusterLabelsDB(provider string, cluster string) error {
 	}
 	log.Info("SaveClusterLabelsDB .. Node Labels", log.Fields{"clusterFQDN": clusterFQDN, "kubeNodeLabelsMap": nodeLabels})
 
-	err = db.DBconn.Insert(clmClusterCollectionName, key, nil, tagClusterLabels, nodeLabels)
+	err = db.DBconn.Insert(context.Background(), clmClusterCollectionName, key, nil, tagClusterLabels, nodeLabels)
 	if err != nil {
 		log.Error("SaveClusterLabelsDB .. Error in creating DB Entry for Cluster Labels", log.Fields{"clusterFQDN": clusterFQDN})
 		return pkgerrors.Wrapf(err, "SaveClusterLabelsDB .. Error in creating DB Entry for clusterFQDN[%s] to store Cluster Labels", clusterFQDN)
@@ -124,7 +124,7 @@ func GetKubeClusterLabels(provider, cluster string) (map[string](map[string]stri
 		ClusterControllerData: hpaClusterControllerData,
 	}
 
-	values, err := db.DBconn.Find(clmClusterCollectionName, key, tagClusterLabels)
+	values, err := db.DBconn.Find(context.Background(), clmClusterCollectionName, key, tagClusterLabels)
 	if err != nil {
 		log.Error("GetKubeClusterLabels .. Error in getting Kube Cluster Labels", log.Fields{
 			"clusterProvider": provider,
@@ -168,7 +168,7 @@ func DeleteKubeClusterLabelsDB(provider, cluster string) error {
 		ClusterControllerData: hpaClusterControllerData,
 	}
 
-	values, err := db.DBconn.Find(clmClusterCollectionName, key, tagClusterLabels)
+	values, err := db.DBconn.Find(context.Background(), clmClusterCollectionName, key, tagClusterLabels)
 	if err != nil {
 		log.Error("DeleteKubeClusterLabelsDB .. Error in getting Kube Cluster Labels", log.Fields{
 			"clusterProvider": provider,
@@ -178,7 +178,7 @@ func DeleteKubeClusterLabelsDB(provider, cluster string) error {
 	}
 
 	log.Info("DeleteKubeClusterLabelsDB ... Delete Cluster labels entry", log.Fields{"StoreName": clmClusterCollectionName, "key": key})
-	err = db.DBconn.Remove(clmClusterCollectionName, key)
+	err = db.DBconn.Remove(context.Background(), clmClusterCollectionName, key)
 	if err != nil {
 		log.Error("DeleteKubeClusterLabelsDB ... DB Error .. Delete Cluster labels entry error", log.Fields{"err": err, "StoreName": clmClusterCollectionName, "key": key})
 		return pkgerrors.Wrapf(err, "DeleteKubeClusterLabelsDB ... DB Error .. Delete Cluster labels for key[%s] DB Error", key)

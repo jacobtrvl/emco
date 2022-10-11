@@ -17,16 +17,16 @@ import (
 // InvokeContextUpdate will make the grpc call to the specified controller
 // The controller will take the specified intentName and update the AppContext
 // appropriatly based on its operation as a placement or action controller.
-func InvokeContextUpdate(controllerName, intentName, appContextId, updateFromAppContextId string) error {
+func InvokeContextUpdate(ctx context.Context, controllerName, intentName, appContextId, updateFromAppContextId string) error {
 	var err error
 	var rpcClient contextpb.ContextupdateClient
 	var updateRes *contextpb.ContextUpdateResponse
 
 	timeout := time.Duration(config.GetConfiguration().GrpcCallTimeout)
-	ctx, cancel := context.WithTimeout(context.Background(), timeout*time.Millisecond)
+	ctx, cancel := context.WithTimeout(ctx, timeout*time.Millisecond)
 	defer cancel()
 
-	conn := rpc.GetRpcConn(controllerName)
+	conn := rpc.GetRpcConn(ctx, controllerName)
 	if conn != nil {
 		rpcClient = contextpb.NewContextupdateClient(conn)
 		updateReq := new(contextpb.ContextUpdateRequest)
@@ -57,16 +57,17 @@ func InvokeContextUpdate(controllerName, intentName, appContextId, updateFromApp
 // InvokeContextTerminate will make the grpc call to the specified controller
 // The controller will take the specified AppContext and take steps to
 // based on action controller to terminate the AppContext
-func InvokeContextTerminate(controllerName, appContextId string) error {
+func InvokeContextTerminate(ctx context.Context, controllerName, appContextId string) error {
 	var err error
 	var rpcClient contextpb.ContextupdateClient
 	var terminateRes *contextpb.TerminateResponse
 
 	timeout := time.Duration(config.GetConfiguration().GrpcCallTimeout)
-	ctx, cancel := context.WithTimeout(context.Background(), timeout*time.Millisecond)
+
+	ctx, cancel := context.WithTimeout(ctx, timeout*time.Millisecond)
 	defer cancel()
 
-	conn := rpc.GetRpcConn(controllerName)
+	conn := rpc.GetRpcConn(ctx, controllerName)
 	if conn != nil {
 		rpcClient = contextpb.NewContextupdateClient(conn)
 		req := new(contextpb.TerminateRequest)
@@ -94,16 +95,16 @@ func InvokeContextTerminate(controllerName, appContextId string) error {
 // InvokePostEvent will make the grpc call to the specified controller
 // The controller will take the specified AppContext and take steps to
 // based on action controller to do Post event processing
-func InvokePostEvent(controllerName, appContextId string, eventType string) error {
+func InvokePostEvent(ctx context.Context, controllerName, appContextId string, eventType string) error {
 	var err error
 	var rpcClient contextpb.ContextupdateClient
 	var postEventRes *contextpb.PostEventResponse
 
 	timeout := time.Duration(config.GetConfiguration().GrpcCallTimeout)
-	ctx, cancel := context.WithTimeout(context.Background(), timeout*time.Millisecond)
+	ctx, cancel := context.WithTimeout(ctx, timeout*time.Millisecond)
 	defer cancel()
 
-	conn := rpc.GetRpcConn(controllerName)
+	conn := rpc.GetRpcConn(ctx, controllerName)
 	if conn != nil {
 		rpcClient = contextpb.NewContextupdateClient(conn)
 		req := new(contextpb.PostEventRequest)

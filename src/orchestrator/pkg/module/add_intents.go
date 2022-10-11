@@ -9,6 +9,7 @@ genericPlacementIntents to deployementIntentGroup
 */
 
 import (
+	"context"
 	"encoding/json"
 	"reflect"
 
@@ -43,11 +44,11 @@ type ListOfIntents struct {
 
 // IntentManager is an interface which exposes the IntentManager functionality
 type IntentManager interface {
-	AddIntent(a Intent, p string, ca string, v string, di string, failIfExists bool) (Intent, bool, error)
-	GetIntent(i string, p string, ca string, v string, di string) (Intent, error)
-	GetAllIntents(p, ca, v, di string) (ListOfIntents, error)
-	GetIntentByName(i, p, ca, v, di string) (IntentSpecData, error)
-	DeleteIntent(i string, p string, ca string, v string, di string) error
+	AddIntent(ctx context.Context, a Intent, p string, ca string, v string, di string, failIfExists bool) (Intent, bool, error)
+	GetIntent(ctx context.Context, i string, p string, ca string, v string, di string) (Intent, error)
+	GetAllIntents(ctx context.Context, p, ca, v, di string) (ListOfIntents, error)
+	GetIntentByName(ctx context.Context, i, p, ca, v, di string) (IntentSpecData, error)
+	DeleteIntent(ctx context.Context, i string, p string, ca string, v string, di string) error
 }
 
 // IntentKey consists of Name if the intent, Project name, CompositeApp name,
@@ -88,11 +89,11 @@ func NewIntentClient() *IntentClient {
 AddIntent adds a given intent to the deployment-intent-group and stores in the db.
 Other input parameters for it - projectName, compositeAppName, version, DeploymentIntentgroupName
 */
-func (c *IntentClient) AddIntent(a Intent, p string, ca string, v string, di string, failIfExists bool) (Intent, bool, error) {
+func (c *IntentClient) AddIntent(ctx context.Context, a Intent, p string, ca string, v string, di string, failIfExists bool) (Intent, bool, error) {
 	iExists := false
 
 	//Check for the AddIntent already exists here.
-	res, err := c.GetIntent(a.MetaData.Name, p, ca, v, di)
+	res, err := c.GetIntent(ctx, a.MetaData.Name, p, ca, v, di)
 	if err == nil && !reflect.DeepEqual(res, Intent{}) {
 		iExists = true
 	}
@@ -109,7 +110,7 @@ func (c *IntentClient) AddIntent(a Intent, p string, ca string, v string, di str
 		DeploymentIntentGroup: di,
 	}
 
-	err = db.DBconn.Insert(c.storeName, akey, nil, c.tagMetaData, a)
+	err = db.DBconn.Insert(ctx, c.storeName, akey, nil, c.tagMetaData, a)
 	if err != nil {
 		return Intent{}, iExists, err
 	}
@@ -121,7 +122,7 @@ func (c *IntentClient) AddIntent(a Intent, p string, ca string, v string, di str
 GetIntent takes in an IntentName, ProjectName, CompositeAppName, Version and DeploymentIntentGroup.
 It returns the Intent.
 */
-func (c *IntentClient) GetIntent(i string, p string, ca string, v string, di string) (Intent, error) {
+func (c *IntentClient) GetIntent(ctx context.Context, i string, p string, ca string, v string, di string) (Intent, error) {
 
 	k := IntentKey{
 		Name:                  i,
@@ -131,7 +132,7 @@ func (c *IntentClient) GetIntent(i string, p string, ca string, v string, di str
 		DeploymentIntentGroup: di,
 	}
 
-	result, err := db.DBconn.Find(c.storeName, k, c.tagMetaData)
+	result, err := db.DBconn.Find(ctx, c.storeName, k, c.tagMetaData)
 	if err != nil {
 		return Intent{}, err
 	}
@@ -156,7 +157,7 @@ func (c *IntentClient) GetIntent(i string, p string, ca string, v string, di str
 GetIntentByName takes in IntentName, projectName, CompositeAppName, CompositeAppVersion
 and deploymentIntentGroupName returns the list of intents under the IntentName.
 */
-func (c IntentClient) GetIntentByName(i string, p string, ca string, v string, di string) (IntentSpecData, error) {
+func (c IntentClient) GetIntentByName(ctx context.Context, i string, p string, ca string, v string, di string) (IntentSpecData, error) {
 	k := IntentKey{
 		Name:                  i,
 		Project:               p,
@@ -164,7 +165,7 @@ func (c IntentClient) GetIntentByName(i string, p string, ca string, v string, d
 		Version:               v,
 		DeploymentIntentGroup: di,
 	}
-	result, err := db.DBconn.Find(c.storeName, k, c.tagMetaData)
+	result, err := db.DBconn.Find(ctx, c.storeName, k, c.tagMetaData)
 	if err != nil {
 		return IntentSpecData{}, err
 	}
@@ -185,7 +186,7 @@ func (c IntentClient) GetIntentByName(i string, p string, ca string, v string, d
 GetAllIntents takes in projectName, CompositeAppName, CompositeAppVersion,
 DeploymentIntentName . It returns ListOfIntents.
 */
-func (c IntentClient) GetAllIntents(p string, ca string, v string, di string) (ListOfIntents, error) {
+func (c IntentClient) GetAllIntents(ctx context.Context, p string, ca string, v string, di string) (ListOfIntents, error) {
 	k := IntentKey{
 		Name:                  "",
 		Project:               p,
@@ -194,7 +195,7 @@ func (c IntentClient) GetAllIntents(p string, ca string, v string, di string) (L
 		DeploymentIntentGroup: di,
 	}
 
-	result, err := db.DBconn.Find(c.storeName, k, c.tagMetaData)
+	result, err := db.DBconn.Find(ctx, c.storeName, k, c.tagMetaData)
 	if err != nil {
 		return ListOfIntents{}, err
 	}
@@ -216,7 +217,7 @@ func (c IntentClient) GetAllIntents(p string, ca string, v string, di string) (L
 }
 
 // DeleteIntent deletes a given intent tied to project, composite app and deployment intent group
-func (c IntentClient) DeleteIntent(i string, p string, ca string, v string, di string) error {
+func (c IntentClient) DeleteIntent(ctx context.Context, i string, p string, ca string, v string, di string) error {
 	k := IntentKey{
 		Name:                  i,
 		Project:               p,
@@ -225,6 +226,6 @@ func (c IntentClient) DeleteIntent(i string, p string, ca string, v string, di s
 		DeploymentIntentGroup: di,
 	}
 
-	err := db.DBconn.Remove(c.storeName, k)
+	err := db.DBconn.Remove(ctx, c.storeName, k)
 	return err
 }

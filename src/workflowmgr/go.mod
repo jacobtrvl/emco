@@ -3,18 +3,16 @@ module gitlab.com/project-emco/core/emco-base/src/workflowmgr
 require (
 	github.com/felixge/httpsnoop v1.0.2 // indirect
 	github.com/go-stack/stack v1.8.1 // indirect
-	github.com/golang/snappy v0.0.4 // indirect
 	github.com/gorilla/handlers v1.5.1
 	github.com/gorilla/mux v1.8.0
 	github.com/klauspost/compress v1.15.0 // indirect
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.18.1
 	github.com/pkg/errors v0.9.1
-	github.com/stretchr/testify v1.7.0
+	github.com/stretchr/testify v1.8.0
 	github.com/xdg-go/scram v1.1.1 // indirect
 	github.com/youmark/pkcs8 v0.0.0-20201027041543-1326539a0a0a // indirect
 	gitlab.com/project-emco/core/emco-base/src/orchestrator v0.0.0-20220308165843-684035a6c4f0
-	go.mongodb.org/mongo-driver v1.8.4 // indirect
 	go.temporal.io/api v1.7.0
 	go.temporal.io/sdk v1.13.1
 	golang.org/x/crypto v0.0.0-20220307211146-efcb8507fb70 // indirect

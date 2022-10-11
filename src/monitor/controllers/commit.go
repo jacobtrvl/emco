@@ -4,100 +4,66 @@
 package controllers
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
 	"sync"
 
-	"github.com/fluxcd/go-git-providers/github"
-	"github.com/fluxcd/go-git-providers/gitprovider"
-	gogithub "github.com/google/go-github/v41/github"
 	k8spluginv1alpha1 "gitlab.com/project-emco/core/emco-base/src/monitor/pkg/apis/k8splugin/v1alpha1"
+	gitsupport "gitlab.com/project-emco/core/emco-base/src/monitor/pkg/gitops/gitsupport"
 	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 )
 
-type GitClient struct {
-	gitProviderClient gitprovider.Client
-	gogithubClient    *gogithub.Client
+var mutex = sync.Mutex{}
+
+type GitAccessClient struct {
+	gitUser string
+	gitRepo string
+	cluster string
+
+	gitProvider gitsupport.GitProvider
 }
 
-type GithubAccessClient struct {
-	cl           GitClient
-	gitUser      string
-	gitRepo      string
-	cluster      string
-	githubDomain string
-}
+var GitClient GitAccessClient
 
-var GitHubClient GithubAccessClient
-
-/*
-	Function to create gitClient
-	params : userName, github token
-	return : github client, error
-*/
-func CreateClient(userName, githubToken string) (GitClient, error) {
-
-	var client GitClient
+func SetupGitClient() error {
 	var err error
-
-	client.gitProviderClient, err = github.NewClient(gitprovider.WithOAuth2Token(githubToken), gitprovider.WithDestructiveAPICalls(true))
-	if err != nil {
-		return GitClient{}, err
-	}
-
-	tp := gogithub.BasicAuthTransport{
-		Username: userName,
-		Password: githubToken,
-	}
-	client.gogithubClient = gogithub.NewClient(tp.Client())
-
-	return client, nil
-
-}
-
-func SetupGitHubClient() error {
-	var err error
-	GitHubClient, err = NewGitHubClient()
+	GitClient, err = NewGitClient()
 	return err
 }
 
-func NewGitHubClient() (GithubAccessClient, error) {
+func NewGitClient() (GitAccessClient, error) {
 
-	githubDomain := "github.com"
 	gitUser := os.Getenv("GIT_USERNAME")
-	gitToken := os.Getenv("GIT_TOKEN")
 	gitRepo := os.Getenv("GIT_REPO")
 	clusterName := os.Getenv("GIT_CLUSTERNAME")
 
 	// If any value is not provided then can't store in Git location
-	if len(gitRepo) <= 0 || len(gitToken) <= 0 || len(gitUser) <= 0 || len(clusterName) <= 0 {
-		log.Info("Github information not found:: Skipping Github storage", log.Fields{})
-		return GithubAccessClient{}, nil
+	if len(gitRepo) <= 0 || len(gitUser) <= 0 || len(clusterName) <= 0 {
+		log.Info("Git information not found:: Skipping Git storage", log.Fields{})
+		return GitAccessClient{}, nil
 	}
-	log.Info("GitHub Info found", log.Fields{"gitRepo::": gitRepo, "cluster::": clusterName})
+	log.Info("Git Info found", log.Fields{"gitRepo::": gitRepo, "cluster::": clusterName})
 
-	cl, err := CreateClient(gitUser, gitToken)
+	gitProvider, err := gitsupport.NewGitProvider()
+
 	if err != nil {
-		return GithubAccessClient{}, err
+		return GitAccessClient{}, err
 	}
-	return GithubAccessClient{
-		cl:           cl,
-		gitUser:      gitUser,
-		gitRepo:      gitRepo,
-		githubDomain: githubDomain,
-		cluster:      clusterName,
-	}, nil
+
+	p := GitAccessClient{
+		gitUser:     gitUser,
+		gitRepo:     gitRepo,
+		cluster:     clusterName,
+		gitProvider: *gitProvider,
+	}
+
+	return p, nil
 }
 
-func (c *GithubAccessClient) CommitCRToGitHub(cr *k8spluginv1alpha1.ResourceBundleState, l map[string]string) error {
+func (c *GitAccessClient) CommitCRToGit(cr *k8spluginv1alpha1.ResourceBundleState, l map[string]string) error {
 
-	//Check if Github Client is available
-	if c.cl == (GitClient{}) {
-		return nil
-	}
 	resBytes, err := json.Marshal(cr)
 	if err != nil {
 		log.Info("json Marshal error for resource::", log.Fields{"cr": cr, "err": err})
@@ -116,137 +82,58 @@ func (c *GithubAccessClient) CommitCRToGitHub(cr *k8spluginv1alpha1.ResourceBund
 	cid := result[0]
 	path := "clusters/" + c.cluster + "/status/" + cid + "/app/" + app + "/" + v
 
-	s := string(resBytes)
-	var files []gitprovider.CommitFile
-	files = append(files, gitprovider.CommitFile{
-		Path:    &path,
-		Content: &s,
-	})
-
-	appName := c.cluster + "-" + cid + "-" + app
-
-	commitMessage := "Adding Status for " + path + " to branch " + appName
-	// commitfiles
-	err = c.CommitFiles(context.Background(), "main", commitMessage, appName, files)
-
+	// Add files for commit
+	var files interface{}
+	files, err = c.gitProvider.Apply(path, files, resBytes)
 	if err != nil {
+		log.Error("Error in Applying files", log.Fields{"err": err, "files": files, "path": path})
 		return err
 	}
-	return nil
-}
+	branchName := c.cluster
 
-/*
-	Internal function to create a repo refercnce
-	params : user name, repo name
-	return : repo reference
-*/
-func (c *GithubAccessClient) getRepoRef(userName string, repoName string) gitprovider.UserRepositoryRef {
-	// Create the user reference
-	userRef := gitprovider.UserRef{
-		Domain:    c.githubDomain,
-		UserLogin: userName,
-	}
+	//commit files
+	commitMessage := "Adding Status for " + path + " to branch " + branchName
 
-	// Create the repo reference
-	userRepoRef := gitprovider.UserRepositoryRef{
-		UserRef:        userRef,
-		RepositoryName: repoName,
-	}
-
-	return userRepoRef
-}
-
-var mutex = sync.Mutex{}
-
-/*
-	Function to commit multiple files to the github repo
-	params : context, Branch Name, Commit Message, appName, files ([]gitprovider.CommitFile)
-	return : nil/error
-*/
-func (c *GithubAccessClient) CommitFiles(ctx context.Context, branch, commitMessage, appName string, files []gitprovider.CommitFile) error {
-
-	mergeBranch := appName
-	// Only one process to commit to Github location to avoid conflicts
+	// commitfiles
 	mutex.Lock()
 	defer mutex.Unlock()
-
-	// commit the files to this new branch
-	// create repo reference
-	log.Info("Creating Repo Reference. ", log.Fields{})
-	userRepoRef := c.getRepoRef(c.gitUser, c.gitRepo)
-	log.Info("UserRepoRef:", log.Fields{"UserRepoRef": userRepoRef})
-
-	log.Info("Obtaining user repo. ", log.Fields{})
-	userRepo, err := c.cl.gitProviderClient.UserRepositories().Get(ctx, userRepoRef)
+	err = c.gitProvider.CommitStatus(commitMessage, branchName, cid, app, files)
 	if err != nil {
+		log.Error("ApplyConfig:: Commit files err", log.Fields{"err": err, "files": files})
 		return err
 	}
-	log.Info("UserRepo:", log.Fields{"UserRepo": userRepo})
 
-	log.Info("Commiting Files:", log.Fields{"files": files})
-	//Commit file to this repo
-	resp, err := userRepo.Commits().Create(ctx, mergeBranch, commitMessage, files)
-	if err != nil {
-		if !strings.Contains(err.Error(), "404 Not Found") {
-			log.Error("Error in commiting the files", log.Fields{"err": err, "mergeBranch": mergeBranch, "commitMessage": commitMessage, "files": files})
-		}
-		return err
-	}
-	log.Info("CommitResponse for userRepo:", log.Fields{"resp": resp})
 	return nil
 }
 
-/*
-	Function to obtaion the SHA of latest commit
-	params : context, git client, User Name, Repo Name, Branch, Path
-	return : LatestCommit string, error
-*/
-func GetLatestCommitSHA(ctx context.Context, c GitClient, userName, repoName, branch, path string) (string, error) {
+//function to delete status folder for git
+func (c *GitAccessClient) DeleteStatusFromGit(appName string) error {
 
-	perPage := 1
-	page := 1
+	s := strings.SplitN(appName, "-", 2)
+	cid := s[0]
+	app := s[1]
+	path := "clusters/" + c.cluster + "/status/" + cid + "/app/" + app + "/" + appName
+	statusBranchName := c.cluster
 
-	lcOpts := &gogithub.CommitsListOptions{
-		ListOptions: gogithub.ListOptions{
-			PerPage: perPage,
-			Page:    page,
-		},
-		SHA:  branch,
-		Path: path,
-	}
-	//Get the latest SHA
-	resp, _, err := c.gogithubClient.Repositories.ListCommits(ctx, userName, repoName, lcOpts)
+	var files interface{}
+	files, err := c.gitProvider.Delete(path, files, nil)
 	if err != nil {
-		log.Error("Error in obtaining the list of commits", log.Fields{"err": err})
-		return "", err
-	}
-	if len(resp) == 0 {
-		log.Debug("File not created yet.", log.Fields{"Latest Commit Array": resp})
-		return "", nil
-	}
-	latestCommitSHA := *resp[0].SHA
-
-	return latestCommitSHA, nil
-}
-
-/*
-	Function to create a new branch
-	params : context, git client,latestCommitSHA, User Name, Repo Name, Branch
-	return : error
-*/
-func createBranch(ctx context.Context, c GitClient, latestCommitSHA, userName, repoName, branch string) error {
-	// create a new branch
-	ref, _, err := c.gogithubClient.Git.CreateRef(ctx, userName, repoName, &gogithub.Reference{
-		Ref: gogithub.String("refs/heads/" + branch),
-		Object: &gogithub.GitObject{
-			SHA: gogithub.String(latestCommitSHA),
-		},
-	})
-	if err != nil {
-		log.Error("Git.CreateRef returned error:", log.Fields{"err": err})
+		log.Error("Error in Applying files", log.Fields{"err": err, "files": files, "path": path})
 		return err
-
 	}
-	log.Info("Branch Created: ", log.Fields{"ref": ref})
-	return nil
+
+	//commit files
+	commitMessage := "Deleting status for " + appName
+
+	// commitfiles
+	mutex.Lock()
+	defer mutex.Unlock()
+	err = c.gitProvider.CommitStatus(commitMessage, statusBranchName, cid, app, files)
+	if err != nil {
+		log.Error("ApplyConfig:: Commit files err", log.Fields{"err": err, "files": files})
+		return err
+	}
+
+	return err
+
 }

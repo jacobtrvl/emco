@@ -5,6 +5,7 @@ package api
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -23,7 +24,7 @@ type mockGenericPlacementIntentManager struct {
 	Items []moduleLib.GenericPlacementIntent
 }
 
-func (gpim *mockGenericPlacementIntentManager) GetGenericPlacementIntent(intentName string, projectName string, compositeAppName string, version string, digName string) (moduleLib.GenericPlacementIntent, error) {
+func (gpim *mockGenericPlacementIntentManager) GetGenericPlacementIntent(ctx context.Context, intentName string, projectName string, compositeAppName string, version string, digName string) (moduleLib.GenericPlacementIntent, error) {
 	if gpim.Err != nil {
 		return moduleLib.GenericPlacementIntent{}, gpim.Err
 	}
@@ -37,7 +38,7 @@ func (gpim *mockGenericPlacementIntentManager) GetGenericPlacementIntent(intentN
 	return moduleLib.GenericPlacementIntent{}, pkgerrors.New("Intent not found")
 }
 
-func (gpim *mockGenericPlacementIntentManager) GetAllGenericPlacementIntents(p string, ca string, v string, digName string) ([]moduleLib.GenericPlacementIntent, error) {
+func (gpim *mockGenericPlacementIntentManager) GetAllGenericPlacementIntents(ctx context.Context, p string, ca string, v string, digName string) ([]moduleLib.GenericPlacementIntent, error) {
 	if gpim.Err != nil {
 		return []moduleLib.GenericPlacementIntent{}, gpim.Err
 	}
@@ -49,7 +50,7 @@ func (gpim *mockGenericPlacementIntentManager) GetAllGenericPlacementIntents(p s
 	return []moduleLib.GenericPlacementIntent{}, nil
 }
 
-func (gpim *mockGenericPlacementIntentManager) CreateGenericPlacementIntent(g moduleLib.GenericPlacementIntent, p string, ca string, v string, digName string, failIfExists bool) (moduleLib.GenericPlacementIntent, bool, error) {
+func (gpim *mockGenericPlacementIntentManager) CreateGenericPlacementIntent(ctx context.Context, g moduleLib.GenericPlacementIntent, p string, ca string, v string, digName string, failIfExists bool) (moduleLib.GenericPlacementIntent, bool, error) {
 	gpiExists := false
 	index := 0
 
@@ -80,7 +81,7 @@ func (gpim *mockGenericPlacementIntentManager) CreateGenericPlacementIntent(g mo
 
 }
 
-func (gpim *mockGenericPlacementIntentManager) DeleteGenericPlacementIntent(intentName string, projectName string, compositeAppName string, version string, digName string) error {
+func (gpim *mockGenericPlacementIntentManager) DeleteGenericPlacementIntent(ctx context.Context, intentName string, projectName string, compositeAppName string, version string, digName string) error {
 	if gpim.Err != nil {
 		return gpim.Err
 	}

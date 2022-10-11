@@ -5,18 +5,19 @@ package fluxv2
 
 import (
 	"context"
+
 	"gitlab.com/project-emco/core/emco-base/src/rsync/pkg/internal/utils"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 // StartClusterWatcher watches for CR changes in git location
-func (p *Fluxv2Provider) StartClusterWatcher() error {
-	p.gitProvider.StartClusterWatcher()
+func (p *Fluxv2Provider) StartClusterWatcher(ctx context.Context) error {
+	p.gitProvider.StartClusterWatcher(ctx)
 	return nil
 }
 
 // ApplyStatusCR applies status CR
-func (p *Fluxv2Provider) ApplyStatusCR(name string, content []byte) error {
+func (p *Fluxv2Provider) ApplyStatusCR(ctx context.Context, name string, content []byte) error {
 
 	// Add namespace to the status resource, needed by
 	// Flux
@@ -33,21 +34,23 @@ func (p *Fluxv2Provider) ApplyStatusCR(name string, content []byte) error {
 	if err != nil {
 		return err
 	}
-	ref, err := p.gitProvider.Apply(name, nil, b)
+	path := p.gitProvider.GetPath("context") + name + ".yaml"
+	ref, err := p.gitProvider.Apply(path, nil, b)
 	if err != nil {
 		return err
 	}
-	p.gitProvider.Commit(context.Background(), ref)
+	p.gitProvider.Commit(ctx, ref)
 	return err
 
 }
 
 // DeleteStatusCR deletes status CR
-func (p *Fluxv2Provider) DeleteStatusCR(name string, content []byte) error {
-	ref, err := p.gitProvider.Delete(name, nil, content)
+func (p *Fluxv2Provider) DeleteStatusCR(ctx context.Context, name string, content []byte) error {
+	path := p.gitProvider.GetPath("context") + name + ".yaml"
+	ref, err := p.gitProvider.Delete(path, nil, content)
 	if err != nil {
 		return err
 	}
-	p.gitProvider.Commit(context.Background(), ref)
+	p.gitProvider.Commit(ctx, ref)
 	return err
 }

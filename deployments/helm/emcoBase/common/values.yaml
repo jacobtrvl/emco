@@ -20,3 +20,6 @@ global:
   loglevel: warn
   repository: registry.gitlab.com/project-emco/core/emco-base/ # can be overridden with $ helm install --set global.repository=(...) emco (...)
   emcoTag: "latest" # can be overridden with $ helm install --set global.emcoTag=22.03 emco (...)
+  # Uncomment to export tracing data
+  #zipkinIp: zipkin.istio-system
+  #zipkinPort: 9411

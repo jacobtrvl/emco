@@ -19,7 +19,7 @@ import (
 	hpaMod "gitlab.com/project-emco/core/emco-base/src/hpa-plc/pkg/module"
 	orchLog "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 	orchMod "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/module"
-	"gitlab.com/project-emco/core/emco-base/src/rsync/pkg/connector"
+	connector "gitlab.com/project-emco/core/emco-base/src/rsync/pkg/utils"
 )
 
 type contextForCompositeApp struct {
@@ -29,22 +29,22 @@ type contextForCompositeApp struct {
 }
 
 func makeAppContextForCompositeApp(p, ca, v, rName, dig string, namespace string, level string) (contextForCompositeApp, error) {
-	context := appcontext.AppContext{}
-	ctxval, err := context.InitAppContext()
+	appCtx := appcontext.AppContext{}
+	ctxval, err := appCtx.InitAppContext()
 	if err != nil {
 		return contextForCompositeApp{}, pkgerrors.Wrap(err, "Error creating AppContext CompositeApp")
 	}
-	compositeHandle, err := context.CreateCompositeApp()
+	compositeHandle, err := appCtx.CreateCompositeApp(context.Background())
 	if err != nil {
 		return contextForCompositeApp{}, pkgerrors.Wrap(err, "Error creating CompositeApp handle")
 	}
 	compMetadata := appcontext.CompositeAppMeta{Project: p, CompositeApp: ca, Version: v, Release: rName, DeploymentIntentGroup: dig, Namespace: namespace, Level: level}
-	err = context.AddCompositeAppMeta(compMetadata)
+	err = appCtx.AddCompositeAppMeta(context.Background(), compMetadata)
 	if err != nil {
 		return contextForCompositeApp{}, pkgerrors.Wrap(err, "Error Adding CompositeAppMeta")
 	}
 
-	cca := contextForCompositeApp{context: context, ctxval: ctxval, compositeAppHandle: compositeHandle}
+	cca := contextForCompositeApp{context: appCtx, ctxval: ctxval, compositeAppHandle: compositeHandle}
 
 	return cca, nil
 }
@@ -361,20 +361,20 @@ var _ = Describe("HPA-PLACEMENT-CONTROLLER", func() {
 		cfca, err = makeAppContextForCompositeApp(project, compApp, version, release, dig, namespace, logicCloud)
 		Expect(err).To(BeNil())
 
-		cap, err := cfca.context.AddApp(cfca.compositeAppHandle, app1)
+		cap, err := cfca.context.AddApp(context.Background(), cfca.compositeAppHandle, app1)
 		Expect(err).To(BeNil())
 
-		ch, err := cfca.context.AddCluster(cap, "provider1-cluster1")
+		ch, err := cfca.context.AddCluster(context.Background(), cap, "provider1-cluster1")
 		Expect(err).To(BeNil())
 
-		sap, err := cfca.context.AddApp(cfca.compositeAppHandle, app2)
+		sap, err := cfca.context.AddApp(context.Background(), cfca.compositeAppHandle, app2)
 		Expect(err).To(BeNil())
 
-		sh, err := cfca.context.AddCluster(sap, "provider1-cluster2")
+		sh, err := cfca.context.AddCluster(context.Background(), sap, "provider1-cluster2")
 		Expect(err).To(BeNil())
-		err = cfca.context.AddClusterMetaGrp(ch, "1")
+		err = cfca.context.AddClusterMetaGrp(context.Background(), ch, "1")
 		Expect(err).To(BeNil())
-		err = cfca.context.AddClusterMetaGrp(sh, "1")
+		err = cfca.context.AddClusterMetaGrp(context.Background(), sh, "1")
 		Expect(err).To(BeNil())
 
 		// Use Kube Fake client for unit-testing

@@ -51,7 +51,7 @@ metadata :
   name: {{ .Cluster1IstioIngressGatewayKvName }}
 spec:
   kv:
-    - istioIngressGatewayAddress: "172.16.16.100"
+    - istioIngressGatewayAddress: "{{ .Cluster1IstioIngressGatewayAddress }}"
     - istioIngressGatewayPort: "32001"
     - istioIngressGatewayInternalPort: "15443"
 ---
@@ -63,7 +63,7 @@ metadata :
   name: {{ .Cluster2IstioIngressGatewayKvName }}
 spec:
   kv:
-    - istioIngressGatewayAddress: "172.16.16.200"
+    - istioIngressGatewayAddress: "{{ .Cluster2IstioIngressGatewayAddress }}"
     - istioIngressGatewayPort: "32001"
     - istioIngressGatewayInternalPort: "15443"
 

@@ -28,7 +28,7 @@ type actionControllerServer struct {
 }
 
 func (ac *actionControllerServer) UpdateAppContext(ctx context.Context, req *contextupdate.ContextUpdateRequest) (*contextupdate.ContextUpdateResponse, error) {
-	err := action.UpdateAppContext(req.IntentName, req.AppContext)
+	err := action.UpdateAppContext(ctx, req.IntentName, req.AppContext)
 	if err != nil {
 		return &contextupdate.ContextUpdateResponse{AppContextUpdated: false, AppContextUpdateMessage: err.Error()}, err
 	}

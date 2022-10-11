@@ -22,13 +22,13 @@ type ResourceBundleStateV2 struct {
 }
 
 // StartClusterWatcher watches for CR changes in git location
-func (p *AnthosProvider) StartClusterWatcher() error {
-	p.gitProvider.StartClusterWatcher()
+func (p *AnthosProvider) StartClusterWatcher(ctx context.Context) error {
+	p.gitProvider.StartClusterWatcher(ctx)
 	return nil
 }
 
 // ApplyStatusCR applies status CR
-func (p *AnthosProvider) ApplyStatusCR(name string, content []byte) error {
+func (p *AnthosProvider) ApplyStatusCR(ctx context.Context, name string, content []byte) error {
 
 	// Decode the yaml to create a runtime.Object
 	unstruct := &unstructured.Unstructured{}
@@ -65,20 +65,22 @@ func (p *AnthosProvider) ApplyStatusCR(name string, content []byte) error {
 		return err
 	}
 
-	ref, err := p.gitProvider.Apply(name, nil, rbsJson)
+	path := p.GetPath("context") + name + ".yaml"
+	ref, err := p.gitProvider.Apply(path, nil, rbsJson)
 	if err != nil {
 		return err
 	}
-	p.gitProvider.Commit(context.Background(), ref)
+	p.gitProvider.Commit(ctx, ref)
 	return err
 }
 
 // DeleteStatusCR deletes status CR
-func (p *AnthosProvider) DeleteStatusCR(name string, content []byte) error {
-	ref, err := p.gitProvider.Delete(name, nil, content)
+func (p *AnthosProvider) DeleteStatusCR(ctx context.Context, name string, content []byte) error {
+	path := p.GetPath("context") + name + ".yaml"
+	ref, err := p.gitProvider.Delete(path, nil, content)
 	if err != nil {
 		return err
 	}
-	p.gitProvider.Commit(context.Background(), ref)
+	p.gitProvider.Commit(ctx, ref)
 	return err
 }

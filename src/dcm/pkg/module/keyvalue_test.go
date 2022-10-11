@@ -4,6 +4,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	"context"
 	dcm "gitlab.com/project-emco/core/emco-base/src/dcm/pkg/module"
 	common "gitlab.com/project-emco/core/emco-base/src/orchestrator/common"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
@@ -39,7 +40,7 @@ var _ = Describe("Keyvalue", func() {
 					UserData1:   "",
 					UserData2:   "",
 				}
-				mdb.Insert("resources", okey, nil, "data", p)
+				mdb.Insert(context.Background(), "resources", okey, nil, "data", p)
 				// create logical cloud in mocked db
 				lkey := common.LogicalCloudKey{
 					Project:          "project",
@@ -56,11 +57,12 @@ var _ = Describe("Keyvalue", func() {
 					NameSpace: "anything",
 					Level:     "1",
 				}
-				mdb.Insert("resources", lkey, nil, "data", lc)
+				mdb.Insert(context.Background(), "resources", lkey, nil, "data", lc)
 			})
 			It("creation should succeed and return the resource created", func() {
+				ctx := context.Background()
 				kv := _createTestKeyValue("testkv")
-				keyValue, err := client.CreateKVPair("project", "logicalcloud", kv)
+				keyValue, err := client.CreateKVPair(ctx, "project", "logicalcloud", kv)
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(keyValue.MetaData.KeyValueName).To(Equal("testkv"))
 				Expect(keyValue.MetaData.Description).To(Equal(""))
@@ -68,33 +70,37 @@ var _ = Describe("Keyvalue", func() {
 				Expect(keyValue.MetaData.UserData2).To(Equal(""))
 			})
 			It("get should fail and not return anything", func() {
-				keyValue, err := client.GetKVPair("project", "logicalcloud", "testkv")
+				ctx := context.Background()
+				keyValue, err := client.GetKVPair(ctx, "project", "logicalcloud", "testkv")
 				Expect(err).Should(HaveOccurred())
 				Expect(keyValue).To(Equal(dcm.KeyValue{}))
 			})
 			It("create followed by get should return what was created", func() {
+				ctx := context.Background()
 				kv := _createTestKeyValue("testkv")
-				_, _ = client.CreateKVPair("project", "logicalcloud", kv)
-				keyValue, err := client.GetKVPair("project", "logicalcloud", "testkv")
+				_, _ = client.CreateKVPair(ctx, "project", "logicalcloud", kv)
+				keyValue, err := client.GetKVPair(ctx, "project", "logicalcloud", "testkv")
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(keyValue).To(Equal(kv))
 			})
 			It("create followed by get-all should return only what was created", func() {
+				ctx := context.Background()
 				kv := _createTestKeyValue("testkv")
-				_, _ = client.CreateKVPair("project", "logicalcloud", kv)
-				keyValues, err := client.GetAllKVPairs("project", "logicalcloud")
+				_, _ = client.CreateKVPair(ctx, "project", "logicalcloud", kv)
+				keyValues, err := client.GetAllKVPairs(ctx, "project", "logicalcloud")
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(len(keyValues)).To(Equal(1))
 				Expect(keyValues[0]).To(Equal(kv))
 			})
 			It("three creates followed by get-all should return all that was created", func() {
+				ctx := context.Background()
 				kv1 := _createTestKeyValue("testkv1")
 				kv2 := _createTestKeyValue("testkv2")
 				kv3 := _createTestKeyValue("testkv3")
-				_, _ = client.CreateKVPair("project", "logicalcloud", kv1)
-				_, _ = client.CreateKVPair("project", "logicalcloud", kv2)
-				_, _ = client.CreateKVPair("project", "logicalcloud", kv3)
-				keyValues, err := client.GetAllKVPairs("project", "logicalcloud")
+				_, _ = client.CreateKVPair(ctx, "project", "logicalcloud", kv1)
+				_, _ = client.CreateKVPair(ctx, "project", "logicalcloud", kv2)
+				_, _ = client.CreateKVPair(ctx, "project", "logicalcloud", kv3)
+				keyValues, err := client.GetAllKVPairs(ctx, "project", "logicalcloud")
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(len(keyValues)).To(Equal(3))
 				Expect(keyValues[0]).To(Equal(kv1))
@@ -102,11 +108,12 @@ var _ = Describe("Keyvalue", func() {
 				Expect(keyValues[2]).To(Equal(kv3))
 			})
 			It("delete after creation should succeed and database remain empty", func() {
+				ctx := context.Background()
 				kv := _createTestKeyValue("testkv")
-				_, _ = client.CreateKVPair("project", "logicalcloud", kv)
-				err := client.DeleteKVPair("project", "logicalcloud", "testkv")
+				_, _ = client.CreateKVPair(ctx, "project", "logicalcloud", kv)
+				err := client.DeleteKVPair(ctx, "project", "logicalcloud", "testkv")
 				Expect(err).ShouldNot(HaveOccurred())
-				keyValues, err := client.GetAllKVPairs("project", "logicalcloud")
+				keyValues, err := client.GetAllKVPairs(ctx, "project", "logicalcloud")
 				Expect(len(keyValues)).To(Equal(0))
 			})
 			// will uncomment after general mockdb issues resolved
@@ -115,10 +122,11 @@ var _ = Describe("Keyvalue", func() {
 			// 	Expect(err).Should(HaveOccurred())
 			// })
 			It("update after creation should succeed and return updated resource", func() {
+				ctx := context.Background()
 				kv := _createTestKeyValue("testkv")
-				_, _ = client.CreateKVPair("project", "logicalcloud", kv)
+				_, _ = client.CreateKVPair(ctx, "project", "logicalcloud", kv)
 				kv.MetaData.UserData1 = "new user data"
-				keyValue, err := client.UpdateKVPair("project", "logicalcloud", "testkv", kv)
+				keyValue, err := client.UpdateKVPair(ctx, "project", "logicalcloud", "testkv", kv)
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(keyValue.MetaData.KeyValueName).To(Equal("testkv"))
 				Expect(keyValue.MetaData.Description).To(Equal(""))
@@ -126,10 +134,11 @@ var _ = Describe("Keyvalue", func() {
 				Expect(keyValue.MetaData.UserData2).To(Equal(""))
 			})
 			It("create followed by updating the name is disallowed and should fail", func() {
+				ctx := context.Background()
 				kv := _createTestKeyValue("testkv")
-				_, _ = client.CreateKVPair("project", "logicalcloud", kv)
+				_, _ = client.CreateKVPair(ctx, "project", "logicalcloud", kv)
 				kv.MetaData.KeyValueName = "updated"
-				keyValue, err := client.UpdateKVPair("project", "logicalcloud", "testkv", kv)
+				keyValue, err := client.UpdateKVPair(ctx, "project", "logicalcloud", "testkv", kv)
 				Expect(err).Should(HaveOccurred())
 				Expect(keyValue).To(Equal(dcm.KeyValue{}))
 			})

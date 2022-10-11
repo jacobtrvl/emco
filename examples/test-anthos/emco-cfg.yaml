@@ -1,24 +1,21 @@
   orchestrator:
     host: 127.0.0.1
-    port: 9015
-    statusPort: 9016
+    port: 30415
   clm:
     host: 127.0.0.1
-    port: 9061
+    port: 30461
   ncm:
     host: 127.0.0.1
-    port: 9081
-    statusPort: 9082
+    port: 30481
   ovnaction:
     host: 127.0.0.1
-    port: 9051
+    port: 30451
   dcm:
     host: 127.0.0.1
-    port: 9077
-    statusPort: 9078
+    port: 30477
   gac:
     host: 127.0.0.1
-    port: 9020
+    port: 30420
   dtc:
-   host: 127.0.0.1
-   port: 9018
+    host: 127.0.0.1
+    port: 30418

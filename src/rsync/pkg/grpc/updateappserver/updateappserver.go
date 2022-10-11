@@ -22,7 +22,7 @@ func (cs *updateappServer) UpdateApp(ctx context.Context, req *updateapp.UpdateA
 
 	// Try updating the comp app
 	instca := con.CompositeAppContext{}
-	err := instca.UpdateComApp(req.GetUpdateFromAppContext(), req.GetUpdateToAppContext())
+	err := instca.UpdateComApp(ctx, req.GetUpdateFromAppContext(), req.GetUpdateToAppContext())
 	if err != nil {
 		log.Println("Updating the compApp failed: " + err.Error())
 		return &updateapp.UpdateAppResponse{AppContextUpdated: false}, err
@@ -36,7 +36,7 @@ func (cs *updateappServer) RollbackApp(ctx context.Context, req *updateapp.Rollb
 
 	// Try rollback for the comp app
 	instca := con.CompositeAppContext{}
-	err := instca.UpdateComApp(req.GetRollbackFromAppContext(), req.GetRollbackToAppContext())
+	err := instca.UpdateComApp(ctx, req.GetRollbackFromAppContext(), req.GetRollbackToAppContext())
 	if err != nil {
 		log.Println("Rollback for compApp failed: " + err.Error())
 		return &updateapp.RollbackAppResponse{AppContextRolledback: false}, err

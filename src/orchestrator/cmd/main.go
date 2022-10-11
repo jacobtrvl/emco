@@ -24,7 +24,9 @@ import (
 func main() {
 	rand.Seed(time.Now().UnixNano())
 
-	err := db.InitializeDatabaseConnection("emco")
+	ctx := context.Background()
+
+	err := db.InitializeDatabaseConnection(ctx, "emco")
 	if err != nil {
 		log.Error("Unable to initialize mongo database connection", log.Fields{"Error": err})
 		os.Exit(1)
@@ -51,14 +53,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	controller.NewControllerClient("resources", "data", "orchestrator").InitControllers()
-
 	connectionsClose := make(chan struct{})
 	go func() {
 		c := make(chan os.Signal, 1)
 		signal.Notify(c, os.Interrupt)
 		<-c
-		server.Shutdown(context.Background())
+		server.Shutdown(ctx)
 		rpc.CloseAllRpcConn()
 		close(connectionsClose)
 	}()

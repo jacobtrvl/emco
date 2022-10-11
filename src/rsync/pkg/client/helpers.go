@@ -13,7 +13,7 @@ import (
 )
 
 // CreateNamespace creates a namespace with the given name
-func (c *Client) CreateNamespace(namespace string) error {
+func (c *Client) CreateNamespace(ctx context.Context, namespace string) error {
 	ns := &v1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: namespace,
@@ -22,7 +22,7 @@ func (c *Client) CreateNamespace(namespace string) error {
 			},
 		},
 	}
-	_, err := c.Clientset.CoreV1().Namespaces().Create(context.TODO(), ns, metav1.CreateOptions{})
+	_, err := c.Clientset.CoreV1().Namespaces().Create(ctx, ns, metav1.CreateOptions{})
 	// if errors.IsAlreadyExists(err) {
 	// 	// If it failed because the NS is already there, then do not return such error
 	// 	return nil
@@ -32,13 +32,13 @@ func (c *Client) CreateNamespace(namespace string) error {
 }
 
 // DeleteNamespace deletes the namespace with the given name
-func (c *Client) DeleteNamespace(namespace string) error {
-	return c.Clientset.CoreV1().Namespaces().Delete(context.TODO(), namespace, metav1.DeleteOptions{})
+func (c *Client) DeleteNamespace(ctx context.Context, namespace string) error {
+	return c.Clientset.CoreV1().Namespaces().Delete(ctx, namespace, metav1.DeleteOptions{})
 }
 
 // NodesReady returns the number of nodes ready
-func (c *Client) NodesReady() (ready int, total int, err error) {
-	nodes, err := c.Clientset.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
+func (c *Client) NodesReady(ctx context.Context) (ready int, total int, err error) {
+	nodes, err := c.Clientset.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return 0, 0, err
 	}
@@ -59,10 +59,10 @@ func (c *Client) NodesReady() (ready int, total int, err error) {
 }
 
 // GetMasterNodeIP returns the master node IP of the deployed app
-func (c *Client) GetMasterNodeIP() (nodeIP string, err error) {
+func (c *Client) GetMasterNodeIP(ctx context.Context) (nodeIP string, err error) {
 
 	ip := ""
-	nodes, err := c.Clientset.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
+	nodes, err := c.Clientset.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return ip, err
 	}

@@ -30,25 +30,25 @@ func (p *K8sProvider) Create(name string, ref interface{}, content []byte) (inte
 }
 
 // Apply resource to the cluster
-func (p *K8sProvider) Apply(name string, ref interface{}, content []byte) (interface{}, error) {
+func (p *K8sProvider) Apply(ctx context.Context, name string, ref interface{}, content []byte) (interface{}, error) {
 
 	if err := p.client.Apply(content); err != nil {
 		log.Error("Failed to apply res", log.Fields{"error": err, "resource": name})
 		return nil, err
 	}
-	acUtils, err := utils.NewAppContextReference(p.cid)
+	acUtils, err := utils.NewAppContextReference(ctx, p.cid)
 	if err != nil {
 		return nil, nil
 	}
 	// Currently only subresource supported is approval
-	subres, _, err := acUtils.GetSubResApprove(name, p.app, p.cluster)
+	subres, _, err := acUtils.GetSubResApprove(ctx, name, p.app, p.cluster)
 	if err == nil {
 		result := strings.Split(name, "+")
 		if result[0] == "" {
 			return nil, pkgerrors.Errorf("Resource name is nil %s:", name)
 		}
 		log.Info("Approval Subresource::", log.Fields{"cluster": p.cluster, "resource": result[0], "approval": string(subres)})
-		err = p.client.Approve(result[0], subres)
+		err = p.client.Approve(ctx, result[0], subres)
 		return nil, err
 	}
 
@@ -65,8 +65,8 @@ func (p *K8sProvider) Delete(name string, ref interface{}, content []byte) (inte
 }
 
 // Get resource from the cluster
-func (p *K8sProvider) Get(name string, gvkRes []byte) ([]byte, error) {
-	b, err := p.client.Get(gvkRes, p.namespace)
+func (p *K8sProvider) Get(ctx context.Context, name string, gvkRes []byte) ([]byte, error) {
+	b, err := p.client.Get(ctx, gvkRes, p.namespace)
 	if err != nil {
 		log.Error("Failed to get res", log.Fields{"error": err, "resource": name})
 		return nil, err

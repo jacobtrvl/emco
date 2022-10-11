@@ -5,6 +5,7 @@ package api
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -24,7 +25,7 @@ type mockIntentManager struct {
 	ListOfIntents moduleLib.ListOfIntents
 }
 
-func (im *mockIntentManager) GetIntent(intent, project, compositeApp, version, deploymentIntentGroup string) (moduleLib.Intent, error) {
+func (im *mockIntentManager) GetIntent(ctx context.Context, intent, project, compositeApp, version, deploymentIntentGroup string) (moduleLib.Intent, error) {
 	if im.Err != nil {
 		return moduleLib.Intent{}, im.Err
 	}
@@ -38,7 +39,7 @@ func (im *mockIntentManager) GetIntent(intent, project, compositeApp, version, d
 	return moduleLib.Intent{}, pkgerrors.New("Intent not found")
 }
 
-func (im *mockIntentManager) GetIntentByName(intent, project, compositeApp, version, deploymentIntentGroup string) (moduleLib.IntentSpecData, error) {
+func (im *mockIntentManager) GetIntentByName(ctx context.Context, intent, project, compositeApp, version, deploymentIntentGroup string) (moduleLib.IntentSpecData, error) {
 	if im.Err != nil {
 		return moduleLib.IntentSpecData{}, im.Err
 	}
@@ -52,7 +53,7 @@ func (im *mockIntentManager) GetIntentByName(intent, project, compositeApp, vers
 	return moduleLib.IntentSpecData{}, pkgerrors.New("Intent not found")
 }
 
-func (im *mockIntentManager) GetAllIntents(project, compositeApp, version, deploymentIntentGroup string) (moduleLib.ListOfIntents, error) {
+func (im *mockIntentManager) GetAllIntents(ctx context.Context, project, compositeApp, version, deploymentIntentGroup string) (moduleLib.ListOfIntents, error) {
 	if im.Err != nil {
 		return moduleLib.ListOfIntents{}, im.Err
 	}
@@ -64,7 +65,7 @@ func (im *mockIntentManager) GetAllIntents(project, compositeApp, version, deplo
 	return moduleLib.ListOfIntents{}, nil
 }
 
-func (im *mockIntentManager) AddIntent(intent moduleLib.Intent, project, compositeApp, version, deploymentIntentGroup string, failIfExists bool) (moduleLib.Intent, bool, error) {
+func (im *mockIntentManager) AddIntent(ctx context.Context, intent moduleLib.Intent, project, compositeApp, version, deploymentIntentGroup string, failIfExists bool) (moduleLib.Intent, bool, error) {
 	iExists := false
 	index := 0
 
@@ -95,7 +96,7 @@ func (im *mockIntentManager) AddIntent(intent moduleLib.Intent, project, composi
 
 }
 
-func (im *mockIntentManager) DeleteIntent(intent, project, compositeApp, version, deploymentIntentGroup string) error {
+func (im *mockIntentManager) DeleteIntent(ctx context.Context, intent, project, compositeApp, version, deploymentIntentGroup string) error {
 	if im.Err != nil {
 		return im.Err
 	}

@@ -4,6 +4,7 @@
 package k8s
 
 import (
+	"context"
 	"strings"
 	"sync"
 
@@ -15,6 +16,8 @@ import (
 	informers "gitlab.com/project-emco/core/emco-base/src/monitor/pkg/client/informers/externalversions"
 	"gitlab.com/project-emco/core/emco-base/src/rsync/pkg/internal/utils"
 	"gitlab.com/project-emco/core/emco-base/src/rsync/pkg/status"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/trace"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/clientcmd"
 )
@@ -29,7 +32,7 @@ var channelData channelManager
 const monitorLabel = "emco/deployment-id"
 
 // HandleStatusUpdate for an application in a cluster
-func HandleStatusUpdate(clusterId string, id string, v *v1alpha1.ResourceBundleState) {
+func HandleStatusUpdate(ctx context.Context, clusterId string, id string, v *v1alpha1.ResourceBundleState) {
 	log.Info("K8s HandleStatusUpdate", log.Fields{"id": id, "cluster": clusterId})
 	// Get the contextId from the label (id)
 	result := strings.SplitN(id, "-", 2)
@@ -49,12 +52,12 @@ func HandleStatusUpdate(clusterId string, id string, v *v1alpha1.ResourceBundleS
 	}
 	log.Info("K8s HandleStatusUpdate", log.Fields{"id": id, "cluster": clusterId, "app": result[1]})
 	// Notify Resource tracking
-	status.HandleResourcesStatus(result[0], result[1], clusterId, v)
+	status.HandleResourcesStatus(ctx, result[0], result[1], clusterId, v)
 }
 
 // StartClusterWatcher watches for CR
 // configBytes - Kubectl file data
-func (c *K8sProvider) StartClusterWatcher() error {
+func (c *K8sProvider) StartClusterWatcher(ctx context.Context) error {
 
 	// a cluster watcher always watches the cluster as a whole, so rsync's CloudConfig level
 	// is 0 and namespace doesn't need to be specified because the result is non-ambiguous
@@ -73,7 +76,7 @@ func (c *K8sProvider) StartClusterWatcher() error {
 		// Create Channel
 		channelData.channels[c.cluster] = make(chan struct{})
 		// Read config
-		configBytes, err := utils.GetKubeConfig(c.cluster, "0", "")
+		configBytes, err := utils.GetKubeConfig(ctx, c.cluster, "0", "")
 		if err != nil {
 			return err
 		}
@@ -90,7 +93,7 @@ func (c *K8sProvider) StartClusterWatcher() error {
 		// Create Informer
 		mInformerFactory := informers.NewSharedInformerFactory(k8sClient, 0)
 		mInformer := mInformerFactory.K8splugin().V1alpha1().ResourceBundleStates().Informer()
-		go scheduleStatus(c.cluster, channelData.channels[c.cluster], mInformer)
+		go scheduleStatus(ctx, c.cluster, channelData.channels[c.cluster], mInformer)
 	}
 	return nil
 }
@@ -118,7 +121,18 @@ func CloseAllClusterWatchers() {
 }
 
 // Per Cluster Go routine to watch CR
-func scheduleStatus(clusterId string, c <-chan struct{}, s cache.SharedIndexInformer) {
+func scheduleStatus(ctx context.Context, clusterId string, c <-chan struct{}, s cache.SharedIndexInformer) {
+	// This function is executed asynchronously, so we must create
+	// a new (not derived) context to prevent the context from
+	// being cancelled when the caller completes: a cancelled
+	// context will cause the below work to exit early.  A link is
+	// used so that the traces can be associated.
+	tracer := otel.Tracer("rsync")
+	ctx, span := tracer.Start(context.Background(), "scheduleStatus",
+		trace.WithLinks(trace.LinkFromContext(ctx)),
+	)
+	defer span.End()
+
 	handlers := cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
 			v, ok := obj.(*v1alpha1.ResourceBundleState)
@@ -126,7 +140,7 @@ func scheduleStatus(clusterId string, c <-chan struct{}, s cache.SharedIndexInfo
 				labels := v.GetLabels()
 				l, ok := labels[monitorLabel]
 				if ok {
-					HandleStatusUpdate(clusterId, l, v)
+					HandleStatusUpdate(ctx, clusterId, l, v)
 				}
 			}
 		},
@@ -136,7 +150,7 @@ func scheduleStatus(clusterId string, c <-chan struct{}, s cache.SharedIndexInfo
 				labels := v.GetLabels()
 				l, ok := labels[monitorLabel]
 				if ok {
-					HandleStatusUpdate(clusterId, l, v)
+					HandleStatusUpdate(ctx, clusterId, l, v)
 				}
 			}
 		},
@@ -149,7 +163,7 @@ func scheduleStatus(clusterId string, c <-chan struct{}, s cache.SharedIndexInfo
 }
 
 // ApplyStatusCR applies status CR
-func (p *K8sProvider) ApplyStatusCR(name string, content []byte) error {
+func (p *K8sProvider) ApplyStatusCR(ctx context.Context, name string, content []byte) error {
 	if err := p.client.Apply(content); err != nil {
 		log.Error("Failed to apply Status CR", log.Fields{
 			"error": err,
@@ -161,7 +175,7 @@ func (p *K8sProvider) ApplyStatusCR(name string, content []byte) error {
 }
 
 // DeleteStatusCR deletes status CR
-func (p *K8sProvider) DeleteStatusCR(name string, content []byte) error {
+func (p *K8sProvider) DeleteStatusCR(ctx context.Context, name string, content []byte) error {
 	if err := p.client.Delete(content); err != nil {
 		log.Error("Failed to delete Status CR", log.Fields{
 			"error": err,

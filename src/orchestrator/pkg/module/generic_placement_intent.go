@@ -4,6 +4,7 @@
 package module
 
 import (
+	"context"
 	"encoding/json"
 
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
@@ -26,13 +27,13 @@ type GenIntentMetaData struct {
 
 // GenericPlacementIntentManager is an interface which exposes the GenericPlacementIntentManager functionality
 type GenericPlacementIntentManager interface {
-	CreateGenericPlacementIntent(g GenericPlacementIntent, p string, ca string, v string, digName string, failIfExists bool) (GenericPlacementIntent, bool, error)
-	GetGenericPlacementIntent(intentName string, projectName string,
+	CreateGenericPlacementIntent(ctx context.Context, g GenericPlacementIntent, p string, ca string, v string, digName string, failIfExists bool) (GenericPlacementIntent, bool, error)
+	GetGenericPlacementIntent(ctx context.Context, intentName string, projectName string,
 		compositeAppName string, version string, digName string) (GenericPlacementIntent, error)
-	DeleteGenericPlacementIntent(intentName string, projectName string,
+	DeleteGenericPlacementIntent(ctx context.Context, intentName string, projectName string,
 		compositeAppName string, version string, digName string) error
 
-	GetAllGenericPlacementIntents(p string, ca string, v string, digName string) ([]GenericPlacementIntent, error)
+	GetAllGenericPlacementIntents(ctx context.Context, p string, ca string, v string, digName string) ([]GenericPlacementIntent, error)
 }
 
 // GenericPlacementIntentKey is used as the primary key
@@ -71,11 +72,11 @@ func NewGenericPlacementIntentClient() *GenericPlacementIntentClient {
 // CreateGenericPlacementIntent creates an entry for GenericPlacementIntent in the database.
 // Other Input parameters for it - projectName, compositeAppName, version and deploymentIntentGroupName
 // failIfExists - indicates the request is POST=true or PUT=false
-func (c *GenericPlacementIntentClient) CreateGenericPlacementIntent(g GenericPlacementIntent, p string, ca string, v string, digName string, failIfExists bool) (GenericPlacementIntent, bool, error) {
+func (c *GenericPlacementIntentClient) CreateGenericPlacementIntent(ctx context.Context, g GenericPlacementIntent, p string, ca string, v string, digName string, failIfExists bool) (GenericPlacementIntent, bool, error) {
 	gpiExists := false
 
 	// check if the genericPlacement already exists.
-	res, err := c.GetGenericPlacementIntent(g.MetaData.Name, p, ca, v, digName)
+	res, err := c.GetGenericPlacementIntent(ctx, g.MetaData.Name, p, ca, v, digName)
 	if err == nil && res != (GenericPlacementIntent{}) {
 		gpiExists = true
 	}
@@ -92,7 +93,7 @@ func (c *GenericPlacementIntentClient) CreateGenericPlacementIntent(g GenericPla
 		DigName:      digName,
 	}
 
-	err = db.DBconn.Insert(c.storeName, gkey, nil, c.tagMetaData, g)
+	err = db.DBconn.Insert(ctx, c.storeName, gkey, nil, c.tagMetaData, g)
 	if err != nil {
 		return GenericPlacementIntent{}, gpiExists, err
 	}
@@ -101,7 +102,7 @@ func (c *GenericPlacementIntentClient) CreateGenericPlacementIntent(g GenericPla
 }
 
 // GetGenericPlacementIntent shall take arguments - name of the intent, name of the project, name of the composite app, version of the composite app and deploymentIntentGroupName. It shall return the genericPlacementIntent if its present.
-func (c *GenericPlacementIntentClient) GetGenericPlacementIntent(i string, p string, ca string, v string, digName string) (GenericPlacementIntent, error) {
+func (c *GenericPlacementIntentClient) GetGenericPlacementIntent(ctx context.Context, i string, p string, ca string, v string, digName string) (GenericPlacementIntent, error) {
 	key := GenericPlacementIntentKey{
 		Name:         i,
 		Project:      p,
@@ -110,7 +111,7 @@ func (c *GenericPlacementIntentClient) GetGenericPlacementIntent(i string, p str
 		DigName:      digName,
 	}
 
-	result, err := db.DBconn.Find(c.storeName, key, c.tagMetaData)
+	result, err := db.DBconn.Find(ctx, c.storeName, key, c.tagMetaData)
 	if err != nil {
 		return GenericPlacementIntent{}, err
 	}
@@ -133,16 +134,16 @@ func (c *GenericPlacementIntentClient) GetGenericPlacementIntent(i string, p str
 }
 
 // GetAllGenericPlacementIntents returns all the generic placement intents for a given compsoite app name, composite app version, project and deploymentIntentGroupName
-func (c *GenericPlacementIntentClient) GetAllGenericPlacementIntents(p string, ca string, v string, digName string) ([]GenericPlacementIntent, error) {
+func (c *GenericPlacementIntentClient) GetAllGenericPlacementIntents(ctx context.Context, p string, ca string, v string, digName string) ([]GenericPlacementIntent, error) {
 
 	//Check if project exists
-	_, err := NewProjectClient().GetProject(p)
+	_, err := NewProjectClient().GetProject(ctx, p)
 	if err != nil {
 		return []GenericPlacementIntent{}, pkgerrors.Wrap(err, "Project not found")
 	}
 
 	// check if compositeApp exists
-	_, err = NewCompositeAppClient().GetCompositeApp(ca, v, p)
+	_, err = NewCompositeAppClient().GetCompositeApp(ctx, ca, v, p)
 	if err != nil {
 		return []GenericPlacementIntent{}, err
 	}
@@ -156,7 +157,7 @@ func (c *GenericPlacementIntentClient) GetAllGenericPlacementIntents(p string, c
 	}
 
 	var gpList []GenericPlacementIntent
-	values, err := db.DBconn.Find(c.storeName, key, c.tagMetaData)
+	values, err := db.DBconn.Find(ctx, c.storeName, key, c.tagMetaData)
 	if err != nil {
 		return []GenericPlacementIntent{}, err
 	}
@@ -175,7 +176,7 @@ func (c *GenericPlacementIntentClient) GetAllGenericPlacementIntents(p string, c
 }
 
 // DeleteGenericPlacementIntent the intent from the database
-func (c *GenericPlacementIntentClient) DeleteGenericPlacementIntent(i string, p string, ca string, v string, digName string) error {
+func (c *GenericPlacementIntentClient) DeleteGenericPlacementIntent(ctx context.Context, i string, p string, ca string, v string, digName string) error {
 	key := GenericPlacementIntentKey{
 		Name:         i,
 		Project:      p,
@@ -184,6 +185,6 @@ func (c *GenericPlacementIntentClient) DeleteGenericPlacementIntent(i string, p 
 		DigName:      digName,
 	}
 
-	err := db.DBconn.Remove(c.storeName, key)
+	err := db.DBconn.Remove(ctx, c.storeName, key)
 	return err
 }

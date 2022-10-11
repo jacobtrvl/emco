@@ -6,6 +6,7 @@ package module
 import (
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
 
+	"context"
 	pkgerrors "github.com/pkg/errors"
 	hpaModel "gitlab.com/project-emco/core/emco-base/src/hpa-plc/pkg/model"
 	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
@@ -35,7 +36,7 @@ func (c *HpaPlacementClient) AddIntent(a hpaModel.DeploymentHpaIntent, p string,
 	}
 
 	log.Info("AddIntent ... Creating DB entry", log.Fields{"StoreName": c.db.StoreName, "key": dbKey, "project": p, "compositeApp": ca, "compositeAppVersion": v, "deploymentIntentGroup": di, "hpaIntent": a.MetaData.Name})
-	err = db.DBconn.Insert(c.db.StoreName, dbKey, nil, c.db.TagMetaData, a)
+	err = db.DBconn.Insert(context.Background(), c.db.StoreName, dbKey, nil, c.db.TagMetaData, a)
 	if err != nil {
 		log.Error("AddIntent ... DB Error .. Creating DB entry error", log.Fields{"StoreName": c.db.StoreName, "akey": dbKey, "project": p, "compositeApp": ca, "compositeAppVersion": v, "deploymentIntentGroup": di, "hpaIntent": a.MetaData.Name})
 		return hpaModel.DeploymentHpaIntent{}, pkgerrors.Wrap(err, "Creating DB Entry")
@@ -57,7 +58,7 @@ func (c *HpaPlacementClient) GetIntent(i string, p string, ca string, v string, 
 		DeploymentIntentGroup: di,
 	}
 
-	result, err := db.DBconn.Find(c.db.StoreName, dbKey, c.db.TagMetaData)
+	result, err := db.DBconn.Find(context.Background(), c.db.StoreName, dbKey, c.db.TagMetaData)
 	if err != nil {
 		log.Error("GetIntent ... DB Error .. Get Intent error", log.Fields{"hpaIntent": i, "err": err})
 		return hpaModel.DeploymentHpaIntent{}, false, err
@@ -93,7 +94,7 @@ func (c HpaPlacementClient) GetAllIntents(p string, ca string, v string, di stri
 		DeploymentIntentGroup: di,
 	}
 
-	result, err := db.DBconn.Find(c.db.StoreName, dbKey, c.db.TagMetaData)
+	result, err := db.DBconn.Find(context.Background(), c.db.StoreName, dbKey, c.db.TagMetaData)
 	if err != nil {
 		log.Error("GetAllIntents ... DB Error .. Get HpaIntents db error", log.Fields{"StoreName": c.db.StoreName, "project": p, "compositeApp": ca, "compositeAppVersion": v, "deploymentIntentGroup": di, "len_result": len(result), "err": err})
 		return []hpaModel.DeploymentHpaIntent{}, err
@@ -129,7 +130,7 @@ func (c HpaPlacementClient) GetAllIntentsByApp(app string, p string, ca string, 
 		DeploymentIntentGroup: di,
 	}
 
-	result, err := db.DBconn.Find(c.db.StoreName, dbKey, c.db.TagMetaData)
+	result, err := db.DBconn.Find(context.Background(), c.db.StoreName, dbKey, c.db.TagMetaData)
 	if err != nil {
 		log.Error("GetAllIntentsByApp .. DB Error", log.Fields{"StoreName": c.db.StoreName, "project": p, "compositeApp": ca, "compositeAppVersion": v, "deploymentIntentGroup": di, "len_result": len(result), "err": err})
 		return []hpaModel.DeploymentHpaIntent{}, err
@@ -168,7 +169,7 @@ func (c HpaPlacementClient) GetIntentByName(i string, p string, ca string, v str
 		DeploymentIntentGroup: di,
 	}
 
-	result, err := db.DBconn.Find(c.db.StoreName, dbKey, c.db.TagMetaData)
+	result, err := db.DBconn.Find(context.Background(), c.db.StoreName, dbKey, c.db.TagMetaData)
 	if err != nil {
 		log.Error("GetIntentByName ... DB Error .. Get HpaIntent error", log.Fields{"hpaIntent": i})
 		return hpaModel.DeploymentHpaIntent{}, err
@@ -205,7 +206,7 @@ func (c HpaPlacementClient) DeleteIntent(i string, p string, ca string, v string
 	}
 
 	log.Info("DeleteIntent ... Delete Hpa Intent entry", log.Fields{"StoreName": c.db.StoreName, "key": dbKey, "project": p, "compositeApp": ca, "compositeAppVersion": v, "deploymentIntentGroup": di, "hpaIntent": i})
-	err = db.DBconn.Remove(c.db.StoreName, dbKey)
+	err = db.DBconn.Remove(context.Background(), c.db.StoreName, dbKey)
 	if err != nil {
 		log.Error("DeleteIntent ... DB Error .. Delete Hpa Intent entry error", log.Fields{"err": err, "StoreName": c.db.StoreName, "key": dbKey, "project": p, "compositeApp": ca, "compositeAppVersion": v, "deploymentIntentGroup": di, "hpaIntent": i})
 		return pkgerrors.Wrapf(err, "DB Error .. Delete Hpa Intent[%s] DB Error", i)

@@ -4,12 +4,13 @@
 package module
 
 import (
+	"context"
 	"reflect"
 	"strings"
 
-	"github.com/pkg/errors"
 	clm "gitlab.com/project-emco/core/emco-base/src/clm/pkg/cluster"
 	dcm "gitlab.com/project-emco/core/emco-base/src/dcm/pkg/module"
+	"gitlab.com/project-emco/core/emco-base/src/orchestrator/common/emcoerror"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
 )
 
@@ -47,10 +48,13 @@ func (c *ClusterGroupClient) CreateClusterGroup(group ClusterGroup, failIfExists
 
 	if cExists &&
 		failIfExists {
-		return ClusterGroup{}, cExists, errors.New("ClusterGroup already exists")
+		return ClusterGroup{}, cExists, emcoerror.NewEmcoError(
+			CaCertClusterGroupAlreadyExists,
+			emcoerror.Conflict,
+		)
 	}
 
-	if err := db.DBconn.Insert(c.dbInfo.StoreName, c.dbKey, nil, c.dbInfo.TagMeta, group); err != nil {
+	if err := db.DBconn.Insert(context.Background(), c.dbInfo.StoreName, c.dbKey, nil, c.dbInfo.TagMeta, group); err != nil {
 		return ClusterGroup{}, cExists, err
 	}
 
@@ -59,12 +63,12 @@ func (c *ClusterGroupClient) CreateClusterGroup(group ClusterGroup, failIfExists
 
 // DeleteClusterGroup deletes a clusterGroup
 func (c *ClusterGroupClient) DeleteClusterGroup() error {
-	return db.DBconn.Remove(c.dbInfo.StoreName, c.dbKey)
+	return db.DBconn.Remove(context.Background(), c.dbInfo.StoreName, c.dbKey)
 }
 
 // GetAllClusterGroups returns  all the clusterGroup
 func (c *ClusterGroupClient) GetAllClusterGroups() ([]ClusterGroup, error) {
-	values, err := db.DBconn.Find(c.dbInfo.StoreName, c.dbKey, c.dbInfo.TagMeta)
+	values, err := db.DBconn.Find(context.Background(), c.dbInfo.StoreName, c.dbKey, c.dbInfo.TagMeta)
 	if err != nil {
 		return []ClusterGroup{}, err
 	}
@@ -83,13 +87,16 @@ func (c *ClusterGroupClient) GetAllClusterGroups() ([]ClusterGroup, error) {
 
 // GetClusterGroup returns the clusterGroup
 func (c *ClusterGroupClient) GetClusterGroup() (ClusterGroup, error) {
-	value, err := db.DBconn.Find(c.dbInfo.StoreName, c.dbKey, c.dbInfo.TagMeta)
+	value, err := db.DBconn.Find(context.Background(), c.dbInfo.StoreName, c.dbKey, c.dbInfo.TagMeta)
 	if err != nil {
 		return ClusterGroup{}, err
 	}
 
 	if len(value) == 0 {
-		return ClusterGroup{}, errors.New("ClusterGroup not found")
+		return ClusterGroup{}, emcoerror.NewEmcoError(
+			CaCertClusterGroupNotFound,
+			emcoerror.NotFound,
+		)
 	}
 
 	if value != nil {
@@ -100,7 +107,10 @@ func (c *ClusterGroupClient) GetClusterGroup() (ClusterGroup, error) {
 		return c, nil
 	}
 
-	return ClusterGroup{}, errors.New("Unknown Error")
+	return ClusterGroup{}, emcoerror.NewEmcoError(
+		emcoerror.UnknownErrorMessage,
+		emcoerror.Unknown,
+	)
 }
 
 // GetClusters returns the list of clusters based on the logicalcloud and scope
@@ -118,21 +128,21 @@ func getClusters(group ClusterGroup) (clusters []string, err error) {
 	switch strings.ToLower(group.Spec.Scope) {
 	case "name":
 		// get cluster by provider and the name
-		if _, err = clm.NewClusterClient().GetCluster(group.Spec.Provider, group.Spec.Cluster); err != nil {
+		if _, err = clm.NewClusterClient().GetCluster(context.Background(), group.Spec.Provider, group.Spec.Cluster); err != nil {
 			return clusters, err
 		}
 
 		clusters = append(clusters, group.Spec.Cluster)
 	case "label":
 		// get clusters by label
-		list, err := clm.NewClusterClient().GetClustersWithLabel(group.Spec.Provider, group.Spec.Label)
+		list, err := clm.NewClusterClient().GetClustersWithLabel(context.Background(), group.Spec.Provider, group.Spec.Label)
 		if err != nil {
 			return clusters, err
 		}
 
 		for _, name := range list {
 			// get cluster by provider and the name
-			if _, err = clm.NewClusterClient().GetCluster(group.Spec.Provider, name); err != nil {
+			if _, err = clm.NewClusterClient().GetCluster(context.Background(), group.Spec.Provider, name); err != nil {
 				return clusters, err
 			}
 		}
@@ -151,7 +161,7 @@ func getLogicalCloudReferencedClusters(group ClusterGroup, project, logicalCloud
 	}
 
 	// get all the clusters referenced by the project and logicalCloud
-	cListLc, err := dcm.NewClusterClient().GetAllClusters(project, logicalCloud)
+	cListLc, err := dcm.NewClusterClient().GetAllClusters(context.Background(), project, logicalCloud)
 	if err != nil {
 		return []string{}, err
 	}

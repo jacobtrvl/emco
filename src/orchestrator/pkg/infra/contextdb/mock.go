@@ -4,6 +4,7 @@
 package contextdb
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -18,12 +19,12 @@ type MockConDb struct {
 	Err error
 }
 
-func (c *MockConDb) Put(key string, value interface{}) error {
+func (c *MockConDb) Put(ctx context.Context, key string, value interface{}) error {
 
 	var vg interface{}
-	err := c.Get(key, interface{}(&vg))
+	err := c.Get(ctx, key, interface{}(&vg))
 	if vg != "" {
-		c.Delete(key)
+		c.Delete(ctx, key)
 	}
 	v, err := json.Marshal(value)
 	if err != nil {
@@ -36,14 +37,14 @@ func (c *MockConDb) Put(key string, value interface{}) error {
 	c.Items = append(c.Items, d)
 	return c.Err
 }
-func (c *MockConDb) PutWithCheck(key string, value interface{}) error {
+func (c *MockConDb) PutWithCheck(ctx context.Context, key string, value interface{}) error {
 
-	return c.Put(key, value)
+	return c.Put(ctx, key, value)
 }
 func (c *MockConDb) HealthCheck() error {
 	return c.Err
 }
-func (c *MockConDb) Get(key string, value interface{}) error {
+func (c *MockConDb) Get(ctx context.Context, key string, value interface{}) error {
 	c.Lock()
 	defer c.Unlock()
 	for _, item := range c.Items {
@@ -66,7 +67,7 @@ func (c *MockConDb) Get(key string, value interface{}) error {
 	value = nil
 	return pkgerrors.Errorf("Key doesn't exist")
 }
-func (c *MockConDb) GetAllKeys(path string) ([]string, error) {
+func (c *MockConDb) GetAllKeys(ctx context.Context, path string) ([]string, error) {
 	c.Lock()
 	defer c.Unlock()
 	n := 0
@@ -106,7 +107,7 @@ func (c *MockConDb) GetAllKeys(path string) ([]string, error) {
 	}
 	return retk, c.Err
 }
-func (c *MockConDb) Delete(key string) error {
+func (c *MockConDb) Delete(ctx context.Context, key string) error {
 	c.Lock()
 	defer c.Unlock()
 	for i, item := range c.Items {
@@ -125,7 +126,7 @@ func (c *MockConDb) Delete(key string) error {
 	}
 	return c.Err
 }
-func (c *MockConDb) DeleteAll(key string) error {
+func (c *MockConDb) DeleteAll(ctx context.Context, key string) error {
 	c.Lock()
 	defer c.Unlock()
 	for i, item := range c.Items {

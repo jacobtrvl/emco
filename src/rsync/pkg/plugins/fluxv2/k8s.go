@@ -4,6 +4,7 @@
 package fluxv2
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -23,11 +24,11 @@ type Fluxv2Provider struct {
 	retryInterval int
 }
 
-func NewFluxv2Provider(cid, app, cluster, level, namespace string) (*Fluxv2Provider, error) {
+func NewFluxv2Provider(ctx context.Context, cid, app, cluster, level, namespace string) (*Fluxv2Provider, error) {
 
 	result := strings.SplitN(cluster, "+", 2)
 
-	c, err := utils.GetGitOpsConfig(cluster, "0", "default")
+	c, err := utils.GetGitOpsConfig(ctx, cluster, "0", "default")
 
 	if err != nil {
 		return nil, err
@@ -40,12 +41,12 @@ func NewFluxv2Provider(cid, app, cluster, level, namespace string) (*Fluxv2Provi
 	// Read from database
 	ccc := db.NewCloudConfigClient()
 
-	gitProvider, err := gitsupport.NewGitProvider(cid, app, cluster, level, namespace)
+	gitProvider, err := gitsupport.NewGitProvider(ctx, cid, app, cluster, level, namespace)
 	if err != nil {
 		return nil, err
 	}
 
-	resObject, err := ccc.GetClusterSyncObjects(result[0], c.Props.GitOpsResourceObject)
+	resObject, err := ccc.GetClusterSyncObjects(ctx, result[0], c.Props.GitOpsResourceObject)
 	if err != nil {
 		log.Error("Invalid resObject :", log.Fields{"resObj": c.Props.GitOpsResourceObject})
 		return nil, pkgerrors.Errorf("Invalid resObject: " + c.Props.GitOpsResourceObject)

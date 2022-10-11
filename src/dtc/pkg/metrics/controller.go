@@ -1,6 +1,7 @@
 package metrics
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"time"
@@ -14,21 +15,21 @@ func start() {
 		orchClient := orchModule.NewClient()
 		client := module.NewClient()
 		for {
-			projects, err := orchModule.NewProjectClient().GetAllProjects()
+			projects, err := orchModule.NewProjectClient().GetAllProjects(context.Background())
 			if err != nil {
 				fmt.Println(err)
 				continue
 			}
 
 			for _, proj := range projects {
-				apps, err := orchClient.CompositeApp.GetAllCompositeApps(proj.MetaData.Name)
+				apps, err := orchClient.CompositeApp.GetAllCompositeApps(context.Background(), proj.MetaData.Name)
 				if err != nil {
 					fmt.Println(err)
 					continue
 				}
 				for _, app := range apps {
 
-					digs, err := orchClient.DeploymentIntentGroup.GetAllDeploymentIntentGroups(proj.MetaData.Name, app.Metadata.Name, app.Spec.Version)
+					digs, err := orchClient.DeploymentIntentGroup.GetAllDeploymentIntentGroups(context.Background(), proj.MetaData.Name, app.Metadata.Name, app.Spec.Version)
 					if err != nil {
 						fmt.Println(err)
 						continue

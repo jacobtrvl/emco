@@ -4,6 +4,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	"context"
 	dcm "gitlab.com/project-emco/core/emco-base/src/dcm/pkg/module"
 	common "gitlab.com/project-emco/core/emco-base/src/orchestrator/common"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
@@ -39,7 +40,7 @@ var _ = Describe("Cluster", func() {
 					UserData1:   "",
 					UserData2:   "",
 				}
-				mdb.Insert("orchestrator", okey, nil, "projectmetadata", p)
+				mdb.Insert(context.Background(), "orchestrator", okey, nil, "projectmetadata", p)
 				// create logical cloud in mocked db
 				lkey := common.LogicalCloudKey{
 					Project:          "project",
@@ -56,12 +57,13 @@ var _ = Describe("Cluster", func() {
 					NameSpace: "anything",
 					Level:     "1",
 				}
-				mdb.Insert("orchestrator", lkey, nil, "logicalcloud", lc)
+				mdb.Insert(context.Background(), "orchestrator", lkey, nil, "logicalcloud", lc)
 			})
 			It("creation should succeed and return the resource created", func() {
 				Skip("temporarily disabled")
+				ctx := context.Background()
 				cluster := _createTestCluster("testcluster")
-				cluster, err := client.CreateCluster("project", "logicalcloud", cluster)
+				cluster, err := client.CreateCluster(ctx, "project", "logicalcloud", cluster)
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(cluster.MetaData.Name).To(Equal("testcluster"))
 				Expect(cluster.MetaData.Description).To(Equal(""))
@@ -79,36 +81,40 @@ var _ = Describe("Cluster", func() {
 			// 	Expect(cluster.MetaData.UserData2).To(Equal(""))
 			// })
 			It("get should fail and not return anything", func() {
-				cluster, err := client.GetCluster("project", "logicalcloud", "testcluster")
+				ctx := context.Background()
+				cluster, err := client.GetCluster(ctx, "project", "logicalcloud", "testcluster")
 				Expect(err).Should(HaveOccurred())
 				Expect(cluster).To(Equal(common.Cluster{}))
 			})
 			It("create followed by get should return what was created", func() {
 				Skip("temporarily disabled")
+				ctx := context.Background()
 				cluster := _createTestCluster("testcluster")
-				_, _ = client.CreateCluster("project", "logicalcloud", cluster)
-				cluster, err := client.GetCluster("project", "logicalcloud", "testcluster")
+				_, _ = client.CreateCluster(ctx, "project", "logicalcloud", cluster)
+				cluster, err := client.GetCluster(ctx, "project", "logicalcloud", "testcluster")
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(cluster).To(Equal(cluster))
 			})
 			It("create followed by get-all should return only what was created", func() {
 				Skip("temporarily disabled")
+				ctx := context.Background()
 				cluster := _createTestCluster("testcluster")
-				_, _ = client.CreateCluster("project", "logicalcloud", cluster)
-				clusters, err := client.GetAllClusters("project", "logicalcloud")
+				_, _ = client.CreateCluster(ctx, "project", "logicalcloud", cluster)
+				clusters, err := client.GetAllClusters(ctx, "project", "logicalcloud")
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(len(clusters)).To(Equal(1))
 				Expect(clusters[0]).To(Equal(cluster))
 			})
 			It("three creates followed by get-all should return all that was created", func() {
 				Skip("temporarily disabled")
+				ctx := context.Background()
 				cluster1 := _createTestCluster("testcluster1")
 				cluster2 := _createTestCluster("testcluster2")
 				cluster3 := _createTestCluster("testcluster3")
-				_, _ = client.CreateCluster("project", "logicalcloud", cluster1)
-				_, _ = client.CreateCluster("project", "logicalcloud", cluster2)
-				_, _ = client.CreateCluster("project", "logicalcloud", cluster3)
-				clusters, err := client.GetAllClusters("project", "logicalcloud")
+				_, _ = client.CreateCluster(ctx, "project", "logicalcloud", cluster1)
+				_, _ = client.CreateCluster(ctx, "project", "logicalcloud", cluster2)
+				_, _ = client.CreateCluster(ctx, "project", "logicalcloud", cluster3)
+				clusters, err := client.GetAllClusters(ctx, "project", "logicalcloud")
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(len(clusters)).To(Equal(3))
 				Expect(clusters[0]).To(Equal(cluster1))
@@ -117,23 +123,26 @@ var _ = Describe("Cluster", func() {
 			})
 			It("delete after creation should succeed and database remain empty", func() {
 				Skip("temporarily disabled")
+				ctx := context.Background()
 				cluster := _createTestCluster("testcluster")
-				_, _ = client.CreateCluster("project", "logicalcloud", cluster)
-				err := client.DeleteCluster("project", "logicalcloud", "testcluster")
+				_, _ = client.CreateCluster(ctx, "project", "logicalcloud", cluster)
+				err := client.DeleteCluster(ctx, "project", "logicalcloud", "testcluster")
 				Expect(err).ShouldNot(HaveOccurred())
-				clusters, err := client.GetAllClusters("project", "logicalcloud")
+				clusters, err := client.GetAllClusters(ctx, "project", "logicalcloud")
 				Expect(len(clusters)).To(Equal(0))
 			})
 			It("delete when nothing exists should fail", func() {
-				err := client.DeleteCluster("project", "logicalcloud", "testcluster")
+				ctx := context.Background()
+				err := client.DeleteCluster(ctx, "project", "logicalcloud", "testcluster")
 				Expect(err).Should(HaveOccurred())
 			})
 			It("update after creation should succeed and return updated resource", func() {
 				Skip("temporarily disabled")
+				ctx := context.Background()
 				cluster := _createTestCluster("testcluster")
-				_, _ = client.CreateCluster("project", "logicalcloud", cluster)
+				_, _ = client.CreateCluster(ctx, "project", "logicalcloud", cluster)
 				cluster.MetaData.UserData1 = "new user data"
-				cluster, err := client.UpdateCluster("project", "logicalcloud", "testcluster", cluster)
+				cluster, err := client.UpdateCluster(ctx, "project", "logicalcloud", "testcluster", cluster)
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(cluster.MetaData.Name).To(Equal("testcluster"))
 				Expect(cluster.MetaData.Description).To(Equal(""))
@@ -141,10 +150,11 @@ var _ = Describe("Cluster", func() {
 				Expect(cluster.MetaData.UserData2).To(Equal(""))
 			})
 			It("create followed by updating the name is disallowed and should fail", func() {
+				ctx := context.Background()
 				cluster := _createTestCluster("testcluster")
-				_, _ = client.CreateCluster("project", "logicalcloud", cluster)
+				_, _ = client.CreateCluster(ctx, "project", "logicalcloud", cluster)
 				cluster.MetaData.Name = "updated"
-				cluster, err := client.UpdateCluster("project", "logicalcloud", "testcluster", cluster)
+				cluster, err := client.UpdateCluster(ctx, "project", "logicalcloud", "testcluster", cluster)
 				Expect(err).Should(HaveOccurred())
 				Expect(cluster).To(Equal(common.Cluster{}))
 			})

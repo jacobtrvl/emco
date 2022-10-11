@@ -4,6 +4,7 @@
 package k8sexp
 
 import (
+	"context"
 	"io/ioutil"
 	"os"
 
@@ -25,7 +26,7 @@ type K8sProviderExp struct {
 	client    *kubeclient.Client
 }
 
-func NewK8sProvider(cid, app, cluster, level, namespace string) (*K8sProviderExp, error) {
+func NewK8sProvider(ctx context.Context, cid, app, cluster, level, namespace string) (*K8sProviderExp, error) {
 	p := K8sProviderExp{
 		cid:       cid,
 		app:       app,
@@ -34,7 +35,7 @@ func NewK8sProvider(cid, app, cluster, level, namespace string) (*K8sProviderExp
 		namespace: namespace,
 	}
 	// Get file from DB
-	dec, err := utils.GetKubeConfig(cluster, level, namespace)
+	dec, err := utils.GetKubeConfig(ctx, cluster, level, namespace)
 	if err != nil {
 		return nil, err
 	}

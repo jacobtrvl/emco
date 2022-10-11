@@ -8,6 +8,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 
+	"context"
 	"gitlab.com/project-emco/core/emco-base/src/ca-certs/pkg/client/logicalcloud"
 	"gitlab.com/project-emco/core/emco-base/src/ca-certs/pkg/module"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/module/types"
@@ -35,7 +36,7 @@ var _ = Describe("Create Cert",
 				mCert := mockCert("test-cert-1")
 				c, cExists, err := certClient.CreateCert(mCert, "proj1", true)
 				Expect(module.CaCert{}).To(Equal(c))
-				validateError(err, "Certificate already exists")
+				validateError(err, module.CaCertAlreadyExists)
 				Expect(cExists).To(Equal(true))
 				Expect(len(mockdb.Items)).To(Equal(l))
 			})
@@ -106,7 +107,7 @@ var _ = Describe("Get Cert",
 		Context("get a nonexisting caCert", func() {
 			It("returns an error, no caCert", func() {
 				cert, err := certClient.GetCert("non-existing-cert", "proj1")
-				validateError(err, "Certificate not found")
+				validateError(err, module.CaCertNotFound)
 				validateCert(cert, module.CaCert{})
 			})
 		})
@@ -141,20 +142,20 @@ func populateCertTestData() {
 	cpKey := logicalcloud.CaCertKey{
 		Cert:    cert.MetaData.Name,
 		Project: "proj1"}
-	_ = mockdb.Insert("resources", cpKey, nil, "data", cert)
+	_ = mockdb.Insert(context.Background(), "resources", cpKey, nil, "data", cert)
 
 	// cert 2
 	cert = mockCert("test-cert-2")
 	cpKey = logicalcloud.CaCertKey{
 		Cert:    cert.MetaData.Name,
 		Project: "proj1"}
-	_ = mockdb.Insert("resources", cpKey, nil, "data", cert)
+	_ = mockdb.Insert(context.Background(), "resources", cpKey, nil, "data", cert)
 
 	// cert 3
 	cert = mockCert("test-cert-3")
 	cpKey = logicalcloud.CaCertKey{
 		Cert:    cert.MetaData.Name,
 		Project: "proj1"}
-	_ = mockdb.Insert("resources", cpKey, nil, "data", cert)
+	_ = mockdb.Insert(context.Background(), "resources", cpKey, nil, "data", cert)
 
 }
