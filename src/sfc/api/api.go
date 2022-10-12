@@ -10,9 +10,11 @@ import (
 	"gitlab.com/project-emco/core/emco-base/src/sfc/pkg/module"
 )
 
-var moduleSfcIntentClient *module.SfcIntentClient
-var moduleSfcClientSelectorIntentClient *module.SfcClientSelectorIntentClient
-var moduleSfcProviderNetworkIntentClient *module.SfcProviderNetworkIntentClient
+var (
+	moduleSfcIntentClient                *module.SfcIntentClient
+	moduleSfcClientSelectorIntentClient  *module.SfcClientSelectorIntentClient
+	moduleSfcProviderNetworkIntentClient *module.SfcProviderNetworkIntentClient
+)
 
 // Used to store backend implementations objects
 // Also simplifies mocking for unit testing purposes
@@ -72,10 +74,10 @@ func setClient(client, testClient interface{}) interface{} {
 // NewRouter creates a router that registers the various urls that are supported
 // testClient parameter allows unit testing for a given client
 func NewRouter(testClient interface{}) *mux.Router {
-
 	moduleClient := module.NewClient()
 
-	router := mux.NewRouter().PathPrefix("/v2").Subrouter()
+	router := mux.NewRouter()
+	v2Router := router.PathPrefix("/v2").Subrouter()
 
 	const sfcIntentsURL = "/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/network-chains"
 	const sfcIntentsGetURL = sfcIntentsURL + "/{sfcIntent}"
@@ -89,38 +91,38 @@ func NewRouter(testClient interface{}) *mux.Router {
 	sfcHandler := sfcIntentHandler{
 		client: setClient(moduleClient.SfcIntent, testClient).(module.SfcIntentManager),
 	}
-	router.HandleFunc(sfcIntentsURL, sfcHandler.createSfcHandler).Methods("POST")
-	router.HandleFunc(sfcIntentsURL, sfcHandler.getSfcHandler).Methods("GET")
-	router.HandleFunc(sfcIntentsGetURL, sfcHandler.putSfcHandler).Methods("PUT")
-	router.HandleFunc(sfcIntentsGetURL, sfcHandler.getSfcHandler).Methods("GET")
-	router.HandleFunc(sfcIntentsGetURL, sfcHandler.deleteSfcHandler).Methods("DELETE")
+	v2Router.HandleFunc(sfcIntentsURL, sfcHandler.createSfcHandler).Methods("POST")
+	v2Router.HandleFunc(sfcIntentsURL, sfcHandler.getSfcHandler).Methods("GET")
+	v2Router.HandleFunc(sfcIntentsGetURL, sfcHandler.putSfcHandler).Methods("PUT")
+	v2Router.HandleFunc(sfcIntentsGetURL, sfcHandler.getSfcHandler).Methods("GET")
+	v2Router.HandleFunc(sfcIntentsGetURL, sfcHandler.deleteSfcHandler).Methods("DELETE")
 
 	sfcLinkHandler := sfcLinkIntentHandler{
 		client: setClient(moduleClient.SfcLinkIntent, testClient).(module.SfcLinkIntentManager),
 	}
-	router.HandleFunc(sfcLinkIntentsURL, sfcLinkHandler.createLinkHandler).Methods("POST")
-	router.HandleFunc(sfcLinkIntentsURL, sfcLinkHandler.getLinkHandler).Methods("GET")
-	router.HandleFunc(sfcLinkIntentsGetURL, sfcLinkHandler.putLinkHandler).Methods("PUT")
-	router.HandleFunc(sfcLinkIntentsGetURL, sfcLinkHandler.getLinkHandler).Methods("GET")
-	router.HandleFunc(sfcLinkIntentsGetURL, sfcLinkHandler.deleteLinkHandler).Methods("DELETE")
+	v2Router.HandleFunc(sfcLinkIntentsURL, sfcLinkHandler.createLinkHandler).Methods("POST")
+	v2Router.HandleFunc(sfcLinkIntentsURL, sfcLinkHandler.getLinkHandler).Methods("GET")
+	v2Router.HandleFunc(sfcLinkIntentsGetURL, sfcLinkHandler.putLinkHandler).Methods("PUT")
+	v2Router.HandleFunc(sfcLinkIntentsGetURL, sfcLinkHandler.getLinkHandler).Methods("GET")
+	v2Router.HandleFunc(sfcLinkIntentsGetURL, sfcLinkHandler.deleteLinkHandler).Methods("DELETE")
 
 	sfcClientSelectorHandler := sfcClientSelectorIntentHandler{
 		client: setClient(moduleClient.SfcClientSelectorIntent, testClient).(module.SfcClientSelectorIntentManager),
 	}
-	router.HandleFunc(sfcClientSelectorIntentsURL, sfcClientSelectorHandler.createClientSelectorHandler).Methods("POST")
-	router.HandleFunc(sfcClientSelectorIntentsURL, sfcClientSelectorHandler.getClientSelectorHandler).Methods("GET")
-	router.HandleFunc(sfcClientSelectorIntentsGetURL, sfcClientSelectorHandler.putClientSelectorHandler).Methods("PUT")
-	router.HandleFunc(sfcClientSelectorIntentsGetURL, sfcClientSelectorHandler.getClientSelectorHandler).Methods("GET")
-	router.HandleFunc(sfcClientSelectorIntentsGetURL, sfcClientSelectorHandler.deleteClientSelectorHandler).Methods("DELETE")
+	v2Router.HandleFunc(sfcClientSelectorIntentsURL, sfcClientSelectorHandler.createClientSelectorHandler).Methods("POST")
+	v2Router.HandleFunc(sfcClientSelectorIntentsURL, sfcClientSelectorHandler.getClientSelectorHandler).Methods("GET")
+	v2Router.HandleFunc(sfcClientSelectorIntentsGetURL, sfcClientSelectorHandler.putClientSelectorHandler).Methods("PUT")
+	v2Router.HandleFunc(sfcClientSelectorIntentsGetURL, sfcClientSelectorHandler.getClientSelectorHandler).Methods("GET")
+	v2Router.HandleFunc(sfcClientSelectorIntentsGetURL, sfcClientSelectorHandler.deleteClientSelectorHandler).Methods("DELETE")
 
 	sfcProviderNetworkHandler := sfcProviderNetworkIntentHandler{
 		client: setClient(moduleClient.SfcProviderNetworkIntent, testClient).(module.SfcProviderNetworkIntentManager),
 	}
-	router.HandleFunc(sfcProviderNetworkIntentsURL, sfcProviderNetworkHandler.createProviderNetworkHandler).Methods("POST")
-	router.HandleFunc(sfcProviderNetworkIntentsURL, sfcProviderNetworkHandler.getProviderNetworkHandler).Methods("GET")
-	router.HandleFunc(sfcProviderNetworkIntentsGetURL, sfcProviderNetworkHandler.putProviderNetworkHandler).Methods("PUT")
-	router.HandleFunc(sfcProviderNetworkIntentsGetURL, sfcProviderNetworkHandler.getProviderNetworkHandler).Methods("GET")
-	router.HandleFunc(sfcProviderNetworkIntentsGetURL, sfcProviderNetworkHandler.deleteProviderNetworkHandler).Methods("DELETE")
+	v2Router.HandleFunc(sfcProviderNetworkIntentsURL, sfcProviderNetworkHandler.createProviderNetworkHandler).Methods("POST")
+	v2Router.HandleFunc(sfcProviderNetworkIntentsURL, sfcProviderNetworkHandler.getProviderNetworkHandler).Methods("GET")
+	v2Router.HandleFunc(sfcProviderNetworkIntentsGetURL, sfcProviderNetworkHandler.putProviderNetworkHandler).Methods("PUT")
+	v2Router.HandleFunc(sfcProviderNetworkIntentsGetURL, sfcProviderNetworkHandler.getProviderNetworkHandler).Methods("GET")
+	v2Router.HandleFunc(sfcProviderNetworkIntentsGetURL, sfcProviderNetworkHandler.deleteProviderNetworkHandler).Methods("DELETE")
 
 	return router
 }
