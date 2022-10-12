@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"gitlab.com/project-emco/core/emco-base/src/dcm/api"
+	"gitlab.com/project-emco/core/emco-base/src/dcm/pkg/metrics"
 	"gitlab.com/project-emco/core/emco-base/src/dcm/pkg/statusnotify"
 	register "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/grpc"
 	contextDb "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/contextdb"
@@ -42,8 +43,11 @@ func main() {
 		os.Exit(1)
 	}
 
+	httpRouter := api.NewRouter(nil, nil, nil, nil, nil)
+	httpRouter.Handle("/metrics", metrics.Initialize(true).Handler)
+
 	server, err := controller.NewControllerServer("dcm",
-		api.NewRouter(nil, nil, nil, nil, nil),
+		httpRouter,
 		grpcServer)
 	if err != nil {
 		log.Error("Unable to create server", log.Fields{"Error": err})
