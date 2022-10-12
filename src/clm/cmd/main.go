@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"gitlab.com/project-emco/core/emco-base/src/clm/api"
+	"gitlab.com/project-emco/core/emco-base/src/clm/pkg/metrics"
 	contextDb "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/contextdb"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
 	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
@@ -33,8 +34,11 @@ func main() {
 		os.Exit(1)
 	}
 
+	httpRouter := api.NewRouter(nil)
+	httpRouter.Handle("/metrics", metrics.Initialize(true).Handler)
+
 	server, err := controller.NewControllerServer("clm",
-		api.NewRouter(nil),
+		httpRouter,
 		nil)
 	if err != nil {
 		log.Error("Unable to create server", log.Fields{"Error": err})
