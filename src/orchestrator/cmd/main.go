@@ -15,6 +15,7 @@ import (
 	contextDb "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/contextdb"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
 	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
+	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/metrics"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/rpc"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/module/controller"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/statusnotify"
@@ -43,8 +44,11 @@ func main() {
 		os.Exit(1)
 	}
 
+	httpRouter := api.NewRouter(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
+	httpRouter.Handle("/metrics", metrics.Initialize(true).Handler)
+
 	server, err := controller.NewControllerServer("orchestrator",
-		api.NewRouter(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil),
+		httpRouter,
 		grpcServer)
 	if err != nil {
 		log.Error("Unable to create server", log.Fields{"Error": err})
