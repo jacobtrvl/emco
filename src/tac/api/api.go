@@ -16,7 +16,8 @@ import (
 func NewRouter(mockClient interface{}) *mux.Router {
 	const baseURL string = "/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/temporal-action-controller"
 
-	r := mux.NewRouter().PathPrefix("/v2").Subrouter()
+	r := mux.NewRouter()
+	v2Router := r.PathPrefix("/v2").Subrouter()
 	c := module.NewClient()
 	h := intentHandler{
 		client: setClient(c.WorkflowIntentClient, mockClient).(module.WorkflowIntentManager),
@@ -26,20 +27,20 @@ func NewRouter(mockClient interface{}) *mux.Router {
 	}
 
 	// Temporal Action Hook Intent APIs Unit Test Cases for front end and back end
-	r.HandleFunc(baseURL, h.handleTacIntentCreate).Methods("POST")
-	r.HandleFunc(baseURL+"/{tac-intent}", h.handleTacIntentGet).Methods("GET")
-	r.HandleFunc(baseURL, h.handleTacIntentGet).Methods("GET")
-	r.HandleFunc(baseURL+"/{tac-intent}", h.handleTacIntentDelete).Methods("DELETE")
-	r.HandleFunc(baseURL+"/{tac-intent}", h.handleTacIntentPut).Methods("PUT")
+	v2Router.HandleFunc(baseURL, h.handleTacIntentCreate).Methods("POST")
+	v2Router.HandleFunc(baseURL+"/{tac-intent}", h.handleTacIntentGet).Methods("GET")
+	v2Router.HandleFunc(baseURL, h.handleTacIntentGet).Methods("GET")
+	v2Router.HandleFunc(baseURL+"/{tac-intent}", h.handleTacIntentDelete).Methods("DELETE")
+	v2Router.HandleFunc(baseURL+"/{tac-intent}", h.handleTacIntentPut).Methods("PUT")
 	// Cancel or get the status of a temporal action controller intent
-	r.HandleFunc(baseURL+"/{tac-intent}/cancel", h.handleTemporalWorkflowHookCancel).Methods("POST")
-	r.HandleFunc(baseURL+"/{tac-intent}/status", h.handleTemporalWorkflowHookStatus).Methods("GET")
+	v2Router.HandleFunc(baseURL+"/{tac-intent}/cancel", h.handleTemporalWorkflowHookCancel).Methods("POST")
+	v2Router.HandleFunc(baseURL+"/{tac-intent}/status", h.handleTemporalWorkflowHookStatus).Methods("GET")
 	// Worker APIs - Used to register workers in DIGs so TAC can dynamically deploy and terminate them.
-	r.HandleFunc(baseURL+"/{tac-intent}/workers", w.handleWorkerCreate).Methods("POST")
-	r.HandleFunc(baseURL+"/{tac-intent}/workers", w.handleWorkerGet).Methods("GET")
-	r.HandleFunc(baseURL+"/{tac-intent}/workers/{workers}", w.handleWorkerGet).Methods("GET")
-	r.HandleFunc(baseURL+"/{tac-intent}/workers/{workers}", w.handleWorkerUpdate).Methods("PUT")
-	r.HandleFunc(baseURL+"/{tac-intent}/workers/{workers}", w.handleWorkerDelete).Methods("DELETE")
+	v2Router.HandleFunc(baseURL+"/{tac-intent}/workers", w.handleWorkerCreate).Methods("POST")
+	v2Router.HandleFunc(baseURL+"/{tac-intent}/workers", w.handleWorkerGet).Methods("GET")
+	v2Router.HandleFunc(baseURL+"/{tac-intent}/workers/{workers}", w.handleWorkerGet).Methods("GET")
+	v2Router.HandleFunc(baseURL+"/{tac-intent}/workers/{workers}", w.handleWorkerUpdate).Methods("PUT")
+	v2Router.HandleFunc(baseURL+"/{tac-intent}/workers/{workers}", w.handleWorkerDelete).Methods("DELETE")
 
 	return r
 }
