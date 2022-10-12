@@ -14,6 +14,7 @@ import (
 	"github.com/gorilla/handlers"
 	"gitlab.com/project-emco/core/emco-base/src/dtc/api"
 	"gitlab.com/project-emco/core/emco-base/src/dtc/pkg/grpc/contextupdateserver"
+	"gitlab.com/project-emco/core/emco-base/src/dtc/pkg/metrics"
 	register "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/grpc"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/config"
 	contextDb "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/contextdb"
@@ -36,6 +37,7 @@ func main() {
 	}
 
 	httpRouter := api.NewRouter(nil)
+	httpRouter.Handle("/metrics", metrics.Initialize(true).Handler)
 	loggedRouter := handlers.LoggingHandler(os.Stdout, httpRouter)
 	log.Info("Starting Traffic Controller", log.Fields{})
 
