@@ -7,7 +7,7 @@ var ClusterLabel = []string{"name", "clusterprovider"}
 
 var CLPGauge = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 	Name: "emco_cluster_provider_resource",
-	Help: "Count of Logical Clouds",
+	Help: "Count of Cluster Providers",
 }, CLPLabel)
 
 var ClusterGauge = prometheus.NewGaugeVec(prometheus.GaugeOpts{
