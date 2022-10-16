@@ -2,11 +2,11 @@ package metrics
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"gitlab.com/project-emco/core/emco-base/src/clm/pkg/cluster"
 	netintents "gitlab.com/project-emco/core/emco-base/src/ncm/pkg/networkintents"
+	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 )
 
 func start() {
@@ -14,23 +14,28 @@ func start() {
 		clusterClient := cluster.NewClusterClient()
 		netClient := netintents.NewNetworkClient()
 		providerNetClient := netintents.NewProviderNetClient()
+		fields := log.Fields{"service": "ncm"}
 		for {
 			clps, err := clusterClient.GetClusterProviders(context.Background())
 			if err != nil {
-				fmt.Println(err)
+				log.Error(err.Error(), fields)
 				continue
 			}
 
 			for _, clp := range clps {
+				fields := fields
+				fields["cluster_provider"] = clp.Metadata.Name
 				clusters, err := clusterClient.GetClusters(context.Background(), clp.Metadata.Name)
 				if err != nil {
-					fmt.Println(err)
+					log.Error(err.Error(), fields)
 					continue
 				}
 				for _, cl := range clusters {
+					fields := fields
+					fields["cluster"] = cl.Metadata.Name
 					networks, err := netClient.GetNetworks(clp.Metadata.Name, cl.Metadata.Name)
 					if err != nil {
-						fmt.Println(err)
+						log.Error(err.Error(), fields)
 						continue
 					}
 					for _, network := range networks {
@@ -39,7 +44,7 @@ func start() {
 
 					providerNets, err := providerNetClient.GetProviderNets(clp.Metadata.Name, cl.Metadata.Name)
 					if err != nil {
-						fmt.Println(err)
+						log.Error(err.Error(), fields)
 						continue
 					}
 					for _, network := range providerNets {
