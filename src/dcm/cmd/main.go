@@ -10,6 +10,7 @@ import (
 	"os/signal"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
 	"gitlab.com/project-emco/core/emco-base/src/dcm/api"
 	"gitlab.com/project-emco/core/emco-base/src/dcm/pkg/metrics"
 	"gitlab.com/project-emco/core/emco-base/src/dcm/pkg/statusnotify"
@@ -43,11 +44,10 @@ func main() {
 		os.Exit(1)
 	}
 
-	httpRouter := api.NewRouter(nil, nil, nil, nil, nil)
-	httpRouter.Handle("/metrics", metrics.Initialize(true).Handler)
+	prometheus.MustRegister(metrics.LCGauge)
 
 	server, err := controller.NewControllerServer("dcm",
-		httpRouter,
+		api.NewRouter(nil, nil, nil, nil, nil),
 		grpcServer)
 	if err != nil {
 		log.Error("Unable to create server", log.Fields{"Error": err})
@@ -63,6 +63,7 @@ func main() {
 		close(connectionsClose)
 	}()
 
+	metrics.Start()
 	err = server.ListenAndServe()
 	if err != nil {
 		log.Error("Server failed", log.Fields{"Error": err})

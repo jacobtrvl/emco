@@ -16,10 +16,13 @@ import (
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	pkgerrors "github.com/pkg/errors"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	register "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/grpc"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/config"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
 	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
+	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/metrics"
 	rpc "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/rpc"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/tracing"
 	mtypes "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/module/types"
@@ -217,6 +220,8 @@ func NewControllerServer(name string, httpRouter *mux.Router, grpcServer *regist
 		return nil, errors.New("Unable to initialize tracing")
 	}
 
+	prometheus.MustRegister(metrics.NewBuildInfoCollector(name))
+
 	httpServerPort := config.GetConfiguration().ServicePort
 	if httpServerPort == "" {
 		return nil, errors.New("NewControllerServer: must configure a \"service-port\"")
@@ -289,6 +294,7 @@ func NewControllerServer(name string, httpRouter *mux.Router, grpcServer *regist
 }
 
 func newHttpServer(port string, httpRouter *mux.Router) (*http.Server, error) {
+	httpRouter.Handle("/metrics", promhttp.Handler())
 	loggedRouter := handlers.LoggingHandler(os.Stdout, httpRouter)
 
 	return &http.Server{

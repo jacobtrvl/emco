@@ -9,7 +9,7 @@ import (
 	orchModule "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/module"
 )
 
-func start() {
+func Start() {
 	go func() {
 		client := module.NewClient()
 		fields := log.Fields{"service": "dcm"}

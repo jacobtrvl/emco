@@ -8,7 +8,7 @@ import (
 	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 )
 
-func start() {
+func Start() {
 	go func() {
 		client := cluster.NewClusterClient()
 		fields := log.Fields{"service": "clm"}
