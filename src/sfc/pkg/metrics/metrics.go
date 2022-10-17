@@ -4,12 +4,11 @@
 package metrics
 
 import (
-	"fmt"
 	"net/http"
-	"os"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	infra "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/metrics"
 )
 
 type Metrics struct {
@@ -27,31 +26,11 @@ func Initialize(startNow bool) *Metrics {
 	prometheus.MustRegister(SFCIntentGauge)
 	prometheus.MustRegister(SFCIntentLinkGauge)
 
-	prometheus.MustRegister(NewBuildInfoCollector("sfc"))
+	prometheus.MustRegister(infra.NewBuildInfoCollector("sfc"))
 
 	if startNow {
 		start()
 	}
 	metrics.Handler = promhttp.Handler()
 	return metrics
-}
-
-func NewBuildInfoCollector(component string) *prometheus.GaugeVec {
-	build := prometheus.NewGaugeVec(
-		prometheus.GaugeOpts{
-			Name: "emco_build",
-			Help: fmt.Sprintf(
-				"A metric with a constant '1' value labeled by component, version, and revision from which %s was built.",
-				component,
-			),
-		},
-		[]string{
-			"component",
-			"revision",
-			"version",
-		})
-
-	build.WithLabelValues(component, os.Getenv("EMCO_META_EMCO_SHA"), os.Getenv("EMCO_META_EMCO_VERSION")).Set(1)
-
-	return build
 }
