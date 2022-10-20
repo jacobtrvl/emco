@@ -5,12 +5,12 @@ package api
 
 import (
 	"encoding/json"
-	"errors"
 	"io"
 	"net/http"
 	"net/http/httputil"
 
-	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/apierror"
+	"gitlab.com/project-emco/core/emco-base/src/orchestrator/common/emcoerror"
+
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/validation"
 	"gitlab.com/project-emco/core/emco-base/src/tac/pkg/model"
@@ -18,6 +18,13 @@ import (
 	wfMod "gitlab.com/project-emco/core/emco-base/src/workflowmgr/pkg/module"
 
 	"github.com/gorilla/mux"
+)
+
+const (
+	failedEncodeResponse string = "Unable to encode JSON into success response message."
+	jsonMissing          string = "JSON in request message is missing or incomplete."
+	failedJsonParse      string = "Unable to decode JSON body"
+	failedJsonValidate   string = "Failed to validate JSON. Fields may be missing or incorrectly populated."
 )
 
 type intentHandler struct {
@@ -72,20 +79,18 @@ func (h intentHandler) createOrUpdate(w http.ResponseWriter, r *http.Request) {
 	// see if there was an error decoding the workflow body.
 	switch {
 	case err == io.EOF: // this usually means there are missing fields, or just no content entirely.
-		apiErr := apierror.HandleErrors(mux.Vars(r), errors.New("empty Post Body"), nil, apiErrors)
-		http.Error(w, apiErr.Message, apiErr.Status)
+		http.Error(w, jsonMissing, int(emcoerror.BadRequest))
 		return
 	case err != nil:
-		apiErr := apierror.HandleErrors(mux.Vars(r), errors.New("error decoding json body"), nil, apiErrors)
-		http.Error(w, apiErr.Message, apiErr.Status)
+		http.Error(w, failedJsonParse, int(emcoerror.UnprocessableEntity))
 		return
 	}
 
 	// Verify JSON Body
 	err, httpError := validation.ValidateJsonSchemaData(TacIntentJSONFile, wfh)
 	if err != nil {
-		logutils.Error(err.Error(), logutils.Fields{})
-		http.Error(w, err.Error(), httpError)
+		apiErr := emcoerror.HandleAPIError(err)
+		http.Error(w, apiErr.Message, httpError)
 		return
 	}
 
@@ -100,7 +105,7 @@ func (h intentHandler) createOrUpdate(w http.ResponseWriter, r *http.Request) {
 
 	// error putting item into db, print error
 	if err != nil {
-		apiErr := apierror.HandleErrors(mux.Vars(r), err, nil, apiErrors)
+		apiErr := emcoerror.HandleAPIError(err)
 		http.Error(w, apiErr.Message, apiErr.Status)
 		return
 	}
@@ -110,8 +115,7 @@ func (h intentHandler) createOrUpdate(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 	err = json.NewEncoder(w).Encode(ret)
 	if err != nil {
-		logutils.Error(":: Error encoding create workflow intent response ::", logutils.Fields{"Error": err})
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, failedEncodeResponse, int(emcoerror.UnprocessableEntity))
 		return
 	}
 
@@ -144,7 +148,7 @@ func (h intentHandler) handleTacIntentGet(w http.ResponseWriter, r *http.Request
 
 	// handle error if it exists
 	if err != nil {
-		apiErr := apierror.HandleErrors(mux.Vars(r), err, nil, apiErrors)
+		apiErr := emcoerror.HandleAPIError(err)
 		http.Error(w, apiErr.Message, apiErr.Status)
 		return
 	}
@@ -154,10 +158,7 @@ func (h intentHandler) handleTacIntentGet(w http.ResponseWriter, r *http.Request
 	w.WriteHeader(http.StatusOK)
 	err = json.NewEncoder(w).Encode(resp)
 	if err != nil {
-		logutils.Error(":: Error encoding tac intent(s) ::",
-			logutils.Fields{"Error": err, "tacIntent": vars.tacIntent,
-				"project": vars.project, "cApp": vars.cApp, "cAppVer": vars.cAppVer, "dig": vars.dig})
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, failedEncodeResponse, int(emcoerror.UnprocessableEntity))
 		return
 	}
 
@@ -183,7 +184,7 @@ func (h intentHandler) handleTacIntentDelete(w http.ResponseWriter, r *http.Requ
 	// delete the requested item from the backend
 	err := h.client.DeleteWorkflowHookIntent(ctx, vars.tacIntent, vars.project, vars.cApp, vars.cAppVer, vars.dig)
 	if err != nil {
-		apiErr := apierror.HandleErrors(mux.Vars(r), err, nil, apiErrors)
+		apiErr := emcoerror.HandleAPIError(err)
 		http.Error(w, apiErr.Message, apiErr.Status)
 		return
 	}
@@ -207,22 +208,18 @@ func (h intentHandler) handleTemporalWorkflowHookStatus(w http.ResponseWriter, r
 	err := json.NewDecoder(r.Body).Decode(&query)
 	switch {
 	case err == io.EOF:
-		errmsg := ":: Empty Workflow Status POST body ::"
-		logutils.Error(errmsg, logutils.Fields{"Error": err})
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, jsonMissing, int(emcoerror.BadRequest))
 		return
 	case err != nil:
-		errmsg := ":: Error decoding workflow status POST body ::"
-		logutils.Error(errmsg, logutils.Fields{"Error": err})
-		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
+		http.Error(w, failedJsonParse, int(emcoerror.UnprocessableEntity))
 		return
 	}
 
 	// Verify JSON Body
 	err, httpError := validation.ValidateJsonSchemaData(SqJSONFile, query)
 	if err != nil {
-		logutils.Error(err.Error(), logutils.Fields{})
-		http.Error(w, err.Error(), httpError)
+		apiErr := emcoerror.HandleAPIError(err)
+		http.Error(w, apiErr.Message, httpError)
 		return
 	}
 
@@ -283,33 +280,42 @@ func (h intentHandler) handleTemporalWorkflowHookCancel(w http.ResponseWriter, r
 	err := json.NewDecoder(r.Body).Decode(&cancelReq)
 	switch {
 	case err == io.EOF:
-		errmsg := ":: Empty workflow cancel request POST body ::"
-		logutils.Error(errmsg, logutils.Fields{"Error": err})
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		apiErr := emcoerror.HandleAPIError(&emcoerror.Error{
+			Message: jsonMissing,
+			Reason:  emcoerror.BadRequest,
+		})
+		http.Error(w, apiErr.Message, apiErr.Status)
 		return
 	case err != nil:
-		errmsg := ":: Error decoding workflow cancel request POST body ::"
-		logutils.Error(errmsg, logutils.Fields{"Error": err})
-		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
+		apiErr := emcoerror.HandleAPIError(&emcoerror.Error{
+			Message: failedJsonParse,
+			Reason:  emcoerror.UnprocessableEntity,
+		})
+		http.Error(w, apiErr.Message, apiErr.Status)
 		return
 	}
 
 	// Verify JSON Body
 	err, httpError := validation.ValidateJsonSchemaData(CrJSONFile, cancelReq)
 	if err != nil {
-		logutils.Error(err.Error(), logutils.Fields{})
-		http.Error(w, err.Error(), httpError)
+		apiErr := emcoerror.HandleAPIError(err)
+		http.Error(w, apiErr.Message, httpError)
 		return
 	}
 
 	logutils.Info("cancelHandler", logutils.Fields{"cancelReq": cancelReq}) // XXX
 
 	if cancelReq.Spec.TemporalServer == "" {
-		errmsg := ":: Temporal Server endpoint is required."
-		logutils.Error(errmsg, logutils.Fields{"name": vars.tacIntent,
+		apiErr := emcoerror.HandleAPIError(&emcoerror.Error{
+			Message: "Missing the temporal server address.",
+			Reason:  emcoerror.BadRequest,
+		})
+
+		logutils.Error(apiErr.Message, logutils.Fields{"name": vars.tacIntent,
 			"project": vars.project, "cApp": vars.cApp, "cAppVer": vars.cAppVer, "dig": vars.dig,
 			"cancelReq": cancelReq})
-		http.Error(w, errmsg, http.StatusBadRequest)
+
+		http.Error(w, apiErr.Message, apiErr.Status)
 		return
 	}
 
@@ -326,7 +332,13 @@ func (h intentHandler) handleTemporalWorkflowHookCancel(w http.ResponseWriter, r
 		}
 		logutils.Error(errmsg, logutils.Fields{"Error": err, "name": vars.tacIntent,
 			"project": vars.project, "cApp": vars.cApp, "cAppVer": vars.cAppVer, "dig": vars.dig})
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+
+		apiErr := emcoerror.HandleAPIError(&emcoerror.Error{
+			Message: errmsg,
+			Reason:  emcoerror.RequestTimeout,
+		})
+
+		http.Error(w, apiErr.Message, apiErr.Status)
 		return
 	}
 

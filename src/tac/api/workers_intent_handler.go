@@ -5,13 +5,12 @@ package api
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
 
 	"github.com/gorilla/mux"
-	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/apierror"
+	"gitlab.com/project-emco/core/emco-base/src/orchestrator/common/emcoerror"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/validation"
 	"gitlab.com/project-emco/core/emco-base/src/tac/pkg/model"
@@ -76,12 +75,10 @@ func (h workerHandler) handleWorkerCreateOrUpdate(w http.ResponseWriter, r *http
 		// see if there was an error decoding the tac intent body.
 		switch {
 		case err == io.EOF: // this usually means there are missing fields, or just no content entirely.
-			apiErr := apierror.HandleErrors(mux.Vars(r), errors.New("empty Post Body"), nil, apiErrors)
-			http.Error(w, apiErr.Message, apiErr.Status)
+			http.Error(w, jsonMissing, int(emcoerror.BadRequest))
 			return
 		case err != nil:
-			apiErr := apierror.HandleErrors(mux.Vars(r), errors.New("error decoding json body"), nil, apiErrors)
-			http.Error(w, apiErr.Message, apiErr.Status)
+			http.Error(w, failedJsonParse, int(emcoerror.UnprocessableEntity))
 			return
 		}
 	}
@@ -89,8 +86,8 @@ func (h workerHandler) handleWorkerCreateOrUpdate(w http.ResponseWriter, r *http
 	// Verify JSON Body
 	err, httpError := validation.ValidateJsonSchemaData(WorkerIntentJSONFile, wi)
 	if err != nil {
-		logutils.Error(err.Error(), logutils.Fields{})
-		http.Error(w, err.Error(), httpError)
+		apiErr := emcoerror.HandleAPIError(err)
+		http.Error(w, apiErr.Message, httpError)
 		return
 	}
 
@@ -106,7 +103,7 @@ func (h workerHandler) handleWorkerCreateOrUpdate(w http.ResponseWriter, r *http
 
 	// error putting item into db, print error
 	if err != nil {
-		apiErr := apierror.HandleErrors(mux.Vars(r), err, nil, apiErrors)
+		apiErr := emcoerror.HandleAPIError(err)
 		http.Error(w, apiErr.Message, apiErr.Status)
 		return
 	}
@@ -116,8 +113,7 @@ func (h workerHandler) handleWorkerCreateOrUpdate(w http.ResponseWriter, r *http
 	w.WriteHeader(http.StatusCreated)
 	err = json.NewEncoder(w).Encode(resp)
 	if err != nil {
-		logutils.Error(":: Error encoding create workflow intent response ::", logutils.Fields{"Error": err})
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, failedEncodeResponse, int(emcoerror.UnprocessableEntity))
 		return
 	}
 
@@ -153,7 +149,7 @@ func (h workerHandler) handleWorkerGet(w http.ResponseWriter, r *http.Request) {
 
 	// handle error if it exists
 	if err != nil {
-		apiErr := apierror.HandleErrors(mux.Vars(r), err, nil, apiErrors)
+		apiErr := emcoerror.HandleAPIError(err)
 		http.Error(w, apiErr.Message, apiErr.Status)
 		return
 	}
@@ -163,10 +159,7 @@ func (h workerHandler) handleWorkerGet(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	err = json.NewEncoder(w).Encode(resp)
 	if err != nil {
-		logutils.Error(":: Error encoding tac intent(s) ::",
-			logutils.Fields{"Error": err, "tacIntent": vars.tacIntent,
-				"project": vars.project, "cApp": vars.cApp, "cAppVer": vars.cAppVer, "dig": vars.dig})
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, failedEncodeResponse, int(emcoerror.Unknown))
 		return
 	}
 
@@ -188,7 +181,7 @@ func (h workerHandler) handleWorkerDelete(w http.ResponseWriter, r *http.Request
 	// attempt to delete the requested intent, and handle any error that may come.
 	err := h.client.DeleteWorkerIntents(vars.project, vars.cApp, vars.cAppVer, vars.dig, vars.tacIntent, vars.workers)
 	if err != nil {
-		apiErr := apierror.HandleErrors(mux.Vars(r), err, nil, apiErrors)
+		apiErr := emcoerror.HandleAPIError(err)
 		http.Error(w, apiErr.Message, apiErr.Status)
 	}
 

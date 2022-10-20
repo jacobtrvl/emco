@@ -7,10 +7,10 @@ import (
 	"context"
 	"fmt"
 
+	"gitlab.com/project-emco/core/emco-base/src/orchestrator/common/emcoerror"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
 	"go.temporal.io/sdk/client"
 
-	"github.com/pkg/errors"
 	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 	"gitlab.com/project-emco/core/emco-base/src/tac/pkg/model"
 	wfMod "gitlab.com/project-emco/core/emco-base/src/workflowmgr/pkg/module"
@@ -18,7 +18,11 @@ import (
 	history "go.temporal.io/api/history/v1"
 )
 
-// WfhClientSpec is the network endpoint at which the
+// universal error constants
+const (
+	dbByteError    string = "Error reading from the database."
+	intentNotFound string = "Requested workflow intent could not be found."
+)
 
 // WorkflowIntentClient implements the Manager
 // It will also be used to maintain some localized state
@@ -66,7 +70,10 @@ func (v *WorkflowIntentClient) CreateWorkflowHookIntent(ctx context.Context, wfh
 	//Check if this WorkflowHook already exists
 	_, err := v.GetWorkflowHookIntent(ctx, wfh.Metadata.Name, project, cApp, cAppVer, dig)
 	if err == nil && !exists {
-		return model.WorkflowHookIntent{}, errors.New("workflow Hook Intent Already exists")
+		return model.WorkflowHookIntent{}, &emcoerror.Error{
+			Message: "Intent already exists.",
+			Reason:  emcoerror.Conflict,
+		}
 	}
 
 	// if it doesn't exist already insert it into the db
@@ -97,12 +104,18 @@ func (v *WorkflowIntentClient) GetWorkflowHookIntent(ctx context.Context, name, 
 		return model.WorkflowHookIntent{}, err
 	} else if len(value) == 0 {
 		// if it dne then return a nil
-		return model.WorkflowHookIntent{}, errors.New("Workflow Hook not found")
+		return model.WorkflowHookIntent{}, &emcoerror.Error{
+			Message: intentNotFound,
+			Reason:  emcoerror.NotFound,
+		}
 	}
 
 	//value is a byte array
 	if value == nil {
-		return model.WorkflowHookIntent{}, errors.New("Unknown Error")
+		return model.WorkflowHookIntent{}, &emcoerror.Error{
+			Message: dbByteError,
+			Reason:  emcoerror.Unknown,
+		}
 	}
 
 	wfh := model.WorkflowHookIntent{}
@@ -182,7 +195,10 @@ func (v *WorkflowIntentClient) GetStatusWorkflowIntent(ctx context.Context, name
 		log.Error(wrapErr.Error(), log.Fields{"project": project,
 			"composite app": cApp, "composite app version": cAppVer, "DIG": dig,
 			"intent name": name, "query": query})
-		return &resp, wrapErr
+		return &resp, &emcoerror.Error{
+			Message: wrapErr.Error(),
+			Reason:  emcoerror.RequestTimeout,
+		}
 	}
 
 	wfCtx := context.Background() // TODO include query options later
@@ -224,7 +240,10 @@ func (v *WorkflowIntentClient) GetStatusWorkflowIntent(ctx context.Context, name
 				log.Error("c.GetWorkflowHistory error", log.Fields{"project": project,
 					"composite app": cApp, "composite app version": cAppVer, "DIG": dig,
 					"intent name": name, "query": query, "error": err.Error()})
-				return &resp, err
+				return &resp, &emcoerror.Error{
+					Message: err.Error(),
+					Reason:  emcoerror.Unknown,
+				}
 			}
 			resp.WfHistory = append(resp.WfHistory, *event)
 		}
@@ -256,7 +275,10 @@ func (v *WorkflowIntentClient) GetStatusWorkflowIntent(ctx context.Context, name
 			log.Error(wrapErr.Error(), log.Fields{"project": project,
 				"composite app": cApp, "composite app version": cAppVer, "DIG": dig,
 				"intent name": name, "query": query})
-			return &resp, wrapErr
+			return &resp, &emcoerror.Error{
+				Message: wrapErr.Error(),
+				Reason:  emcoerror.RequestTimeout,
+			}
 		}
 		// type of response: *QueryWorkflowWithOptionsResponse
 		// TODO handle response.QueryRejected (reason why query was rejected, if any
@@ -265,7 +287,10 @@ func (v *WorkflowIntentClient) GetStatusWorkflowIntent(ctx context.Context, name
 			log.Error(wrapErr.Error(), log.Fields{"project": project,
 				"composite app": cApp, "composite app version": cAppVer, "DIG": dig,
 				"intent name": name, "query": query})
-			return &resp, wrapErr
+			return &resp, &emcoerror.Error{
+				Message: wrapErr.Error(),
+				Reason:  emcoerror.NotFound,
+			}
 		}
 
 		err = response.QueryResult.Get(&resp.WfQueryResult)
@@ -275,7 +300,10 @@ func (v *WorkflowIntentClient) GetStatusWorkflowIntent(ctx context.Context, name
 			log.Error(wrapErr.Error(), log.Fields{"project": project,
 				"composite app": cApp, "composite app version": cAppVer, "DIG": dig,
 				"intent name": name, "query": query})
-			return &resp, wrapErr
+			return &resp, &emcoerror.Error{
+				Message: wrapErr.Error(),
+				Reason:  emcoerror.RequestTimeout,
+			}
 		}
 		log.Info("Query got result", log.Fields{"project": project,
 			"composite app": cApp, "composite app version": cAppVer, "DIG": dig,
@@ -322,14 +350,20 @@ func (v *WorkflowIntentClient) CancelWorkflowIntent(ctx context.Context, name, p
 				"composite app version": cAppVer, "DIG": dig,
 				"intent name": name, "error": err,
 			})
-		return err
+		return &emcoerror.Error{
+			Message: err.Error(),
+			Reason:  emcoerror.Unknown,
+		}
 	} else if len(value) == 0 {
 		log.Error("CancelWorkflowHookIntent: Intent not found",
 			log.Fields{"project": project, "composite app": cApp,
 				"composite app version": cAppVer, "DIG": dig,
 				"intent name": name, "error": err,
 			})
-		return errors.New("Workflow Intent Hook not found")
+		return &emcoerror.Error{
+			Message: "Requested intent to cancel cannot be found.",
+			Reason:  emcoerror.NotFound,
+		}
 	}
 
 	//value is a byte array
@@ -339,7 +373,10 @@ func (v *WorkflowIntentClient) CancelWorkflowIntent(ctx context.Context, name, p
 				"composite app version": cAppVer, "DIG": dig,
 				"intent name": name, "error": err,
 			})
-		return errors.New("Unknown Error")
+		return &emcoerror.Error{
+			Message: "Requested intent value is invalid.",
+			Reason:  emcoerror.BadRequest,
+		}
 	}
 
 	wfh := model.WorkflowHookIntent{}
@@ -349,7 +386,10 @@ func (v *WorkflowIntentClient) CancelWorkflowIntent(ctx context.Context, name, p
 				"composite app version": cAppVer, "DIG": dig,
 				"intent name": name, "error": err,
 			})
-		return err
+		return &emcoerror.Error{
+			Message: err.Error(),
+			Reason:  emcoerror.UnprocessableEntity,
+		}
 	}
 
 	spec := req.Spec
@@ -368,7 +408,10 @@ func (v *WorkflowIntentClient) CancelWorkflowIntent(ctx context.Context, name, p
 		log.Error(wrapErr.Error(), log.Fields{"project": project,
 			"composite app": cApp, "composite app version": cAppVer, "DIG": dig,
 			"intent name": name, "cancel request": req})
-		return wrapErr
+		return &emcoerror.Error{
+			Message: wrapErr.Error(),
+			Reason:  emcoerror.RequestTimeout,
+		}
 	}
 
 	wfCtx := context.Background() // TODO include options later
@@ -385,7 +428,10 @@ func (v *WorkflowIntentClient) CancelWorkflowIntent(ctx context.Context, name, p
 	}
 
 	// Caller logs the error
-	return err
+	return &emcoerror.Error{
+		Message: err.Error(),
+		Reason:  emcoerror.Unknown,
+	}
 }
 
 // get all of the hooks of a specific kind (ie pre-install, post-install, pre-delete, etc.)
@@ -394,7 +440,10 @@ func (v *WorkflowIntentClient) GetSpecificHooks(ctx context.Context, project, cA
 	// Get all workflow hook intents, and grab only the pre-install hooks
 	hooks, err := v.GetWorkflowHookIntents(ctx, project, cApp, cAppVer, dig)
 	if err != nil {
-		return []model.WorkflowHookIntent{}, err
+		return []model.WorkflowHookIntent{}, &emcoerror.Error{
+			Message: err.Error(),
+			Reason:  emcoerror.Unknown,
+		}
 	}
 
 	var pre []model.WorkflowHookIntent

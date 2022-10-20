@@ -6,7 +6,7 @@ package module
 import (
 	"context"
 
-	"github.com/pkg/errors"
+	"gitlab.com/project-emco/core/emco-base/src/orchestrator/common/emcoerror"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
 	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 	"gitlab.com/project-emco/core/emco-base/src/tac/pkg/model"
@@ -17,6 +17,11 @@ import (
 type WorkerIntentClient struct {
 	db db.DbInfo
 }
+
+// error message constants for worker
+const (
+	workerNotFound string = "Requested worker does not exist."
+)
 
 func NewWorkerIntentClient() *WorkerIntentClient {
 	return &WorkerIntentClient{
@@ -53,7 +58,10 @@ func (v *WorkerIntentClient) CreateOrUpdateWorkerIntent(wi model.WorkerIntent, t
 	// check to see if this Worker already exists.
 	_, err := v.GetWorkerIntent(wi.Metadata.Name, project, cApp, cAppVer, dig, tac)
 	if err == nil && !exists {
-		return model.WorkerIntent{}, errors.New("This worker already exists.")
+		return model.WorkerIntent{}, &emcoerror.Error{
+			Message: "Worker already exists.",
+			Reason:  emcoerror.Conflict,
+		}
 	}
 
 	// if it doesn't exist put it in db
@@ -87,12 +95,18 @@ func (v WorkerIntentClient) GetWorkerIntent(workerName, project, cApp, cAppVer, 
 		return model.WorkerIntent{}, err
 	} else if len(value) == 0 {
 		// if it dne then return nil
-		return model.WorkerIntent{}, errors.New("Worker Not Found")
+		return model.WorkerIntent{}, &emcoerror.Error{
+			Message: workerNotFound,
+			Reason:  emcoerror.NotFound,
+		}
 	}
 
 	// value needs to be a byte array
 	if value == nil {
-		return model.WorkerIntent{}, errors.New("Unknown Error")
+		return model.WorkerIntent{}, &emcoerror.Error{
+			Message: dbByteError,
+			Reason:  emcoerror.Unknown,
+		}
 	}
 
 	wi := model.WorkerIntent{}
