@@ -6,11 +6,13 @@ package utils
 import (
 	"crypto/aes"
 	"crypto/cipher"
+	"crypto/rand"
 	"encoding/hex"
 	"os"
 	"reflect"
 	"strings"
 
+	pkgerrors "github.com/pkg/errors"
 	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 )
 
@@ -22,8 +24,7 @@ type IObjectEncryptor interface {
 }
 
 type MyObjectEncryptor struct {
-	gcm   cipher.AEAD
-	nonce []byte
+	block cipher.Block
 }
 
 var gobjencs = make(map[string]IObjectEncryptor)
@@ -32,7 +33,7 @@ func GetObjectEncryptor(provider string) IObjectEncryptor {
 	if gobjencs[provider] == nil {
 		envkey := strings.ToUpper(provider) + "_DATA_KEY"
 		if len(os.Getenv(envkey)) > 0 {
-			oe, err := createObjectEncryptor([]byte(os.Getenv(envkey)), []byte("emco nonce"))
+			oe, err := createObjectEncryptor([]byte(os.Getenv(envkey)))
 			if err != nil {
 				log.Error("Create Object Encryptor error :: ", log.Fields{"Error": err})
 				return nil
@@ -46,10 +47,9 @@ func GetObjectEncryptor(provider string) IObjectEncryptor {
 	return gobjencs[provider]
 }
 
-func createObjectEncryptor(key []byte, nonce []byte) (IObjectEncryptor, error) {
-	// Format key and nonce
+func createObjectEncryptor(key []byte) (IObjectEncryptor, error) {
+	// Format key
 	nkey := make([]byte, 32)
-	nnonce := make([]byte, 12)
 	for i := 0; i < 32; i++ {
 		if i < len(key) {
 			nkey[i] = key[i]
@@ -58,25 +58,12 @@ func createObjectEncryptor(key []byte, nonce []byte) (IObjectEncryptor, error) {
 		}
 	}
 
-	for i := 0; i < 12; i++ {
-		if i < len(nonce) {
-			nnonce[i] = nonce[i]
-		} else {
-			nnonce[i] = 10
-		}
-	}
-
 	block, err := aes.NewCipher(nkey)
 	if err != nil {
 		return nil, err
 	}
 
-	aesgcm, err := cipher.NewGCM(block)
-	if err != nil {
-		return nil, err
-	}
-
-	return &MyObjectEncryptor{aesgcm, nnonce}, nil
+	return &MyObjectEncryptor{block}, nil
 }
 
 func (c *MyObjectEncryptor) EncryptObject(o interface{}) (interface{}, error) {
@@ -88,23 +75,45 @@ func (c *MyObjectEncryptor) DecryptObject(o interface{}) (interface{}, error) {
 }
 
 func (c *MyObjectEncryptor) EncryptString(message string) (string, error) {
-	ciphermessage := c.gcm.Seal(nil, c.nonce, []byte(message), nil)
-	return hex.EncodeToString(ciphermessage), nil
+	plaintext := []byte(message)
+	aead, err := cipher.NewGCM(c.block)
+	if err != nil {
+		return "", err
+	}
+	// Prepend the nonce to the returned data as it is required during decryption
+	nonceSize := aead.NonceSize()
+	dst := make([]byte, nonceSize+len(plaintext)+aead.Overhead())
+	n, err := rand.Read(dst[:nonceSize])
+	if err != nil {
+		return "", err
+	}
+	if n != nonceSize {
+		return "", pkgerrors.Errorf("Need %d random bytes for nonce but only got %d bytes", nonceSize, n)
+	}
+	// dst[nonceSize:nonceSize] is to reuse dst's storage for the encrypted output
+	ciphertext := aead.Seal(dst[nonceSize:nonceSize], dst[:nonceSize], plaintext, nil)
+	return hex.EncodeToString(dst[:nonceSize+len(ciphertext)]), nil
 }
 
 func (c *MyObjectEncryptor) DecryptString(ciphermessage string) (string, error) {
-	cm, err := hex.DecodeString(ciphermessage)
+	src, err := hex.DecodeString(ciphermessage)
 	if err != nil {
 		return "", err
 	}
-
-	message, err := c.gcm.Open(nil, c.nonce, cm, nil)
-
+	aead, err := cipher.NewGCM(c.block)
 	if err != nil {
 		return "", err
 	}
-
-	return string(message), nil
+	// The nonce is contained at the beginning of the data
+	nonceSize := aead.NonceSize()
+	if len(src) < nonceSize {
+		return "", pkgerrors.Errorf("Data must include nonce")
+	}
+	plaintext, err := aead.Open(nil, src[:nonceSize], src[nonceSize:], nil)
+	if err != nil {
+		return "", err
+	}
+	return string(plaintext), nil
 }
 
 func (c *MyObjectEncryptor) processObject(o interface{}, encrypt bool, oper func(string) (string, error)) (interface{}, error) {
