@@ -17,8 +17,8 @@ import (
 )
 
 type Encryptor interface {
-	Encrypt(data []byte) ([]byte, error)
-	Decrypt(data []byte) ([]byte, error)
+	Encrypt(data, additionalData []byte) ([]byte, error)
+	Decrypt(data, additionalData []byte) ([]byte, error)
 }
 
 type AESGCMEncryptor struct {
@@ -35,7 +35,7 @@ func NewAESGCMEncryptor(key []byte) (*AESGCMEncryptor, error) {
 	}, nil
 }
 
-func (e *AESGCMEncryptor) Encrypt(data []byte) ([]byte, error) {
+func (e *AESGCMEncryptor) Encrypt(data, additionalData []byte) ([]byte, error) {
 	aead, err := cipher.NewGCM(e.block)
 	if err != nil {
 		return nil, err
@@ -51,10 +51,11 @@ func (e *AESGCMEncryptor) Encrypt(data []byte) ([]byte, error) {
 		return nil, pkgerrors.Errorf("Need %d random bytes for nonce but only got %d bytes", nonceSize, n)
 	}
 	// dst[nonceSize:nonceSize] is to reuse dst's storage for the encrypted output
-	return aead.Seal(dst[nonceSize:nonceSize], dst[:nonceSize], data, nil), nil
+	ciphertext := aead.Seal(dst[nonceSize:nonceSize], dst[:nonceSize], data, additionalData)
+	return dst[:nonceSize+len(ciphertext)], nil
 }
 
-func (e *AESGCMEncryptor) Decrypt(data []byte) ([]byte, error) {
+func (e *AESGCMEncryptor) Decrypt(data, additionalData []byte) ([]byte, error) {
 	aead, err := cipher.NewGCM(e.block)
 	if err != nil {
 		return nil, err
@@ -64,7 +65,7 @@ func (e *AESGCMEncryptor) Decrypt(data []byte) ([]byte, error) {
 	if len(data) < nonceSize {
 		return nil, pkgerrors.Errorf("Data must include nonce")
 	}
-	return aead.Open(nil, data[:nonceSize], data[nonceSize:], nil)
+	return aead.Open(nil, data[:nonceSize], data[nonceSize:], additionalData)
 }
 
 type IObjectEncryptor interface {
@@ -119,7 +120,7 @@ func (c *MyObjectEncryptor) DecryptObject(o interface{}) (interface{}, error) {
 }
 
 func (c *MyObjectEncryptor) EncryptString(message string) (string, error) {
-	ciphermessage, err := c.provider.Encrypt([]byte(message))
+	ciphermessage, err := c.provider.Encrypt([]byte(message), nil)
 	if err != nil {
 		return "", err
 	}
@@ -131,7 +132,7 @@ func (c *MyObjectEncryptor) DecryptString(ciphermessage string) (string, error) 
 	if err != nil {
 		return "", err
 	}
-	message, err := c.provider.Decrypt(cm)
+	message, err := c.provider.Decrypt(cm, nil)
 	if err != nil {
 		return "", err
 	}
