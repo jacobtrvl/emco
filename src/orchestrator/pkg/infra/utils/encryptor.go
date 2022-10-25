@@ -36,7 +36,7 @@ type Key struct {
 	Secret string `json:"secret"`
 }
 
-func readConfigFile(name string) (*EncryptorConfiguration, error) {
+func BuildEncryptorFromFile(name string) (Encryptor, error) {
 	f, err := os.Open(name)
 	if err != nil {
 		return nil, err
@@ -49,7 +49,12 @@ func readConfigFile(name string) (*EncryptorConfiguration, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &config, nil
+
+	encryptor, err := BuildEncryptor(&config)
+	if err != nil {
+		return nil, err
+	}
+	return encryptor, nil
 }
 
 func BuildEncryptor(config *EncryptorConfiguration) (Encryptor, error) {
@@ -76,6 +81,20 @@ func BuildEncryptor(config *EncryptorConfiguration) (Encryptor, error) {
 type Encryptor interface {
 	Encrypt(data, additionalData []byte) ([]byte, error)
 	Decrypt(data, additionalData []byte) ([]byte, error)
+}
+
+type IdentityEncryptor struct{}
+
+func NewIdentityEncryptor() *IdentityEncryptor {
+	return &IdentityEncryptor{}
+}
+
+func (e *IdentityEncryptor) Encrypt(data, additionalData []byte) ([]byte, error) {
+	return data, nil
+}
+
+func (e *IdentityEncryptor) Decrypt(data, additionalData []byte) ([]byte, error) {
+	return data, nil
 }
 
 var encryptorPrefix = "emco:enc:"
@@ -313,18 +332,13 @@ func GetObjectEncryptor(provider string) IObjectEncryptor {
 		// Default is no encryption
 		var objenc IObjectEncryptor = &identityObjectEncryptor
 
-		name := fmt.Sprintf("encryptor/%s.json", provider)
-		config, err := readConfigFile(name)
+		name := fmt.Sprintf("encryptor/%s/config.json", provider)
+		encryptor, err := BuildEncryptorFromFile(name)
 		if err != nil {
-			log.Warn("Read encryptor configuration error :: ", log.Fields{"Error": err})
+			log.Warn("Build encryptor error :: ", log.Fields{"Error": err})
 		} else {
-			encryptor, err := BuildEncryptor(config)
-			if err != nil {
-				log.Warn("Build encryptor error :: ", log.Fields{"Error": err})
-			} else {
-				objenc = &MyObjectEncryptor{
-					encryptor,
-				}
+			objenc = &MyObjectEncryptor{
+				encryptor,
 			}
 		}
 

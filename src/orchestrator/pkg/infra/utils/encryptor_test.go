@@ -6,26 +6,12 @@ package utils
 import (
 	"bytes"
 	"encoding/json"
-	"os"
 	"testing"
 )
 
 func TestConfiguration(t *testing.T) {
 	t.Run("Build encryptor from configuration file", func(t *testing.T) {
-		f, err := os.Open("../../../tests/configs/mock_encryptor_config.json")
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer f.Close()
-
-		var config EncryptorConfiguration
-		decoder := json.NewDecoder(f)
-		err = decoder.Decode(&config)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		_, err = BuildEncryptor(&config)
+		_, err := BuildEncryptorFromFile("../../../tests/configs/mock_encryptor_config.json")
 		if err != nil {
 			t.Fatal(err)
 		}

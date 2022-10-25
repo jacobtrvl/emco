@@ -118,8 +118,13 @@ spec:
             name: {{ include "common.name" .}}
             subPath: config.json
           {{- if (and (eq (empty .Values.global.enableMongoSecret) false) (eq (empty .Values.mountMongoSecret) false)) }}
-          - mountPath: {{ .Values.workingDir }}/encryptor
-            name: encryptor-config
+          - mountPath: {{ .Values.workingDir }}/encryptor/mongo
+            name: encryptor-mongo-config
+            readOnly: true
+          {{- end}}
+          {{- if (eq (empty .Values.global.enableEtcdSecret) false) }}
+          - mountPath: {{ .Values.workingDir }}/encryptor/etcd
+            name: encryptor-etcd-config
             readOnly: true
           {{- end}}
         resources:
@@ -140,9 +145,14 @@ spec:
         configMap:
           name: {{ include "common.fullname" . }}
       {{- if (and (eq (empty .Values.global.enableMongoSecret) false) (eq (empty .Values.mountMongoSecret) false)) }}
-      - name: encryptor-config
+      - name: encryptor-mongo-config
         secret:
           secretName: mongo-data-secret
+      {{- end}}
+      {{- if (eq (empty .Values.global.enableEtcdSecret) false) }}
+      - name: encryptor-etcd-config
+        secret:
+          secretName: etcd-data-secret
       {{- end}}
       imagePullSecrets:
       - name: "{{ include "common.namespace" . }}-docker-registry-key"

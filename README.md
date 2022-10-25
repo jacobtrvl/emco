@@ -85,6 +85,11 @@ Release `22.06` introduces an optional database encryption feature, which is not
 - `--set global.enableMongoSecret=true`  Enable the encryption feature
 - `--set global.db.dataSecret=<secret value>` (optionally) set the value for the secret which is used to generate the key.  If not provided, helm will autogenerate a key.
 
+Release `22.12` introduces an optional context database encryption feature, which is not enabled by default.  To enable it, set the following flags to the `helm install` command:
+
+- `--set global.enableEtcdSecret=true`  Enable the encryption feature
+- `--set global.contextdb.dataSecret=<secret value>` (optionally) set the value for the secret which is used to generate the key.  If not provided, helm will autogenerate a key.
+
 Installation should take a handful of minutes to complete, as the multiple pods will be brought up, including etcd and mongo, and initialization takes place.
 The temporary restarts and probe failures you may witness are expected and relate to the initialization of mongo, etcd, and instantiating the [Referential Integrity](docs/developer/ReferentialIntegrity.md) schema.
 

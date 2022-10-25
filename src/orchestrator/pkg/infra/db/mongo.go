@@ -498,7 +498,7 @@ func (m *MongoStore) Unmarshal(inp []byte, out interface{}) error {
 	}
 
 	// Decrypt data if required
-	oe := utils.GetObjectEncryptor("emco")
+	oe := utils.GetObjectEncryptor("mongo")
 	if oe != nil {
 		_, err := oe.DecryptObject(out)
 		if err != nil {
@@ -653,7 +653,7 @@ func (m *MongoStore) Insert(ctx context.Context, coll string, key Key, query int
 	}
 
 	// Encrypt data if required
-	oe := utils.GetObjectEncryptor("emco")
+	oe := utils.GetObjectEncryptor("mongo")
 	if oe != nil {
 		var edata interface{}
 		if reflect.TypeOf(data).Kind() == reflect.Ptr {

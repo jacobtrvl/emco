@@ -11,6 +11,7 @@ import (
 	"time"
 
 	pkgerrors "github.com/pkg/errors"
+	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/utils"
 	"go.etcd.io/etcd/clientv3"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"google.golang.org/grpc"
@@ -26,8 +27,9 @@ type EtcdConfig struct {
 
 // EtcdClient for Etcd
 type EtcdClient struct {
-	cli      *clientv3.Client
-	endpoint string
+	cli       *clientv3.Client
+	endpoint  string
+	encryptor utils.Encryptor
 }
 
 // Etcd For Mocking purposes
@@ -67,9 +69,15 @@ func NewEtcdClient(store *clientv3.Client, c EtcdConfig) (ContextDb, error) {
 		}
 	}
 
+	encryptor, err := utils.BuildEncryptorFromFile("encryptor/etcd/config.json")
+	if err != nil {
+		encryptor = utils.NewIdentityEncryptor()
+	}
+
 	return &EtcdClient{
-		cli:      store,
-		endpoint: endpoint,
+		cli:       store,
+		endpoint:  endpoint,
+		encryptor: encryptor,
 	}, nil
 }
 
@@ -88,6 +96,10 @@ func (e *EtcdClient) Put(ctx context.Context, key string, value interface{}) err
 	v, err := json.Marshal(value)
 	if err != nil {
 		return pkgerrors.Errorf("Json Marshal error: %s", err.Error())
+	}
+	v, err = e.encryptor.Encrypt(v, []byte(key))
+	if err != nil {
+		return pkgerrors.Errorf("Encryption failed: %s", err.Error())
 	}
 	_, err = cli.Put(ctx, key, string(v))
 	if err != nil {
@@ -115,7 +127,11 @@ func (e *EtcdClient) Get(ctx context.Context, key string, value interface{}) err
 	if getResp.Count == 0 {
 		return pkgerrors.Errorf("Key doesn't exist")
 	}
-	return json.Unmarshal(getResp.Kvs[0].Value, value)
+	v, err := e.encryptor.Decrypt(getResp.Kvs[0].Value, []byte(key))
+	if err != nil {
+		return pkgerrors.Errorf("Decryption failed: %s", err.Error())
+	}
+	return json.Unmarshal(v, value)
 }
 
 // GetAllKeys values from Etcd DB
@@ -184,6 +200,10 @@ func (e *EtcdClient) PutWithCheck(ctx context.Context, key string, value interfa
 	v, err := json.Marshal(value)
 	if err != nil {
 		return pkgerrors.Errorf("Json Marshal error: %s", err.Error())
+	}
+	v, err = e.encryptor.Encrypt(v, []byte(key))
+	if err != nil {
+		return pkgerrors.Errorf("Encryption failed: %s", err.Error())
 	}
 	opts := []clientv3.OpOption{}
 	opts = append(opts, clientv3.WithPrevKV())
