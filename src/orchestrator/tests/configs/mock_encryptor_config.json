@@ -1,0 +1,12 @@
+{
+    "providers": [
+	{
+	    "aesgcm": {
+		"keys": [
+		    { "name": "key1", "secret": "c2VjcmV0IGlzIHNlY3VyZQ==" },
+		    { "name": "key2", "secret": "dGhpcyBpcyBwYXNzd29yZA==" }
+		]
+	    }
+	}
+    ]
+}

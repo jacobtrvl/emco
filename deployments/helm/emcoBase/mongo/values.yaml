@@ -27,7 +27,6 @@ global:
   securityContext:
     privileged: false
 
-
 #################################################################
 # Application configuration defaults.
 #################################################################

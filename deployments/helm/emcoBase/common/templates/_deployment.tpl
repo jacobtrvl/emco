@@ -58,13 +58,6 @@ spec:
         - name: https_proxy
           value: {{ .Values.httpsProxy }}
         {{- end}}
-        {{- if (and (eq (empty .Values.global.enableMongoSecret) false) (eq (empty .Values.mountMongoSecret) false)) }}
-        - name: EMCO_DATA_KEY
-          valueFrom:
-            secretKeyRef:
-              name: mongo-data-secret
-              key: key
-        {{- end}}
         {{- if eq (empty .Values.global.disableDbAuth) true }}
         - name: DB_EMCO_USERNAME
           value: emco
@@ -124,6 +117,11 @@ spec:
           - mountPath: {{ .Values.workingDir }}/config.json
             name: {{ include "common.name" .}}
             subPath: config.json
+          {{- if (and (eq (empty .Values.global.enableMongoSecret) false) (eq (empty .Values.mountMongoSecret) false)) }}
+          - mountPath: {{ .Values.workingDir }}/encryptor
+            name: encryptor-config
+            readOnly: true
+          {{- end}}
         resources:
 {{ include "common.resources" .  }}
         {{- if .Values.nodeSelector }}
@@ -138,9 +136,14 @@ spec:
       - name: localtime
         hostPath:
           path: /etc/localtime
-      - name : {{ include "common.name" . }}
+      - name: {{ include "common.name" . }}
         configMap:
           name: {{ include "common.fullname" . }}
+      {{- if (and (eq (empty .Values.global.enableMongoSecret) false) (eq (empty .Values.mountMongoSecret) false)) }}
+      - name: encryptor-config
+        secret:
+          secretName: mongo-data-secret
+      {{- end}}
       imagePullSecrets:
       - name: "{{ include "common.namespace" . }}-docker-registry-key"
 {{- end -}}
