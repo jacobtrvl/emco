@@ -586,7 +586,7 @@ func (c *Context) runCluster(ctx context.Context, op RsyncOperation, e RsyncEven
 				return err
 			}
 			// Delete Status tracking, will be added after the main resources are added
-			r.deleteStatusTracker(ctx, status.PreInstallHookLabel, namespace)
+			//			r.deleteStatusTracker(ctx, status.PreInstallHookLabel, namespace)
 			log.Info("Done Installing preinstall hooks", log.Fields{"App": app, "cluster": cluster, "hooks": c.ca.Apps[app].Clusters[cluster].Dependency["pre-install"]})
 		}
 		// Install main resources without wait

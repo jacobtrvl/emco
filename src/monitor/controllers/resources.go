@@ -5,6 +5,8 @@ package controllers
 
 import (
 	"fmt"
+	"log"
+
 	k8spluginv1alpha1 "gitlab.com/project-emco/core/emco-base/src/monitor/pkg/apis/k8splugin/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
@@ -235,6 +237,7 @@ func JobUpdateStatus(cr *k8spluginv1alpha1.ResourceBundleState, obj *unstructure
 	unstructured := obj.UnstructuredContent()
 	err := runtime.DefaultUnstructuredConverter.FromUnstructured(unstructured, &job)
 	if err != nil {
+		log.Println("JOB update error %v", obj)
 		return found, fmt.Errorf("Unknown resource %v", obj)
 	}
 	// Update status after searching for it in the list of resourceStatuses
@@ -243,6 +246,7 @@ func JobUpdateStatus(cr *k8spluginv1alpha1.ResourceBundleState, obj *unstructure
 		if rstatus.Name == job.Name {
 			job.Status.DeepCopyInto(&cr.Status.JobStatuses[i].Status)
 			found = true
+			log.Println("JOB found name %v", job.Name)
 			break
 		}
 	}
@@ -254,6 +258,7 @@ func JobUpdateStatus(cr *k8spluginv1alpha1.ResourceBundleState, obj *unstructure
 			Spec:       job.Spec,
 			Status:     job.Status,
 		}
+		log.Println("JOB not found name %v", job.Name)
 		c.ObjectMeta.ManagedFields = []metav1.ManagedFieldsEntry{}
 		c.Annotations = ClearLastApplied(c.Annotations)
 		cr.Status.JobStatuses = append(cr.Status.JobStatuses, c)

@@ -7,6 +7,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
+
 	k8spluginv1alpha1 "gitlab.com/project-emco/core/emco-base/src/monitor/pkg/apis/k8splugin/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -14,7 +16,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
-	"log"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -85,7 +86,7 @@ func GetCRForResource(cli client.Client, item *unstructured.Unstructured, namesp
 	if namespace == "" {
 		namespaced.Namespace = "default"
 	} else {
-		namespaced.Namespace = namespace
+		namespaced.Namespace = "default"
 	}
 	err := cli.Get(context.TODO(), namespaced, rbStatus)
 	if err != nil {
