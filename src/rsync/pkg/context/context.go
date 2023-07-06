@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/appcontext"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/config"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 	"gitlab.com/project-emco/core/emco-base/src/rsync/pkg/connector"
@@ -41,6 +42,8 @@ type Context struct {
 	waitTime int
 	// Structure to hold CompositeApp Information
 	ca CompositeApp
+	// Data of the application
+	meta appcontext.CompositeAppMeta
 	// To manage dependency
 	dm *depend.DependManager
 	// Keep track for scheduled monitor CR delete functions
@@ -118,7 +121,6 @@ func (c *Context) EnqueueToAppContext(ctx context.Context, a interface{}, ucid i
 	return nil
 }
 
-//
 func (c *Context) StopDeleteStatusCRTimer(key string) {
 	// Acquire Mutex
 	c.Lock.Lock()

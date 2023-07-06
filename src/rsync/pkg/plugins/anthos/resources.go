@@ -75,7 +75,7 @@ func (p *AnthosProvider) IsReachable() error {
 	return nil
 }
 
-func (m *AnthosProvider) TagResource(res []byte, label string) ([]byte, error) {
+func (m *AnthosProvider) TagResource(res []byte, label map[string]string) ([]byte, error) {
 	b, err := status.TagResource(res, label)
 	if err != nil {
 		log.Error("Error Tag Resource with label:", log.Fields{"err": err, "label": label, "resource": res})

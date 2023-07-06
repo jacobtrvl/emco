@@ -4,9 +4,12 @@
 package api
 
 import (
+	"net/http"
+
 	"github.com/gorilla/mux"
+
 	moduleLib "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/module"
-	controller "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/module/controller"
+	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/module/controller"
 )
 
 var moduleClient *moduleLib.Client
@@ -206,6 +209,7 @@ func NewRouter(projectClient moduleLib.ProjectManager,
 		client: instantiationClient,
 	}
 
+	v2Router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/clone", updateHandler.cloneDeploymentIntentGroup).Methods("POST")
 	v2Router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/migrate", updateHandler.migrateHandler).Methods("POST")
 	v2Router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/update", updateHandler.updateHandler).Methods("POST")
 	v2Router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/deployment-intent-groups/{deploymentIntentGroup}/rollback", updateHandler.rollbackHandler).Methods("POST")
@@ -222,6 +226,22 @@ func NewRouter(projectClient moduleLib.ProjectManager,
 	v2Router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/apps/{app}/dependency/{dependency}", appDependencyHandler.updateAppDependencyHandler).Methods("PUT")
 	v2Router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/apps/{app}/dependency", appDependencyHandler.getAllAppDependencyHandler).Methods("GET")
 	v2Router.HandleFunc("/projects/{project}/composite-apps/{compositeApp}/{compositeAppVersion}/apps/{app}/dependency/{dependency}", appDependencyHandler.deleteappDependencyHandler).Methods("DELETE")
+
+	serviceHandler := serviceHandler{
+		client: moduleClient.Service,
+	}
+
+	v2Router.HandleFunc("/projects/{project}/services", serviceHandler.createServiceHandler).Methods(http.MethodPost)
+	v2Router.HandleFunc("/projects/{project}/services", serviceHandler.getAllServicesHandler).Methods(http.MethodGet)
+	v2Router.HandleFunc("/projects/{project}/services/{service}", serviceHandler.getServiceHandler).Methods(http.MethodGet)
+	v2Router.HandleFunc("/projects/{project}/services/{service}", serviceHandler.updateServiceHandler).Methods(http.MethodPut)
+	v2Router.HandleFunc("/projects/{project}/services/{service}", serviceHandler.deleteServiceHandler).Methods(http.MethodDelete)
+	v2Router.HandleFunc("/projects/{project}/services/{service}/update", serviceHandler.updateServiceDIGsHandler).Methods(http.MethodPost)
+	v2Router.HandleFunc("/projects/{project}/services/{service}/instantiate", serviceHandler.instantiateServiceHandler).Methods(http.MethodPost)
+	v2Router.HandleFunc("/projects/{project}/services/{service}/terminate", serviceHandler.terminateServiceHandler).Methods(http.MethodPost)
+	v2Router.HandleFunc("/projects/{project}/services/{service}/instantiate-apps", serviceHandler.instantiateServiceDIGsHandler).Methods(http.MethodPost)
+	v2Router.HandleFunc("/projects/{project}/services/{service}/terminate-apps", serviceHandler.terminateServiceDIGsHandler).Methods(http.MethodPost)
+	v2Router.HandleFunc("/projects/{project}/services/{service}/status", serviceHandler.serviceStatusHandler).Methods(http.MethodGet)
 
 	return router
 }

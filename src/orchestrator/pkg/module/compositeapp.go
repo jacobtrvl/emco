@@ -29,6 +29,7 @@ type CompositeAppMetaData struct {
 //CompositeAppSpec contains the Version of the CompositeApp
 type CompositeAppSpec struct {
 	Version string `json:"compositeAppVersion"`
+	Id      string `json:"id"`
 }
 
 // CompositeAppKey is the key structure that is used in the database

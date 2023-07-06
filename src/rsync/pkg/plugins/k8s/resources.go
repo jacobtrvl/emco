@@ -85,7 +85,7 @@ func (p *K8sProvider) IsReachable() error {
 	return p.client.IsReachable()
 }
 
-func (m *K8sProvider) TagResource(res []byte, label string) ([]byte, error) {
+func (m *K8sProvider) TagResource(res []byte, label map[string]string) ([]byte, error) {
 	b, err := status.TagResource(res, label)
 	if err != nil {
 		log.Error("Error Tag Resoruce with label:", log.Fields{"err": err, "label": label, "resource": res})

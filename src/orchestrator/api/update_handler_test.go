@@ -14,9 +14,9 @@ import (
 	moduleLib "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/module"
 )
 
-//Creating an embedded interface via anonymous variable
-//This allows us to make mockDB satisfy the DatabaseConnection
-//interface even if we are not implementing all the methods in it
+// Creating an embedded interface via anonymous variable
+// This allows us to make mockDB satisfy the DatabaseConnection
+// interface even if we are not implementing all the methods in it
 type mockInstantiationManager struct {
 	// Items and err will be used to customize each test
 	// via a localized instantiation of mockInstantiationManager
@@ -46,6 +46,14 @@ func (m mockInstantiationManager) Rollback(ctx context.Context, p string, ca str
 	}
 
 	return nil
+}
+
+func (m mockInstantiationManager) CloneDig(ctx context.Context, p, ca, v, di string, cloneSpec *moduleLib.CloneJson) ([]moduleLib.DeploymentIntentGroup, error) {
+	if m.Err != nil {
+		return nil, m.Err
+	}
+
+	return nil, nil
 }
 
 func init() {

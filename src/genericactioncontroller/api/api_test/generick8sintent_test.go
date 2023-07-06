@@ -11,7 +11,6 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
-	"strings"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
@@ -19,7 +18,6 @@ import (
 	"github.com/pkg/errors"
 	"gitlab.com/project-emco/core/emco-base/src/genericactioncontroller/api"
 	"gitlab.com/project-emco/core/emco-base/src/genericactioncontroller/pkg/module"
-	"gitlab.com/project-emco/core/emco-base/src/orchestrator/common/emcoerror"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/module/types"
 )
 
@@ -51,10 +49,7 @@ func (m *mockGenericK8sIntentManager) CreateGenericK8sIntent(ctx context.Context
 	}
 
 	if iExists && failIfExists { // genericK8sIntent already exists
-		return module.GenericK8sIntent{}, iExists, emcoerror.NewEmcoError(
-			module.GenericK8sIntentAlreadyExists,
-			emcoerror.Conflict,
-		)
+		return module.GenericK8sIntent{}, iExists, errors.New("GenericK8sIntent already exists")
 	}
 
 	if iExists && !failIfExists { // genericK8sIntent already exists. update the genericK8sIntent
@@ -81,10 +76,7 @@ func (m *mockGenericK8sIntentManager) DeleteGenericK8sIntent(ctx context.Context
 		}
 	}
 
-	return emcoerror.NewEmcoError(
-		"the requested resource not found",
-		emcoerror.NotFound,
-	) // genericK8sIntent does not exist
+	return errors.New("db Remove resource not found") // genericK8sIntent does not exist
 }
 
 func (m *mockGenericK8sIntentManager) GetAllGenericK8sIntents(ctx context.Context, project, compositeApp, compositeAppVersion, deploymentIntentGroup string) ([]module.GenericK8sIntent, error) {
@@ -111,10 +103,7 @@ func (m *mockGenericK8sIntentManager) GetGenericK8sIntent(ctx context.Context, i
 		}
 	}
 
-	return module.GenericK8sIntent{}, emcoerror.NewEmcoError(
-		module.GenericK8sIntentNotFound,
-		emcoerror.NotFound,
-	)
+	return module.GenericK8sIntent{}, errors.New("GenericK8sIntent not found")
 }
 
 var _ = Describe("Test create genericK8sIntent handler",
@@ -129,7 +118,7 @@ var _ = Describe("Test create genericK8sIntent handler",
 				test{
 					input:      genericK8sIntentInput(""), // create an empty genericK8sIntent payload
 					result:     module.GenericK8sIntent{},
-					err:        errors.New("genericK8sIntent name may not be empty"),
+					err:        errors.New("genericK8sIntent name may not be empty\n"),
 					statusCode: http.StatusBadRequest,
 					client: &mockGenericK8sIntentManager{
 						Err:   nil,
@@ -151,12 +140,9 @@ var _ = Describe("Test create genericK8sIntent handler",
 			),
 			Entry("genericK8sIntent already exists",
 				test{
-					input:  genericK8sIntentInput("testGenericK8sIntent-1"),
-					result: module.GenericK8sIntent{},
-					err: emcoerror.NewEmcoError(
-						module.GenericK8sIntentAlreadyExists,
-						emcoerror.Conflict,
-					),
+					input:      genericK8sIntentInput("testGenericK8sIntent-1"),
+					result:     module.GenericK8sIntent{},
+					err:        errors.New("genericK8sIntent already exists\n"),
 					statusCode: http.StatusConflict,
 					client: &mockGenericK8sIntentManager{
 						Err:   nil,
@@ -195,11 +181,8 @@ var _ = Describe("Test get genericK8sIntent handler",
 				test{
 					name:       "nonExistingGenericK8sIntent",
 					statusCode: http.StatusNotFound,
-					err: emcoerror.NewEmcoError(
-						module.GenericK8sIntentNotFound,
-						emcoerror.NotFound,
-					),
-					result: module.GenericK8sIntent{},
+					err:        errors.New("genericK8sIntent not found\n"),
+					result:     module.GenericK8sIntent{},
 					client: &mockGenericK8sIntentManager{
 						Err:   nil,
 						Items: populateGenericK8sIntentTestData(),
@@ -224,7 +207,7 @@ var _ = Describe("Test update genericK8sIntent handler",
 					name:       "testGenericK8sIntent",
 					input:      genericK8sIntentInput(""), // create an empty genericK8sIntent payload
 					result:     module.GenericK8sIntent{},
-					err:        errors.New("genericK8sIntent name may not be empty"),
+					err:        errors.New("genericK8sIntent name may not be empty\n"),
 					statusCode: http.StatusBadRequest,
 					client: &mockGenericK8sIntentManager{
 						Err:   nil,
@@ -290,11 +273,8 @@ var _ = Describe("Test delete genericK8sIntent handler",
 					entry:      "db remove genericK8sIntent not found",
 					name:       "nonExistingGenericK8sIntent",
 					statusCode: http.StatusNotFound,
-					err: emcoerror.NewEmcoError(
-						"the requested resource not found",
-						emcoerror.NotFound,
-					),
-					result: module.GenericK8sIntent{},
+					err:        errors.New("The requested resource not found\n"),
+					result:     module.GenericK8sIntent{},
 					client: &mockGenericK8sIntentManager{
 						Err:   nil,
 						Items: populateGenericK8sIntentTestData(),
@@ -383,7 +363,7 @@ func validategenericK8sIntentResponse(res *http.Response, t test) {
 	Expect(res.StatusCode).To(Equal(t.statusCode))
 
 	if t.err != nil {
-		b := strings.Replace(string(data), "\n", "", -1) // replace the new line at the end
+		b := string(data)
 		Expect(b).To(Equal(t.err.Error()))
 	}
 

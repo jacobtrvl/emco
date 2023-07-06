@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"gitlab.com/project-emco/core/emco-base/src/orchestrator/utils"
 
 	pkgerrors "github.com/pkg/errors"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/common"
@@ -65,6 +66,7 @@ func (i *Instantiator) makeAppContextForCompositeApp(ctx context.Context, namesp
 		Namespace:             namespace,
 		Level:                 level,
 		LogicalCloud:          logicalCloud,
+		Services:              utils.MapKeys(i.deploymentIntentGrp.Spec.InstantiatedServices),
 	})
 	if err != nil {
 		return contextForCompositeApp{}, pkgerrors.Wrap(err, "Error Adding CompositeAppMeta")

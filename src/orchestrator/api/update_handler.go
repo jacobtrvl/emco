@@ -16,7 +16,8 @@ import (
 var migrateJSONFile string = "json-schemas/migrate.json"
 var rollbackJSONFile string = "json-schemas/rollback.json"
 
-/* Used to store backend implementation objects
+/*
+Used to store backend implementation objects
 Also simplifies mocking for unit testing purposes
 */
 type updateHandler struct {
@@ -172,4 +173,45 @@ func (h updateHandler) rollbackHandler(w http.ResponseWriter, r *http.Request) {
 		"depGroup": di, "revision": rbRev, "returnValue": iErr})
 	w.WriteHeader(http.StatusAccepted)
 
+}
+
+func (h updateHandler) cloneDeploymentIntentGroup(w http.ResponseWriter, r *http.Request) {
+	var clone moduleLib.CloneJson
+
+	ctx := r.Context()
+	vars := mux.Vars(r)
+	p := vars["project"]
+	ca := vars["compositeApp"]
+	v := vars["compositeAppVersion"]
+	di := vars["deploymentIntentGroup"]
+
+	err := json.NewDecoder(r.Body).Decode(&clone)
+	log.Info("migrateJson:", log.Fields{"json:": clone})
+	switch {
+	case err == io.EOF:
+		log.Error(err.Error(), log.Fields{})
+		http.Error(w, "Empty body", http.StatusBadRequest)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	case err != nil:
+		log.Error(err.Error(), log.Fields{})
+		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
+		w.WriteHeader(http.StatusUnprocessableEntity)
+		return
+	}
+
+	dig, err := h.client.CloneDig(ctx, p, ca, v, di, &clone)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	err = json.NewEncoder(w).Encode(dig)
+	if err != nil {
+		log.Error(err.Error(), log.Fields{})
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 }

@@ -306,10 +306,6 @@ func handleJsonSchemaValidationError(w http.ResponseWriter, err error, status in
 		http.Error(w, "Missing cluster or clusterLabel", status)
 		return
 	}
-	if strings.Contains(err.Error(), "Must not validate the schema (not)") {
-		http.Error(w, "Only one of cluster name or cluster label allowed", status)
-		return
-	}
 	if strings.Contains(err.Error(), "app is required") {
 		http.Error(w, "Missing app for the intent", status)
 		return

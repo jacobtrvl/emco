@@ -113,6 +113,7 @@ func NewE(context, kubeconfig string, ns string) (*Client, error) {
 		validator:        validator,
 		namespace:        namespace,
 		enforceNamespace: enforceNamespace,
+		ServerSideApply:  true,
 	}, nil
 }
 

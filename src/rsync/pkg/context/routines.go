@@ -125,6 +125,7 @@ func (c *Context) startMainThread(ctx context.Context, a interface{}, con Connec
 		log.Error("Fatal! error reading appContext", log.Fields{"err": err})
 		return err
 	}
+
 	c.acID = acID
 	c.con = con
 	c.acRef = ref
@@ -140,6 +141,18 @@ func (c *Context) startMainThread(ctx context.Context, a interface{}, con Connec
 			return err
 		}
 	}
+
+	ac := appcontext.AppContext{}
+	_, err = ac.LoadAppContext(ctx, acID)
+	if err != nil {
+		return err
+	}
+
+	c.meta, err = ac.GetCompositeAppMeta(ctx)
+	if err != nil {
+		return err
+	}
+
 	_, err = c.acRef.GetAppContextFlag(ctx, StopFlagKey)
 	// Assume doesn't exist and add
 	if err != nil {

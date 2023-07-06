@@ -10,7 +10,6 @@ import (
 	. "github.com/onsi/gomega"
 
 	"context"
-
 	"gitlab.com/project-emco/core/emco-base/src/genericactioncontroller/pkg/module"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/module/types"
 )
@@ -44,7 +43,7 @@ var _ = Describe("Create Resource",
 				mr := mockResource("test-resource-1")
 				res, rExists, err := rClient.CreateResource(ctx,
 					mr, module.ResourceContent{}, v.Project, v.CompositeApp, v.Version, v.DeploymentIntentGroup, v.Intent, true)
-				validateError(err, module.ResourceAlreadyExists)
+				validateError(err, "Resource already exists")
 				validateResource(res, module.Resource{})
 				Expect(rExists).To(Equal(true))
 				Expect(len(mockdb.Items)).To(Equal(l))
@@ -129,7 +128,7 @@ var _ = Describe("Get Resource",
 				ctx := context.Background()
 				res, err := rClient.GetResource(ctx,
 					"non-existing-resource", v.Project, v.CompositeApp, v.Version, v.DeploymentIntentGroup, v.Intent)
-				validateError(err, module.ResourceNotFound)
+				validateError(err, "Resource not found")
 				validateResource(res, module.Resource{})
 			})
 		})

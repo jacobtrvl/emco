@@ -6,12 +6,15 @@ package main
 import (
 	"flag"
 	"os"
+	"sync"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
+	apiextensionsv1scheme "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/scheme"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -32,6 +35,7 @@ func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 
 	utilruntime.Must(k8spluginv1alpha1.AddToScheme(scheme))
+	utilruntime.Must(apiextensionsv1scheme.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }
 
@@ -72,7 +76,19 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "ResourceBundleState")
 		os.Exit(1)
 	}
-	controllers.SetupControllers(mgr)
+
+	controllersMutex := &sync.Mutex{}
+	if err = (&controllers.CustomResourceDefinitionReconciler{
+		Client:       mgr.GetClient(),
+		Scheme:       mgr.GetScheme(),
+		ResourcesMap: map[schema.GroupVersionKind]bool{},
+	}).SetupWithManager(mgr, controllersMutex); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "CustomResourceDefinition")
+		os.Exit(1)
+	}
+	if err = controllers.SetupControllers(mgr, controllersMutex); err != nil {
+		setupLog.Error(err, "unable to create resource controllers", "controller", err)
+	}
 	setupLog.Info("starting manager")
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
 		setupLog.Error(err, "problem running manager")

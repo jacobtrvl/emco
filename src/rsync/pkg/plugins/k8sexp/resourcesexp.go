@@ -76,7 +76,9 @@ func appendRef(ref interface{}, b []byte, op RsyncOperation, apv ...approval) in
 func (p *K8sProviderExp) Create(name string, ref interface{}, content []byte) (interface{}, error) {
 	// Add the label based on the Status Appcontext ID
 	label := p.cid + "-" + p.app
-	b, err := status.TagResource(content, label)
+	labels := map[string]string{}
+	labels["emco/deployment-id"] = label
+	b, err := status.TagResource(content, labels)
 	if err != nil {
 		log.Error("Error Tag Resoruce with label:", log.Fields{"err": err, "label": label, "resource": name})
 		return nil, err
@@ -90,7 +92,9 @@ func (p *K8sProviderExp) Apply(ctx context.Context, name string, ref interface{}
 	var apv approval
 	// Add the label based on the Status Appcontext ID
 	label := p.cid + "-" + p.app
-	b, err := status.TagResource(content, label)
+	labels := map[string]string{}
+	labels["emco/deployment-id"] = label
+	b, err := status.TagResource(content, labels)
 	if err != nil {
 		log.Error("Error Tag Resoruce with label:", log.Fields{"err": err, "label": label, "resource": name})
 		return nil, err
@@ -195,7 +199,7 @@ func (p *K8sProviderExp) IsReachable() error {
 	return p.client.IsReachable()
 }
 
-func (m *K8sProviderExp) TagResource(res []byte, label string) ([]byte, error) {
+func (m *K8sProviderExp) TagResource(res []byte, label map[string]string) ([]byte, error) {
 	b, err := status.TagResource(res, label)
 	if err != nil {
 		log.Error("Error Tag Resoruce with label:", log.Fields{"err": err, "label": label, "resource": res})

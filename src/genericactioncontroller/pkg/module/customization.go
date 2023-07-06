@@ -9,7 +9,7 @@ import (
 
 	"context"
 
-	"gitlab.com/project-emco/core/emco-base/src/orchestrator/common/emcoerror"
+	"github.com/pkg/errors"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/module/types"
 )
@@ -140,10 +140,7 @@ func (cc *CustomizationClient) CreateCustomization(ctx context.Context, customiz
 
 	if cExists &&
 		failIfExists {
-		return Customization{}, cExists, emcoerror.NewEmcoError(
-			CustomizationAlreadyExists,
-			emcoerror.Conflict,
-		)
+		return Customization{}, cExists, errors.New("Customization already exists")
 	}
 
 	if err = db.DBconn.Insert(ctx, cc.db.storeName, key, nil, cc.db.tagMeta, customization); err != nil {
@@ -179,10 +176,7 @@ func (cc *CustomizationClient) GetCustomization(ctx context.Context,
 	}
 
 	if len(value) == 0 {
-		return Customization{}, emcoerror.NewEmcoError(
-			CustomizationNotFound,
-			emcoerror.NotFound,
-		)
+		return Customization{}, errors.New("Customization not found")
 	}
 
 	if value != nil {
@@ -193,10 +187,7 @@ func (cc *CustomizationClient) GetCustomization(ctx context.Context,
 		return c, nil
 	}
 
-	return Customization{}, emcoerror.NewEmcoError(
-		emcoerror.UnknownErrorMessage,
-		emcoerror.Unknown,
-	)
+	return Customization{}, errors.New("Unknown Error")
 }
 
 // GetAllCustomization returns all the Customizations for an Intent and Resource

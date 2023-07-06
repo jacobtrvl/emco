@@ -6,8 +6,9 @@ package status
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 
-	yaml "github.com/ghodss/yaml"
+	"github.com/ghodss/yaml"
 	rb "gitlab.com/project-emco/core/emco-base/src/monitor/pkg/apis/k8splugin/v1alpha1"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/appcontext"
 	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
@@ -211,6 +212,10 @@ func GetStatusCR(label string, extraLabel string, namespace string) ([]byte, err
 
 	labels := make(map[string]string)
 	labels["emco/deployment-id"] = label
+
+	// TODO : do we want to return this here ?
+	// labels["emco/ns-id"] = label
+
 	if len(extraLabel) > 0 {
 		labels[extraLabel] = "true"
 	}
@@ -236,8 +241,8 @@ func GetStatusCR(label string, extraLabel string, namespace string) ([]byte, err
 	return y, nil
 }
 
-//TagResource with label
-func TagResource(res []byte, label string) ([]byte, error) {
+// TagResource with label
+func TagResource(res []byte, label map[string]string) ([]byte, error) {
 
 	//Decode the yaml to create a runtime.Object
 	unstruct := &unstructured.Unstructured{}
@@ -252,8 +257,9 @@ func TagResource(res []byte, label string) ([]byte, error) {
 	if labels == nil {
 		labels = map[string]string{}
 	}
-	//labels[config.GetConfiguration().KubernetesLabelName] = client.GetInstanceID()
-	labels["emco/deployment-id"] = label
+	for key, value := range label {
+		labels[key] = value
+	}
 	unstruct.SetLabels(labels)
 
 	// This checks if the resource we are creating has a podSpec in it
@@ -270,7 +276,7 @@ func TagResource(res []byte, label string) ([]byte, error) {
 
 // TagPodsIfPresent finds the TemplateSpec from any workload
 // object that contains it and changes the spec to include the tag label
-func TagPodsIfPresent(unstruct *unstructured.Unstructured, tag string) {
+func TagPodsIfPresent(unstruct *unstructured.Unstructured, label map[string]string) {
 	_, found, err := unstructured.NestedMap(unstruct.Object, "spec", "template")
 	if err != nil || !found {
 		return
@@ -284,8 +290,74 @@ func TagPodsIfPresent(unstruct *unstructured.Unstructured, tag string) {
 	if labels == nil || !found {
 		labels = make(map[string]interface{})
 	}
-	labels["emco/deployment-id"] = tag
+	for key, value := range label {
+		labels[key] = value
+	}
 	if err := unstructured.SetNestedMap(unstruct.Object, labels, "spec", "template", "metadata", "labels"); err != nil {
 		log.Error("Error tagging template with emco label", log.Fields{"err": err})
 	}
+}
+
+// AddServicesLabels adds the service labels to resource
+func AddServicesLabels(res []byte, services []string) ([]byte, error) {
+	if services == nil || len(services) == 0 {
+		return res, nil
+	}
+
+	unstruct := &unstructured.Unstructured{}
+	_, err := utils.DecodeYAMLData(string(res), unstruct)
+	if err != nil {
+		return nil, err
+	}
+
+	labels := map[string]string{}
+	for i, service := range services {
+		labels[fmt.Sprintf("emco/service-%d", i+1)] = service
+	}
+
+	AddResourceLabels(unstruct, labels)
+	AddServiceLabelsPodsIfPresent(unstruct, labels)
+
+	return unstruct.MarshalJSON()
+}
+
+// AddServiceLabelsPodsIfPresent finds the TemplateSpec from any workload
+// object that contains it and changes the spec to include the service labels
+func AddServiceLabelsPodsIfPresent(unstruct *unstructured.Unstructured, labels map[string]string) {
+	_, found, err := unstructured.NestedMap(unstruct.Object, "spec", "template")
+	if err != nil || !found {
+		return
+	}
+	// extract spec template labels
+	resLabels, found, err := unstructured.NestedMap(unstruct.Object, "spec", "template", "metadata", "labels")
+	if err != nil {
+		log.Error("AddServiceLabelsPodsIfPresent: Error reading the NestMap for template", log.Fields{"unstruct": unstruct, "err": err})
+		return
+	}
+
+	if resLabels == nil || !found {
+		resLabels = make(map[string]interface{})
+	}
+
+	for key, value := range labels {
+		resLabels[key] = value
+	}
+
+	if err := unstructured.SetNestedMap(unstruct.Object, resLabels, "spec", "template", "metadata", "labels"); err != nil {
+		log.Error("Error adding service label to template", log.Fields{"err": err})
+	}
+}
+
+// AddResourceLabels adds label to resource
+func AddResourceLabels(unstruct *unstructured.Unstructured, labels map[string]string) {
+	resLabels := unstruct.GetLabels()
+	if resLabels == nil {
+		resLabels = map[string]string{}
+	}
+
+	for key, value := range labels {
+		resLabels[key] = value
+	}
+
+	unstruct.SetLabels(resLabels)
 }

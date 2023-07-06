@@ -4,28 +4,35 @@
 package tracing
 
 import (
-	"net"
 	"net/http"
 	"os"
 
-	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/config"
 	"go.opentelemetry.io/contrib/propagators/b3"
 	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/exporters/zipkin"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/resource"
 	tracesdk "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.10.0"
+
+	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/config"
+	"gitlab.com/project-emco/core/emco-base/src/orchestrator/utils"
 )
 
-func createTracerProvider() (*tracesdk.TracerProvider, error) {
+type Config struct {
+	ZipkinIp   string `json:"zipkin-ip"`
+	ZipkinPort string `json:"zipkin-port"`
+	JaegerIp   string `json:"jaeger-ip"`
+	JaegerPort string `json:"jaeger-port"`
+}
+
+func parseConfig(cfgMap map[string]interface{}) (*Config, error) {
+	cfg := &Config{}
+	return cfg, utils.ConvertType(&cfgMap, cfg)
+}
+
+func createTracerProvider(exporters ...tracesdk.SpanExporter) (*tracesdk.TracerProvider, error) {
 	var opts []tracesdk.TracerProviderOption
-	if config.GetConfiguration().ZipkinIP != "" {
-		endpoint := "http://" + net.JoinHostPort(config.GetConfiguration().ZipkinIP, config.GetConfiguration().ZipkinPort) + "/api/v2/spans"
-		exp, err := zipkin.New(endpoint)
-		if err != nil {
-			return nil, err
-		}
+	for _, exp := range exporters {
 		opts = append(opts, tracesdk.WithBatcher(exp))
 	}
 	var ok bool
@@ -40,14 +47,45 @@ func createTracerProvider() (*tracesdk.TracerProvider, error) {
 		semconv.SchemaURL,
 		semconv.ServiceNameKey.String(name+"."+namespace),
 	)))
+
 	return tracesdk.NewTracerProvider(opts...), nil
 }
 
 func InitializeTracer() error {
-	tp, err := createTracerProvider()
+	cfgMap, err := utils.StructToMap(config.GetConfiguration())
 	if err != nil {
 		return err
 	}
+
+	cfg, err := parseConfig(cfgMap)
+	if err != nil {
+		return err
+	}
+
+	var traceExporters []traceExporter
+	if cfg.JaegerIp != "" {
+		traceExporters = append(traceExporters, &jaegerExporter{jaegerIp: cfg.JaegerIp, jaegerPort: cfg.JaegerPort})
+	}
+
+	if cfg.ZipkinIp != "" {
+		traceExporters = append(traceExporters, &zipkinExporter{zipkinIp: cfg.ZipkinIp, zipkinPort: cfg.ZipkinPort})
+	}
+
+	var exporters []tracesdk.SpanExporter
+	for _, traceExporter := range traceExporters {
+		exp, err := traceExporter.createExporter()
+		if err != nil {
+			return err
+		}
+
+		exporters = append(exporters, exp)
+	}
+
+	tp, err := createTracerProvider(exporters...)
+	if err != nil {
+		return err
+	}
+
 	otel.SetTracerProvider(tp)
 	// Istio uses b3 propagation
 	otel.SetTextMapPropagator(b3.New())

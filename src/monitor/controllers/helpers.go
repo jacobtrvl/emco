@@ -7,6 +7,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
+
 	k8spluginv1alpha1 "gitlab.com/project-emco/core/emco-base/src/monitor/pkg/apis/k8splugin/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -14,7 +16,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
-	"log"
+	"k8s.io/client-go/discovery"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -69,29 +71,79 @@ func listClusterResources(cli client.Client,
 	return listResources(cli, "", labelSelector, returnData)
 }
 
-// Assume only one CR for label, multiple throws error
 func GetCRForResource(cli client.Client, item *unstructured.Unstructured, namespace string) (*k8spluginv1alpha1.ResourceBundleState, error) {
-	rbStatus := &k8spluginv1alpha1.ResourceBundleState{}
-
 	// Find the CRs which track this resource via the labelselector
 	crSelector := returnLabel(item.GetLabels())
 	if crSelector == nil {
 		log.Println("We should not be here. The predicate should have filtered this resource")
-		return rbStatus, fmt.Errorf("Unexpected Error: Resource not filtered by predicate")
+		return nil, fmt.Errorf("unexpected Error: Resource not filtered by predicate")
 	}
+
+	name := crSelector["emco/deployment-id"]
+	if namespace != "" {
+		// Namespace is known and the name is known
+		// get a single resource
+		return getCRForResource(cli, name, namespace)
+	}
+
+	// Namespace is not known and the name is known
+	// assume it is a cluster scope item
+	rbStatusList, err := getCRListForResource(cli, crSelector, metav1.NamespaceAll)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(rbStatusList.Items) == 0 {
+		return nil, fmt.Errorf("failed to find ResourceBundleState %s", name)
+	}
+
+	var crResource *k8spluginv1alpha1.ResourceBundleState
+	found := false
+	for _, rbs := range rbStatusList.Items {
+		if rbs.Name == name {
+			found = true
+			crResource = &rbs
+		}
+	}
+
+	if !found {
+		return nil, fmt.Errorf("failed to find ResourceBundleState %s", name)
+	}
+
+	return crResource, nil
+}
+
+// Assume only one CR for label, multiple throws error
+func getCRForResource(cli client.Client, name, namespace string) (*k8spluginv1alpha1.ResourceBundleState, error) {
 	// Name of resource is same as the label value
 	var namespaced types.NamespacedName
-	namespaced.Name = crSelector["emco/deployment-id"]
+	namespaced.Name = name
 	if namespace == "" {
 		namespaced.Namespace = "default"
 	} else {
 		namespaced.Namespace = namespace
 	}
+
+	rbStatus := &k8spluginv1alpha1.ResourceBundleState{}
 	err := cli.Get(context.TODO(), namespaced, rbStatus)
 	if err != nil {
-		return rbStatus, err
+		return nil, err
 	}
+
 	return rbStatus, nil
+}
+
+func getCRListForResource(client client.Client, crSelector map[string]string, namespace string) (*k8spluginv1alpha1.ResourceBundleStateList, error) {
+	// Get the CRs which have this label and update them all
+	// Ideally, we will have only one CR, but there is nothing
+	// preventing the creation of multiple.
+	rbStatusList := &k8spluginv1alpha1.ResourceBundleStateList{}
+	err := listResources(client, namespace, crSelector, rbStatusList)
+	if err != nil {
+		return nil, err
+	}
+
+	return rbStatusList, nil
 }
 
 func UpdateStatus(cr *k8spluginv1alpha1.ResourceBundleState, item *unstructured.Unstructured, name, namespace string) (bool, error) {
@@ -219,4 +271,43 @@ func UpdateResourceStatusCR(cr *k8spluginv1alpha1.ResourceBundleState, item *uns
 		cr.Status.ResourceStatuses = append(cr.Status.ResourceStatuses, res)
 	}
 	return found, nil
+}
+
+// GetServerResources returns a GVK list of all cluster defined resources
+func GetServerResources(client *discovery.DiscoveryClient) ([]*schema.GroupVersionKind, error) {
+	resourcesLists, err := client.ServerPreferredResources()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get server resources :%q", err)
+	}
+
+	resourcesGVK := []*schema.GroupVersionKind{}
+	for _, resourcesList := range resourcesLists {
+		gv, err := schema.ParseGroupVersion(resourcesList.GroupVersion)
+		if err != nil {
+			continue
+		}
+
+		for _, resource := range resourcesList.APIResources {
+			// Skip resources without "watch" verb
+			found := false
+			for _, verb := range resource.Verbs {
+				if verb == "watch" {
+					found = true
+					break
+				}
+			}
+
+			if !found {
+				continue
+			}
+
+			resourcesGVK = append(resourcesGVK, &schema.GroupVersionKind{
+				Group:   gv.Group,
+				Version: gv.Version,
+				Kind:    resource.Kind,
+			})
+		}
+	}
+
+	return resourcesGVK, nil
 }

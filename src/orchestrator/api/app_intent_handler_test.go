@@ -547,31 +547,6 @@ func TestCreateAppIntentHandler(t *testing.T) {
 		  }`)),
 		},
 		{
-			label: "AnyOf Only Clusterlabel or Cluster Allowed",
-			code:  http.StatusBadRequest,
-			err:   "Only one of cluster name or cluster label allowed",
-			reader: bytes.NewBuffer([]byte(`{ 
-				"metadata": {
-					"name": "testAppIntent",
-					"description": "Test AppIntent used for unit testing",
-					"userData1": "data1",
-					"userData2": "data2"
-				},
-				 "spec": { 
-					 "app": "testApp",
-					 "intent": { 
-						 "anyOf": [ 
-							{ 
-								 "clusterProvider": "testClusterProvider",
-								 "clusterLabel": "testClusterLabel",
-								 "cluster": "testCluster"
-							}
-						]
-					}
-			  	}
-		  }`)),
-		},
-		{
 			label: "AllOf Missing ClusterProvider Name",
 			code:  http.StatusBadRequest,
 			err:   "Missing clusterProvider in an intent",
@@ -627,72 +602,6 @@ func TestCreateAppIntentHandler(t *testing.T) {
 									{
 										"name": "testClusterProvider_2",
 										"clusterLabel": "testClusterLabel_2"
-									}
-								]
-							}
-						]
-					}
-				}
-			}`)),
-		},
-		{
-			label: "AllOf Only Clusterlabel or Cluster Allowed",
-			code:  http.StatusBadRequest,
-			err:   "Only one of cluster name or cluster label allowed",
-			reader: bytes.NewBuffer([]byte(`{
-				"metadata": {
-					"name": "testAppIntent",
-					"description": "Test AppIntent used for unit testing",
-					"userData1": "data1",
-					"userData2": "data2"
-				},
-				"spec": { 
-					"app": "testApp",
-					"intent": {
-						"allOf": [
-							{
-								"clusterProvider": "testClusterProvider_1",
-								"clusterLabel": "testClusterLabel_1",
-								"cluster": "e"
-							},
-							{
-								"anyOf": [
-									{
-										"clusterProvider": "testClusterProvider_2",
-										"clusterLabel": "testClusterLabel_2"
-									}
-								]
-							}
-						]
-					}
-				}
-			}`)),
-		},
-		{
-			label: "AllOf AnyOf Only Clusterlabel or Cluster Allowed",
-			code:  http.StatusBadRequest,
-			err:   "Only one of cluster name or cluster label allowed",
-			reader: bytes.NewBuffer([]byte(`{
-				"metadata": {
-					"name": "testAppIntent",
-					"description": "Test AppIntent used for unit testing",
-					"userData1": "data1",
-					"userData2": "data2"
-				},
-				"spec": { 
-					"app": "testApp",
-					"intent": {
-						"allOf": [
-							{
-								"clusterProvider": "testClusterProvider_1",
-								"clusterLabel": "testClusterLabel_1"
-							},
-							{
-								"anyOf": [
-									{
-										"clusterProvider": "testClusterProvider_2",
-										"clusterLabel": "testClusterLabel_2",
-										"cluster": "testCluster"
 									}
 								]
 							}
@@ -1007,32 +916,6 @@ func TestUpdateAppIntentHandler(t *testing.T) {
 		  }`)),
 		},
 		{
-			label: "AnyOf Only Clusterlabel or Cluster Allowed",
-			name:  "testAppIntent",
-			code:  http.StatusBadRequest,
-			err:   "Only one of cluster name or cluster label allowed",
-			reader: bytes.NewBuffer([]byte(`{ 
-				"metadata": {
-					"name": "testAppIntent",
-					"description": "Test AppIntent used for unit testing",
-					"userData1": "data1",
-					"userData2": "data2"
-				},
-				 "spec": { 
-					 "app": "testApp",
-					 "intent": { 
-						 "anyOf": [ 
-							{ 
-								 "clusterProvider": "testClusterProvider",
-								 "clusterLabel": "testClusterLabel",
-								 "cluster": "testCluster"
-							}
-						]
-					}
-			  	}
-		  }`)),
-		},
-		{
 			label: "AllOf Missing ClusterProvider Name",
 			name:  "testAppIntent",
 			code:  http.StatusBadRequest,
@@ -1090,74 +973,6 @@ func TestUpdateAppIntentHandler(t *testing.T) {
 									{
 										"name": "testClusterProvider_2",
 										"clusterLabel": "testClusterLabel_2"
-									}
-								]
-							}
-						]
-					}
-				}
-			}`)),
-		},
-		{
-			label: "AllOf Only Clusterlabel or Cluster Allowed",
-			name:  "testAppIntent",
-			code:  http.StatusBadRequest,
-			err:   "Only one of cluster name or cluster label allowed",
-			reader: bytes.NewBuffer([]byte(`{
-				"metadata": {
-					"name": "testAppIntent",
-					"description": "Test AppIntent used for unit testing",
-					"userData1": "data1",
-					"userData2": "data2"
-				},
-				"spec": { 
-					"app": "testApp",
-					"intent": {
-						"allOf": [
-							{
-								"clusterProvider": "testClusterProvider_1",
-								"clusterLabel": "testClusterLabel_1",
-								"cluster": "e"
-							},
-							{
-								"anyOf": [
-									{
-										"clusterProvider": "testClusterProvider_2",
-										"clusterLabel": "testClusterLabel_2"
-									}
-								]
-							}
-						]
-					}
-				}
-			}`)),
-		},
-		{
-			label: "AllOf AnyOf Only Clusterlabel or Cluster Allowed",
-			name:  "testAppIntent",
-			code:  http.StatusBadRequest,
-			err:   "Only one of cluster name or cluster label allowed",
-			reader: bytes.NewBuffer([]byte(`{
-				"metadata": {
-					"name": "testAppIntent",
-					"description": "Test AppIntent used for unit testing",
-					"userData1": "data1",
-					"userData2": "data2"
-				},
-				"spec": { 
-					"app": "testApp",
-					"intent": {
-						"allOf": [
-							{
-								"clusterProvider": "testClusterProvider_1",
-								"clusterLabel": "testClusterLabel_1"
-							},
-							{
-								"anyOf": [
-									{
-										"clusterProvider": "testClusterProvider_2",
-										"clusterLabel": "testClusterLabel_2",
-										"cluster": "testCluster"
 									}
 								]
 							}

@@ -13,6 +13,13 @@ import (
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
 )
 
+type mockIntentSelectorHandler struct {
+}
+
+func (m *mockIntentSelectorHandler) Handle(ctx context.Context, appIntent *AppIntent, digName, project, contextApp, version string) error {
+	return nil
+}
+
 func TestCreateAppIntent(t *testing.T) {
 	testCases := []struct {
 		compositeApp           string
@@ -47,20 +54,7 @@ func TestCreateAppIntent(t *testing.T) {
 								ProviderName: "aws",
 								ClusterName:  "edge2",
 							},
-							{
-								AnyOfArray: []gpic.AnyOf{
-									{
-										ProviderName:     "aws",
-										ClusterLabelName: "east-us1",
-									},
-									{
-										ProviderName:     "aws",
-										ClusterLabelName: "east-us2",
-									},
-								},
-							},
 						},
-
 						AnyOfArray: []gpic.AnyOf{},
 					},
 				},
@@ -88,18 +82,6 @@ func TestCreateAppIntent(t *testing.T) {
 							{
 								ProviderName: "aws",
 								ClusterName:  "edge2",
-							},
-							{
-								AnyOfArray: []gpic.AnyOf{
-									{
-										ProviderName:     "aws",
-										ClusterLabelName: "east-us1",
-									},
-									{
-										ProviderName:     "aws",
-										ClusterLabelName: "east-us2",
-									},
-								},
 							},
 						},
 						AnyOfArray: []gpic.AnyOf{},
@@ -198,20 +180,7 @@ func TestCreateAppIntent(t *testing.T) {
 								ProviderName: "aws",
 								ClusterName:  "edge2",
 							},
-							{
-								AnyOfArray: []gpic.AnyOf{
-									{
-										ProviderName:     "aws",
-										ClusterLabelName: "east-us1",
-									},
-									{
-										ProviderName:     "aws",
-										ClusterLabelName: "east-us2",
-									},
-								},
-							},
 						},
-						AnyOfArray: []gpic.AnyOf{},
 					},
 				},
 			},
@@ -309,16 +278,7 @@ func TestCreateAppIntent(t *testing.T) {
 									"\"cluster\":\"edge1\"}," +
 									"{" +
 									"\"clusterProvider\":\"aws\"," +
-									"\"cluster\":\"edge2\"}," +
-									"{" +
-									"\"anyOf\":[" +
-									"{" +
-									"\"clusterProvider\":\"aws\"," +
-									"\"clusterLabel\":\"east-us1\"}," +
-									"{" +
-									"\"clusterProvider\":\"aws\"," +
-									"\"clusterLabel\":\"east-us2\"}" +
-									"]}]" +
+									"\"cluster\":\"edge2\"}]" +
 									"}}}"),
 						},
 					},
@@ -332,6 +292,7 @@ func TestCreateAppIntent(t *testing.T) {
 			ctx := context.Background()
 			db.DBconn = test.db
 			cli := NewAppIntentClient()
+			cli.selectorsHandler = &mockIntentSelectorHandler{}
 			appIntent, _, err := cli.CreateAppIntent(ctx, test.ai, test.project, test.compositeApp, test.version, test.genericPlacementIntent, test.deploymentIntentGroup, true)
 			if err != nil {
 				if test.err == "" {
@@ -386,21 +347,7 @@ func TestUpdateAppIntent(t *testing.T) {
 								ProviderName: "aws",
 								ClusterName:  "edge2",
 							},
-							{
-								AnyOfArray: []gpic.AnyOf{
-									{
-										ProviderName:     "aws",
-										ClusterLabelName: "east-us1",
-									},
-									{
-										ProviderName:     "aws",
-										ClusterLabelName: "east-us2",
-									},
-								},
-							},
 						},
-
-						AnyOfArray: []gpic.AnyOf{},
 					},
 				},
 			},
@@ -428,21 +375,7 @@ func TestUpdateAppIntent(t *testing.T) {
 								ProviderName: "aws",
 								ClusterName:  "edge2",
 							},
-							{
-								AnyOfArray: []gpic.AnyOf{
-									{
-										ProviderName:     "aws",
-										ClusterLabelName: "east-us1",
-									},
-									{
-										ProviderName:     "aws",
-										ClusterLabelName: "east-us2",
-									},
-								},
-							},
 						},
-
-						AnyOfArray: []gpic.AnyOf{},
 					},
 				},
 			},
@@ -534,16 +467,7 @@ func TestUpdateAppIntent(t *testing.T) {
 									"\"cluster\":\"edge1\"}," +
 									"{" +
 									"\"clusterProvider\":\"aws\"," +
-									"\"cluster\":\"edge2\"}," +
-									"{" +
-									"\"anyOf\":[" +
-									"{" +
-									"\"clusterProvider\":\"aws\"," +
-									"\"clusterLabel\":\"east-us1\"}," +
-									"{" +
-									"\"clusterProvider\":\"aws\"," +
-									"\"clusterLabel\":\"east-us2\"}" +
-									"]}]" +
+									"\"cluster\":\"edge2\"}]" +
 									"}}}"),
 						},
 					},
@@ -572,21 +496,7 @@ func TestUpdateAppIntent(t *testing.T) {
 								ProviderName: "aws",
 								ClusterName:  "edge2",
 							},
-							{
-								AnyOfArray: []gpic.AnyOf{
-									{
-										ProviderName:     "aws",
-										ClusterLabelName: "east-us1",
-									},
-									{
-										ProviderName:     "aws",
-										ClusterLabelName: "east-us2",
-									},
-								},
-							},
 						},
-
-						AnyOfArray: []gpic.AnyOf{},
 					},
 				},
 			},
@@ -615,20 +525,7 @@ func TestUpdateAppIntent(t *testing.T) {
 								ProviderName: "aws",
 								ClusterName:  "edge2",
 							},
-							{
-								AnyOfArray: []gpic.AnyOf{
-									{
-										ProviderName:     "aws",
-										ClusterLabelName: "east-us1",
-									},
-									{
-										ProviderName:     "aws",
-										ClusterLabelName: "east-us2",
-									},
-								},
-							},
 						},
-						AnyOfArray: []gpic.AnyOf{},
 					},
 				},
 			},
@@ -720,16 +617,7 @@ func TestUpdateAppIntent(t *testing.T) {
 									"\"cluster\":\"edge1\"}," +
 									"{" +
 									"\"clusterProvider\":\"aws\"," +
-									"\"cluster\":\"edge2\"}," +
-									"{" +
-									"\"anyOf\":[" +
-									"{" +
-									"\"clusterProvider\":\"aws\"," +
-									"\"clusterLabel\":\"east-us1\"}," +
-									"{" +
-									"\"clusterProvider\":\"aws\"," +
-									"\"clusterLabel\":\"east-us2\"}" +
-									"]}]" +
+									"\"cluster\":\"edge2\"}]" +
 									"}}}"),
 						},
 						AppIntentKey{
@@ -753,16 +641,7 @@ func TestUpdateAppIntent(t *testing.T) {
 									"\"cluster\":\"edge1\"}," +
 									"{" +
 									"\"clusterProvider\":\"aws\"," +
-									"\"cluster\":\"edge2\"}," +
-									"{" +
-									"\"anyOf\":[" +
-									"{" +
-									"\"clusterProvider\":\"aws\"," +
-									"\"clusterLabel\":\"east-us1\"}," +
-									"{" +
-									"\"clusterProvider\":\"aws\"," +
-									"\"clusterLabel\":\"east-us2\"}" +
-									"]}]" +
+									"\"cluster\":\"edge2\"}]" +
 									"}}}"),
 						},
 					},
@@ -776,6 +655,7 @@ func TestUpdateAppIntent(t *testing.T) {
 			ctx := context.Background()
 			db.DBconn = test.db
 			cli := NewAppIntentClient()
+			cli.selectorsHandler = &mockIntentSelectorHandler{}
 			appIntent, aiExists, err := cli.CreateAppIntent(ctx, test.ai, test.project, test.compositeApp, test.version, test.genericPlacementIntent, test.deploymentIntentGroup, false)
 			if err != nil {
 				if test.err == "" {
@@ -838,18 +718,6 @@ func TestGetAppIntent(t *testing.T) {
 								ProviderName: "aws",
 								ClusterName:  "edge2",
 							},
-							{
-								AnyOfArray: []gpic.AnyOf{
-									{
-										ProviderName:     "aws",
-										ClusterLabelName: "east-us1",
-									},
-									{
-										ProviderName:     "aws",
-										ClusterLabelName: "east-us2",
-									},
-								},
-							},
 						},
 					},
 				},
@@ -878,16 +746,7 @@ func TestGetAppIntent(t *testing.T) {
 									"\"cluster\":\"edge1\"}," +
 									"{" +
 									"\"clusterProvider\":\"aws\"," +
-									"\"cluster\":\"edge2\"}," +
-									"{" +
-									"\"anyOf\":[" +
-									"{" +
-									"\"clusterProvider\":\"aws\"," +
-									"\"clusterLabel\":\"east-us1\"}," +
-									"{" +
-									"\"clusterProvider\":\"aws\"," +
-									"\"clusterLabel\":\"east-us2\"}" +
-									"]}]" +
+									"\"cluster\":\"edge2\"}]" +
 									"}}}"),
 						},
 					},
@@ -927,16 +786,7 @@ func TestGetAppIntent(t *testing.T) {
 									"\"cluster\":\"edge1\"}," +
 									"{" +
 									"\"clusterProvider\":\"aws\"," +
-									"\"cluster\":\"edge2\"}," +
-									"{" +
-									"\"anyOf\":[" +
-									"{" +
-									"\"clusterProvider\":\"aws\"," +
-									"\"clusterLabel\":\"east-us1\"}," +
-									"{" +
-									"\"clusterProvider\":\"aws\"," +
-									"\"clusterLabel\":\"east-us2\"}" +
-									"]}]" +
+									"\"cluster\":\"edge2\"}]" +
 									"}}}"),
 						},
 					},
@@ -1001,18 +851,6 @@ func TestGetAllIntentsByApp(t *testing.T) {
 							ProviderName: "aws",
 							ClusterName:  "edge2",
 						},
-						{
-							AnyOfArray: []gpic.AnyOf{
-								{
-									ProviderName:     "aws",
-									ClusterLabelName: "east-us1",
-								},
-								{
-									ProviderName:     "aws",
-									ClusterLabelName: "east-us2",
-								},
-							},
-						},
 					},
 				},
 			},
@@ -1040,16 +878,7 @@ func TestGetAllIntentsByApp(t *testing.T) {
 									"\"cluster\":\"edge1\"}," +
 									"{" +
 									"\"clusterProvider\":\"aws\"," +
-									"\"cluster\":\"edge2\"}," +
-									"{" +
-									"\"anyOf\":[" +
-									"{" +
-									"\"clusterProvider\":\"aws\"," +
-									"\"clusterLabel\":\"east-us1\"}," +
-									"{" +
-									"\"clusterProvider\":\"aws\"," +
-									"\"clusterLabel\":\"east-us2\"}" +
-									"]}]" +
+									"\"cluster\":\"edge2\"}]" +
 									"}}}"),
 						},
 					},
@@ -1075,16 +904,7 @@ func TestGetAllIntentsByApp(t *testing.T) {
 									"\"cluster\":\"edge1\"}," +
 									"{" +
 									"\"clusterProvider\":\"aws\"," +
-									"\"cluster\":\"edge2\"}," +
-									"{" +
-									"\"anyOf\":[" +
-									"{" +
-									"\"clusterProvider\":\"aws\"," +
-									"\"clusterLabel\":\"east-us1\"}," +
-									"{" +
-									"\"clusterProvider\":\"aws\"," +
-									"\"clusterLabel\":\"east-us2\"}" +
-									"]}]" +
+									"\"cluster\":\"edge2\"}]" +
 									"}}}"),
 						},
 					},
@@ -1124,16 +944,7 @@ func TestGetAllIntentsByApp(t *testing.T) {
 									"\"cluster\":\"edge1\"}," +
 									"{" +
 									"\"clusterProvider\":\"aws\"," +
-									"\"cluster\":\"edge2\"}," +
-									"{" +
-									"\"anyOf\":[" +
-									"{" +
-									"\"clusterProvider\":\"aws\"," +
-									"\"clusterLabel\":\"east-us1\"}," +
-									"{" +
-									"\"clusterProvider\":\"aws\"," +
-									"\"clusterLabel\":\"east-us2\"}" +
-									"]}]" +
+									"\"cluster\":\"edge2\"}]" +
 									"}}}"),
 						},
 					},
@@ -1159,16 +970,7 @@ func TestGetAllIntentsByApp(t *testing.T) {
 									"\"cluster\":\"edge1\"}," +
 									"{" +
 									"\"clusterProvider\":\"aws\"," +
-									"\"cluster\":\"edge2\"}," +
-									"{" +
-									"\"anyOf\":[" +
-									"{" +
-									"\"clusterProvider\":\"aws\"," +
-									"\"clusterLabel\":\"east-us1\"}," +
-									"{" +
-									"\"clusterProvider\":\"aws\"," +
-									"\"clusterLabel\":\"east-us2\"}" +
-									"]}]" +
+									"\"cluster\":\"edge2\"}]" +
 									"}}}"),
 						},
 					},
@@ -1239,18 +1041,6 @@ func TestGetAllAppIntents(t *testing.T) {
 									ProviderName: "aws",
 									ClusterName:  "edge2",
 								},
-								{
-									AnyOfArray: []gpic.AnyOf{
-										{
-											ProviderName:     "aws",
-											ClusterLabelName: "east-us1",
-										},
-										{
-											ProviderName:     "aws",
-											ClusterLabelName: "east-us2",
-										},
-									},
-								},
 							},
 						},
 					},
@@ -1273,18 +1063,6 @@ func TestGetAllAppIntents(t *testing.T) {
 								{
 									ProviderName: "aws",
 									ClusterName:  "edge2",
-								},
-								{
-									AnyOfArray: []gpic.AnyOf{
-										{
-											ProviderName:     "aws",
-											ClusterLabelName: "east-us1",
-										},
-										{
-											ProviderName:     "aws",
-											ClusterLabelName: "east-us2",
-										},
-									},
 								},
 							},
 						},
@@ -1315,16 +1093,7 @@ func TestGetAllAppIntents(t *testing.T) {
 									"\"cluster\":\"edge1\"}," +
 									"{" +
 									"\"clusterProvider\":\"aws\"," +
-									"\"cluster\":\"edge2\"}," +
-									"{" +
-									"\"anyOf\":[" +
-									"{" +
-									"\"clusterProvider\":\"aws\"," +
-									"\"clusterLabel\":\"east-us1\"}," +
-									"{" +
-									"\"clusterProvider\":\"aws\"," +
-									"\"clusterLabel\":\"east-us2\"}" +
-									"]}]" +
+									"\"cluster\":\"edge2\"}]" +
 									"}}}"),
 						},
 					},
@@ -1350,16 +1119,7 @@ func TestGetAllAppIntents(t *testing.T) {
 									"\"cluster\":\"edge1\"}," +
 									"{" +
 									"\"clusterProvider\":\"aws\"," +
-									"\"cluster\":\"edge2\"}," +
-									"{" +
-									"\"anyOf\":[" +
-									"{" +
-									"\"clusterProvider\":\"aws\"," +
-									"\"clusterLabel\":\"east-us1\"}," +
-									"{" +
-									"\"clusterProvider\":\"aws\"," +
-									"\"clusterLabel\":\"east-us2\"}" +
-									"]}]" +
+									"\"cluster\":\"edge2\"}]" +
 									"}}}"),
 						},
 					},
@@ -1446,16 +1206,7 @@ func TestDeleteAppIntent(t *testing.T) {
 									"\"cluster\":\"edge1\"}," +
 									"{" +
 									"\"clusterProvider\":\"aws\"," +
-									"\"cluster\":\"edge2\"}," +
-									"{" +
-									"\"anyOf\":[" +
-									"{" +
-									"\"clusterProvider\":\"aws\"," +
-									"\"clusterLabel\":\"east-us1\"}," +
-									"{" +
-									"\"clusterProvider\":\"aws\"," +
-									"\"clusterLabel\":\"east-us2\"}" +
-									"]}]" +
+									"\"cluster\":\"edge2\"}]" +
 									"}}}"),
 						},
 					},
@@ -1495,16 +1246,7 @@ func TestDeleteAppIntent(t *testing.T) {
 									"\"cluster\":\"edge1\"}," +
 									"{" +
 									"\"clusterProvider\":\"aws\"," +
-									"\"cluster\":\"edge2\"}," +
-									"{" +
-									"\"anyOf\":[" +
-									"{" +
-									"\"clusterProvider\":\"aws\"," +
-									"\"clusterLabel\":\"east-us1\"}," +
-									"{" +
-									"\"clusterProvider\":\"aws\"," +
-									"\"clusterLabel\":\"east-us2\"}" +
-									"]}]" +
+									"\"cluster\":\"edge2\"}]" +
 									"}}}"),
 						},
 					},

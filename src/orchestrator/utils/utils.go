@@ -6,6 +6,7 @@ package utils
 import (
 	"archive/tar"
 	"compress/gzip"
+	"encoding/json"
 	"strings"
 
 	"io"
@@ -14,9 +15,11 @@ import (
 	"path"
 	"path/filepath"
 
-	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 	pkgerrors "github.com/pkg/errors"
 	yaml "gopkg.in/yaml.v3"
+
+	"gitlab.com/project-emco/core/emco-base/src/orchestrator/common"
+	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 )
 
 // ListYamlStruct is applied when the kind is list
@@ -106,9 +109,9 @@ func ExtractYamlParameters(f string) (YamlStruct, error) {
 
 }
 
-//ExtractTarBall provides functionality to extract a tar.gz file
-//into a temporary location for later use.
-//It returns the path to the new location
+// ExtractTarBall provides functionality to extract a tar.gz file
+// into a temporary location for later use.
+// It returns the path to the new location
 func ExtractTarBall(r io.Reader) (string, error) {
 	//Check if it is a valid gz
 	gzf, err := gzip.NewReader(r)
@@ -182,8 +185,8 @@ func ExtractTarBall(r io.Reader) (string, error) {
 	return outDir, nil
 }
 
-//EnsureDirectory makes sure that the directories specified in the path exist
-//If not, it will create them, if possible.
+// EnsureDirectory makes sure that the directories specified in the path exist
+// If not, it will create them, if possible.
 func EnsureDirectory(f string) error {
 	base := path.Dir(f)
 	_, err := os.Stat(base)
@@ -191,4 +194,81 @@ func EnsureDirectory(f string) error {
 		return err
 	}
 	return os.MkdirAll(base, 0700)
+}
+
+func ConvertType(in, out interface{}) error {
+	b, err := json.Marshal(in)
+	if err != nil {
+		return err
+	}
+
+	return json.Unmarshal(b, out)
+}
+
+func ContainCluster(clusterProvider, clusterName string, lcClusterRefs []common.Cluster) bool {
+	for _, lcRef := range lcClusterRefs {
+		if lcRef.Specification.ClusterProvider == clusterProvider && lcRef.Specification.ClusterName == clusterName {
+			return true
+		}
+	}
+
+	return false
+}
+
+func StructToMap(s interface{}) (map[string]interface{}, error) {
+	var m map[string]interface{}
+	return m, ConvertType(s, &m)
+}
+
+func MapKeys(m map[string]interface{}) []string {
+	var keys []string
+	for key := range m {
+		keys = append(keys, key)
+	}
+
+	return keys
+}
+
+func HasDuplication(list []string) bool {
+	m := map[string]bool{}
+	for _, item := range list {
+		if _, ok := m[item]; ok {
+			return true
+		}
+
+		m[item] = true
+	}
+
+	return false
+}
+
+func HasIntersection(list1 []string, list2 []string) bool {
+	m := map[string]bool{}
+	for _, item := range list1 {
+		m[item] = true
+	}
+
+	for _, item := range list2 {
+		if _, ok := m[item]; ok {
+			return true
+		}
+	}
+
+	return false
+}
+
+func ListDifference(list1 []string, list2 []string) []string {
+	m := map[string]bool{}
+	for _, item := range list2 {
+		m[item] = true
+	}
+
+	difference := []string{}
+	for _, item := range list1 {
+		if _, ok := m[item]; !ok {
+			difference = append(difference, item)
+		}
+	}
+
+	return difference
 }

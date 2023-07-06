@@ -11,9 +11,9 @@ push_to_registry() {
     M_TAG=$2
     echo "Pushing ${M_IMAGE} to ${REGISTRY}${M_IMAGE}:${M_TAG}..."
     docker tag ${M_IMAGE}:latest ${REGISTRY}${M_IMAGE}:${M_TAG}
-    docker tag ${M_IMAGE}:latest ${REGISTRY}${M_IMAGE}:latest
+    # docker tag ${M_IMAGE}:latest ${REGISTRY}${M_IMAGE}:latest
     docker push ${REGISTRY}${M_IMAGE}:${M_TAG}
-    docker push ${REGISTRY}${M_IMAGE}:latest
+    # docker push ${REGISTRY}${M_IMAGE}:latest
 }
 
 if [ "${BUILD_CAUSE}" != "TIMERTRIGGER" ] && [ "${BUILD_CAUSE}" != "DEV_TEST" ] && [ "${BUILD_CAUSE}" != "RELEASE" ]; then

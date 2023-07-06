@@ -188,3 +188,20 @@ func (c *GenericPlacementIntentClient) DeleteGenericPlacementIntent(ctx context.
 	err := db.DBconn.Remove(ctx, c.storeName, key)
 	return err
 }
+
+// CloneGenericPlacementIntents clone the intents from the database
+func (c *GenericPlacementIntentClient) CloneGenericPlacementIntents(ctx context.Context, p, ca, v, di, tDi string) ([]GenericPlacementIntent, error) {
+	genericPlacementIntents, err := c.GetAllGenericPlacementIntents(ctx, p, ca, v, di)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, gpi := range genericPlacementIntents {
+		_, _, err = c.CreateGenericPlacementIntent(ctx, gpi, p, ca, v, tDi, true)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return genericPlacementIntents, nil
+}

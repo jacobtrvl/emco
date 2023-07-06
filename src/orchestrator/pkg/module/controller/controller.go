@@ -230,7 +230,7 @@ func NewControllerServer(name string, httpRouter *mux.Router, grpcServer *regist
 		httpRouter = mux.NewRouter()
 	}
 	httpRouter.Use(tracing.Middleware)
-	httpServer, err := newHttpServer(httpServerPort, httpRouter)
+	httpServer, err := newHttpServer(name, httpServerPort, httpRouter)
 	if err != nil {
 		log.Error("Unable to create HTTP server", log.Fields{"Error": err})
 		return nil, err
@@ -293,12 +293,12 @@ func NewControllerServer(name string, httpRouter *mux.Router, grpcServer *regist
 	}, nil
 }
 
-func newHttpServer(port string, httpRouter *mux.Router) (*http.Server, error) {
+func newHttpServer(name, port string, httpRouter *mux.Router) (*http.Server, error) {
 	httpRouter.Handle("/metrics", promhttp.Handler())
-	loggedRouter := handlers.LoggingHandler(os.Stdout, httpRouter)
+	tracedHandler := tracing.NewHttpHandler(name, handlers.LoggingHandler(os.Stdout, httpRouter))
 
 	return &http.Server{
-		Handler: loggedRouter,
+		Handler: tracedHandler,
 		Addr:    ":" + port,
 	}, nil
 }

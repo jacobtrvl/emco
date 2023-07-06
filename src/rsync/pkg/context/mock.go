@@ -92,7 +92,11 @@ func (m *MockClient) Create(name string, ref interface{}, content []byte) (inter
 	return ref, nil
 }
 
-func (m *MockClient) TagResource(res []byte, l string) ([]byte, error) {
+func (m *MockClient) TagResource(res []byte, l map[string]string) ([]byte, error) {
+	return res, nil
+}
+
+func (m *MockClient) AddLabel(res []byte, l map[string]string) ([]byte, error) {
 	return res, nil
 }
 

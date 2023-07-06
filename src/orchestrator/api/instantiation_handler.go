@@ -17,7 +17,9 @@ import (
 	moduleLib "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/module"
 )
 
-/* Used to store backend implementation objects
+/*
+	Used to store backend implementation objects
+
 Also simplifies mocking for unit testing purposes
 */
 type instantiationHandler struct {
@@ -32,6 +34,18 @@ func (h instantiationHandler) approveHandler(w http.ResponseWriter, r *http.Requ
 	ca := vars["compositeApp"]
 	v := vars["compositeAppVersion"]
 	di := vars["deploymentIntentGroup"]
+
+	dig, err := moduleLib.NewDeploymentIntentGroupClient().GetDeploymentIntentGroup(ctx, di, p, ca, v)
+	if err != nil {
+		apiErr := apierror.HandleErrors(vars, err, dig, apiErrors)
+		http.Error(w, apiErr.Message, apiErr.Status)
+		return
+	}
+
+	if dig.Spec.Services != nil && len(dig.Spec.Services) > 0 {
+		http.Error(w, "DeploymentIntent used with Services", http.StatusConflict)
+		return
+	}
 
 	iErr := h.client.Approve(ctx, p, ca, v, di)
 	if iErr != nil {
@@ -50,6 +64,18 @@ func (h instantiationHandler) instantiateHandler(w http.ResponseWriter, r *http.
 	ca := vars["compositeApp"]
 	v := vars["compositeAppVersion"]
 	di := vars["deploymentIntentGroup"]
+
+	dig, err := moduleLib.NewDeploymentIntentGroupClient().GetDeploymentIntentGroup(ctx, di, p, ca, v)
+	if err != nil {
+		apiErr := apierror.HandleErrors(vars, err, dig, apiErrors)
+		http.Error(w, apiErr.Message, apiErr.Status)
+		return
+	}
+
+	if dig.Spec.Services != nil && len(dig.Spec.Services) > 0 {
+		http.Error(w, "DeploymentIntent used with Services", http.StatusConflict)
+		return
+	}
 
 	iErr := h.client.Instantiate(ctx, p, ca, v, di)
 	if iErr != nil {
@@ -77,6 +103,18 @@ func (h instantiationHandler) terminateHandler(w http.ResponseWriter, r *http.Re
 	ca := vars["compositeApp"]
 	v := vars["compositeAppVersion"]
 	di := vars["deploymentIntentGroup"]
+
+	dig, err := moduleLib.NewDeploymentIntentGroupClient().GetDeploymentIntentGroup(ctx, di, p, ca, v)
+	if err != nil {
+		apiErr := apierror.HandleErrors(vars, err, dig, apiErrors)
+		http.Error(w, apiErr.Message, apiErr.Status)
+		return
+	}
+
+	if dig.Spec.Services != nil && len(dig.Spec.Services) > 0 {
+		http.Error(w, "DeploymentIntent used with Services", http.StatusConflict)
+		return
+	}
 
 	iErr := h.client.Terminate(ctx, p, ca, v, di)
 	if iErr != nil {

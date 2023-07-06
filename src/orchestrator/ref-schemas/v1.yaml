@@ -99,8 +99,12 @@ resources:
       - name: app
       - name: cluster
         type: many
+      - name: clusterLabel
+        type: many
   - name: appDependency
     parent: app
+  - name: service
+    parent: project
 #emco-ovnaction
   - name: netControllerIntent
     parent: deploymentIntentGroup

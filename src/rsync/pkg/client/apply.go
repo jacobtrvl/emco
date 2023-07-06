@@ -73,7 +73,7 @@ func serverSideApply(info *resource.Info, err error) error {
 	options := metav1.PatchOptions{
 		// TODO: Find out how to get the force conflict flag
 		// Force:        &forceConflicts,
-		// FieldManager: FieldManager,
+		FieldManager: "kubectl",
 	}
 	obj, err := resource.NewHelper(info.Client, info.Mapping).Patch(info.Namespace, info.Name, types.ApplyPatchType, data, &options)
 	if err != nil {

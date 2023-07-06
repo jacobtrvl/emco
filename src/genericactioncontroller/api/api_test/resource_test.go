@@ -19,7 +19,6 @@ import (
 	"github.com/pkg/errors"
 	"gitlab.com/project-emco/core/emco-base/src/genericactioncontroller/api"
 	"gitlab.com/project-emco/core/emco-base/src/genericactioncontroller/pkg/module"
-	"gitlab.com/project-emco/core/emco-base/src/orchestrator/common/emcoerror"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/module/types"
 )
 
@@ -56,10 +55,7 @@ func (m *mockResourceManager) CreateResource(ctx context.Context, res module.Res
 	}
 
 	if iExists && failIfExists { // resource already exists
-		return module.Resource{}, iExists, emcoerror.NewEmcoError(
-			module.ResourceAlreadyExists,
-			emcoerror.Conflict,
-		)
+		return module.Resource{}, iExists, errors.New("Resource already exists")
 	}
 
 	if iExists && !failIfExists { // resource already exists. update the resource
@@ -88,10 +84,7 @@ func (m *mockResourceManager) GetResource(ctx context.Context, resource, project
 		}
 	}
 
-	return module.Resource{}, emcoerror.NewEmcoError(
-		module.ResourceNotFound,
-		emcoerror.NotFound,
-	)
+	return module.Resource{}, errors.New("Resource not found")
 }
 
 func (m *mockResourceManager) GetResourceContent(ctx context.Context, resource, project, compositeApp, compositeAppVersion, deploymentIntentGroup, genericK8sIntent string) (module.ResourceContent, error) {
@@ -137,10 +130,7 @@ func (m *mockResourceManager) DeleteResource(ctx context.Context, resource, proj
 		}
 	}
 
-	return emcoerror.NewEmcoError(
-		"the requested resource not found",
-		emcoerror.NotFound,
-	) // resource does not exist
+	return errors.New("db Remove resource not found") // resource does not exist
 
 }
 
@@ -164,7 +154,7 @@ var _ = Describe("Test create resource handler",
 				test{
 					input:      resourceInput(""), // create an empty resource payload
 					result:     mockResource{},
-					err:        errors.New("resource name may not be emptyapp may not be emptynewObject may not be emptyapiVersion may not be emptykind may not be emptyname may not be empty"),
+					err:        errors.New("resource name may not be empty\napp may not be empty\nnewObject may not be empty\napiVersion may not be empty\nkind may not be empty\nname may not be empty\n"),
 					statusCode: http.StatusBadRequest,
 					client: &mockResourceManager{
 						Err:   nil,
@@ -186,12 +176,9 @@ var _ = Describe("Test create resource handler",
 			),
 			Entry("resource already exists",
 				test{
-					input:  resourceInput("testResource-1"),
-					result: mockResource{},
-					err: emcoerror.NewEmcoError(
-						module.ResourceAlreadyExists,
-						emcoerror.Conflict,
-					),
+					input:      resourceInput("testResource-1"),
+					result:     mockResource{},
+					err:        errors.New("resource already exists\n"),
 					statusCode: http.StatusConflict,
 					client: &mockResourceManager{
 						Err:   nil,
@@ -230,11 +217,8 @@ var _ = Describe("Test get resource handler",
 				test{
 					name:       "nonExistingResource",
 					statusCode: http.StatusNotFound,
-					err: emcoerror.NewEmcoError(
-						module.ResourceNotFound,
-						emcoerror.NotFound,
-					),
-					result: mockResource{},
+					err:        errors.New("resource not found\n"),
+					result:     mockResource{},
 					client: &mockResourceManager{
 						Err:   nil,
 						Items: populateResourceTestData(),
@@ -310,7 +294,7 @@ var _ = Describe("Test update resource handler",
 					name:       "testResource",
 					input:      resourceInput(""), // create an empty resource payload
 					result:     mockResource{},
-					err:        errors.New("resource name may not be emptyapp may not be emptynewObject may not be emptyapiVersion may not be emptykind may not be emptyname may not be empty"),
+					err:        errors.New("resource name may not be empty\napp may not be empty\nnewObject may not be empty\napiVersion may not be empty\nkind may not be empty\nname may not be empty\n"),
 					statusCode: http.StatusBadRequest,
 					client: &mockResourceManager{
 						Err:   nil,
@@ -373,11 +357,8 @@ var _ = Describe("Test delete resource handler",
 					entry:      "db remove resource not found",
 					name:       "nonExistingResource",
 					statusCode: http.StatusNotFound,
-					err: emcoerror.NewEmcoError(
-						"the requested resource not found",
-						emcoerror.NotFound,
-					),
-					result: mockResource{},
+					err:        errors.New("The requested resource not found\n"),
+					result:     mockResource{},
 					client: &mockResourceManager{
 						Err:   nil,
 						Items: populateResourceTestData(),
@@ -585,7 +566,7 @@ func validateResourceResponse(res *http.Response, t test) {
 	Expect(res.StatusCode).To(Equal(t.statusCode))
 
 	if t.err != nil {
-		b := strings.Replace(string(data), "\n", "", -1) // replace the new line at the end
+		b := string(data)
 		Expect(b).To(Equal(t.err.Error()))
 		return
 	}

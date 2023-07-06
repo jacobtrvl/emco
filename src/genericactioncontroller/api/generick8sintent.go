@@ -4,10 +4,11 @@
 package api
 
 import (
+	"errors"
 	"net/http"
 
 	"gitlab.com/project-emco/core/emco-base/src/genericactioncontroller/pkg/module"
-	"gitlab.com/project-emco/core/emco-base/src/orchestrator/common/emcoerror"
+	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/apierror"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 
 	"github.com/gorilla/mux"
@@ -39,7 +40,7 @@ func (h genericK8sIntentHandler) handleGenericK8sIntentDelete(w http.ResponseWri
 	vars := _gkiVars(mux.Vars(r))
 	if err := h.client.DeleteGenericK8sIntent(ctx, vars.intent, vars.project, vars.compositeApp,
 		vars.version, vars.deploymentIntentGroup); err != nil {
-		apiErr := emcoerror.HandleAPIError(err)
+		apiErr := apierror.HandleErrors(mux.Vars(r), err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
 		return
 	}
@@ -65,7 +66,7 @@ func (h genericK8sIntentHandler) handleGenericK8sIntentGet(w http.ResponseWriter
 	}
 
 	if err != nil {
-		apiErr := emcoerror.HandleAPIError(err)
+		apiErr := apierror.HandleErrors(mux.Vars(r), err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
 		return
 	}
@@ -82,9 +83,8 @@ func (h genericK8sIntentHandler) handleGenericK8sIntentUpdate(w http.ResponseWri
 func (h genericK8sIntentHandler) createOrUpdateIntent(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var genericK8sIntent module.GenericK8sIntent
-	if err := validateRequestBody(r.Body, &genericK8sIntent, GenericK8sIntentSchemaJson); err != nil {
-		apiErr := emcoerror.HandleAPIError(err)
-		http.Error(w, apiErr.Message, apiErr.Status)
+	if code, err := validateRequestBody(r.Body, &genericK8sIntent, GenericK8sIntentSchemaJson); err != nil {
+		http.Error(w, err.Error(), code)
 		return
 	}
 
@@ -111,7 +111,7 @@ func (h genericK8sIntentHandler) createOrUpdateIntent(w http.ResponseWriter, r *
 		vars.project, vars.compositeApp, vars.version, vars.deploymentIntentGroup,
 		methodPost)
 	if err != nil {
-		apiErr := emcoerror.HandleAPIError(err)
+		apiErr := apierror.HandleErrors(mux.Vars(r), err, vars.intent, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
 		return
 	}
@@ -130,10 +130,7 @@ func validateGenericK8sIntentData(gki module.GenericK8sIntent) error {
 	if len(gki.Metadata.Name) == 0 {
 		logutils.Error("GenericK8sIntent name may not be empty",
 			logutils.Fields{})
-		return emcoerror.NewEmcoError(
-			"genericK8sIntent name may not be empty",
-			emcoerror.BadRequest,
-		)
+		return errors.New("genericK8sIntent name may not be empty")
 	}
 
 	return nil

@@ -8,7 +8,7 @@ import (
 	"encoding/json"
 	"reflect"
 
-	"gitlab.com/project-emco/core/emco-base/src/orchestrator/common/emcoerror"
+	"github.com/pkg/errors"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/module/types"
 )
@@ -107,10 +107,7 @@ func (rc *ResourceClient) CreateResource(ctx context.Context, res Resource, resC
 
 	if rExists &&
 		failIfExists {
-		return Resource{}, rExists, emcoerror.NewEmcoError(
-			ResourceAlreadyExists,
-			emcoerror.Conflict,
-		)
+		return Resource{}, rExists, errors.New("Resource already exists")
 	}
 
 	if err = db.DBconn.Insert(ctx, rc.db.storeName, key, nil, rc.db.tagMeta, res); err != nil {
@@ -144,10 +141,7 @@ func (rc *ResourceClient) GetResource(ctx context.Context, resource, project, co
 	}
 
 	if len(value) == 0 {
-		return Resource{}, emcoerror.NewEmcoError(
-			ResourceNotFound,
-			emcoerror.NotFound,
-		)
+		return Resource{}, errors.New("Resource not found")
 	}
 
 	if value != nil {
@@ -158,10 +152,7 @@ func (rc *ResourceClient) GetResource(ctx context.Context, resource, project, co
 		return r, nil
 	}
 
-	return Resource{}, emcoerror.NewEmcoError(
-		emcoerror.UnknownErrorMessage,
-		emcoerror.Unknown,
-	)
+	return Resource{}, errors.New("Unknown Error")
 }
 
 // GetAllResources returns all the Resources for an Intent

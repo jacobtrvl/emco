@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"github.com/google/uuid"
 
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/apierror"
 	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
@@ -55,6 +56,8 @@ func (h deploymentIntentGroupHandler) createDeploymentIntentGroupHandler(w http.
 	projectName := vars["project"]
 	compositeAppName := vars["compositeApp"]
 	version := vars["compositeAppVersion"]
+	// Add unique identifier to DIG
+	d.Spec.Id = uuid.New().String()
 
 	dIntent, _, createErr := h.client.CreateDeploymentIntentGroup(ctx, d, projectName, compositeAppName, version, true)
 	if createErr != nil {

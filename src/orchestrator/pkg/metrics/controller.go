@@ -96,7 +96,14 @@ func do(ctx context.Context) {
 				fields := fields
 				fields["dig"] = dig.MetaData.Name
 
-				DIGGauge.WithLabelValues(dig.MetaData.Name, proj.MetaData.Name, app.Metadata.Name, app.Spec.Version).Set(1)
+				// Get state info
+				digStateInfo, err := client.DeploymentIntentGroup.GetDeploymentIntentGroupState(ctx, dig.MetaData.Name, proj.MetaData.Name, app.Metadata.Name, app.Spec.Version)
+				if err != nil {
+					log.Error(err.Error(), fields)
+					continue
+
+				}
+				DIGGauge.WithLabelValues(dig.MetaData.Name, proj.MetaData.Name, app.Metadata.Name, app.Spec.Version, digStateInfo.Actions[len(digStateInfo.Actions)-1].State).Set(1)
 				gpIntents, err := client.GenericPlacementIntent.GetAllGenericPlacementIntents(ctx, proj.MetaData.Name, app.Metadata.Name, app.Spec.Version, dig.MetaData.Name)
 				if err != nil {
 					log.Error(err.Error(), fields)

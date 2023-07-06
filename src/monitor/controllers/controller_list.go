@@ -5,60 +5,57 @@ package controllers
 
 import (
 	"context"
-	"encoding/json"
+	"fmt"
+	"log"
+	"sync"
+
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/client-go/dynamic"
-	"log"
-	"os"
+	"k8s.io/client-go/discovery"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	slog "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
+
+	k8spluginv1alpha1 "gitlab.com/project-emco/core/emco-base/src/monitor/pkg/apis/k8splugin/v1alpha1"
 )
 
-type GvkElement struct {
-	resource   string
-	defaultRes bool
+// Resources with special handling in Monitor
+var defaultResourcesMap = map[schema.GroupVersionKind]bool{
+	{Version: "v1", Kind: "ConfigMap"}:                                               true,
+	{Group: "apps", Version: "v1", Kind: "DaemonSet"}:                                true,
+	{Group: "apps", Version: "v1", Kind: "Deployment"}:                               true,
+	{Group: "batch", Version: "v1", Kind: "Job"}:                                     true,
+	{Version: "v1", Kind: "Service"}:                                                 true,
+	{Version: "v1", Kind: "Pod"}:                                                     true,
+	{Group: "apps", Version: "v1", Kind: "StatefulSet"}:                              true,
+	{Group: "certificates.k8s.io", Version: "v1", Kind: "CertificateSigningRequest"}: true,
 }
 
-var defaultType GvkElement = GvkElement{defaultRes: true}
-
-// List of resources with special handling in Monitor
-var GVKList = map[schema.GroupVersionKind]GvkElement{
-	{Version: "v1", Kind: "ConfigMap"}:                                               defaultType,
-	{Group: "apps", Version: "v1", Kind: "DaemonSet"}:                                defaultType,
-	{Group: "apps", Version: "v1", Kind: "Deployment"}:                               defaultType,
-	{Group: "batch", Version: "v1", Kind: "Job"}:                                     defaultType,
-	{Version: "v1", Kind: "Service"}:                                                 defaultType,
-	{Version: "v1", Kind: "Pod"}:                                                     defaultType,
-	{Group: "apps", Version: "v1", Kind: "StatefulSet"}:                              defaultType,
-	{Group: "certificates.k8s.io", Version: "v1", Kind: "CertificateSigningRequest"}: defaultType,
-	{Group: "rbac.authorization.k8s.io", Version: "v1", Kind: "Role"}:                {resource: "roles", defaultRes: false},
-	{Group: "rbac.authorization.k8s.io", Version: "v1", Kind: "RoleBinding"}:         {resource: "rolebindings", defaultRes: false},
-	{Group: "rbac.authorization.k8s.io", Version: "v1", Kind: "ClusterRole"}:         {resource: "roles", defaultRes: false},
-	{Group: "rbac.authorization.k8s.io", Version: "v1", Kind: "ClusterRoleBinding"}:  {resource: "clusterrolebindings", defaultRes: false},
-	{Version: "v1", Kind: "ResourceQuota"}:                                           {resource: "resourcequotas", defaultRes: false},
-	{Version: "v1", Kind: "Namespace"}:                                               {resource: "namespaces", defaultRes: false},
+// Resources to not be monitored
+var ignoredResourcesMap = map[schema.GroupKind]bool{
+	{Group: k8spluginv1alpha1.GroupVersion.Group, Kind: "ResourceBundleState"}: true,
 }
-
-var GvkMap map[schema.GroupVersionKind]GvkElement
 
 // ResourceBundleStateReconciler reconciles a ResourceBundleState object
 type ControllerListReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
 	gvk    *schema.GroupVersionKind
+	mutex  *sync.Mutex
 }
 
-func runtimeObjFromGVK(r schema.GroupVersionKind) runtime.Object {
-	obj := &unstructured.Unstructured{}
-	obj.SetGroupVersionKind(r)
-	return obj
+func isDefaultResource(resourceGVK schema.GroupVersionKind) bool {
+	_, ok := defaultResourcesMap[resourceGVK]
+	return ok
+}
+
+func isIgnoredResource(resourceGK schema.GroupKind) bool {
+	_, ok := ignoredResourcesMap[resourceGK]
+	return ok
 }
 
 //+kubebuilder:rbac:groups=k8splugin.io,resources=resourcebundlestates,verbs=get;list;watch;create;update;patch;delete
@@ -76,64 +73,41 @@ func (r *ControllerListReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 
 	err := r.Get(ctx, req.NamespacedName, resource)
 	if err != nil {
-		if k8serrors.IsNotFound(err) {
-			if g, ok := GvkMap[*r.gvk]; ok {
-				var err1 error
-				dc := DeleteStatusClient{
-					c:          r.Client,
-					name:       req.Name,
-					namespace:  req.Namespace,
-					gvk:        *r.gvk,
-					defaultRes: g.defaultRes,
-				}
-				err1 = dc.Delete()
-				return ctrl.Result{}, err1
-			}
-			return ctrl.Result{}, nil
+		if !k8serrors.IsNotFound(err) {
+			return ctrl.Result{}, err
 		}
+
+		dc := DeleteStatusClient{
+			c:          r.Client,
+			name:       req.Name,
+			namespace:  req.Namespace,
+			gvk:        *r.gvk,
+			defaultRes: isDefaultResource(*r.gvk),
+		}
+
+		r.mutex.Lock()
+		defer r.mutex.Unlock()
+
+		err = dc.Delete()
 		return ctrl.Result{}, err
 	}
+
 	// If resource not a default resource for the controller
 	// Add status to ResourceStatues array
-	if g, ok := GvkMap[*r.gvk]; ok {
-		uc := UpdateStatusClient{
-			c:          r.Client,
-			item:       resource,
-			name:       req.NamespacedName.Name,
-			namespace:  req.NamespacedName.Namespace,
-			gvk:        *r.gvk,
-			defaultRes: g.defaultRes,
-		}
-		err = uc.Update()
-	}
-	if err != nil {
-		// Requeue the update
-		return ctrl.Result{}, err
-	}
-	return ctrl.Result{}, nil
-}
-
-//
-func GetResourcesDynamically(group string, version string, resource string, namespace string) (
-	[]unstructured.Unstructured, error) {
-
-	ctx := context.Background()
-	config := ctrl.GetConfigOrDie()
-	dynamic := dynamic.NewForConfigOrDie(config)
-	resourceId := schema.GroupVersionResource{
-		Group:    group,
-		Version:  version,
-		Resource: resource,
-	}
-	list, err := dynamic.Resource(resourceId).Namespace("").
-		List(ctx, metav1.ListOptions{})
-
-	if err != nil {
-		log.Println("Error listing resource:", resourceId, err)
-		return nil, err
+	uc := UpdateStatusClient{
+		c:          r.Client,
+		item:       resource,
+		name:       req.NamespacedName.Name,
+		namespace:  req.NamespacedName.Namespace,
+		gvk:        *r.gvk,
+		defaultRes: isDefaultResource(*r.gvk),
 	}
 
-	return list.Items, nil
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
+	err = uc.Update()
+	return ctrl.Result{}, err
 }
 
 // SetupWithManager sets up the controller with the Manager.
@@ -147,90 +121,47 @@ func (r *ControllerListReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(resource, builder.WithPredicates(predicate.NewPredicateFuncs(func(object client.Object) bool {
 			labels := object.GetLabels()
 			_, ok := labels["emco/deployment-id"]
-			if !ok {
-				return false
-			}
-			return true
+			return ok
 		}))).
 		Complete(r)
 }
 
-func SetupControllerForType(mgr ctrl.Manager, gv schema.GroupVersionKind, breakonError bool) error {
-	r := ControllerListReconciler{
+func SetupControllerForType(mgr ctrl.Manager, resourceGVK *schema.GroupVersionKind, mutex *sync.Mutex) error {
+	r := &ControllerListReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
-		gvk:    &gv,
+		gvk:    resourceGVK,
+		mutex:  mutex,
 	}
 
-	if err := (&r).SetupWithManager(mgr); err != nil {
-		log.Println(err, "unable to create controller", "controller", gv)
-		if breakonError {
-			os.Exit(1)
-		}
+	if err := r.SetupWithManager(mgr); err != nil {
+		return fmt.Errorf("failed to create controller for resource %+v: %q", resourceGVK, err)
 	}
+
 	return nil
 }
 
-type configResource struct {
-	Group    string `json:"group"`
-	Version  string `json:"version"`
-	Kind     string `json:"kind"`
-	Resource string `json:"resource"`
-}
-
-// readConfigFile reads the specified smsConfig file to setup some env variables
-func readGVKList(file string) ([]configResource, error) {
-	f, err := os.Open(file)
+func SetupControllers(mgr ctrl.Manager, controllersMutex *sync.Mutex) error {
+	discoveryClient, err := discovery.NewDiscoveryClientForConfig(mgr.GetConfig())
 	if err != nil {
-		log.Println("FILE not found::", file, err)
-		return []configResource{}, err
+		return fmt.Errorf("failed to create discovery client :%q", err)
 	}
-	defer f.Close()
 
-	// Read the configuration from json file
-	result := make([]configResource, 0)
-	decoder := json.NewDecoder(f)
-	decoder.DisallowUnknownFields()
-	err = decoder.Decode(&result)
-	//err = decoder.Decode(&conf)
+	resourcesGVK, err := GetServerResources(discoveryClient)
 	if err != nil {
-		log.Println("FILE Decode error::", file, err)
-		return []configResource{}, err
-	}
-	return result, nil
-}
-
-func SetupControllers(mgr ctrl.Manager) error {
-
-	// Copy map
-	GvkMap = make(map[schema.GroupVersionKind]GvkElement, len(GVKList))
-	for k, v := range GVKList {
-		GvkMap[k] = v
+		return fmt.Errorf("failed to get server resources :%q", err)
 	}
 
-	l, err := readGVKList("/opt/emco/monitor/gvk.conf")
-	if err != nil {
-		log.Println("Error reading configmap for GVK List")
-	}
-
-	for _, gv := range l {
-		_, err = GetResourcesDynamically(gv.Group, gv.Version, gv.Resource, "default")
-		if err != nil {
-			log.Println("Invalid resource for the cluster", gv)
+	for _, resourceGVK := range resourcesGVK {
+		if isIgnoredResource(resourceGVK.GroupKind()) {
 			continue
 		}
-		gvk := schema.GroupVersionKind{
-			Group:   gv.Group,
-			Kind:    gv.Kind,
-			Version: gv.Version,
-		}
-		if _, ok := GvkMap[gvk]; !ok {
-			GvkMap[gvk] = GvkElement{defaultRes: false, resource: gv.Resource}
+
+		log.Printf("Adding controller for %+v", resourceGVK)
+		if err = SetupControllerForType(mgr, resourceGVK, controllersMutex); err != nil {
+			return fmt.Errorf("failed to add controller for %+v: %q", resourceGVK, err)
 		}
 	}
-	log.Println("Adding controllers for::", GvkMap)
-	for k, v := range GvkMap {
-		SetupControllerForType(mgr, k, v.defaultRes)
-	}
+
 	return nil
 }

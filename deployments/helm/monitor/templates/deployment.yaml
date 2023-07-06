@@ -24,10 +24,6 @@ spec:
           command:
           - /opt/emco/monitor/monitor
           imagePullPolicy: Always
-          volumeMounts:
-          - name: config-volume
-            mountPath: {{ .Values.workingDir }}/gvk.conf
-            subPath: gvk.conf
           env:
             - name: NO_PROXY
               value: {{ .Values.noProxyHosts }}
@@ -87,7 +83,3 @@ spec:
                   name: {{ .Release.Name }}-git-monitor
                   key: giturl
               {{- end }}
-      volumes:
-      - name: config-volume
-        configMap:
-          name: {{ .Release.Name }}-monitor-list

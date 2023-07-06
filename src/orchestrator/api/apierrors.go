@@ -27,10 +27,21 @@ var apiErrors = []apierror.APIError{
 	{ID: "CompositeApp not found", Message: "CompositeApp not found", Status: http.StatusNotFound},
 	{ID: "CompositeProfile already exists", Message: "CompositeProfile already exists", Status: http.StatusConflict},
 	{ID: "DeploymentIntent already exists", Message: "DeploymentIntent already exists", Status: http.StatusConflict},
+	{ID: "DeploymentIntent used with Services", Message: "DeploymentIntent used with Services", Status: http.StatusConflict},
 	{ID: "Project already exists", Message: "Project already exists", Status: http.StatusConflict},
 	{ID: "Controller already exists", Message: "Controller already exists", Status: http.StatusConflict},
 	{ID: "The DeploymentIntentGroup is not updated", Message: "The specified DeploymentIntentGroup is not in Created status", Status: http.StatusConflict},
 	{ID: "AppDependency not found", Message: "AppDependency not found", Status: http.StatusNotFound},
+	{ID: "already instantiated", Message: "", Status: http.StatusConflict},
+	{ID: "already terminated", Message: "", Status: http.StatusConflict},
+	{ID: "service is already started", Message: "", Status: http.StatusConflict},
+	{ID: "Service not found", Message: "", Status: http.StatusNotFound},
+	{ID: "\"Service\" must be terminated before deleting", Message: "\"Service\" must be terminated before deleting", Status: http.StatusConflict},
+	{ID: "Service already exists", Message: "Service already exists", Status: http.StatusConflict},
+	{ID: "not allowed to terminate a non instantiated Service", Message: "", Status: http.StatusConflict},
+	{ID: "not allowed to use DIG from a different project", Message: "", Status: http.StatusBadRequest},
+	{ID: "invalid digId", Message: "", Status: http.StatusUnprocessableEntity},
+	{ID: "not found in service", Message: "", Status: http.StatusNotFound},
 }
 
 var lcErrors = []apierror.APIError{

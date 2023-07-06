@@ -281,7 +281,7 @@ func (c *Controller) getContextMeta(contextId string) (ContextMeta, error) {
 func (c *Controller) getContextMetaFromDB(contextId string) ([]byte, error) {
 	key := "/context/" + contextId + "/meta/"
 	var value json.RawMessage
-	err := c.contextDb.Get(context.TODO(), key, value)
+	err := c.contextDb.Get(context.TODO(), key, &value)
 	if err != nil {
 		log.Error("Error while getting context db data", log.Fields{"err": err})
 		return nil, err

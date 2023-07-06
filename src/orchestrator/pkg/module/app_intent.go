@@ -11,11 +11,16 @@ Adding/Querying AppIntents for each application in the composite-app
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"reflect"
 
 	pkgerrors "github.com/pkg/errors"
-	gpic "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/gpic"
+
+	"gitlab.com/project-emco/core/emco-base/src/clm/pkg/cluster"
+	"gitlab.com/project-emco/core/emco-base/src/orchestrator/common"
+	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/gpic"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
+	"gitlab.com/project-emco/core/emco-base/src/orchestrator/utils"
 )
 
 // AppIntent has two components - metadata, spec
@@ -48,7 +53,7 @@ type AppIntentManager interface {
 	DeleteAppIntent(ctx context.Context, ai string, p string, ca string, v string, i string, digName string) error
 }
 
-//AppIntentQueryKey required for query
+// AppIntentQueryKey required for query
 type AppIntentQueryKey struct {
 	AppName string `json:"app"`
 }
@@ -106,17 +111,30 @@ func (ai AppIntentFindByAppKey) String() string {
 	return string(out)
 }
 
+type IntentSelectorHandler interface {
+	Handle(ctx context.Context, appIntent *AppIntent, digName, project, contextApp, version string) error
+}
+
+type intentSelectorHandler struct {
+}
+
+func NewIntentSelectorHandler() IntentSelectorHandler {
+	return &intentSelectorHandler{}
+}
+
 // AppIntentClient implements the AppIntentManager interface
 type AppIntentClient struct {
-	storeName   string
-	tagMetaData string
+	storeName        string
+	tagMetaData      string
+	selectorsHandler IntentSelectorHandler
 }
 
 // NewAppIntentClient returns an instance of AppIntentClient
 func NewAppIntentClient() *AppIntentClient {
 	return &AppIntentClient{
-		storeName:   "resources",
-		tagMetaData: "data",
+		storeName:        "resources",
+		tagMetaData:      "data",
+		selectorsHandler: NewIntentSelectorHandler(),
 	}
 }
 
@@ -134,6 +152,11 @@ func (c *AppIntentClient) CreateAppIntent(ctx context.Context, a AppIntent, p st
 
 	if aiExists && failIfExists {
 		return AppIntent{}, aiExists, pkgerrors.New("AppIntent already exists")
+	}
+
+	err = c.selectorsHandler.Handle(ctx, &a, digName, p, ca, v)
+	if err != nil {
+		return AppIntent{}, aiExists, err
 	}
 
 	akey := AppIntentKey{
@@ -269,4 +292,155 @@ func (c *AppIntentClient) DeleteAppIntent(ctx context.Context, ai string, p stri
 	err := db.DBconn.Remove(ctx, c.storeName, k)
 	return err
 
+}
+
+func (c *AppIntentClient) CloneAppIntents(ctx context.Context, p string, ca string, v string, i string, di string, tDi string) ([]AppIntent, error) {
+	intents, err := c.GetAllAppIntents(ctx, p, ca, v, i, di)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, intent := range intents {
+		if _, _, err := c.CreateAppIntent(ctx, intent, p, ca, v, i, tDi, true); err != nil {
+			return nil, err
+		}
+	}
+
+	return intents, nil
+}
+
+func (i *intentSelectorHandler) Handle(ctx context.Context, appIntent *AppIntent, digName, project, contextApp, version string) error {
+
+	dig, err := NewDeploymentIntentGroupClient().GetDeploymentIntentGroup(ctx, digName, project, contextApp, version)
+	if err != nil {
+		return err
+	}
+
+	lcCluster, err := NewLogicalCloudClient().Get(ctx, project, dig.Spec.LogicalCloud)
+	if err != nil {
+		return err
+	}
+
+	dcmClusters, err := NewClusterClient().GetAllClusters(ctx, project, lcCluster.MetaData.Name)
+	if err != nil {
+		return err
+	}
+
+	appIntent.Spec.Intent.Selector = gpic.NameClusterSelector
+	if i.isLabelSelected(appIntent) {
+		appIntent.Spec.Intent.Selector = gpic.LabelClusterSelector
+	}
+
+	allOfSelector, err := i.handleAllOfSelectors(appIntent.Spec.Intent.AllOfArray, dcmClusters)
+	if err != nil {
+		return err
+	}
+
+	anyOfSelector, err := i.handleAnyOfSelectors(appIntent.Spec.Intent.AnyOfArray, dcmClusters)
+	if err != nil {
+		return err
+	}
+
+	appIntent.Spec.Intent.AllOfArray = allOfSelector
+	appIntent.Spec.Intent.AnyOfArray = anyOfSelector
+
+	return nil
+}
+
+func (i *intentSelectorHandler) handleAllOfSelectors(selectorList []gpic.AllOf, allowedClusters []common.Cluster) ([]gpic.AllOf, error) {
+	var anyOfList []gpic.AnyOf
+	err := utils.ConvertType(selectorList, &anyOfList)
+	if err != nil {
+		return nil, err
+	}
+
+	anyOfSelectedList, err := i.handleAnyOfSelectors(anyOfList, allowedClusters)
+	if err != nil {
+		return nil, err
+	}
+
+	var allOfSelectedList []gpic.AllOf
+	err = utils.ConvertType(anyOfSelectedList, &allOfSelectedList)
+	if err != nil {
+		return nil, err
+	}
+
+	return allOfSelectedList, nil
+}
+
+func (i *intentSelectorHandler) handleAnyOfSelectors(selectorList []gpic.AnyOf, allowedClusters []common.Cluster) ([]gpic.AnyOf, error) {
+	var selectedList []gpic.AnyOf
+
+	if selectorList == nil || len(selectorList) == 0 {
+		return selectedList, nil
+	}
+
+	for _, selector := range selectorList {
+		if selector.ProviderName == "" {
+			return nil, fmt.Errorf("\"clusterProvider\" is required")
+		}
+
+		if selector.ClusterName == "" && selector.ClusterLabelName == "" {
+			return nil, fmt.Errorf("no \"clusterName\" or \"clusterLabel\" found")
+		}
+
+		if selector.ClusterName != "" {
+			if !utils.ContainCluster(selector.ProviderName, selector.ClusterName, allowedClusters) {
+				return nil, fmt.Errorf("cluster \"%s\" is not part of DIG's logical cluster", selector.ClusterName)
+			}
+
+			selectedList = append(selectedList, selector)
+			continue
+		}
+
+		// Provided clusterLabel but missing clusterName
+		// need to add clusterName referential integrity
+		clusters, err := cluster.NewClusterClient().GetClustersWithLabel(context.Background(),
+			selector.ProviderName, selector.ClusterLabelName)
+		if err != nil {
+			return nil, err
+		}
+
+		if clusters == nil || len(clusters) == 0 {
+			return nil, fmt.Errorf("no cluster found in cluster provider \"%s\" with label \"%s\"",
+				selector.ProviderName, selector.ClusterLabelName)
+		}
+
+		found := false
+		for _, clusterName := range clusters {
+			if !utils.ContainCluster(selector.ProviderName, clusterName, allowedClusters) {
+				continue
+			}
+
+			found = true
+			selectedList = append(selectedList, gpic.AnyOf{
+				ProviderName:     selector.ProviderName,
+				ClusterName:      clusterName,
+				ClusterLabelName: selector.ClusterLabelName,
+			})
+		}
+
+		if !found {
+			return nil, fmt.Errorf("no cluster with label \"%s\" found in DIG logical cluster", selector.ClusterLabelName)
+		}
+
+	}
+
+	return selectedList, nil
+}
+
+func (i *intentSelectorHandler) isLabelSelected(appIntent *AppIntent) bool {
+	for _, selector := range appIntent.Spec.Intent.AllOfArray {
+		if selector.ClusterLabelName != "" {
+			return true
+		}
+	}
+
+	for _, selector := range appIntent.Spec.Intent.AnyOfArray {
+		if selector.ClusterLabelName != "" {
+			return true
+		}
+	}
+
+	return false
 }

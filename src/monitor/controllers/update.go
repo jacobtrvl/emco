@@ -125,7 +125,7 @@ func (u *DeleteStatusClient) DeleteOne(rbState *k8spluginv1alpha1.ResourceBundle
 			return err
 		}
 		if found {
-			err = u.c.Status().Update(context.TODO(), rbState)
+			err = u.c.Status().Update(context.TODO(), &cr)
 			if err != nil {
 				return err
 			}

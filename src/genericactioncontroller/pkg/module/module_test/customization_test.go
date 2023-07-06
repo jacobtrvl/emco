@@ -9,7 +9,6 @@ import (
 	"github.com/pkg/errors"
 
 	"context"
-
 	"gitlab.com/project-emco/core/emco-base/src/genericactioncontroller/pkg/module"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/module/types"
 )
@@ -43,7 +42,7 @@ var _ = Describe("Create Customization",
 				mc := mockCustomization("test-customization-1")
 				customization, cExists, err := cClient.CreateCustomization(ctx,
 					mc, module.CustomizationContent{}, v.Project, v.CompositeApp, v.Version, v.DeploymentIntentGroup, v.Intent, v.Resource, true)
-				validateError(err, module.CustomizationAlreadyExists)
+				validateError(err, "Customization already exists")
 				validateCustomization(module.Customization{}, customization)
 				Expect(cExists).To(Equal(true))
 				Expect(len(mockdb.Items)).To(Equal(l))
@@ -127,7 +126,7 @@ var _ = Describe("Get Customization",
 				ctx := context.Background()
 				customization, err := cClient.GetCustomization(ctx,
 					"non-existing-customization", v.Project, v.CompositeApp, v.Version, v.DeploymentIntentGroup, v.Intent, v.Resource)
-				validateError(err, module.CustomizationNotFound)
+				validateError(err, "Customization not found")
 				validateCustomization(customization, module.Customization{})
 			})
 		})
@@ -270,7 +269,7 @@ func populateCustomizationContent(customization string) {
 // mockCustomizationContent
 func mockCustomizationContent() module.CustomizationContent {
 	return module.CustomizationContent{
-		Content: []module.Content{
+		[]module.Content{
 			{
 				FileName: "info.json",
 				Content:  "ewogICAgImZydWl0IjogImJlcnJ5IiwKICAgICJhbmltYWwiOiAiZG9nIiwKICAgICJjb2xvciI6ICJyZWQiCn0K",

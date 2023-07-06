@@ -6,14 +6,17 @@ package module
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"reflect"
+	"strings"
 	"time"
+
+	"github.com/google/uuid"
+	pkgerrors "github.com/pkg/errors"
 
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/appcontext"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/db"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/state"
-
-	pkgerrors "github.com/pkg/errors"
 )
 
 // DeploymentIntentGroup shall have 2 fields - MetaData and Spec
@@ -32,16 +35,40 @@ type DepMetaData struct {
 
 // DepSpecData has profile, version, OverrideValuesObj
 type DepSpecData struct {
-	Profile           string           `json:"compositeProfile"`
-	Version           string           `json:"version"`
-	OverrideValuesObj []OverrideValues `json:"overrideValues"`
-	LogicalCloud      string           `json:"logicalCloud"`
+	Id                   string                 `json:"id"`
+	Profile              string                 `json:"compositeProfile"`
+	Version              string                 `json:"version"`
+	OverrideValuesObj    []OverrideValues       `json:"overrideValues"`
+	LogicalCloud         string                 `json:"logicalCloud"`
+	Services             map[string]interface{} `json:"services"`
+	InstantiatedServices map[string]interface{} `json:"instantiatedServices"`
+	Action               string                 `json:"action"`
 }
 
 // OverrideValues has appName and ValuesObj
 type OverrideValues struct {
 	AppName   string            `json:"app"`
 	ValuesObj map[string]string `json:"values"`
+}
+
+func (d *DeploymentIntentGroup) addService(service string) {
+	if d.Spec.Services == nil {
+		d.Spec.Services = map[string]interface{}{}
+	}
+
+	d.Spec.Services[service] = true
+}
+
+func (d *DeploymentIntentGroup) deleteService(service string) {
+	if d.Spec.Services == nil {
+		return
+	}
+
+	if _, ok := d.Spec.Services[service]; !ok {
+		return
+	}
+
+	delete(d.Spec.Services, service)
 }
 
 // Values has ImageRepository
@@ -64,6 +91,36 @@ type DeploymentIntentGroupKey struct {
 	Project      string `json:"project"`
 	CompositeApp string `json:"compositeApp"`
 	Version      string `json:"compositeAppVersion"`
+}
+
+// DeploymentIntentGroupKeyFromDigId receives ID in format of "<project>.<ca>.<version>.<name>"
+func DeploymentIntentGroupKeyFromDigId(id string) (*DeploymentIntentGroupKey, error) {
+	idParts := strings.Split(id, ".")
+	if len(idParts) != 4 {
+		return nil, fmt.Errorf("invalid deployment id \"%s\"", id)
+	}
+
+	return &DeploymentIntentGroupKey{
+		Project:      idParts[0],
+		CompositeApp: idParts[1],
+		Version:      idParts[2],
+		Name:         idParts[3],
+	}, nil
+}
+
+func isValidDigId(digId string) bool {
+	_, err := DeploymentIntentGroupKeyFromDigId(digId)
+	return err == nil
+}
+
+func ValidateDigIds(digIds []string) error {
+	for _, digId := range digIds {
+		if !isValidDigId(digId) {
+			return fmt.Errorf("invalid digId \"%s\"", digId)
+		}
+	}
+
+	return nil
 }
 
 // We will use json marshalling to convert to string to
@@ -102,8 +159,14 @@ func (c *DeploymentIntentGroupClient) CreateDeploymentIntentGroup(ctx context.Co
 		digExists = true
 	}
 
-	if digExists && failIfExists {
-		return DeploymentIntentGroup{}, digExists, pkgerrors.New("DeploymentIntent already exists")
+	if digExists {
+		if failIfExists {
+			return DeploymentIntentGroup{}, digExists, pkgerrors.New("DeploymentIntent already exists")
+		}
+
+		if res.Spec.Services != nil && len(res.Spec.Services) > 0 {
+			return DeploymentIntentGroup{}, digExists, pkgerrors.New("DeploymentIntent used with Services")
+		}
 	}
 
 	gkey := DeploymentIntentGroupKey{
@@ -175,6 +238,7 @@ func (c *DeploymentIntentGroupClient) GetDeploymentIntentGroup(ctx context.Conte
 	}
 
 	result, err := db.DBconn.Find(ctx, c.storeName, key, c.tagMetaData)
+
 	if err != nil {
 		return DeploymentIntentGroup{}, err
 	} else if len(result) == 0 {
@@ -187,11 +251,20 @@ func (c *DeploymentIntentGroupClient) GetDeploymentIntentGroup(ctx context.Conte
 		if err != nil {
 			return DeploymentIntentGroup{}, err
 		}
+		stateInfo, err := c.GetDeploymentIntentGroupState(ctx, d.MetaData.Name, p, ca, v)
+		if err != nil {
+			return DeploymentIntentGroup{}, pkgerrors.New("DeploymentIntentGroup stateInfo not found")
+		}
+
+		currentState, err := state.GetCurrentStateFromStateInfo(stateInfo)
+		if err != nil {
+			return DeploymentIntentGroup{}, pkgerrors.New("DeploymentIntentGroup currentState not found")
+		}
+		d.Spec.Action = currentState
 		return d, nil
 	}
 
 	return DeploymentIntentGroup{}, pkgerrors.New("Unknown Error")
-
 }
 
 // GetAllDeploymentIntentGroups returns all the deploymentIntentGroups under a specific project, compositeApp and version
@@ -227,6 +300,16 @@ func (c *DeploymentIntentGroupClient) GetAllDeploymentIntentGroups(ctx context.C
 		if err != nil {
 			return []DeploymentIntentGroup{}, err
 		}
+		stateInfo, err := c.GetDeploymentIntentGroupState(ctx, di.MetaData.Name, p, ca, v)
+		if err != nil {
+			return []DeploymentIntentGroup{}, pkgerrors.New("DeploymentIntentGroup stateInfo not found")
+		}
+
+		currentState, err := state.GetCurrentStateFromStateInfo(stateInfo)
+		if err != nil {
+			return []DeploymentIntentGroup{}, pkgerrors.New("DeploymentIntentGroup currentState not found")
+		}
+		di.Spec.Action = currentState
 		diList = append(diList, di)
 	}
 
@@ -284,22 +367,34 @@ func (c *DeploymentIntentGroupClient) DeleteDeploymentIntentGroup(ctx context.Co
 		return nil
 	}
 
+	dig, err := c.GetDeploymentIntentGroup(ctx, di, p, ca, v)
+	if err != nil {
+		return err
+	}
+
+	if dig.Spec.Services != nil && len(dig.Spec.Services) > 0 {
+		return pkgerrors.New("DeploymentIntent used with Services")
+	}
+
 	stateVal, err := state.GetCurrentStateFromStateInfo(s)
 	if err != nil {
 		return pkgerrors.Wrap(err, "Error getting current state from DeploymentIntentGroup stateInfo: "+di)
 	}
 
-	if stateVal == state.StateEnum.Instantiated || stateVal == state.StateEnum.InstantiateStopped {
+	if stateVal == state.StateEnum.Instantiated {
 		return pkgerrors.Errorf("DeploymentIntentGroup must be terminated before it can be deleted " + di)
 	}
 
 	// remove the app contexts associated with thie Deployment Intent Group
-	if stateVal == state.StateEnum.Terminated || stateVal == state.StateEnum.TerminateStopped {
+	if stateVal == state.StateEnum.Terminated || stateVal == state.StateEnum.TerminateStopped ||
+		stateVal == state.StateEnum.InstantiateStopped {
 		// Verify that the appcontext has completed terminating
 		ctxid := state.GetLastContextIdFromStateInfo(s)
 		acStatus, err := state.GetAppContextStatus(ctx, ctxid)
 		if err == nil &&
-			!(acStatus.Status == appcontext.AppContextStatusEnum.Terminated || acStatus.Status == appcontext.AppContextStatusEnum.TerminateFailed) {
+			!(acStatus.Status == appcontext.AppContextStatusEnum.Terminated ||
+				acStatus.Status == appcontext.AppContextStatusEnum.TerminateFailed ||
+				acStatus.Status == appcontext.AppContextStatusEnum.InstantiateFailed) {
 			return pkgerrors.New("DeploymentIntentGroup has not completed terminating: " + di)
 		}
 
@@ -317,4 +412,19 @@ func (c *DeploymentIntentGroupClient) DeleteDeploymentIntentGroup(ctx context.Co
 
 	err = db.DBconn.Remove(ctx, c.storeName, k)
 	return err
+}
+
+func (c *DeploymentIntentGroupClient) cloneDeploymentIntentGroup(ctx context.Context, p, ca, v, di, tDi string, cloneNumber int) (*DeploymentIntentGroup, error) {
+	dig, err := c.GetDeploymentIntentGroup(ctx, di, p, ca, v)
+	if err != nil {
+		return nil, err
+	}
+
+	dig.MetaData.Name = tDi
+	dig.Spec.Id = uuid.New().String()
+	dig.Spec.Version = fmt.Sprintf("%s-%d", dig.Spec.Version, cloneNumber)
+	dig.Spec.Services = map[string]interface{}{}
+	dig.Spec.InstantiatedServices = map[string]interface{}{}
+	dig, _, err = c.CreateDeploymentIntentGroup(ctx, dig, p, ca, v, true)
+	return &dig, err
 }

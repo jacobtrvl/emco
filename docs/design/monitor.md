@@ -150,33 +150,7 @@ status:
 
 * All other Kubernetes resources
 
-The Monitor can be configured to Monitor any type of Kubernetes resource using a ConfigMap.
-This configmap is created at the time of Monitor installation and is part of the Monitor Helm chart.
-
-https://gitlab.com/project-emco/core/emco-base/-/blob/main/deployments/helm/monitor/templates/configmap.yml
-
-This is an example of the config map that is configuring Monitor to watch 2 additional resources.
-
-```
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: {{ .Release.Name }}-monitor-list
-  namespace: {{ .Release.Namespace }}
-data:
-  gvk.conf: |
-      [
-        {"Group": "k8s.plugin.opnfv.org", "Version": "v1alpha1", "Kind": "Network", "Resource": "networks" },
-        {"Group": "rbac.authorization.k8s.io", "Version": "v1", "Kind": "ClusterRole", "Resource": "clusterroles"}
-      ]
-
-```
-
-The configmap can be modified to add/remove additional resources to watch. Any change to configmap requires the Monitor pod to be restarted before the changes can take effect.
-
-Note: Use `kubectl api-resources` command to find the group, version, kind and resource fields for the resource that requires monitoring.
-
-These kinds of resources are captured in the ResourceBundleState CR in the format as shown in the example below. These resources are stored under *resourceStatuses* field in the CR status. The Kubernetes resource is converted to a byte array and stored in the *res* field as shown below.
+The Monitor can monitor any type of Kubernetes resource. These kinds of resources are captured in the ResourceBundleState CR in the format as shown in the example below. These resources are stored under *resourceStatuses* field in the CR status. The Kubernetes resource is converted to a byte array and stored in the *res* field as shown below.
 
 ```
 apiVersion: k8splugin.io/v1alpha1
@@ -206,6 +180,8 @@ iXX1dfQ==
     version: v1
 
 ```
+
+Note: Use `kubectl api-resources` command to find the group, version, kind and resource fields for the resource that requires monitoring.
 
 ## GitOps support
 

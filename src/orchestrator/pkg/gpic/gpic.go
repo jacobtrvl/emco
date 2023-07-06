@@ -10,11 +10,20 @@ package gpic
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"strconv"
 
 	pkgerrors "github.com/pkg/errors"
+
 	"gitlab.com/project-emco/core/emco-base/src/clm/pkg/cluster"
+)
+
+type ClusterSelector string
+
+const (
+	NameClusterSelector  = ClusterSelector("name")
+	LabelClusterSelector = ClusterSelector("label")
 )
 
 // ClusterList consists of mandatoryClusters and OptionalClusters
@@ -43,8 +52,9 @@ type ClusterWithLabel struct {
 
 // IntentStruc consists of AllOfArray and AnyOfArray
 type IntentStruc struct {
-	AllOfArray []AllOf `json:"allOf,omitempty"`
-	AnyOfArray []AnyOf `json:"anyOf,omitempty"`
+	Selector   ClusterSelector `json:"selector,omitempty"`
+	AllOfArray []AllOf         `json:"allOf,omitempty"`
+	AnyOfArray []AnyOf         `json:"anyOf,omitempty"`
 }
 
 // AllOf consists if ProviderName, ClusterName, ClusterLabelName and AnyOfArray. Any of them can be empty
@@ -64,12 +74,19 @@ type AnyOf struct {
 
 // intentResolverHelper helps to populate the cluster lists
 var intentResolverHelper = func(pn, cn, cln string, clusters []ClusterWithName) ([]ClusterWithName, error) {
-	if cln == "" && cn != "" {
+	if pn == "" {
+		return nil, fmt.Errorf("\"clusterProvider\" is required")
+	}
+
+	if cn == "" && cln == "" {
+		return nil, fmt.Errorf("no \"clusterName\" or \"clusterLabel\" found")
+	}
+
+	if cn != "" {
 		eachClusterWithName := ClusterWithName{pn, cn}
 		clusters = append(clusters, eachClusterWithName)
 		log.Printf("Added Cluster: %s ", cn)
-	}
-	if cn == "" && cln != "" {
+	} else {
 		//Finding cluster names for the clusterlabel
 		clusterNamesList, err := cluster.NewClusterClient().GetClustersWithLabel(context.Background(), pn, cln)
 		if err != nil {
@@ -82,6 +99,7 @@ var intentResolverHelper = func(pn, cn, cln string, clusters []ClusterWithName) 
 			log.Printf("Added Cluster :: %s through its label: %s ", eachClusterName, cln)
 		}
 	}
+
 	return clusters, nil
 }
 
@@ -104,20 +122,8 @@ func IntentResolver(intent IntentStruc) (ClusterList, error) {
 			eachMandatoryCluster := ClusterGroup{Clusters: arrCname, GroupNumber: strconv.Itoa(index)}
 			mClusters = append(mClusters, eachMandatoryCluster)
 		}
-
-		if len(eachAllOf.AnyOfArray) > 0 {
-			index++
-			for _, eachAnyOf := range eachAllOf.AnyOfArray {
-				var opc []ClusterWithName
-				opc, err = intentResolverHelper(eachAnyOf.ProviderName, eachAnyOf.ClusterName, eachAnyOf.ClusterLabelName, opc)
-				if err != nil {
-					return ClusterList{}, pkgerrors.Wrap(err, "intentResolverHelper error")
-				}
-				eachOptionalCluster := ClusterGroup{Clusters: opc, GroupNumber: strconv.Itoa(index)}
-				oClusters = append(oClusters, eachOptionalCluster)
-			}
-		}
 	}
+
 	if len(intent.AnyOfArray) > 0 {
 		index++
 		for _, eachAnyOf := range intent.AnyOfArray {

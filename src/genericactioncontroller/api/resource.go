@@ -6,6 +6,7 @@ package api
 import (
 	"bytes"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"mime"
@@ -15,7 +16,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"gitlab.com/project-emco/core/emco-base/src/genericactioncontroller/pkg/module"
-	"gitlab.com/project-emco/core/emco-base/src/orchestrator/common/emcoerror"
+	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/apierror"
 	log "gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/logutils"
 )
 
@@ -46,7 +47,7 @@ func (h resourceHandler) handleResourceDelete(w http.ResponseWriter, r *http.Req
 	vars := _rVars(mux.Vars(r))
 	if err := h.client.DeleteResource(ctx, vars.resource, vars.project, vars.compositeApp, vars.version,
 		vars.deploymentIntentGroup, vars.intent); err != nil {
-		apiErr := emcoerror.HandleAPIError(err)
+		apiErr := apierror.HandleErrors(mux.Vars(r), err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
 		return
 	}
@@ -62,10 +63,16 @@ func (h resourceHandler) handleResourceGet(w http.ResponseWriter, r *http.Reques
 		resources, err := h.client.GetAllResources(ctx, vars.project, vars.compositeApp, vars.version,
 			vars.deploymentIntentGroup, vars.intent)
 		if err != nil {
-			apiErr := emcoerror.HandleAPIError(err)
+			apiErr := apierror.HandleErrors(mux.Vars(r), err, nil, apiErrors)
 			http.Error(w, apiErr.Message, apiErr.Status)
 			return
 		}
+
+		if resources == nil {
+			sendResponse(w, resources, http.StatusNotFound)
+			return
+		}
+
 		sendResponse(w, resources, http.StatusOK)
 		return
 	}
@@ -73,7 +80,7 @@ func (h resourceHandler) handleResourceGet(w http.ResponseWriter, r *http.Reques
 	resource, err := h.client.GetResource(ctx, vars.resource, vars.project, vars.compositeApp, vars.version,
 		vars.deploymentIntentGroup, vars.intent)
 	if err != nil {
-		apiErr := emcoerror.HandleAPIError(err)
+		apiErr := apierror.HandleErrors(mux.Vars(r), err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
 		return
 	}
@@ -81,7 +88,7 @@ func (h resourceHandler) handleResourceGet(w http.ResponseWriter, r *http.Reques
 	content, err := h.client.GetResourceContent(ctx, vars.resource, vars.project, vars.compositeApp, vars.version,
 		vars.deploymentIntentGroup, vars.intent)
 	if err != nil {
-		apiErr := emcoerror.HandleAPIError(err)
+		apiErr := apierror.HandleErrors(mux.Vars(r), err, nil, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
 		return
 	}
@@ -147,9 +154,8 @@ func (h resourceHandler) createOrUpdateResource(w http.ResponseWriter, r *http.R
 	// the multipart/form-data should contain the key `metadata` with resource payload as the value
 	data := bytes.NewBuffer([]byte(r.FormValue("metadata")))
 	// validate the request body before storing it in the database
-	if err := validateRequestBody(data, &resource, ResourceSchemaJson); err != nil {
-		apiErr := emcoerror.HandleAPIError(err)
-		http.Error(w, apiErr.Message, apiErr.Status)
+	if code, err := validateRequestBody(data, &resource, ResourceSchemaJson); err != nil {
+		http.Error(w, err.Error(), code)
 		return
 	}
 
@@ -199,7 +205,7 @@ func (h resourceHandler) createOrUpdateResource(w http.ResponseWriter, r *http.R
 		vars.project, vars.compositeApp, vars.version, vars.deploymentIntentGroup, vars.intent,
 		methodPost)
 	if err != nil {
-		apiErr := emcoerror.HandleAPIError(err)
+		apiErr := apierror.HandleErrors(mux.Vars(r), err, resource, apiErrors)
 		http.Error(w, apiErr.Message, apiErr.Status)
 		return
 	}
@@ -285,10 +291,7 @@ func validateResourceData(r module.Resource) error {
 	}
 
 	if len(err) > 0 {
-		return emcoerror.NewEmcoError(
-			strings.Join(err, "\n"),
-			emcoerror.BadRequest,
-		)
+		return errors.New(strings.Join(err, "\n"))
 	}
 
 	return nil

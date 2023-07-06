@@ -33,7 +33,7 @@ var DependencyGauge = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 var DIGGauge = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 	Name: "emco_deployment_intent_group",
 	Help: "Count of Deployment Intent Groups",
-}, []string{"name", "project", "composite_app", "composite_app_version"})
+}, []string{"name", "project", "composite_app", "composite_app_version", "state"})
 
 var GenericPlacementIntentGauge = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 	Name: "emco_generic_placement_intent",

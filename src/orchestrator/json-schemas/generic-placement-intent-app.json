@@ -35,6 +35,10 @@
           },
           "intent": {
             "properties": {
+            "selector": {
+                "type": "string",
+                "enum": [ "name", "label"]
+            },
             "anyOf": {
               "items": {"$ref": "#/definitions/clusterSpecific" },
               "type": "array"

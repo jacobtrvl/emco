@@ -193,12 +193,21 @@ func (r *resProvd) instantiateResource(ctx context.Context, name string, ref int
 		r.updateResourceStatus(ctx, name, resourcestatus.ResourceStatus{Status: resourcestatus.RsyncStatusEnum.Failed})
 		return nil, err
 	}
-	label := r.context.statusAcID + "-" + r.app
+
+	label := map[string]string{}
+	label["emco/deployment-id"] = r.context.statusAcID + "-" + r.app
 	b, err := r.cl.TagResource(res, label)
+
 	if err != nil {
 		log.Error("Error Tag Resoruce with label:", log.Fields{"err": err, "label": label, "resource": name})
 		return nil, err
 	}
+
+	b, err = status.AddServicesLabels(b, r.context.meta.Services)
+	if err != nil {
+		return nil, err
+	}
+
 	if q, err = r.cl.Apply(ctx, name, ref, b); err != nil {
 		r.updateResourceStatus(ctx, name, resourcestatus.ResourceStatus{Status: resourcestatus.RsyncStatusEnum.Failed})
 		log.Error("Failed to apply res", log.Fields{"error": err, "resource": name})
@@ -217,11 +226,19 @@ func (r *resProvd) createResource(ctx context.Context, name string, ref interfac
 		return nil, err
 	}
 	label := r.context.statusAcID + "-" + r.app
-	b, err := r.cl.TagResource(res, label)
+	labels := map[string]string{}
+	labels["emco/deployment-id"] = label
+	b, err := r.cl.TagResource(res, labels)
 	if err != nil {
 		log.Error("Error Tag Resoruce with label:", log.Fields{"err": err, "label": label, "resource": name})
 		return nil, err
 	}
+
+	b, err = status.AddServicesLabels(b, r.context.meta.Services)
+	if err != nil {
+		return nil, err
+	}
+
 	if q, err = r.cl.Create(name, ref, b); err != nil {
 		r.updateResourceStatus(ctx, name, resourcestatus.ResourceStatus{Status: resourcestatus.RsyncStatusEnum.Failed})
 		log.Error("Failed to create res", log.Fields{"error": err, "resource": name})

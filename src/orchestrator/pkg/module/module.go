@@ -20,6 +20,7 @@ type Client struct {
 	CompositeProfile       *CompositeProfileClient
 	AppProfile             *AppProfileClient
 	AppDependency          *AppDependencyClient
+	Service                ServiceManager
 	// Add Clients for API's here
 	Instantiation *InstantiationClient
 }
@@ -38,6 +39,7 @@ func NewClient() *Client {
 	c.CompositeProfile = NewCompositeProfileClient()
 	c.AppProfile = NewAppProfileClient()
 	c.AppDependency = NewAppDependencyClient()
+	c.Service = NewServiceClient()
 	// Add Client API handlers here
 	c.Instantiation = NewInstantiationClient()
 	return c

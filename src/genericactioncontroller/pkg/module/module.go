@@ -3,16 +3,6 @@
 
 package module
 
-// gac errors
-const (
-	CustomizationAlreadyExists    string = "customization already exists"
-	CustomizationNotFound         string = "customization not found"
-	GenericK8sIntentAlreadyExists string = "genericK8sIntent already exists"
-	GenericK8sIntentNotFound      string = "genericK8sIntent not found"
-	ResourceAlreadyExists         string = "resource already exists"
-	ResourceNotFound              string = "resource not found"
-)
-
 //  Client for using the services
 type Client struct {
 	// Add Clients for API's here

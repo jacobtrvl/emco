@@ -40,6 +40,7 @@ type InstantiationClient struct {
 // DeploymentStatus is the structure used to return general status results
 // for the Deployment Intent Group
 type DeploymentStatus struct {
+	DigId                string `json:"digId",omitempty`
 	Project              string `json:"project,omitempty"`
 	CompositeAppName     string `json:"compositeApp,omitempty"`
 	CompositeAppVersion  string `json:"compositeAppVersion,omitempty"`
@@ -92,6 +93,13 @@ type InstantiationKey struct {
 	DeploymentIntentGroup string
 }
 
+// CloneJson contains spec for clone API
+type CloneJson struct {
+	CloneDigNamePrefix string `json:"cloneDigNamePrefix"`
+	NumberOfClones     int    `json:"numberOfClones"`
+	StartNumber        int    `json:"startNumber"`
+}
+
 // InstantiationManager is an interface which exposes the
 // InstantiationManager functionalities
 type InstantiationManager interface {
@@ -107,6 +115,7 @@ type InstantiationManager interface {
 	Migrate(ctx context.Context, p string, ca string, v string, tCav string, di string, tDi string) error
 	Update(ctx context.Context, p string, ca string, v string, di string) (int64, error)
 	Rollback(ctx context.Context, p string, ca string, v string, di string, rbRev string) error
+	CloneDig(ctx context.Context, p, ca, v, di string, cloneSpec *CloneJson) ([]DeploymentIntentGroup, error)
 }
 
 // InstantiationClientDbInfo consists of storeName and tagState
@@ -125,7 +134,7 @@ func NewInstantiationClient() *InstantiationClient {
 	}
 }
 
-//Approve approves an instantiation
+// Approve approves an instantiation
 func (c InstantiationClient) Approve(ctx context.Context, p string, ca string, v string, di string) error {
 	s, err := NewDeploymentIntentGroupClient().GetDeploymentIntentGroupState(ctx, di, p, ca, v)
 	if err != nil {
@@ -185,8 +194,8 @@ func getOverrideValuesByAppName(ov []OverrideValues, a string) map[string]string
 }
 
 /*
-	findGenericPlacementIntent takes in projectName, CompositeAppName, CompositeAppVersion, DeploymentIntentName
-	and returns the name of the genericPlacementIntentName. Returns empty value if string not found.
+findGenericPlacementIntent takes in projectName, CompositeAppName, CompositeAppVersion, DeploymentIntentName
+and returns the name of the genericPlacementIntentName. Returns empty value if string not found.
 */
 func findGenericPlacementIntent(ctx context.Context, p, ca, v, di string) (string, error) {
 	var gi string
@@ -205,7 +214,7 @@ func findGenericPlacementIntent(ctx context.Context, p, ca, v, di string) (strin
 }
 
 // GetSortedTemplateForApp returns the sorted templates.
-//It takes in arguments - appName, project, compositeAppName, releaseName, compositeProfileName, array of override values
+// It takes in arguments - appName, project, compositeAppName, releaseName, compositeProfileName, array of override values
 func GetSortedTemplateForApp(ctx context.Context, appName, p, ca, v, rName, cp, namespace string, overrideValues []OverrideValues) ([]helm.KubernetesResourceTemplate, []*helm.Hook, error) {
 
 	log.Info(":: Processing App ::", log.Fields{"appName": appName})
@@ -435,6 +444,8 @@ func (c InstantiationClient) Instantiate(ctx context.Context, p string, ca strin
 	// Call Post INSTANTIATE Event for all controllers
 	_ = callPostEventScheduler(ctx, cca.ctxval, p, ca, v, di, "INSTANTIATE")
 
+	go c.CleanDIGAppContext(s.StatusContextId)
+
 	log.Info(":: Done with instantiation call to rsync... ::", log.Fields{"CompositeAppName": ca})
 	return err
 }
@@ -461,6 +472,7 @@ func (c InstantiationClient) Status(ctx context.Context, p, ca, v, di, qInstance
 	}
 	statusResponse.Name = di
 	diStatus := DeploymentStatus{
+		DigId:                dIGrp.Spec.Id,
 		Project:              p,
 		CompositeAppName:     ca,
 		CompositeAppVersion:  v,
@@ -750,4 +762,115 @@ func (c InstantiationClient) Stop(ctx context.Context, p string, ca string, v st
 	}
 
 	return nil
+}
+
+func (c InstantiationClient) cloneDig(ctx context.Context, p, ca, v, di, tDi string, cloneNumber int) (*DeploymentIntentGroup, error) {
+	// Clone DIG
+	dig, err := NewDeploymentIntentGroupClient().cloneDeploymentIntentGroup(ctx, p, ca, v, di, tDi, cloneNumber)
+	if err != nil {
+		return nil, err
+	}
+
+	// Clone Intents
+	_, err = NewIntentClient().CloneIntents(ctx, p, ca, v, di, tDi)
+	if err != nil {
+		return nil, err
+	}
+
+	// Clone generic placement Intents
+	genericPlacementIntents, err := NewGenericPlacementIntentClient().CloneGenericPlacementIntents(ctx, p, ca, v, di, tDi)
+	if err != nil {
+		return nil, err
+	}
+
+	// Clone placement Intents
+	for _, gpi := range genericPlacementIntents {
+		_, err = NewAppIntentClient().CloneAppIntents(ctx, p, ca, v, gpi.MetaData.Name, di, tDi)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return dig, nil
+}
+
+func (c InstantiationClient) CloneDig(ctx context.Context, p, ca, v, di string, cloneSpec *CloneJson) ([]DeploymentIntentGroup, error) {
+	var digs []DeploymentIntentGroup
+
+	for i := 0; i < cloneSpec.NumberOfClones; i++ {
+		tDi := fmt.Sprintf("%s-%d", cloneSpec.CloneDigNamePrefix, cloneSpec.StartNumber+i)
+		dig, err := c.cloneDig(ctx, p, ca, v, di, tDi, i)
+		if err != nil {
+			return nil, err
+		}
+
+		digs = append(digs, *dig)
+	}
+
+	return digs, nil
+}
+
+func (c InstantiationClient) CleanDIGAppContext(contextId string) error {
+	if contextId == "" {
+		return nil
+	}
+
+	ctx := context.Background()
+	appContext, err := state.GetAppContextFromId(ctx, contextId)
+	if err != nil {
+		return fmt.Errorf("error getting appContext %q", contextId)
+	}
+
+	return appContext.DeleteCompositeApp(ctx)
+}
+
+func (c InstantiationClient) UpdateInstantiated(ctx context.Context, p string, ca string, v string, di string) error {
+	log.Info(":: Orchestrator UpdateInstantiated ::", log.Fields{"project": p, "composite-app": ca, "composite-app-ver": v, "dep-group": di})
+
+	span := trace.SpanFromContext(ctx)
+	span.AddEvent("retrieve-info")
+
+	// in case of migrate dig comes from JSON body
+	dIGrp, err := NewDeploymentIntentGroupClient().GetDeploymentIntentGroup(ctx, di, p, ca, v)
+	if err != nil {
+		return pkgerrors.Wrap(err, "DeploymentIntentGroup not found")
+	}
+
+	s, err := NewDeploymentIntentGroupClient().GetDeploymentIntentGroupState(ctx, di, p, ca, v)
+	if err != nil {
+		return pkgerrors.Wrap(err, "Error retrieving DeploymentIntentGroup stateInfo: "+di)
+	}
+
+	// BEGIN : Make app context
+	span.AddEvent("create-app-context")
+	instantiator := Instantiator{p, ca, v, di, dIGrp}
+	cca, err := instantiator.MakeAppContext(ctx)
+	if err != nil {
+		return pkgerrors.Wrap(err, "Error in making AppContext")
+	}
+	// END : Make app context
+
+	// BEGIN : callScheduler
+	err = callScheduler(ctx, cca.context, cca.ctxval, nil, p, ca, v, di)
+	if err != nil {
+		return pkgerrors.Wrap(err, "Error in callScheduler")
+	}
+	// END : callScheduler
+
+	// BEGIN : Rsync code
+	err = callRsyncInstall(ctx, cca.ctxval)
+	if err != nil {
+		deleteAppContext(ctx, cca.context)
+		return pkgerrors.Wrap(err, "Error calling rsync")
+	}
+	// END : Rsync code
+
+	err = storeAppContextIntoMetaDB(ctx, cca.ctxval, c.db.storeName, c.db.tagState, s, p, ca, v, di)
+
+	// Call Post INSTANTIATE Event for all controllers
+	_ = callPostEventScheduler(ctx, cca.ctxval, p, ca, v, di, "UPDATE")
+
+	go c.CleanDIGAppContext(s.StatusContextId)
+
+	log.Info(":: Done with UpdateInstantiation call to rsync... ::", log.Fields{"CompositeAppName": ca})
+	return err
 }

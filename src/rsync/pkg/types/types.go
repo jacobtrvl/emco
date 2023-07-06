@@ -216,7 +216,7 @@ type ResourceProvider interface {
 	Get(ctx context.Context, name string, gvkRes []byte) ([]byte, error)
 	Commit(ctx context.Context, ref interface{}) error
 	IsReachable() error
-	TagResource([]byte, string) ([]byte, error)
+	TagResource([]byte, map[string]string) ([]byte, error)
 }
 
 type StatusProvider interface {

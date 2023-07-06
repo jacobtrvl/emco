@@ -9,7 +9,6 @@ import (
 	"github.com/pkg/errors"
 
 	"context"
-
 	"gitlab.com/project-emco/core/emco-base/src/genericactioncontroller/pkg/module"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/module/types"
 )
@@ -43,7 +42,7 @@ var _ = Describe("Create GenericK8sIntent",
 				mgki := mockGenericK8sIntent("test-gki-1")
 				gki, gkiExists, err := gkiClient.CreateGenericK8sIntent(ctx,
 					mgki, v.Project, v.CompositeApp, v.Version, v.DeploymentIntentGroup, true)
-				validateError(err, module.GenericK8sIntentAlreadyExists)
+				validateError(err, "GenericK8sIntent already exists")
 				validateGenericK8sIntent(gki, module.GenericK8sIntent{})
 				Expect(gkiExists).To(Equal(true))
 				Expect(len(mockdb.Items)).To(Equal(l))
@@ -127,7 +126,7 @@ var _ = Describe("Get GenericK8sIntent",
 				ctx := context.Background()
 				gki, err := gkiClient.GetGenericK8sIntent(ctx,
 					"non-existing-gki", v.Project, v.CompositeApp, v.Version, v.DeploymentIntentGroup)
-				validateError(err, module.GenericK8sIntentNotFound)
+				validateError(err, "GenericK8sIntent not found")
 				validateGenericK8sIntent(gki, module.GenericK8sIntent{})
 			})
 		})

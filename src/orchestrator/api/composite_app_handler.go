@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"github.com/google/uuid"
 
 	"github.com/gorilla/mux"
 	"gitlab.com/project-emco/core/emco-base/src/orchestrator/pkg/infra/apierror"
@@ -51,6 +52,9 @@ func (h compositeAppHandler) createHandler(w http.ResponseWriter, r *http.Reques
 	ctx := r.Context()
 	vars := mux.Vars(r)
 	projectName := vars["project"]
+
+	// Add unique identifier to composite app
+	c.Spec.Id = uuid.New().String()
 
 	ret, err := h.client.CreateCompositeApp(ctx, c, projectName, false)
 	if err != nil {

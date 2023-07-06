@@ -216,6 +216,38 @@ func (c IntentClient) GetAllIntents(ctx context.Context, p string, ca string, v 
 	return ListOfIntents{}, err
 }
 
+func (c IntentClient) getAllIntents(ctx context.Context, p string, ca string, v string, di string) ([]*Intent, error) {
+	k := IntentKey{
+		Name:                  "",
+		Project:               p,
+		CompositeApp:          ca,
+		Version:               v,
+		DeploymentIntentGroup: di,
+	}
+
+	result, err := db.DBconn.Find(ctx, c.storeName, k, c.tagMetaData)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(result) == 0 {
+		return []*Intent{}, nil
+	}
+
+	var intents []*Intent
+	for i := range result {
+		a := &Intent{}
+		err = db.DBconn.Unmarshal(result[i], a)
+		if err != nil {
+			return nil, err
+		}
+
+		intents = append(intents, a)
+	}
+
+	return intents, nil
+}
+
 // DeleteIntent deletes a given intent tied to project, composite app and deployment intent group
 func (c IntentClient) DeleteIntent(ctx context.Context, i string, p string, ca string, v string, di string) error {
 	k := IntentKey{
@@ -228,4 +260,20 @@ func (c IntentClient) DeleteIntent(ctx context.Context, i string, p string, ca s
 
 	err := db.DBconn.Remove(ctx, c.storeName, k)
 	return err
+}
+
+func (c IntentClient) CloneIntents(ctx context.Context, p, ca, v, di, tDi string) ([]*Intent, error) {
+	intents, err := c.getAllIntents(ctx, p, ca, v, di)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, intent := range intents {
+		_, _, err := c.AddIntent(ctx, *intent, p, ca, v, tDi, true)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return intents, nil
 }
