@@ -103,6 +103,15 @@ func TestCreateDeploymentIntentGroup(t *testing.T) {
 									"}," +
 									"\"spec\":{" +
 									"\"compositeAppVersion\":\"version of the composite app\"}}"),
+							"stateInfo": []byte(
+								"{ \"statusctxid\": \"\"," +
+									"\"actions\": [{" +
+									"\"state\":\"Approved\"," +
+									"\"instance\":\"\"," +
+									"\"time\":\"2021-10-15T19:26:06.865+00:00\", " +
+									"\"revision\":0" +
+									"}]" +
+									"}"),
 						},
 					},
 				},
@@ -194,6 +203,15 @@ func TestCreateDeploymentIntentGroup(t *testing.T) {
 									"\"logicalCloud\": \"cloud1\"" +
 									"}" +
 									"}"),
+							"stateInfo": []byte(
+								"{ \"statusctxid\": \"\"," +
+									"\"actions\": [{" +
+									"\"state\":\"Approved\"," +
+									"\"instance\":\"\"," +
+									"\"time\":\"2021-10-15T19:26:06.865+00:00\", " +
+									"\"revision\":0" +
+									"}]" +
+									"}"),
 						},
 					},
 				},
@@ -267,6 +285,7 @@ func TestGetDeploymentIntentGroup(t *testing.T) {
 						},
 					},
 					LogicalCloud: "cloud1",
+					Action:       "Approved",
 				},
 			},
 			db: &db.MockDB{
@@ -303,6 +322,15 @@ func TestGetDeploymentIntentGroup(t *testing.T) {
 									"]," +
 									"\"logicalCloud\": \"cloud1\"" +
 									"}" +
+									"}"),
+							"stateInfo": []byte(
+								"{ \"statusctxid\": \"\"," +
+									"\"actions\": [{" +
+									"\"state\":\"Approved\"," +
+									"\"instance\":\"\"," +
+									"\"time\":\"2021-10-15T19:26:06.865+00:00\", " +
+									"\"revision\":0" +
+									"}]" +
 									"}"),
 						},
 						DeploymentIntentGroupKey{
@@ -752,6 +780,7 @@ func TestGetAllDeploymentIntentGroups(t *testing.T) {
 							},
 						},
 						LogicalCloud: "cloud1",
+						Action:       "Created",
 					},
 				},
 			},
@@ -805,6 +834,22 @@ func TestGetAllDeploymentIntentGroups(t *testing.T) {
 									"]," +
 									"\"logicalCloud\": \"cloud1\"" +
 									"}" +
+									"}"),
+						},
+						DeploymentIntentGroupKey{
+							Name:         "testDeploymentIntentGroup",
+							Project:      "testProject",
+							CompositeApp: "testCompositeApp",
+							Version:      "testCompositeAppVersion",
+						}.String(): {
+							"stateInfo": []byte(
+								"{ \"statusctxid\": \"\"," +
+									"\"actions\": [{" +
+									"\"state\":\"Created\"," +
+									"\"instance\":\"\"," +
+									"\"time\":\"2021-10-15T19:26:06.865+00:00\", " +
+									"\"revision\":0" +
+									"}]" +
 									"}"),
 						},
 					},

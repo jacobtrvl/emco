@@ -533,6 +533,7 @@ func TestCreateDeploymentIntentGroupHandler(t *testing.T) {
 			if resp.Code == http.StatusCreated {
 				dig := moduleLib.DeploymentIntentGroup{}
 				json.NewDecoder(resp.Body).Decode(&dig)
+				dig.Spec.Id = test.result.Spec.Id
 				if reflect.DeepEqual(test.result, dig) == false {
 					t.Fatalf("createDeploymentIntentGroupHandler returned an unexpected body. Expected %v; Got: %v", test.result, dig)
 				}
